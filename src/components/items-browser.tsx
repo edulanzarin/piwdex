@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { Item } from "@/lib/types";
 import { itemIconUrl } from "@/lib/sprites";
 import { Sprite } from "./sprite";
+import { Gold } from "./icons";
 
 export function ItemsBrowser({ items }: { items: Item[] }) {
   const [q, setQ] = useState("");
@@ -58,8 +59,8 @@ export function ItemsBrowser({ items }: { items: Item[] }) {
                   {i.category}
                   {i.rare ? " · raro" : ""}
                 </div>
-                <div className="mt-0.5 text-[0.7rem] text-yellow tabular-nums">
-                  {i.npcPrice.toLocaleString("pt-BR")} <span className="text-text-dim">npc</span>
+                <div className="mt-0.5 flex items-center gap-1 text-[0.7rem] text-yellow">
+                  <Gold value={i.npcPrice} /> <span className="text-text-dim">npc</span>
                 </div>
               </div>
             </Link>

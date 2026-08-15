@@ -13,6 +13,7 @@ import { defensiveProfile, TYPE_COLOR } from "@/lib/typing";
 import type { PokeType } from "@/lib/types";
 import { TypeBadge, TypeBadges } from "@/components/badges";
 import { Sprite } from "@/components/sprite";
+import { Gold } from "@/components/icons";
 
 export function generateStaticParams() {
   return creatures.map((c) => ({ id: String(c.pokeId) }));
@@ -109,8 +110,8 @@ export default async function CreaturePage({
           <div className="mt-1 flex flex-wrap gap-x-5 gap-y-1 text-sm">
             <span className="text-text-dim">Hunt lvl <strong className="text-text">{c.huntLevel}</strong></span>
             <span className="text-text-dim">XP <strong className="text-text">{c.experience.toLocaleString("pt-BR")}</strong></span>
-            <span className="text-text-dim">Venda <strong className="text-text">{c.sellValue.toLocaleString("pt-BR")}</strong></span>
-            <span className="text-text-dim">NPC <strong className="text-text">{c.priceNpc.toLocaleString("pt-BR")}</strong></span>
+            <span className="inline-flex items-center gap-1 text-text-dim">Venda <strong className="text-yellow"><Gold value={c.sellValue} /></strong></span>
+            <span className="inline-flex items-center gap-1 text-text-dim">NPC <strong className="text-yellow"><Gold value={c.priceNpc} /></strong></span>
           </div>
         </div>
       </div>

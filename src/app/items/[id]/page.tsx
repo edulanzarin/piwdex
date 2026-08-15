@@ -5,6 +5,7 @@ import { dropSourcesOf, getItem, items } from "@/lib/data";
 import { itemIconUrl, spriteUrl } from "@/lib/sprites";
 import { TypeBadges } from "@/components/badges";
 import { Sprite } from "@/components/sprite";
+import { Gold } from "@/components/icons";
 
 export function generateStaticParams() {
   return items.map((i) => ({ id: String(i.id) }));
@@ -53,7 +54,9 @@ export default async function ItemPage({
           <div className="flex flex-wrap items-center gap-2 text-sm text-text-dim">
             <span className="chip" style={{ background: "var(--surface-2)", color: "var(--text)" }}>{item.category}</span>
             {item.rare && <span className="text-yellow font-semibold text-[0.7rem] uppercase">raro</span>}
-            <span>NPC {item.npcPrice.toLocaleString("pt-BR")}</span>
+            <span className="inline-flex items-center gap-1 text-yellow">
+              <Gold value={item.npcPrice} /> <span className="text-text-dim">npc</span>
+            </span>
             {item.healAmount ? <span>cura {item.healAmount}</span> : null}
           </div>
         </div>
