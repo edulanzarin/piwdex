@@ -200,11 +200,7 @@ export function RouteGenerator({ species, enemies }: { species: Species[]; enemi
                   <span className={`pixel text-[0.7rem] ${p.eff >= 2 ? "text-green" : p.eff > 1 ? "text-cyan" : "text-text-dim"}`}>{effLabel(p.eff)}</span>
                 </div>
 
-                <div className="grid grid-cols-3 gap-3 border-t border-border/50 pt-3 text-right lg:w-52 lg:shrink-0 lg:border-l lg:border-t-0 lg:pl-4 lg:pt-0">
-                  <div className="flex flex-col items-end gap-0.5">
-                    <span className="text-[0.5rem] uppercase tracking-wide text-text-dim">{t("hunt.col.hits")}</span>
-                    <span className="tabular-nums text-sm font-bold text-text">≈{p.hits}</span>
-                  </div>
+                <div className="grid grid-cols-2 gap-4 border-t border-border/50 pt-3 text-right lg:w-40 lg:shrink-0 lg:border-l lg:border-t-0 lg:pl-4 lg:pt-0">
                   <div className="flex flex-col items-end gap-0.5">
                     <span className="text-[0.5rem] uppercase tracking-wide text-text-dim">{t("hunt.col.xp")}</span>
                     <span className="tabular-nums text-sm font-bold text-green">{compact(xp)}</span>

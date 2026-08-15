@@ -1,22 +1,20 @@
-// Motor da rota de hunt. Efetividade de tipo e a amplificacao de hunt sao do jogo
-// (doc Combat); XP e ouro por kill idem. O dano-por-hit e os "hits pra derrubar" sao
-// ESTIMATIVA (o jogo nao publica a formula de dano) — servidos sempre rotulados.
-// A velocidade de ataque (cooldown -> intervalo via speed/haste) o jogo tambem nao
-// publica, entao NAO cravamos KOs/h absoluto: como o golpe e fixo, o tempo de kill e
-// proporcional aos hits, e xp/hits (ou ouro/hits) ordena "mais rapido" de forma justa.
+// Motor da rota de hunt. Usa SO dados reais do jogo: efetividade de tipo (com a
+// amplificacao de hunt da doc Combat), XP e ouro por kill, e o Power (soma dos stats
+// x qualidade) pra saber o que voce encara. O jogo NAO publica a formula de dano nem
+// a de velocidade de ataque, entao NAO estimamos hits/KOs-h — seria numero inventado
+// (e enganoso: nao bate com o jogo real). A ordenacao usa XP x efetividade, que sao
+// os dois sinais reais de "quanto XP mais rapido".
 
-import { projectStat } from "./stats";
+import { projectAll } from "./stats";
 import { effectiveness } from "./typing";
 import type { PokeType } from "./types";
 
 export const SIM_IV = 21;
-const SAFE = 0.85; // enemyPower <= yourPower*SAFE -> seguro
+const SAFE = 0.85; // enemyPower <= yourPower*SAFE -> seguro (senao arriscado)
 const POWER_CEIL = 1.15; // nunca sugere alvo com Power acima de yourPower*isto
-// Calibracao do dano estimado: ancorada pra um combate "no nivel" dar ~2 hits
-// (bate com o Est. do PIW Tools). E fator de estimativa, nao formula do jogo.
-const DMG_CAL = 0.35;
 
-/** Amplificacao elemental de hunt: vantagem (m-1)*1.5+1, resistencia m/1.5. */
+/** Amplificacao elemental de hunt: vantagem (m-1)*1.5+1, resistencia m/1.5.
+ *  Confere com a doc: x1.5->x1.75, x2->x2.5, x4->x5.5, x0.5->x0.33. */
 export function amplify(m: number): number {
   if (m === 0 || m === 1) return m;
   if (m > 1) return (m - 1) * 1.5 + 1;
@@ -28,7 +26,6 @@ export function huntEffectiveness(atk: PokeType, d1: PokeType, d2: PokeType | nu
 
 export interface Move {
   type: PokeType;
-  cat: "PHYSICAL" | "SPECIAL" | "STATUS";
   power: number;
   learn: number;
 }
@@ -54,29 +51,18 @@ export interface EnemyCombat {
   spotCount: number;
   xp: number;
   goldEV: number;
-  power: number; // Power no huntLevel
-  effHp: number; // HP no huntLevel x5 (reforco de hunt)
-  def: number;
-  spDef: number;
+  power: number; // Power do alvo no huntLevel
 }
 
 export interface HuntPick {
   enemy: EnemyCombat;
   moveName: PokeType; // tipo do golpe principal usado
-  eff: number;
-  hits: number; // hits pra derrubar (estimativa)
-  safe: "safe" | "risky";
-}
-
-interface PStats {
-  atk: number;
-  spAtk: number;
-  power: number;
+  eff: number; // efetividade amplificada (real)
+  safe: "safe" | "risky"; // pela comparacao de Power
 }
 
 /** Golpe principal do pokemon: o de MAIOR nivel de aprendizado disponivel (desempate
- *  por poder). E o que o jogo/PIW usa — pro Electrode da Electric Storm, nao um golpe
- *  antigo nem um de cobertura pontual. Ignora golpes de status (poder 0). */
+ *  por poder). E o que o jogo/PIW usa — pro Electrode da Electric Storm (raio). */
 export function mainMove(stage: Species, level: number): Move | null {
   let best: Move | null = null;
   for (const mv of stage.moves) {
@@ -86,22 +72,12 @@ export function mainMove(stage: Species, level: number): Move | null {
   return best;
 }
 
-function pstatsAt(bases: number[], level: number, quality: number, ivs: number[]): PStats {
-  const s = bases.map((b, i) => projectStat(b, ivs[i], level, quality, i));
-  return { atk: s[1], spAtk: s[3], power: s.reduce((a, b) => a + b, 0) * quality };
-}
-
-/** Dano por hit — formula classica adaptada (ESTIMATIVA). eff ja amplificado. */
-function hitDamage(level: number, power: number, atk: number, def: number, eff: number, stab: number): number {
-  if (power <= 0 || eff <= 0) return 0;
-  const base = ((2 * level) / 5 + 2) * power * (atk / Math.max(1, def)) / 50 + 2;
-  return Math.max(1, base * eff * stab * DMG_CAL);
-}
-
-/** Melhor hunt pro nivel: dentro da janela de nivel e do teto de Power, a de maior
- *  XP por tempo. Empate de XP/tempo desempata por OURO por tempo (prioriza upar, mas
- *  entre iguais pega a que da mais dinheiro). */
-function pickHunt(stage: Species, level: number, ps: PStats, move: Move, enemies: EnemyCombat[]): HuntPick | null {
+/** Melhor hunt pro nivel: entre os alvos que voce ENCARA (Power) e na janela de nivel,
+ *  a de maior XP x efetividade. Empate desempata por OURO x efetividade (prioriza upar,
+ *  mas entre iguais pega a que da mais dinheiro). */
+function pickHunt(stage: Species, level: number, yourPower: number, enemies: EnemyCombat[]): HuntPick | null {
+  const move = mainMove(stage, level);
+  if (!move) return null;
   const windows: [number, number][] = [
     [level - 40, level + 20],
     [level - 80, level + 40],
@@ -109,26 +85,17 @@ function pickHunt(stage: Species, level: number, ps: PStats, move: Move, enemies
     [0, Infinity],
   ];
   for (const [lo, hi] of windows) {
-    let best: { xpps: number; goldps: number; pick: HuntPick } | null = null;
+    let best: { primary: number; secondary: number; pick: HuntPick } | null = null;
     for (const e of enemies) {
       if (e.huntLevel < lo || e.huntLevel > hi) continue;
-      if (e.power > ps.power * POWER_CEIL) continue;
+      if (e.power > yourPower * POWER_CEIL) continue;
       const eff = huntEffectiveness(move.type, e.t1, e.t2);
       if (eff <= 0) continue;
-      const atk = move.cat === "PHYSICAL" ? ps.atk : ps.spAtk;
-      const def = move.cat === "PHYSICAL" ? e.def : e.spDef;
-      const stab = move.type === stage.t1 || move.type === stage.t2 ? 1.5 : 1;
-      const dmg = hitDamage(level, move.power, atk, def, eff, stab);
-      // tempo de kill = numero de ataques (hits >= 1). Voce nao mata em menos de 1
-      // ataque, entao overkill num bicho fraco nao "acelera" — a efetividade so ajuda
-      // quando reduz a quantidade de hits.
-      const hits = Math.max(1, Math.ceil(e.effHp / dmg));
-      const xpps = e.xp / hits;
-      const goldps = e.goldEV / hits;
-      // prioriza XP/tempo; so o ouro desempata quando o XP/tempo e praticamente igual.
-      const better = !best || xpps > best.xpps * 1.0001 || (Math.abs(xpps - best.xpps) <= best.xpps * 1e-4 && goldps > best.goldps);
+      const primary = e.xp * eff; // proxy de XP por tempo (efetividade = menos hits no jogo)
+      const secondary = e.goldEV * eff;
+      const better = !best || primary > best.primary * 1.0001 || (Math.abs(primary - best.primary) <= best.primary * 1e-4 && secondary > best.secondary);
       if (better) {
-        best = { xpps, goldps, pick: { enemy: e, moveName: move.type, eff, hits, safe: e.power <= ps.power * SAFE ? "safe" : "risky" } };
+        best = { primary, secondary, pick: { enemy: e, moveName: move.type, eff, safe: e.power <= yourPower * SAFE ? "safe" : "risky" } };
       }
     }
     if (best) return best.pick;
@@ -191,10 +158,8 @@ export function buildRoute(
 
   for (let lvl = s; lvl <= t; lvl++) {
     const stage = activeStage(chain, lvl);
-    const move = mainMove(stage, lvl);
-    if (!move) continue;
-    const ps = pstatsAt(stage.bases, lvl, quality, ivs);
-    const pick = pickHunt(stage, lvl, ps, move, enemies);
+    const yourPower = projectAll(stage.bases, ivs, lvl, quality).power;
+    const pick = pickHunt(stage, lvl, yourPower, enemies);
     if (!pick) continue;
 
     const last = steps[steps.length - 1];

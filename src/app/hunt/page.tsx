@@ -29,7 +29,6 @@ export default async function HuntPage() {
     // Todo pokemon vira "especie" selecionavel (o jogador pode ter qualquer um).
     const moves: Move[] = c.attacks.map((a) => ({
       type: a.type as PokeType,
-      cat: a.category,
       power: a.power,
       learn: a.learnLevel,
     }));
@@ -87,9 +86,6 @@ export default async function HuntPage() {
       xp: c.experience,
       goldEV,
       power: powerAt(bases, hl),
-      effHp: projectStat(c.baseHp, SIM_IV, hl, 1, 0) * 5,
-      def: projectStat(c.baseDef, SIM_IV, hl, 1, 2),
-      spDef: projectStat(c.baseSpDef, SIM_IV, hl, 1, 4),
     });
   }
 
