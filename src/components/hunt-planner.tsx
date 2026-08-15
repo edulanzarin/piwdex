@@ -27,13 +27,6 @@ export interface HuntRow {
 
 type Sort = "gold" | "xp" | "lvl" | "name";
 
-// formato compacto pra numeros por-hora (12.3k, 4.1M).
-function compact(n: number): string {
-  if (n >= 1e6) return (n / 1e6).toFixed(n >= 1e7 ? 0 : 1).replace(/\.0$/, "") + "M";
-  if (n >= 1e3) return (n / 1e3).toFixed(n >= 1e4 ? 0 : 1).replace(/\.0$/, "") + "k";
-  return String(Math.round(n));
-}
-
 const area = (a: string) => a.charAt(0).toUpperCase() + a.slice(1);
 const num = (s: string): number => {
   const v = parseInt(s, 10);
@@ -47,12 +40,9 @@ export function EconomyTable({ rows, areas }: { rows: HuntRow[]; areas: string[]
   const [type, setType] = useState<PokeType | "">("");
   const [areaSel, setAreaSel] = useState("");
   const [maxLvl, setMaxLvl] = useState("");
-  const [kpm, setKpm] = useState("30");
   const [sort, setSort] = useState<Sort>("gold");
   const [page, setPage] = useState(0);
 
-  const kpmN = num(kpm);
-  const perMin = Number.isFinite(kpmN) && kpmN > 0 ? kpmN : 0;
   const lvlCap = num(maxLvl);
 
   const filtered = useMemo(() => {
@@ -118,17 +108,7 @@ export function EconomyTable({ rows, areas }: { rows: HuntRow[]; areas: string[]
               <option value="name">{t("hunt.sort.name")}</option>
             </select>
           </label>
-          <label className="flex flex-col gap-1">
-            <span className="text-[0.55rem] uppercase tracking-wide text-cyan">{t("hunt.kpm")}</span>
-            <input
-              className="input w-24"
-              inputMode="numeric"
-              value={kpm}
-              onChange={(e) => setKpm(e.target.value)}
-            />
-          </label>
         </div>
-        <p className="text-[0.66rem] leading-relaxed text-text-dim">{t("hunt.kpmHint")}</p>
       </div>
 
       <div className="text-[0.7rem] uppercase tracking-wide text-text-dim">{t("hunt.count", { n: filtered.length })}</div>
@@ -173,17 +153,11 @@ export function EconomyTable({ rows, areas }: { rows: HuntRow[]; areas: string[]
                   </td>
                   <td className="px-4 py-2.5 text-right">
                     <div className="tabular-nums font-bold text-text">{r.xp.toLocaleString("pt-BR")}</div>
-                    {perMin > 0 && (
-                      <div className="text-[0.62rem] text-green">{t("hunt.perH", { n: compact(r.xp * perMin * 60) })}</div>
-                    )}
                   </td>
                   <td className="px-4 py-2.5 text-right">
                     <div className="inline-flex items-center justify-end gap-1 tabular-nums font-bold text-text">
                       <Gold value={r.gold} />
                     </div>
-                    {perMin > 0 && (
-                      <div className="text-[0.62rem] text-yellow">{t("hunt.perH", { n: compact(r.gold * perMin * 60) })}</div>
-                    )}
                   </td>
                   <td className="px-4 py-2.5">
                     {r.topDrop ? (

@@ -41,7 +41,6 @@ export function RouteGenerator({ species, enemies }: { species: Species[]; enemi
   const [target, setTarget] = useState("");
   const [quality, setQuality] = useState("1");
   const [stats, setStats] = useState<string[]>(["", "", "", "", "", ""]);
-  const [kpm, setKpm] = useState("");
   const [vip, setVip] = useState(false);
 
   const byId = useMemo(() => {
@@ -82,7 +81,6 @@ export function RouteGenerator({ species, enemies }: { species: Species[]; enemi
     return buildRoute(chain, s, tgt, enemies, qual, ivInfo.ivs);
   }, [picked, byId, lvl, tgt, qual, ivInfo, enemies]);
 
-  const perMin = Number.isFinite(numI(kpm)) && numI(kpm) > 0 ? numI(kpm) : 0;
   const setStat = (i: number, v: string) => setStats((p) => p.map((s, j) => (j === i ? v : s)));
   const fillBase = () => { if (picked) setStats(picked.bases.map(String)); };
 
@@ -138,17 +136,10 @@ export function RouteGenerator({ species, enemies }: { species: Species[]; enemi
         </div>
 
         <div className="mt-4 border-t border-border pt-4">
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-            <label className="flex items-center gap-2">
-              <span className="text-[0.6rem] uppercase tracking-wide text-cyan">{t("hunt.kpm")}</span>
-              <input className="input w-20 !py-1.5" inputMode="numeric" placeholder="—" value={kpm} onChange={(e) => setKpm(e.target.value)} />
-            </label>
-            <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-text-dim">
-              <input type="checkbox" className="accent-[color:var(--green)]" checked={vip} onChange={(e) => setVip(e.target.checked)} />
-              {t("hunt.vip")}
-            </label>
-          </div>
-          <p className="mt-2 text-[0.62rem] leading-relaxed text-text-dim">{t("hunt.route.kpmHint")}</p>
+          <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-text-dim">
+            <input type="checkbox" className="accent-[color:var(--green)]" checked={vip} onChange={(e) => setVip(e.target.checked)} />
+            {t("hunt.vip")}
+          </label>
         </div>
       </div>
 
@@ -207,13 +198,13 @@ export function RouteGenerator({ species, enemies }: { species: Species[]; enemi
                 {/* XP / Ouro */}
                 <div className="grid grid-cols-2 gap-4 border-t border-border/50 pt-3 text-right lg:w-44 lg:shrink-0 lg:border-l lg:border-t-0 lg:pl-4 lg:pt-0">
                   <div className="flex flex-col items-end gap-0.5">
-                    <span className="text-[0.5rem] uppercase tracking-wide text-text-dim">{perMin ? t("hunt.col.xph") : t("hunt.col.xp")}</span>
-                    <span className="tabular-nums text-sm font-bold text-green">{compact(perMin ? xp * perMin * 60 : xp)}</span>
+                    <span className="text-[0.5rem] uppercase tracking-wide text-text-dim">{t("hunt.col.xp")}</span>
+                    <span className="tabular-nums text-sm font-bold text-green">{compact(xp)}</span>
                   </div>
                   <div className="flex flex-col items-end gap-0.5">
-                    <span className="text-[0.5rem] uppercase tracking-wide text-text-dim">{perMin ? t("hunt.col.goldh") : t("hunt.col.gold")}</span>
+                    <span className="text-[0.5rem] uppercase tracking-wide text-text-dim">{t("hunt.col.gold")}</span>
                     <span className="inline-flex items-center gap-1 tabular-nums text-sm font-bold text-yellow">
-                      <Coin />{compact(perMin ? p.enemy.goldEV * perMin * 60 : p.enemy.goldEV)}
+                      <Coin />{compact(p.enemy.goldEV)}
                     </span>
                   </div>
                 </div>
