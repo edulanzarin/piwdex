@@ -65,14 +65,17 @@ function StatIn({ label, value, onChange }: { label: string; value: string; onCh
   );
 }
 
+// Mesmo formato do card do Pokedex (sprite + #id + nome + tipos), com os extras
+// do lab embaixo (pedra de evolucao e stats projetados).
 function EvoNodeCard({ evo, compact }: { evo: NodeData; compact?: boolean }) {
   const maxIdx = evo.stats ? evo.stats.indexOf(Math.max(...evo.stats)) : -1;
   return (
-    <Link href={`/dex/${evo.pokeId}`} className="card card-link flex flex-col items-center gap-1.5 p-3 text-center" style={compact ? undefined : { width: 168 }}>
-      <div className="flex h-14 w-14 items-center justify-center rounded bg-[rgba(8,14,28,0.5)]">
-        <Sprite src={spriteUrl(evo.pokeId)} alt={evo.name} size={48} />
+    <Link href={`/dex/${evo.pokeId}`} className="card card-link flex flex-col items-center gap-2 p-3 text-center" style={compact ? undefined : { width: 168 }}>
+      <Sprite src={spriteUrl(evo.pokeId)} alt={evo.name} size={56} />
+      <div>
+        <div className="text-[0.55rem] text-text-dim">#{String(evo.pokeId).padStart(3, "0")}</div>
+        <div className="text-sm font-semibold leading-tight">{evo.name}</div>
       </div>
-      <div className="text-sm text-text">{evo.name}</div>
       <TypeBadges t1={evo.t1} t2={evo.t2} />
       {evo.stoneName && (
         <span className="inline-flex items-center gap-1 text-[0.58rem] text-text-dim">
@@ -84,7 +87,7 @@ function EvoNodeCard({ evo, compact }: { evo: NodeData; compact?: boolean }) {
         </span>
       )}
       {evo.stats && (
-        <div className="mt-1 grid w-full grid-cols-2 gap-x-3 gap-y-0.5">
+        <div className="mt-0.5 grid w-full grid-cols-2 gap-x-3 gap-y-0.5 border-t border-border/60 pt-2">
           {STAT_LABELS.map((lb, i) => (
             <div key={lb} className="flex justify-between text-[0.56rem]">
               <span className="text-text-dim">{lb}</span>
@@ -97,7 +100,7 @@ function EvoNodeCard({ evo, compact }: { evo: NodeData; compact?: boolean }) {
   );
 }
 
-export function EeveeLab({ eevee, evos }: { eevee: { pokeId: number; name: string; bases: number[] }; evos: EvoNode[] }) {
+export function EeveeLab({ eevee, evos }: { eevee: { pokeId: number; name: string; t1: PokeType; t2: PokeType | null; bases: number[] }; evos: EvoNode[] }) {
   const t = useT();
   const [stats, setStats] = useState<string[]>(["", "", "", "", "", ""]);
   const [level, setLevel] = useState("");
@@ -137,11 +140,13 @@ export function EeveeLab({ eevee, evos }: { eevee: { pokeId: number; name: strin
             ))}
           </svg>
           {/* Eevee no centro */}
-          <Link href={`/dex/${eevee.pokeId}`} className="card card-link absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-1 p-3" style={{ left: `${CENTER.x}%`, top: `${CENTER.y}%`, width: 132 }}>
-            <div className="flex h-16 w-16 items-center justify-center rounded bg-[rgba(8,14,28,0.5)]">
-              <Sprite src={spriteUrl(eevee.pokeId)} alt={eevee.name} size={54} />
+          <Link href={`/dex/${eevee.pokeId}`} className="card card-link absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-2 p-3 text-center" style={{ left: `${CENTER.x}%`, top: `${CENTER.y}%`, width: 150 }}>
+            <Sprite src={spriteUrl(eevee.pokeId)} alt={eevee.name} size={60} />
+            <div>
+              <div className="text-[0.55rem] text-text-dim">#{String(eevee.pokeId).padStart(3, "0")}</div>
+              <div className="text-sm font-semibold leading-tight">{eevee.name}</div>
             </div>
-            <div className="text-sm text-text">{eevee.name}</div>
+            <TypeBadges t1={eevee.t1} t2={eevee.t2} />
             {iv && <span className="text-[0.55rem] uppercase tracking-wide text-cyan">{t("eevee.atLevel", { n: tgt })}</span>}
           </Link>
           {nodes.slice(0, 5).map((evo, i) => (
@@ -157,8 +162,9 @@ export function EeveeLab({ eevee, evos }: { eevee: { pokeId: number; name: strin
             <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded bg-[rgba(8,14,28,0.5)]">
               <Sprite src={spriteUrl(eevee.pokeId)} alt={eevee.name} size={48} />
             </div>
-            <div className="flex flex-col">
-              <span className="text-sm text-text">{eevee.name}</span>
+            <div className="flex flex-col gap-1">
+              <span className="text-[0.55rem] text-text-dim">#{String(eevee.pokeId).padStart(3, "0")} · {eevee.name}</span>
+              <TypeBadges t1={eevee.t1} t2={eevee.t2} />
               {iv && <span className="text-[0.55rem] uppercase tracking-wide text-cyan">{t("eevee.atLevel", { n: tgt })}</span>}
             </div>
           </Link>

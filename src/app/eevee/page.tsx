@@ -56,7 +56,7 @@ export default async function EeveePage() {
           <T k="eevee.backDex" /> ›
         </Link>
       </div>
-      <EeveeLab eevee={{ pokeId: EEVEE_ID, name: eevee.name, bases: basesOf(eevee) }} evos={evos} />
+      <EeveeLab eevee={{ pokeId: EEVEE_ID, name: eevee.name, t1: eevee.type1, t2: eevee.type2, bases: basesOf(eevee) }} evos={evos} />
     </div>
   );
 }
