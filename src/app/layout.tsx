@@ -27,6 +27,7 @@ export const metadata: Metadata = {
 const TABS: [string, string][] = [
   ["nav.dex", "/dex"],
   ["nav.items", "/items"],
+  ["nav.hunt", "/hunt"],
   ["nav.calc", "/calc"],
 ];
 

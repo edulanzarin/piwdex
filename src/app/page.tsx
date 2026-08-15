@@ -76,7 +76,7 @@ export default async function Home() {
       </section>
 
       {/* Ferramentas */}
-      <section className="grid gap-4 sm:grid-cols-3">
+      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <ToolCard
           eyebrowKey="home.card1.eyebrow"
           titleKey="home.card1.title"
@@ -94,6 +94,15 @@ export default async function Home() {
           href="/items"
           ctaKey="home.card2.cta"
           color="var(--green)"
+        />
+        <ToolCard
+          eyebrowKey="home.card4.eyebrow"
+          titleKey="home.card4.title"
+          descKey="home.card4.desc"
+          href="/hunt"
+          ctaKey="home.card4.cta"
+          color="var(--yellow)"
+          ctaText="#06131a"
         />
         <ToolCard
           eyebrowKey="home.card3.eyebrow"
