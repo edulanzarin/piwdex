@@ -101,3 +101,17 @@ export function defensiveDetailed(def1: PokeType, def2: PokeType | null) {
   resist.sort((a, b) => a.mult - b.mult);
   return { weak, resist, immune };
 }
+
+/** Lado ofensivo: usando os golpes do TIPO do proprio pokemon (STAB), contra quem
+ *  ele bate forte (super efetivo). Pega o melhor multiplicador entre os tipos dele. */
+export function offensiveDetailed(t1: PokeType, t2: PokeType | null): TypeMult[] {
+  const attackers = t2 ? [t1, t2] : [t1];
+  const strong: TypeMult[] = [];
+  for (const def of ALL_TYPES) {
+    let best = 0;
+    for (const a of attackers) best = Math.max(best, one(a, def));
+    if (best > 1) strong.push({ type: def, mult: best, label: multLabel(best) });
+  }
+  strong.sort((a, b) => b.mult - a.mult);
+  return strong;
+}

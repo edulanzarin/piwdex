@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getData } from "@/lib/data";
 import { spriteUrl, itemIconUrl } from "@/lib/sprites";
-import { defensiveDetailed } from "@/lib/typing";
+import { defensiveDetailed, offensiveDetailed } from "@/lib/typing";
 import type { TypeMult } from "@/lib/typing";
 import { TypeBadge, TypeBadges, TypePill } from "@/components/badges";
 import { Sprite } from "@/components/sprite";
@@ -109,6 +109,7 @@ export default async function CreaturePage({
   const total = c.baseHp + c.baseAtk + c.baseDef + c.baseSpAtk + c.baseSpDef + c.baseSpeed;
   const bestStat = Math.max(c.baseHp, c.baseAtk, c.baseDef, c.baseSpAtk, c.baseSpDef, c.baseSpeed);
   const { weak, resist, immune } = defensiveDetailed(c.type1, c.type2);
+  const offensive = offensiveDetailed(c.type1, c.type2);
   const chain = evolutionChainOf(c);
   const locations = locationsOf(c);
   const loot = [...(c.loot ?? [])].sort((a, b) => b.chance - a.chance);
@@ -147,13 +148,10 @@ export default async function CreaturePage({
             <MiniStat label="Hunt lvl" value={c.huntLevel} />
             <MiniStat label="XP" value={c.experience.toLocaleString("pt-BR")} />
             <MiniStat
-              label="Vende por"
-              value={c.sellValue > 0 ? <Gold value={c.sellValue} /> : <span className="text-text-dim">nao vende</span>}
-              hint="ouro ao vender pro NPC"
+              label="Valor"
+              value={<Gold value={c.sellValue > 0 ? c.sellValue : c.priceNpc} />}
+              hint="ouro ao vender o pokemon"
             />
-          </div>
-          <div className="text-[0.68rem] text-text-dim">
-            Loja NPC (compra): {c.priceNpc > 0 ? <span className="inline-flex items-center gap-1 align-middle text-yellow"><Gold value={c.priceNpc} /></span> : "indisponivel"}
           </div>
         </div>
       </div>
@@ -179,11 +177,17 @@ export default async function CreaturePage({
         </Reveal>
 
         <Reveal className="card p-5">
-          <SectionTitle>Fraquezas & resistencias</SectionTitle>
+          <SectionTitle>Tipagem em combate</SectionTitle>
+          <div className="mb-2 text-[0.6rem] uppercase tracking-wide text-text-dim">Defesa — como ELE recebe dano</div>
           <div className="flex flex-col gap-3 text-sm">
             <EffRow title="Toma mais de" entries={weak} empty="Nao tem fraqueza." />
             <EffRow title="Toma menos de" entries={resist} empty="Nao resiste nada." />
             <EffRow title="Imune a" entries={immune} empty="—" />
+          </div>
+          <div className="my-4 border-t border-border" />
+          <div className="mb-2 text-[0.6rem] uppercase tracking-wide text-text-dim">Ataque — golpes do tipo dele (STAB)</div>
+          <div className="flex flex-col gap-3 text-sm">
+            <EffRow title="Causa mais dano em" entries={offensive} empty="Nenhum tipo recebe dano extra." />
           </div>
         </Reveal>
       </div>
