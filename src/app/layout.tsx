@@ -1,28 +1,48 @@
 import type { Metadata } from "next";
+import { JetBrains_Mono, Press_Start_2P } from "next/font/google";
 import Link from "next/link";
+import { Pokeball } from "@/components/pokeball";
 import "./globals.css";
 
+const pixel = Press_Start_2P({
+  weight: "400",
+  subsets: ["latin"],
+  variable: "--font-pixel",
+  display: "swap",
+});
+const mono = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-mono",
+  display: "swap",
+});
+
 export const metadata: Metadata = {
-  title: { default: "piwdex", template: "%s · piwdex" },
+  title: { default: "piwdex — ferramentas Poke Idle World", template: "%s · piwdex" },
   description:
     "Dex e ferramentas completas para Poke Idle World: stats, drops com chance real, onde farmar cada item, localizacoes e evolucoes.",
 };
 
 function Nav() {
+  const tabs = [
+    ["Pokedex", "/dex"],
+    ["Itens", "/items"],
+  ];
   return (
-    <header className="border-b border-border bg-surface/80 backdrop-blur sticky top-0 z-10">
-      <div className="container-page flex h-14 items-center gap-6">
-        <Link href="/" className="flex items-center gap-2 font-bold text-lg">
-          <span
-            className="inline-block h-5 w-5 rounded-full"
-            style={{ background: "var(--accent)" }}
-            aria-hidden
-          />
-          piwdex
+    <header className="sticky top-0 z-20 border-b border-border bg-[rgba(7,11,22,0.72)] backdrop-blur">
+      <div className="container-page flex h-16 items-center justify-between gap-4">
+        <Link href="/" className="flex items-center gap-3">
+          <Pokeball size={30} />
+          <div className="leading-tight">
+            <div className="pixel text-[0.8rem] text-text">piwdex</div>
+            <div className="text-[0.62rem] text-text-dim">Poke Idle World</div>
+          </div>
         </Link>
-        <nav className="flex items-center gap-4 text-sm text-text-dim">
-          <Link href="/dex" className="hover:text-text">Pokedex</Link>
-          <Link href="/items" className="hover:text-text">Itens</Link>
+        <nav className="flex items-center gap-1">
+          {tabs.map(([label, href]) => (
+            <Link key={href} href={href} className="tab">
+              {label}
+            </Link>
+          ))}
         </nav>
       </div>
     </header>
@@ -31,12 +51,14 @@ function Nav() {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pt-BR">
+    <html lang="pt-BR" className={`${pixel.variable} ${mono.variable}`}>
       <body className="min-h-screen">
         <Nav />
-        <main className="container-page py-8">{children}</main>
-        <footer className="container-page py-10 text-xs text-text-dim">
-          Dados extraidos da fonte publica de Poke Idle World. Projeto nao oficial.
+        <main className="container-page py-10">{children}</main>
+        <footer className="border-t border-border">
+          <div className="container-page py-8 text-[0.68rem] text-text-dim">
+            Dados da fonte publica de Poke Idle World. Projeto nao oficial, feito por fa.
+          </div>
         </footer>
       </body>
     </html>

@@ -10,7 +10,10 @@ const ordered = [...creatures].sort((a, b) => a.pokeId - b.pokeId);
 export default function DexPage() {
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-bold">Pokedex</h1>
+      <div>
+        <div className="eyebrow mb-2">Poke Idle World</div>
+        <h1 className="pixel text-xl text-text">Pokedex</h1>
+      </div>
       <DexBrowser creatures={ordered} />
     </div>
   );

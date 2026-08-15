@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { Item } from "@/lib/types";
 import { itemIconUrl } from "@/lib/sprites";
+import { Sprite } from "./sprite";
 
 export function ItemsBrowser({ items }: { items: Item[] }) {
   const [q, setQ] = useState("");
@@ -40,27 +41,25 @@ export function ItemsBrowser({ items }: { items: Item[] }) {
         </select>
       </div>
 
-      <div className="text-sm text-text-dim">{filtered.length} itens</div>
+      <div className="text-[0.7rem] text-text-dim uppercase tracking-wide">{filtered.length} itens</div>
 
       {filtered.length === 0 ? (
         <div className="card p-10 text-center text-text-dim">Nenhum item encontrado.</div>
       ) : (
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
           {filtered.map((i) => (
-            <Link
-              key={i.id}
-              href={`/items/${i.id}`}
-              className="card flex items-center gap-3 p-3 hover:border-accent transition-colors"
-            >
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-surface-2">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={itemIconUrl(i)} alt="" width={28} height={28} className="pixelated" loading="lazy" />
-              </div>
-              <div className="min-w-0">
+            <Link key={i.id} href={`/items/${i.id}`} className="card card-link flex items-center gap-3 p-3">
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded bg-[rgba(8,14,28,0.6)]">
+                <Sprite src={itemIconUrl(i)} alt={i.name} size={30} />
+              </span>
+              <div className="min-w-0 flex-1">
                 <div className="truncate text-sm font-medium">{i.name}</div>
-                <div className="text-xs text-text-dim">
+                <div className="text-[0.65rem] text-text-dim uppercase tracking-wide">
                   {i.category}
                   {i.rare ? " · raro" : ""}
+                </div>
+                <div className="mt-0.5 text-[0.7rem] text-yellow tabular-nums">
+                  {i.npcPrice.toLocaleString("pt-BR")} <span className="text-text-dim">npc</span>
                 </div>
               </div>
             </Link>

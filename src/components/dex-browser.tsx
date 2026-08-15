@@ -62,7 +62,7 @@ export function DexBrowser({ creatures }: { creatures: Creature[] }) {
               style={{ background: TYPE_COLOR[type] }}
               onClick={() => setType("")}
             >
-              {type} ✕
+              {type} ×
             </button>
           )}
           {rarity && (
@@ -71,7 +71,7 @@ export function DexBrowser({ creatures }: { creatures: Creature[] }) {
               style={{ background: RARITY_COLOR[rarity], color: "#111", textShadow: "none" }}
               onClick={() => setRarity("")}
             >
-              {rarity} ✕
+              {rarity} ×
             </button>
           )}
         </div>

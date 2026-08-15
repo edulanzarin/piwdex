@@ -1,32 +1,28 @@
 @import "tailwindcss";
 
-/* Tokens semanticos (principio do Brain: token, nao valor literal). Claro e escuro
-   pela media query; a estetica e propria do piwdex (tool de jogo), so os principios
-   sao herdados do dialeto de dashboard. */
+/* piwdex: estetica pixel/neon de jogo (Poke Idle World), dark-only. Nada de
+   dashboard. Fonte pixel no titulo, mono legivel no corpo/tabelas. */
 :root {
-  --bg: #f4f5f8;
-  --surface: #ffffff;
-  --surface-2: #eceef3;
-  --border: #d9dce3;
-  --text: #1a1c22;
-  --text-dim: #626878;
-  --accent: #d63a3a; /* vermelho pokebola — acento de UI, separado da cor de dado */
-  --accent-contrast: #ffffff;
-  --shadow: 0 1px 2px rgba(20, 22, 30, 0.06), 0 4px 16px rgba(20, 22, 30, 0.05);
-}
+  --bg: #070b16;
+  --bg-2: #0a1020;
+  --surface: rgba(15, 22, 42, 0.72);
+  --surface-solid: #0f1730;
+  --surface-2: rgba(30, 42, 74, 0.55);
+  --border: rgba(90, 200, 224, 0.22);
+  --border-strong: #35c9e0;
+  --text: #dce6f5;
+  --text-dim: #7d8bab;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #0e1014;
-    --surface: #171a21;
-    --surface-2: #1f232c;
-    --border: #2a2f3a;
-    --text: #e7e9ee;
-    --text-dim: #8a91a1;
-    --accent: #ff5a5a;
-    --accent-contrast: #14161b;
-    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 6px 20px rgba(0, 0, 0, 0.35);
-  }
+  --cyan: #37d3e6;
+  --green: #35e08e;
+  --blue: #4f8bf0;
+  --purple: #b98cff;
+  --yellow: #f4d24a;
+  --pink: #fb7185;
+  --red: #ff5a5a;
+
+  --accent: var(--cyan);
+  --glow: 0 0 0 1px rgba(55, 211, 230, 0.35), 0 0 22px -6px rgba(55, 211, 230, 0.55);
 }
 
 @theme inline {
@@ -36,60 +32,191 @@
   --color-border: var(--border);
   --color-text: var(--text);
   --color-text-dim: var(--text-dim);
-  --color-accent: var(--accent);
-  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --color-cyan: var(--cyan);
+  --color-green: var(--green);
+  --color-blue: var(--blue);
+  --color-purple: var(--purple);
+  --color-yellow: var(--yellow);
+  --color-red: var(--red);
+  --font-pixel: var(--font-pixel), monospace;
+  --font-mono: var(--font-mono), ui-monospace, monospace;
 }
 
-html { color-scheme: light dark; }
+html { color-scheme: dark; }
 
 body {
-  background: var(--bg);
+  min-height: 100vh;
   color: var(--text);
-  font-family: var(--font-sans);
+  font-family: var(--font-mono), ui-monospace, "SFMono-Regular", monospace;
+  background-color: var(--bg);
   -webkit-font-smoothing: antialiased;
 }
 
+/* Ceu noturno estrelado, tudo em CSS (sem asset externo): brilho de lua + estrelas. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(1100px 700px at 85% -8%, rgba(90, 130, 220, 0.28), transparent 60%),
+    radial-gradient(900px 600px at 12% 108%, rgba(53, 224, 142, 0.10), transparent 60%),
+    radial-gradient(2px 2px at 20% 30%, #fff, transparent),
+    radial-gradient(2px 2px at 60% 20%, #cfe3ff, transparent),
+    radial-gradient(1px 1px at 80% 40%, #fff, transparent),
+    radial-gradient(1px 1px at 35% 60%, #dfe9ff, transparent),
+    radial-gradient(2px 2px at 50% 80%, #fff, transparent),
+    radial-gradient(1px 1px at 90% 70%, #cfe3ff, transparent),
+    radial-gradient(1px 1px at 10% 85%, #fff, transparent),
+    radial-gradient(1px 1px at 70% 90%, #dfe9ff, transparent),
+    linear-gradient(180deg, #060a15 0%, #0a1122 55%, #070c18 100%);
+  background-repeat: no-repeat;
+}
+
 a { color: inherit; text-decoration: none; }
+img { image-rendering: pixelated; }
 
 @layer components {
   .container-page {
     width: 100%;
-    max-width: 72rem;
+    max-width: 74rem;
     margin-inline: auto;
     padding-inline: 1.25rem;
   }
 
-  /* card = hierarquia por superficie, borda so onde a superficie nao resolveu */
+  .pixel { font-family: var(--font-pixel), monospace; letter-spacing: 0; line-height: 1.35; }
+
+  .eyebrow {
+    font-family: var(--font-pixel), monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--cyan);
+  }
+
+  /* card neon: superficie translucida + borda que acende no hover */
   .card {
+    position: relative;
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 0.9rem;
-    box-shadow: var(--shadow);
+    border-radius: 0.35rem;
+    backdrop-filter: blur(6px);
+  }
+  .card-link { transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s; }
+  .card-link:hover {
+    border-color: var(--border-strong);
+    box-shadow: var(--glow);
+    transform: translateY(-2px);
   }
 
   .chip {
     display: inline-flex;
     align-items: center;
-    gap: 0.35rem;
-    padding: 0.15rem 0.6rem;
-    border-radius: 999px;
-    font-size: 0.72rem;
-    font-weight: 600;
-    letter-spacing: 0.02em;
-    color: #fff;
-    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.25);
+    gap: 0.3rem;
+    padding: 0.12rem 0.5rem;
+    border-radius: 0.2rem;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #06111a;
   }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    padding: 0.6rem 1rem;
+    border-radius: 0.3rem;
+    font-family: var(--font-pixel), monospace;
+    font-size: 0.62rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: filter 0.15s, box-shadow 0.15s;
+  }
+  .btn:hover { filter: brightness(1.12); box-shadow: 0 0 18px -6px currentColor; }
+  .btn-cyan { background: var(--cyan); color: #06131a; }
+  .btn-green { background: var(--green); color: #052012; }
+  .btn-ghost {
+    background: transparent;
+    border-color: var(--border);
+    color: var(--text);
+  }
+  .btn-ghost:hover { border-color: var(--border-strong); color: #fff; }
 
   .input {
     width: 100%;
-    background: var(--surface);
+    background: rgba(8, 14, 28, 0.7);
     border: 1px solid var(--border);
-    border-radius: 0.7rem;
-    padding: 0.6rem 0.85rem;
+    border-radius: 0.3rem;
+    padding: 0.55rem 0.75rem;
     color: var(--text);
+    font-family: var(--font-mono), monospace;
     outline: none;
   }
-  .input:focus { border-color: var(--accent); }
+  .input:focus { border-color: var(--border-strong); box-shadow: var(--glow); }
 
-  .pixelated { image-rendering: pixelated; }
+  /* select totalmente estilizado: seta custom (SVG cyan), sem UI nativa */
+  select.input {
+    appearance: none;
+    -webkit-appearance: none;
+    padding-right: 2.2rem;
+    cursor: pointer;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='7' viewBox='0 0 10 7'><path d='M0 0h10L5 7z' fill='%2337d3e6'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 0.85rem center;
+  }
+  select.input option {
+    background: #0d1428;
+    color: var(--text);
+  }
+
+  .tab {
+    padding: 0.35rem 0.7rem;
+    border-radius: 0.25rem;
+    font-family: var(--font-pixel), monospace;
+    font-size: 0.56rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    border: 1px solid transparent;
+  }
+  .tab:hover { color: var(--text); }
+  .tab-active {
+    color: var(--text);
+    border-color: var(--border);
+    background: var(--surface-2);
+  }
+
+  /* skeleton shimmer */
+  .skeleton {
+    position: relative;
+    overflow: hidden;
+    background: rgba(40, 54, 92, 0.35);
+    border-radius: 0.25rem;
+  }
+  .skeleton::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(120, 180, 220, 0.14),
+      transparent
+    );
+    animation: shimmer 1.25s infinite;
+  }
+  @keyframes shimmer { 100% { transform: translateX(100%); } }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spin { animation: spin 0.9s linear infinite; }
+
+  @keyframes fadein { from { opacity: 0; } to { opacity: 1; } }
+  .fadein { animation: fadein 0.25s ease-out; }
 }

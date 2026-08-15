@@ -3,7 +3,10 @@ import { RARITY_COLOR, TYPE_COLOR } from "@/lib/typing";
 
 export function TypeBadge({ type }: { type: PokeType }) {
   return (
-    <span className="chip" style={{ background: TYPE_COLOR[type] }}>
+    <span
+      className="chip"
+      style={{ background: TYPE_COLOR[type], color: "#fff", textShadow: "0 1px 1px rgba(0,0,0,0.45)" }}
+    >
       {type}
     </span>
   );
@@ -20,10 +23,7 @@ export function TypeBadges({ t1, t2 }: { t1: PokeType; t2: PokeType | null }) {
 
 export function RarityBadge({ rarity }: { rarity: Rarity }) {
   return (
-    <span
-      className="chip"
-      style={{ background: RARITY_COLOR[rarity], color: "#111", textShadow: "none" }}
-    >
+    <span className="chip" style={{ background: RARITY_COLOR[rarity], color: "#06111a" }}>
       {rarity}
     </span>
   );
