@@ -1,36 +1,64 @@
 import type { Metadata } from "next";
 import { getData } from "@/lib/data";
 import { itemIconUrl } from "@/lib/sprites";
-import { HuntPlanner, type HuntRow } from "@/components/hunt-planner";
+import { projectStat } from "@/lib/stats";
+import { SIM_IV, type EnemyCombat, type Species, type Move } from "@/lib/combat";
+import { HuntTool } from "@/components/hunt-tool";
+import type { HuntRow } from "@/components/hunt-planner";
+import type { PokeType } from "@/lib/types";
 import { T } from "@/components/locale-provider";
 
 export const metadata: Metadata = { title: "Hunt Planner" };
 
+// Power (soma dos stats) de um pokemon num nivel — metrica de forca do jogo.
+function powerAt(bases: number[], level: number): number {
+  return bases.reduce((sum, b, i) => sum + projectStat(b, SIM_IV, level, 1, i), 0);
+}
+
 export default async function HuntPage() {
   const db = await getData();
   const { creatures, hunts } = db;
-
   const areas = [...new Set(hunts.map((h) => h.area))].sort();
 
   const rows: HuntRow[] = [];
-  for (const c of creatures) {
-    const locs = db.locationsOf(c);
-    if (locs.length === 0) continue; // so pokemon com ponto de hunt mapeado
+  const enemies: EnemyCombat[] = [];
+  const species: Species[] = [];
 
-    // Ouro esperado por kill = valor esperado do loot (chance x qtd media x preco NPC).
-    // Melhor drop = o item de maior valor que ele solta.
+  for (const c of creatures) {
+    const bases = [c.baseHp, c.baseAtk, c.baseDef, c.baseSpAtk, c.baseSpDef, c.baseSpeed];
+    // Todo pokemon vira "especie" selecionavel (o jogador pode ter qualquer um).
+    const moves: Move[] = c.attacks.map((a) => ({
+      type: a.type as PokeType,
+      power: a.power,
+      learn: a.learnLevel,
+    }));
+    species.push({
+      pokeId: c.pokeId,
+      name: c.name,
+      t1: c.type1,
+      t2: c.type2,
+      bases,
+      evolvesToId: c.evolvesToId,
+      evolveLevel: c.evolveLevel,
+      moves,
+    });
+
+    const locs = db.locationsOf(c);
+    if (locs.length === 0) continue; // so quem tem spot vira alvo de hunt
+
+    // Ouro esperado por kill (EV do loot) + melhor drop (item de maior valor).
     let gold = 0;
     let top: { name: string; icon: string; price: number } | null = null;
     for (const l of c.loot) {
       const it = db.getItemByName(l.name);
       const price = it?.npcPrice ?? 0;
-      const prob = l.chance / 100000; // chance vem em escala 0..100000
-      const avg = (l.minCount + l.maxCount) / 2;
-      gold += prob * avg * price;
+      gold += (l.chance / 100000) * ((l.minCount + l.maxCount) / 2) * price;
       if (it && price > 0 && (!top || price > top.price)) {
         top = { name: it.name, icon: itemIconUrl(it), price };
       }
     }
+    const goldEV = Math.round(gold);
+    const rowAreas = [...new Set(locs.map((h) => h.area))].sort();
 
     rows.push({
       pokeId: c.pokeId,
@@ -38,12 +66,26 @@ export default async function HuntPage() {
       type1: c.type1,
       type2: c.type2,
       xp: c.experience,
-      gold: Math.round(gold),
+      gold: goldEV,
       sell: c.sellValue,
       huntLevel: c.huntLevel,
-      areas: [...new Set(locs.map((h) => h.area))].sort(),
+      areas: rowAreas,
       spotCount: locs.length,
       topDrop: top ? { name: top.name, icon: top.icon } : null,
+    });
+
+    const hl = Math.max(1, c.huntLevel);
+    enemies.push({
+      pokeId: c.pokeId,
+      name: c.name,
+      t1: c.type1,
+      t2: c.type2,
+      huntLevel: hl,
+      areas: rowAreas,
+      spotCount: locs.length,
+      xp: c.experience,
+      goldEV,
+      power: powerAt(bases, hl),
     });
   }
 
@@ -53,10 +95,10 @@ export default async function HuntPage() {
         <div className="eyebrow mb-2"><T k="hunt.eyebrow" /></div>
         <h1 className="pixel text-xl text-text"><T k="hunt.title" /></h1>
         <p className="mt-3 max-w-2xl text-sm text-text-dim">
-          <T k="hunt.desc" />
+          <T k="hunt.route.desc" />
         </p>
       </div>
-      <HuntPlanner rows={rows} areas={areas} />
+      <HuntTool rows={rows} areas={areas} species={species} enemies={enemies} />
     </div>
   );
 }

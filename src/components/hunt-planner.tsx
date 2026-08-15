@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { spriteUrl } from "@/lib/sprites";
 import type { PokeType } from "@/lib/types";
@@ -39,8 +39,9 @@ const num = (s: string): number => {
   const v = parseInt(s, 10);
   return Number.isFinite(v) ? v : NaN;
 };
+const PAGE_SIZE = 25;
 
-export function HuntPlanner({ rows, areas }: { rows: HuntRow[]; areas: string[] }) {
+export function EconomyTable({ rows, areas }: { rows: HuntRow[]; areas: string[] }) {
   const t = useT();
   const [q, setQ] = useState("");
   const [type, setType] = useState<PokeType | "">("");
@@ -48,6 +49,7 @@ export function HuntPlanner({ rows, areas }: { rows: HuntRow[]; areas: string[] 
   const [maxLvl, setMaxLvl] = useState("");
   const [kpm, setKpm] = useState("30");
   const [sort, setSort] = useState<Sort>("gold");
+  const [page, setPage] = useState(0);
 
   const kpmN = num(kpm);
   const perMin = Number.isFinite(kpmN) && kpmN > 0 ? kpmN : 0;
@@ -70,6 +72,11 @@ export function HuntPlanner({ rows, areas }: { rows: HuntRow[]; areas: string[] 
     };
     return [...list].sort(by[sort]);
   }, [rows, q, type, areaSel, lvlCap, sort]);
+
+  useEffect(() => { setPage(0); }, [q, type, areaSel, maxLvl, sort]);
+  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const safePage = Math.min(page, pageCount - 1);
+  const paged = filtered.slice(safePage * PAGE_SIZE, safePage * PAGE_SIZE + PAGE_SIZE);
 
   return (
     <div className="flex flex-col gap-4">
@@ -129,6 +136,7 @@ export function HuntPlanner({ rows, areas }: { rows: HuntRow[]; areas: string[] 
       {filtered.length === 0 ? (
         <div className="card p-10 text-center text-text-dim">{t("hunt.empty")}</div>
       ) : (
+      <>
         <div className="card overflow-x-auto p-0">
           <table className="w-full min-w-[46rem] text-sm">
             <thead>
@@ -142,7 +150,7 @@ export function HuntPlanner({ rows, areas }: { rows: HuntRow[]; areas: string[] 
               </tr>
             </thead>
             <tbody>
-              {filtered.map((r) => (
+              {paged.map((r) => (
                 <tr key={r.pokeId} className="border-b border-border/60 last:border-0 hover:bg-surface-2">
                   <td className="px-4 py-2.5">
                     <Link href={`/dex/${r.pokeId}`} className="group flex items-center gap-3">
@@ -202,6 +210,30 @@ export function HuntPlanner({ rows, areas }: { rows: HuntRow[]; areas: string[] 
             </tbody>
           </table>
         </div>
+        {pageCount > 1 && (
+          <div className="flex items-center justify-center gap-4">
+            <button
+              type="button"
+              className="btn btn-ghost !py-1.5 disabled:opacity-40"
+              disabled={safePage <= 0}
+              onClick={() => setPage((p) => Math.max(0, p - 1))}
+            >
+              ‹
+            </button>
+            <span className="text-[0.7rem] uppercase tracking-wide text-text-dim">
+              {t("hunt.page", { a: safePage + 1, b: pageCount })}
+            </span>
+            <button
+              type="button"
+              className="btn btn-ghost !py-1.5 disabled:opacity-40"
+              disabled={safePage >= pageCount - 1}
+              onClick={() => setPage((p) => Math.min(pageCount - 1, p + 1))}
+            >
+              ›
+            </button>
+          </div>
+        )}
+      </>
       )}
 
       <p className="text-[0.66rem] leading-relaxed text-text-dim">{t("hunt.note")}</p>
