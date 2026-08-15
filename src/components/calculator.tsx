@@ -258,7 +258,7 @@ export function Calculator({ creatures }: { creatures: CalcCreature[] }) {
               {STAT_LABELS.map((label, i) => (
                 <div key={label} className="rounded border border-border bg-[rgba(8,14,28,0.5)] px-3 py-2">
                   <div className="inline-flex items-center gap-1 text-[0.58rem] uppercase tracking-wide text-text-dim"><StatIcon index={i} size={11} />{label}</div>
-                  <div className="tabular-nums text-lg font-bold text-text">{iv.ivs[i].toFixed(1)}</div>
+                  <div className={`tabular-nums text-lg font-bold ${iv.ivs[i] > IV_MAX ? "text-red" : "text-text"}`}>{iv.ivs[i].toFixed(1)}</div>
                 </div>
               ))}
             </div>
@@ -281,6 +281,9 @@ export function Calculator({ creatures }: { creatures: CalcCreature[] }) {
               <div className="statbar">
                 <div className="statbar-fill" style={{ width: `${Math.min(100, (iv.total / IV_MAX_TOTAL) * 100)}%`, background: "var(--green)" }} />
               </div>
+              {iv.ivs.some((v) => v > IV_MAX) && (
+                <p className="text-[0.62rem] font-semibold text-red">{t("calc.ivOver")}</p>
+              )}
               <p className="text-[0.62rem] text-text-dim">{t("calc.ivMaxNote")}</p>
             </div>
           </div>

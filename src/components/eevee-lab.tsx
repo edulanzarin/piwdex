@@ -183,7 +183,7 @@ export function EeveeLab({ eevee, evos }: { eevee: { pokeId: number; name: strin
                   </span>
                   <span className="flex flex-wrap gap-x-3 gap-y-0.5 text-[0.58rem] text-text-dim">
                     {STAT_LABELS.map((lb, i) => (
-                      <span key={lb} className="inline-flex items-center gap-1"><StatIcon index={i} size={9} />{lb} <span className="text-text">{result.ivs[i].toFixed(0)}</span></span>
+                      <span key={lb} className="inline-flex items-center gap-1"><StatIcon index={i} size={9} />{lb} <span className={result.ivs[i] > 32 ? "font-bold text-red" : "text-text"}>{result.ivs[i].toFixed(0)}</span></span>
                     ))}
                   </span>
                 </span>
@@ -199,6 +199,9 @@ export function EeveeLab({ eevee, evos }: { eevee: { pokeId: number; name: strin
               {computing ? `${t("eevee.calcing")}...` : `${t("eevee.calc")} ›`}
             </button>
           </div>
+          {result && result.ivs.some((v) => v > 32) && (
+            <p className="mt-2 text-[0.62rem] font-semibold leading-relaxed text-red">{t("eevee.ivOver")}</p>
+          )}
           <p className="mt-3 text-[0.62rem] leading-relaxed text-text-dim">{t("eevee.ivNote")}</p>
         </div>
       </div>
