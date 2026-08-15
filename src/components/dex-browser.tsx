@@ -1,13 +1,16 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Acquisition, Creature, PokeType } from "@/lib/types";
 import { TYPE_COLOR } from "@/lib/typing";
 import { CreatureCard } from "./creature-card";
 import { TypeFilter } from "./type-filter";
 import { SelectMenu } from "./select-menu";
 import { TypeIcon } from "./type-icon";
+import { Pagination } from "./pagination";
 import { useT, useTypeLabel } from "./locale-provider";
+
+const PAGE_SIZE = 60;
 
 // Filtro client-side sobre a lista completa (482 itens, barato).
 export function DexBrowser({ creatures, acq }: { creatures: Creature[]; acq: Record<number, Acquisition> }) {
@@ -16,6 +19,7 @@ export function DexBrowser({ creatures, acq }: { creatures: Creature[]; acq: Rec
   const [q, setQ] = useState("");
   const [type, setType] = useState<PokeType | "">("");
   const [origin, setOrigin] = useState<"" | Acquisition>("");
+  const [page, setPage] = useState(0);
 
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();
@@ -27,6 +31,11 @@ export function DexBrowser({ creatures, acq }: { creatures: Creature[]; acq: Rec
       return true;
     });
   }, [creatures, acq, q, type, origin]);
+
+  useEffect(() => { setPage(0); }, [q, type, origin]);
+  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const safePage = Math.min(page, pageCount - 1);
+  const paged = filtered.slice(safePage * PAGE_SIZE, safePage * PAGE_SIZE + PAGE_SIZE);
 
   return (
     <div className="flex flex-col gap-4">
@@ -64,11 +73,14 @@ export function DexBrowser({ creatures, acq }: { creatures: Creature[]; acq: Rec
       {filtered.length === 0 ? (
         <div className="card p-10 text-center text-text-dim">{t("dex.empty")}</div>
       ) : (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-          {filtered.map((c) => (
-            <CreatureCard key={c.pokeId} creature={c} acq={acq[c.pokeId]} />
-          ))}
-        </div>
+        <>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+            {paged.map((c) => (
+              <CreatureCard key={c.pokeId} creature={c} acq={acq[c.pokeId]} />
+            ))}
+          </div>
+          <Pagination page={safePage} pageCount={pageCount} onPage={setPage} />
+        </>
       )}
     </div>
   );
