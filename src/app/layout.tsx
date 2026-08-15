@@ -26,6 +26,7 @@ function Nav() {
   const tabs = [
     ["Pokedex", "/dex"],
     ["Itens", "/items"],
+    ["Calculadora", "/calc"],
   ];
   return (
     <header className="sticky top-0 z-20 border-b border-border bg-[rgba(7,11,22,0.72)] backdrop-blur">

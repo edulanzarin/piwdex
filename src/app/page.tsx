@@ -70,11 +70,11 @@ export default function Home() {
       </section>
 
       {/* Ferramentas */}
-      <section className="grid gap-4 sm:grid-cols-2">
+      <section className="grid gap-4 sm:grid-cols-3">
         <ToolCard
           eyebrow="Escolha sua ferramenta"
           title="Pokedex"
-          desc="Busca por nome, tipo e raridade. Cada ficha traz stats, fraquezas, evolucao, drops com chance real e onde cacar."
+          desc="Busca por nome e tipo. Cada ficha traz stats, fraquezas, evolucao, drops com chance real e onde cacar."
           href="/dex"
           cta="Abrir Pokedex"
           color="var(--cyan)"
@@ -82,10 +82,18 @@ export default function Home() {
         <ToolCard
           eyebrow="Indice reverso"
           title="Itens & drops"
-          desc="Escolha um item e veja quem dropa e a melhor taxa de farm — ordenado do maior pro menor. O que o piwtools nao mostra."
+          desc="Escolha um item e veja quem dropa e a melhor taxa de farm — ordenado do maior pro menor."
           href="/items"
           cta="Abrir itens"
           color="var(--green)"
+        />
+        <ToolCard
+          eyebrow="Ferramenta"
+          title="Calculadora IV"
+          desc="Estime os IVs, o IV total e o poder do seu pokemon a partir da qualidade e dos stats. Formula do jogo."
+          href="/calc"
+          cta="Abrir calculadora"
+          color="var(--purple)"
         />
       </section>
 
