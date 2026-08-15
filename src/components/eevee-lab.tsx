@@ -177,15 +177,10 @@ export function EeveeLab({ eevee, evos }: { eevee: { pokeId: number; name: strin
           <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-h-[1.1rem]">
               {result && (
-                <span className="flex flex-wrap items-center gap-x-4 gap-y-1">
-                  <span className="text-[0.62rem] uppercase tracking-wide text-text-dim">
-                    {t("eevee.ivTotal")} <span className="pixel ml-1 text-[0.7rem] text-green">{result.ivTotal.toFixed(1)}</span>
-                  </span>
-                  <span className="flex flex-wrap gap-x-3 gap-y-0.5 text-[0.58rem] text-text-dim">
-                    {STAT_LABELS.map((lb, i) => (
-                      <span key={lb} className="inline-flex items-center gap-1"><StatIcon index={i} size={9} />{lb} <span className={result.ivs[i] > 32 ? "font-bold text-red" : "text-text"}>{result.ivs[i].toFixed(0)}</span></span>
-                    ))}
-                  </span>
+                <span className="flex flex-wrap gap-x-3 gap-y-0.5 text-[0.58rem] text-text-dim">
+                  {STAT_LABELS.map((lb, i) => (
+                    <span key={lb} className="inline-flex items-center gap-1"><StatIcon index={i} size={9} />{lb} <span className={result.ivs[i] > 32 ? "font-bold text-red" : "text-text"}>{result.ivs[i].toFixed(0)}</span></span>
+                  ))}
                 </span>
               )}
             </div>
@@ -199,6 +194,21 @@ export function EeveeLab({ eevee, evos }: { eevee: { pokeId: number; name: strin
               {computing ? `${t("eevee.calcing")}...` : `${t("eevee.calc")} ›`}
             </button>
           </div>
+          {result && (
+            <div className="mt-4 flex flex-col gap-2 border-t border-border pt-3">
+              <div className="flex flex-wrap items-center gap-x-6 gap-y-1">
+                <span className="text-[0.6rem] uppercase tracking-wide text-text-dim">
+                  {t("eevee.ivTotal")} <span className="pixel ml-1 text-[0.72rem] text-green">{result.ivTotal.toFixed(0)}<span className="text-text-dim">/192</span></span>
+                </span>
+                <span className="text-[0.6rem] uppercase tracking-wide text-text-dim">
+                  {t("calc.ivUsage")} <span className="pixel ml-1 text-[0.72rem] text-cyan">{Math.round((result.ivTotal / 192) * 100)}%</span>
+                </span>
+              </div>
+              <div className="statbar">
+                <div className="statbar-fill" style={{ width: `${Math.min(100, (result.ivTotal / 192) * 100)}%`, background: "var(--green)" }} />
+              </div>
+            </div>
+          )}
           {result && result.ivs.some((v) => v > 32) && (
             <p className="mt-2 text-[0.62rem] font-semibold leading-relaxed text-red">{t("eevee.ivOver")}</p>
           )}
