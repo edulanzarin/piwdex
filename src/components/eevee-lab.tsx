@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { spriteUrl } from "@/lib/sprites";
 import type { PokeType } from "@/lib/types";
 import { STAT_LABELS, estimateIvs, projectAll } from "@/lib/stats";
@@ -67,7 +68,7 @@ function StatIn({ label, value, onChange }: { label: string; value: string; onCh
 function EvoNodeCard({ evo, compact }: { evo: NodeData; compact?: boolean }) {
   const maxIdx = evo.stats ? evo.stats.indexOf(Math.max(...evo.stats)) : -1;
   return (
-    <div className="card flex flex-col items-center gap-1.5 p-3 text-center" style={compact ? undefined : { width: 168 }}>
+    <Link href={`/dex/${evo.pokeId}`} className="card card-link flex flex-col items-center gap-1.5 p-3 text-center" style={compact ? undefined : { width: 168 }}>
       <div className="flex h-14 w-14 items-center justify-center rounded bg-[rgba(8,14,28,0.5)]">
         <Sprite src={spriteUrl(evo.pokeId)} alt={evo.name} size={48} />
       </div>
@@ -92,7 +93,7 @@ function EvoNodeCard({ evo, compact }: { evo: NodeData; compact?: boolean }) {
           ))}
         </div>
       )}
-    </div>
+    </Link>
   );
 }
 
@@ -136,15 +137,13 @@ export function EeveeLab({ eevee, evos }: { eevee: { pokeId: number; name: strin
             ))}
           </svg>
           {/* Eevee no centro */}
-          <div className="absolute -translate-x-1/2 -translate-y-1/2" style={{ left: `${CENTER.x}%`, top: `${CENTER.y}%` }}>
-            <div className="card flex flex-col items-center gap-1 p-3" style={{ width: 132 }}>
-              <div className="flex h-16 w-16 items-center justify-center rounded bg-[rgba(8,14,28,0.5)]">
-                <Sprite src={spriteUrl(eevee.pokeId)} alt={eevee.name} size={54} />
-              </div>
-              <div className="text-sm text-text">{eevee.name}</div>
-              {iv && <span className="text-[0.55rem] uppercase tracking-wide text-cyan">{t("eevee.atLevel", { n: tgt })}</span>}
+          <Link href={`/dex/${eevee.pokeId}`} className="card card-link absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-1 p-3" style={{ left: `${CENTER.x}%`, top: `${CENTER.y}%`, width: 132 }}>
+            <div className="flex h-16 w-16 items-center justify-center rounded bg-[rgba(8,14,28,0.5)]">
+              <Sprite src={spriteUrl(eevee.pokeId)} alt={eevee.name} size={54} />
             </div>
-          </div>
+            <div className="text-sm text-text">{eevee.name}</div>
+            {iv && <span className="text-[0.55rem] uppercase tracking-wide text-cyan">{t("eevee.atLevel", { n: tgt })}</span>}
+          </Link>
           {nodes.slice(0, 5).map((evo, i) => (
             <div key={evo.pokeId} className="absolute -translate-x-1/2 -translate-y-1/2" style={{ left: `${POS[i].x}%`, top: `${POS[i].y}%` }}>
               <EvoNodeCard evo={evo} />
@@ -154,7 +153,7 @@ export function EeveeLab({ eevee, evos }: { eevee: { pokeId: number; name: strin
 
         {/* Mobile: Eevee no topo + grid das evolucoes */}
         <div className="flex flex-col gap-3 sm:hidden">
-          <div className="card flex items-center gap-3 p-3">
+          <Link href={`/dex/${eevee.pokeId}`} className="card card-link flex items-center gap-3 p-3">
             <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded bg-[rgba(8,14,28,0.5)]">
               <Sprite src={spriteUrl(eevee.pokeId)} alt={eevee.name} size={48} />
             </div>
@@ -162,7 +161,7 @@ export function EeveeLab({ eevee, evos }: { eevee: { pokeId: number; name: strin
               <span className="text-sm text-text">{eevee.name}</span>
               {iv && <span className="text-[0.55rem] uppercase tracking-wide text-cyan">{t("eevee.atLevel", { n: tgt })}</span>}
             </div>
-          </div>
+          </Link>
           <div className="grid grid-cols-2 gap-3">
             {nodes.map((evo) => (
               <EvoNodeCard key={evo.pokeId} evo={evo} compact />
