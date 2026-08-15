@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { animatedSpriteUrl } from "@/lib/sprites";
 import { Pokeball } from "./pokeball";
 
 // Sprite com loading: skeleton + pokebola girando ate a imagem (vem do GitHub e
@@ -37,7 +38,13 @@ export function Sprite({
     >
       {state === "loading" && (
         <span className="skeleton absolute inset-0 flex items-center justify-center rounded">
-          <Pokeball size={Math.min(28, size / 2.2)} className="spin opacity-80" />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={animatedSpriteUrl(25)}
+            alt=""
+            className="bounce-y"
+            style={{ imageRendering: "pixelated", width: Math.min(size * 0.72, 44), height: Math.min(size * 0.72, 44) }}
+          />
         </span>
       )}
       {state === "error" && (

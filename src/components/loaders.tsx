@@ -1,5 +1,4 @@
 import { animatedSpriteUrl } from "@/lib/sprites";
-import { Pokeball } from "./pokeball";
 
 // Skeleton de grade (dex/itens): imita a forma dos cards.
 export function GridSkeleton({ count = 18 }: { count?: number }) {
@@ -16,20 +15,17 @@ export function GridSkeleton({ count = 18 }: { count?: number }) {
   );
 }
 
-// Loader de tela cheia: pikachu pixel pulando + pokebola chacoalhando.
+// Loader de tela cheia: pikachu pixel pulando.
 export function LoadingBall({ label = "Carregando" }: { label?: string }) {
   return (
     <div className="flex flex-col items-center justify-center gap-4 py-20">
-      <div className="relative flex h-20 items-end gap-2">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={animatedSpriteUrl(25)}
-          alt=""
-          className="bounce-y h-16 w-16"
-          style={{ imageRendering: "pixelated" }}
-        />
-        <Pokeball size={26} className="wiggle mb-1" />
-      </div>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={animatedSpriteUrl(25)}
+        alt=""
+        className="bounce-y h-20 w-20"
+        style={{ imageRendering: "pixelated" }}
+      />
       <div className="pixel text-[0.6rem] text-text-dim">{label}...</div>
     </div>
   );
