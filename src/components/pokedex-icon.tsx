@@ -1,32 +1,38 @@
-// Sprite pixel do aparelho Pokedex (fechado), multicolor. Usado na home.
+// Aparelho Pokedex aberto, pixel art detalhado (18x18). Home.
 const C: Record<string, string> = {
-  K: "#3a1013", // contorno
-  R: "#e0454b", // vermelho corpo
+  K: "#33090c", // contorno
   r: "#b7333a", // vermelho sombra
-  B: "#2b8fe0", // lente azul
-  w: "#bff3ff", // brilho da lente
+  R: "#e0454b", // vermelho corpo
+  b: "#2b8fe0", // aro da lente
+  w: "#cdefff", // brilho da lente
+  s: "#12604e", // borda da tela
+  S: "#54e6a4", // tela verde
   g: "#35e08e", // led verde
   y: "#f4d24a", // led amarelo
-  D: "#0c1730", // tela
-  s: "#1c3358", // brilho tela
-  b: "#4f8bf0", // dpad
+  c: "#37d3e6", // led ciano
+  m: "#9aa7bd", // dpad
+  n: "#9aa7bd", // botoes
 };
 
 const ROWS = [
-  ".KKKKKKKKKK.",
-  "KRRRRRRRRRRK",
-  "KRBwRRgyRRRK",
-  "KRBBRRRRRRrK",
-  "KRRRRRRRRRrK",
-  "KKKKKKKKKKKK",
-  "KRRRRRRRRRRK",
-  "KRDDDDDDDDRK",
-  "KRDssssssDRK",
-  "KRDDDDDDDDRK",
-  "KRRRRRRRRRrK",
-  "KRbRRRRyyRrK",
-  "KRRRRRRRRRrK",
-  ".KKKKKKKKKK.",
+  "....KKKKKKKKKK....",
+  "..KKrrrrrrrrrrKK..",
+  ".KKbbKrrrrrrrrRRK.",
+  ".KbwbKRRRRRRRRRRK.",
+  ".KbbKRssssssssRRK.",
+  ".KRRKssSSSSSSssRK.",
+  ".KRKssSSSSSSSSssK.",
+  ".KRKsSSSSSSSSSSsK.",
+  ".KRKsSSSSSSSSSSsK.",
+  ".KRKssSSSSSSSSssK.",
+  ".KRRKssssssssssRK.",
+  ".KRRRRRRRRRRRRRRK.",
+  ".KRgKRRyKRRcKRRRK.",
+  ".KRRRRRRRRRRRRRRK.",
+  ".KRmmKRRRRRRnnRRK.",
+  ".KRmmKRRRRRRnnRRK.",
+  "..KRRRRRRRRRRRRK..",
+  "...KKKKKKKKKKKK...",
 ];
 
 export function PokedexIcon({ size = 40 }: { size?: number }) {
@@ -36,9 +42,7 @@ export function PokedexIcon({ size = 40 }: { size?: number }) {
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
       const ch = ROWS[y][x];
-      if (ch !== "." && C[ch]) {
-        rects.push(<rect key={`${x}-${y}`} x={x} y={y} width={1} height={1} fill={C[ch]} />);
-      }
+      if (ch !== "." && C[ch]) rects.push(<rect key={`${x}-${y}`} x={x} y={y} width={1} height={1} fill={C[ch]} />);
     }
   }
   return (

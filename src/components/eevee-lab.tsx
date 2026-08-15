@@ -25,14 +25,15 @@ type NodeData = EvoNode & { stats?: number[] };
 // Posicoes dos 5 pontos da estrela (pentagon, ponta pra cima) em %.
 // Margem folgada nas bordas pra o hover (glow) nao ultrapassar o container.
 const POS = [
-  { x: 50, y: 17 },
-  { x: 85, y: 44 },
-  { x: 78, y: 83 },
-  { x: 22, y: 83 },
-  { x: 15, y: 44 },
+  { x: 50, y: 19 },
+  { x: 84, y: 44 },
+  { x: 76, y: 81 },
+  { x: 24, y: 81 },
+  { x: 16, y: 44 },
 ];
 const CENTER = { x: 50, y: 52 };
-const NODE_W = 152;
+const NODE_W = 140;
+const STAR = 600; // tamanho FIXO do container (px) — % mapeia sempre pro mesmo px
 
 const numF = (s: string) => parseFloat(String(s).replace(",", "."));
 const numI = (s: string) => parseInt(s, 10);
@@ -202,13 +203,13 @@ export function EeveeLab({ eevee, evos }: { eevee: { pokeId: number; name: strin
       </div>
 
       {/* A estrela — sempre visivel (stats como ??? ate calcular) */}
-      <div className="card p-5 sm:p-10">
+      <div className="card overflow-x-auto p-4 md:p-8">
         {computing ? (
           <LoadingBall label={t("eevee.calcing")} />
         ) : (
           <>
-            {/* Desktop: estrela radial */}
-            <div className="relative mx-auto hidden aspect-square w-full max-w-[700px] sm:block">
+            {/* Desktop: estrela radial (tamanho fixo pra nao vazar em telas estreitas) */}
+            <div className="relative mx-auto hidden md:block" style={{ width: STAR, height: STAR }}>
               <svg viewBox="0 0 100 100" className="absolute inset-0 h-full w-full" aria-hidden>
                 {POS.map((p, i) => (
                   <g key={i}>
@@ -243,8 +244,8 @@ export function EeveeLab({ eevee, evos }: { eevee: { pokeId: number; name: strin
               ))}
             </div>
 
-            {/* Mobile: Eevee no topo + grid */}
-            <div className="flex flex-col gap-3 sm:hidden">
+            {/* Mobile/estreito: Eevee no topo + grid */}
+            <div className="flex flex-col gap-3 md:hidden">
               <Link href={`/dex/${eevee.pokeId}`} className="card card-link col-span-2 flex flex-col items-center gap-2 p-3 text-center ring-1 ring-[color:var(--border-strong)]">
                 <Sprite src={spriteUrl(eevee.pokeId)} alt={eevee.name} size={48} />
                 <div>
