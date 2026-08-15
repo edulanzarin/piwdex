@@ -1,21 +1,21 @@
 import type { Metadata } from "next";
-import { creatures } from "@/lib/data";
+import { getData } from "@/lib/data";
 import { Calculator, type CalcCreature } from "@/components/calculator";
 
 export const metadata: Metadata = { title: "Calculadora de IV" };
 
-// Lista enxuta pro cliente: so o que a calculadora precisa.
-const slim: CalcCreature[] = creatures
-  .map((c) => ({
-    pokeId: c.pokeId,
-    name: c.name,
-    type1: c.type1,
-    type2: c.type2,
-    bases: [c.baseHp, c.baseAtk, c.baseDef, c.baseSpAtk, c.baseSpDef, c.baseSpeed],
-  }))
-  .sort((a, b) => a.name.localeCompare(b.name));
-
-export default function CalcPage() {
+export default async function CalcPage() {
+  const { creatures } = await getData();
+  // Lista enxuta pro cliente: so o que a calculadora precisa.
+  const slim: CalcCreature[] = creatures
+    .map((c) => ({
+      pokeId: c.pokeId,
+      name: c.name,
+      type1: c.type1,
+      type2: c.type2,
+      bases: [c.baseHp, c.baseAtk, c.baseDef, c.baseSpAtk, c.baseSpDef, c.baseSpeed],
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name));
   return (
     <div className="flex flex-col gap-6">
       <div>

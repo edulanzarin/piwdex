@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
-import { creatures } from "@/lib/data";
+import { getData } from "@/lib/data";
 import { DexBrowser } from "@/components/dex-browser";
 
 export const metadata: Metadata = { title: "Pokedex" };
 
-// Ordena por pokeId pra dar a ordem natural de dex.
-const ordered = [...creatures].sort((a, b) => a.pokeId - b.pokeId);
-
-export default function DexPage() {
+export default async function DexPage() {
+  const { creatures } = await getData();
+  // Ordena por pokeId pra dar a ordem natural de dex.
+  const ordered = [...creatures].sort((a, b) => a.pokeId - b.pokeId);
   return (
     <div className="flex flex-col gap-6">
       <div>

@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { dropSourcesOf, getItem, items } from "@/lib/data";
+import { getData } from "@/lib/data";
 import { itemIconUrl, spriteUrl } from "@/lib/sprites";
 import { TypeBadges } from "@/components/badges";
 import { Sprite } from "@/components/sprite";
 import { Gold } from "@/components/icons";
 
-export function generateStaticParams() {
+export async function generateStaticParams() {
+  const { items } = await getData();
   return items.map((i) => ({ id: String(i.id) }));
 }
 
@@ -17,6 +18,7 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const { id } = await params;
+  const { getItem } = await getData();
   const item = getItem(Number(id));
   return { title: item ? item.name : "Item" };
 }
@@ -34,6 +36,7 @@ export default async function ItemPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const { getItem, dropSourcesOf } = await getData();
   const item = getItem(Number(id));
   if (!item) notFound();
 

@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
-import { items } from "@/lib/data";
+import { getData } from "@/lib/data";
 import { ItemsBrowser } from "@/components/items-browser";
 
 export const metadata: Metadata = { title: "Itens" };
 
-const ordered = [...items].sort((a, b) => a.name.localeCompare(b.name));
-
-export default function ItemsPage() {
+export default async function ItemsPage() {
+  const { items } = await getData();
+  const ordered = [...items].sort((a, b) => a.name.localeCompare(b.name));
   return (
     <div className="flex flex-col gap-6">
       <div>

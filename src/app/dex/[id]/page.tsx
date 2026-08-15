@@ -1,13 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import {
-  creatures,
-  evolutionChainOf,
-  getCreature,
-  getItemByName,
-  locationsOf,
-} from "@/lib/data";
+import { getData } from "@/lib/data";
 import { spriteUrl, itemIconUrl } from "@/lib/sprites";
 import { defensiveProfile, TYPE_COLOR } from "@/lib/typing";
 import type { PokeType } from "@/lib/types";
@@ -15,7 +9,8 @@ import { TypeBadge, TypeBadges } from "@/components/badges";
 import { Sprite } from "@/components/sprite";
 import { Gold } from "@/components/icons";
 
-export function generateStaticParams() {
+export async function generateStaticParams() {
+  const { creatures } = await getData();
   return creatures.map((c) => ({ id: String(c.pokeId) }));
 }
 
@@ -25,6 +20,7 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const { id } = await params;
+  const { getCreature } = await getData();
   const c = getCreature(Number(id));
   return { title: c ? `${c.name} #${c.pokeId}` : "Pokemon" };
 }
@@ -79,6 +75,7 @@ export default async function CreaturePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const { getCreature, evolutionChainOf, locationsOf, getItemByName } = await getData();
   const c = getCreature(Number(id));
   if (!c) notFound();
 

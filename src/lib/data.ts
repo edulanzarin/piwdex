@@ -1,105 +1,103 @@
-// Camada de dados: carrega o snapshot puro e monta as derivacoes em memoria.
-// As derivacoes sao o que o piwdex tem a mais que o piwtools: indice reverso de
-// drop ("onde dropa X"), localizacao de cada criatura e cadeia evolutiva.
+// Camada de dados: pega o catalogo (live com fallback) e monta as derivacoes.
+// getData() e memoizado por request (React cache) e re-executa quando o ISR
+// revalida a fonte. As derivacoes (indice reverso de drop, localizacoes,
+// evolucao) sao o que o piwdex tem a mais que o piwtools.
 
-import raw from "@/data/piwdex.json";
-import type {
-  Creature,
-  DropSource,
-  EvolutionStage,
-  Hunt,
-  Item,
-  Snapshot,
-} from "./types";
+import { cache } from "react";
+import { fetchSource } from "./source";
+import type { Creature, DropSource, EvolutionStage, Hunt, Item } from "./types";
 
-const snapshot = raw as unknown as Snapshot;
-
-export const generatedAt = snapshot.generatedAt;
-export const counts = snapshot.counts;
-export const creatures: Creature[] = snapshot.creatures;
-export const items: Item[] = snapshot.items;
-export const hunts: Hunt[] = snapshot.hunts;
-
-// chance vem em escala 0..100000; porcentagem = chance / 1000.
+// chance vem em escala 0..100000; porcentagem = chance / 1000. (Puro, sem fetch.)
 export const chanceToPct = (chance: number): number => chance / 1000;
 
-// ---- indices (memoizados no modulo) ----
-
-const creatureById = new Map<number, Creature>();
-for (const c of creatures) creatureById.set(c.pokeId, c);
-
-const itemById = new Map<number, Item>();
-const itemByName = new Map<string, Item>();
-for (const i of items) {
-  itemById.set(i.id, i);
-  itemByName.set(i.name, i);
+export interface DB {
+  creatures: Creature[];
+  items: Item[];
+  hunts: Hunt[];
+  generatedAt: string;
+  live: boolean;
+  counts: { creatures: number; items: number; hunts: number };
+  totalDropEntries: number;
+  getCreature: (pokeId: number) => Creature | undefined;
+  getItem: (id: number) => Item | undefined;
+  getItemByName: (name: string) => Item | undefined;
+  locationsOf: (c: Creature) => Hunt[];
+  dropSourcesOf: (itemName: string) => DropSource[];
+  evolutionChainOf: (c: Creature) => EvolutionStage[];
 }
 
-const huntsByLooktype = new Map<number, Hunt[]>();
-for (const h of hunts) {
-  const arr = huntsByLooktype.get(h.looktype) ?? [];
-  arr.push(h);
-  huntsByLooktype.set(h.looktype, arr);
-}
+export const getData = cache(async (): Promise<DB> => {
+  const { creatures, items, hunts, generatedAt, live } = await fetchSource();
 
-// indice reverso de drop: nome do item -> criaturas que dropam (com % ja convertida).
-const dropSourcesByItem = new Map<string, DropSource[]>();
-for (const c of creatures) {
-  for (const l of c.loot) {
-    const arr = dropSourcesByItem.get(l.name) ?? [];
-    arr.push({
-      creature: c,
-      chancePct: chanceToPct(l.chance),
-      minCount: l.minCount,
-      maxCount: l.maxCount,
-    });
-    dropSourcesByItem.set(l.name, arr);
+  const creatureById = new Map<number, Creature>();
+  for (const c of creatures) creatureById.set(c.pokeId, c);
+
+  const itemById = new Map<number, Item>();
+  const itemByName = new Map<string, Item>();
+  for (const i of items) {
+    itemById.set(i.id, i);
+    itemByName.set(i.name, i);
   }
-}
-// maior chance primeiro
-for (const arr of dropSourcesByItem.values()) arr.sort((a, b) => b.chancePct - a.chancePct);
 
-// ---- acessores ----
-
-export const getCreature = (pokeId: number): Creature | undefined =>
-  creatureById.get(pokeId);
-
-export const getItem = (id: number): Item | undefined => itemById.get(id);
-
-export const getItemByName = (name: string): Item | undefined => itemByName.get(name);
-
-/** Onde a criatura aparece no mapa (join por looktype). */
-export const locationsOf = (c: Creature): Hunt[] =>
-  huntsByLooktype.get(c.looktype) ?? [];
-
-/** Quem dropa este item e a que taxa, do mais provavel ao menos. */
-export const dropSourcesOf = (itemName: string): DropSource[] =>
-  dropSourcesByItem.get(itemName) ?? [];
-
-/** Cadeia evolutiva completa que CONTEM esta criatura, do primeiro estagio ao ultimo. */
-export function evolutionChainOf(c: Creature): EvolutionStage[] {
-  // acha a base: recua por quem evolui para o atual, ate ninguem apontar.
-  let base = c;
-  const guard = new Set<number>();
-  for (;;) {
-    if (guard.has(base.pokeId)) break;
-    guard.add(base.pokeId);
-    const prev = creatures.find((x) => x.evolvesToId === base.pokeId);
-    if (!prev) break;
-    base = prev;
+  const huntsByLooktype = new Map<number, Hunt[]>();
+  for (const h of hunts) {
+    const arr = huntsByLooktype.get(h.looktype) ?? [];
+    arr.push(h);
+    huntsByLooktype.set(h.looktype, arr);
   }
-  // avanca do base seguindo evolvesToId.
-  const chain: EvolutionStage[] = [{ creature: base, evolveLevel: null }];
-  const seen = new Set<number>([base.pokeId]);
-  let cur = base;
-  while (cur.evolvesToId != null) {
-    const next = creatureById.get(cur.evolvesToId);
-    if (!next || seen.has(next.pokeId)) break;
-    chain.push({ creature: next, evolveLevel: cur.evolveLevel });
-    seen.add(next.pokeId);
-    cur = next;
-  }
-  return chain;
-}
 
-export const totalDropEntries = creatures.reduce((n, c) => n + c.loot.length, 0);
+  // indice reverso de drop: nome do item -> criaturas que dropam (com % convertida).
+  const dropSourcesByItem = new Map<string, DropSource[]>();
+  for (const c of creatures) {
+    for (const l of c.loot) {
+      const arr = dropSourcesByItem.get(l.name) ?? [];
+      arr.push({
+        creature: c,
+        chancePct: chanceToPct(l.chance),
+        minCount: l.minCount,
+        maxCount: l.maxCount,
+      });
+      dropSourcesByItem.set(l.name, arr);
+    }
+  }
+  for (const arr of dropSourcesByItem.values()) arr.sort((a, b) => b.chancePct - a.chancePct);
+
+  function evolutionChainOf(c: Creature): EvolutionStage[] {
+    let base = c;
+    const guard = new Set<number>();
+    for (;;) {
+      if (guard.has(base.pokeId)) break;
+      guard.add(base.pokeId);
+      const prev = creatures.find((x) => x.evolvesToId === base.pokeId);
+      if (!prev) break;
+      base = prev;
+    }
+    const chain: EvolutionStage[] = [{ creature: base, evolveLevel: null }];
+    const seen = new Set<number>([base.pokeId]);
+    let cur = base;
+    while (cur.evolvesToId != null) {
+      const next = creatureById.get(cur.evolvesToId);
+      if (!next || seen.has(next.pokeId)) break;
+      chain.push({ creature: next, evolveLevel: cur.evolveLevel });
+      seen.add(next.pokeId);
+      cur = next;
+    }
+    return chain;
+  }
+
+  return {
+    creatures,
+    items,
+    hunts,
+    generatedAt,
+    live,
+    counts: { creatures: creatures.length, items: items.length, hunts: hunts.length },
+    totalDropEntries: creatures.reduce((n, c) => n + c.loot.length, 0),
+    getCreature: (pokeId) => creatureById.get(pokeId),
+    getItem: (id) => itemById.get(id),
+    getItemByName: (name) => itemByName.get(name),
+    locationsOf: (c) => huntsByLooktype.get(c.looktype) ?? [],
+    dropSourcesOf: (itemName) => dropSourcesByItem.get(itemName) ?? [],
+    evolutionChainOf,
+  };
+});

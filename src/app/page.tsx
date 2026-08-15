@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { counts, generatedAt, totalDropEntries } from "@/lib/data";
+import { getData } from "@/lib/data";
 
 function ToolCard({
   eyebrow,
@@ -32,7 +32,8 @@ function ToolCard({
   );
 }
 
-export default function Home() {
+export default async function Home() {
+  const { counts, generatedAt, totalDropEntries, live } = await getData();
   const stats = [
     [counts.creatures, "pokemons"],
     [counts.items, "itens"],
@@ -98,7 +99,13 @@ export default function Home() {
       </section>
 
       <p className="text-[0.68rem] text-text-dim">
-        Snapshot dos dados: {new Date(generatedAt).toLocaleString("pt-BR")}.
+        {live ? (
+          <span className="inline-flex items-center gap-1.5">
+            <span className="inline-block h-2 w-2 rounded-full bg-green" /> Catalogo ao vivo, direto do jogo (atualiza sozinho).
+          </span>
+        ) : (
+          <>Catalogo do snapshot local ({new Date(generatedAt).toLocaleString("pt-BR")}).</>
+        )}
       </p>
     </div>
   );
