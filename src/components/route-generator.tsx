@@ -10,7 +10,7 @@ import { TypeIcon } from "./type-icon";
 import { Coin } from "./icons";
 import { useT, useTypeLabel } from "./locale-provider";
 import { TYPE_COLOR } from "@/lib/typing";
-import { STAT_LABELS, estimateIvs, powerOf, projectAll } from "@/lib/stats";
+import { STAT_LABELS, estimateIvs, powerOf } from "@/lib/stats";
 import { buildChain, buildRoute, SIM_IV, type Species, type EnemyCombat, type RouteStep } from "@/lib/combat";
 
 const compact = (n: number): string => {
@@ -62,15 +62,13 @@ export function RouteGenerator({ species, enemies }: { species: Species[]; enemi
   const qual = Number.isFinite(numF(quality)) && numF(quality) > 0 ? numF(quality) : 1;
   const statVals = stats.map(numF);
   const statsReady = picked != null && Number.isFinite(lvl) && lvl > 0 && statVals.every((v) => Number.isFinite(v) && v > 0);
-  const canCalc = picked != null && Number.isFinite(lvl) && lvl > 0 && Number.isFinite(tgt) && tgt > lvl;
+  // Stats sao obrigatorios: sem eles nao da pra medir a forca real do pokemon.
+  const canCalc = statsReady && Number.isFinite(tgt) && tgt > lvl;
 
   const ivInfo = useMemo(() => {
     if (statsReady && picked) {
       const e = estimateIvs(picked.bases, statVals, lvl, qual);
       return { ivs: e.ivs, total: e.total as number | null, power: powerOf(statVals, qual) as number | null };
-    }
-    if (picked && Number.isFinite(lvl) && lvl > 0) {
-      return { ivs: SIM_IVS, total: null as number | null, power: projectAll(picked.bases, SIM_IVS, lvl, qual).power as number | null };
     }
     return { ivs: SIM_IVS, total: null as number | null, power: null as number | null };
   }, [statsReady, picked, statVals, lvl, qual]);
@@ -120,20 +118,21 @@ export function RouteGenerator({ species, enemies }: { species: Species[]; enemi
             <span className="text-[0.6rem] uppercase tracking-wide text-text-dim">{t("hunt.route.statsOpt")}</span>
             {picked && <button type="button" className="btn btn-ghost !py-1 !text-[0.5rem]" onClick={fillBase}>{t("hunt.route.useBase")}</button>}
           </div>
-          <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-6">
+          <div className="grid grid-cols-3 gap-2.5">
             {STAT_LABELS.map((lb, i) => (
               <StatIn key={lb} label={lb} value={stats[i]} onChange={(v) => setStat(i, v)} />
             ))}
           </div>
-          <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-2">
-            {ivInfo.total != null && (
-              <span className="text-[0.62rem] uppercase tracking-wide text-text-dim">{t("hunt.route.ivTotal")} <span className="pixel ml-1 text-[0.7rem] text-green">{ivInfo.total.toFixed(1)}</span></span>
-            )}
-            {ivInfo.power != null && (
-              <span className="text-[0.62rem] uppercase tracking-wide text-text-dim">{t("hunt.route.power")} <span className="pixel ml-1 text-[0.7rem] text-yellow">{ivInfo.power.toLocaleString("pt-BR")}</span></span>
-            )}
-            <span className="text-[0.62rem] text-text-dim">{t("hunt.route.ivNote")}</span>
-          </div>
+          {(ivInfo.total != null || ivInfo.power != null) && (
+            <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-2">
+              {ivInfo.total != null && (
+                <span className="text-[0.62rem] uppercase tracking-wide text-text-dim">{t("hunt.route.ivTotal")} <span className="pixel ml-1 text-[0.7rem] text-green">{ivInfo.total.toFixed(1)}</span></span>
+              )}
+              {ivInfo.power != null && (
+                <span className="text-[0.62rem] uppercase tracking-wide text-text-dim">{t("hunt.route.power")} <span className="pixel ml-1 text-[0.7rem] text-yellow">{ivInfo.power.toLocaleString("pt-BR")}</span></span>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Objetivo + calcular */}
