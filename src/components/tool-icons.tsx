@@ -128,3 +128,34 @@ const LAB_ROWS = [
   "..................",
 ];
 export const LabIcon = ({ size = 52 }: { size?: number }) => render(LAB_ROWS, LAB, size);
+
+// Ovo malhado (Breeding). Construido por perfil de meia-largura pra sair sempre
+// simetrico (estreito no topo, redondo embaixo), com malhas verdes e sombra.
+const EGG_SHELL = "#efe7cf";
+const EGG_SHADE = "#c9bd94";
+const EGG_BASE = "#dcd0a6";
+const EGG_SPOT = "#35e08e";
+const EGG_HALF = [1, 2, 3, 4, 4, 5, 5, 6, 6, 6, 7, 7, 7, 6, 6, 5, 4, 3];
+const EGG_SPOTS = new Set(["6,5", "10,6", "8,8", "4,10", "12,11", "7,13"]);
+export const BreedIcon = ({ size = 52 }: { size?: number }) => {
+  const W = 18;
+  const H = EGG_HALF.length;
+  const rects: React.ReactNode[] = [];
+  for (let y = 0; y < H; y++) {
+    const hw = EGG_HALF[y];
+    const x0 = Math.round(W / 2 - hw);
+    const x1 = Math.round(W / 2 + hw) - 1;
+    for (let x = x0; x <= x1; x++) {
+      let fill = EGG_SHELL;
+      if (EGG_SPOTS.has(`${x},${y}`)) fill = EGG_SPOT;
+      else if (x >= x1 - 1 && y >= 4) fill = EGG_SHADE;
+      else if (y >= H - 3) fill = EGG_BASE;
+      rects.push(<rect key={`${x}-${y}`} x={x} y={y} width={1} height={1} fill={fill} />);
+    }
+  }
+  return (
+    <svg width={size} height={size} viewBox="0 0 18 18" shapeRendering="crispEdges" style={{ imageRendering: "pixelated", flexShrink: 0 }} aria-hidden="true">
+      {rects}
+    </svg>
+  );
+};

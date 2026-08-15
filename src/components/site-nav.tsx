@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { Pokeball } from "./pokeball";
-import { NavDex, NavItems, NavHunt, NavCalc, NavLab } from "./nav-icons";
+import { NavDex, NavItems, NavHunt, NavCalc, NavLab, NavBreed } from "./nav-icons";
 import { useT } from "./locale-provider";
 import { LangSwitcher } from "./lang-switcher";
 
@@ -13,6 +13,7 @@ const TABS: { key: string; href: string; Icon: (p: { size?: number }) => React.R
   { key: "nav.items", href: "/items", Icon: NavItems },
   { key: "nav.hunt", href: "/hunt", Icon: NavHunt },
   { key: "nav.calc", href: "/calc", Icon: NavCalc },
+  { key: "nav.breed", href: "/breed", Icon: NavBreed },
   { key: "nav.eevee", href: "/eevee", Icon: NavLab },
 ];
 
