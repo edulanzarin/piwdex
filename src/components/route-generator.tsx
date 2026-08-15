@@ -11,7 +11,7 @@ import { Coin } from "./icons";
 import { useT, useTypeLabel } from "./locale-provider";
 import { TYPE_COLOR } from "@/lib/typing";
 import { STAT_LABELS, estimateIvs, powerOf, projectAll } from "@/lib/stats";
-import { buildChain, buildRoute, SIM_IV, type Species, type EnemyCombat, type RouteStep, type RouteMode } from "@/lib/combat";
+import { buildChain, buildRoute, SIM_IV, type Species, type EnemyCombat, type RouteStep } from "@/lib/combat";
 
 const compact = (n: number): string => {
   if (!Number.isFinite(n)) return "—";
@@ -43,7 +43,6 @@ export function RouteGenerator({ species, enemies }: { species: Species[]; enemi
   const [quality, setQuality] = useState("1");
   const [stats, setStats] = useState<string[]>(["", "", "", "", "", ""]);
   const [vip, setVip] = useState(false);
-  const [mode, setMode] = useState<RouteMode>("xp");
   const [computing, setComputing] = useState(false);
   const [result, setResult] = useState<RouteStep[] | null>(null);
 
@@ -78,7 +77,7 @@ export function RouteGenerator({ species, enemies }: { species: Species[]; enemi
 
   // Muda qualquer entrada -> some o resultado (forca recalcular).
   const statsKey = stats.join(",");
-  useEffect(() => { setResult(null); }, [pick, level, target, quality, statsKey, vip, mode]);
+  useEffect(() => { setResult(null); }, [pick, level, target, quality, statsKey, vip]);
 
   const calc = () => {
     if (!canCalc || !picked) return;
@@ -86,7 +85,7 @@ export function RouteGenerator({ species, enemies }: { species: Species[]; enemi
     // pequeno atraso pra mostrar o loader (o calculo em si e instantaneo).
     window.setTimeout(() => {
       const chain = buildChain(byId, picked);
-      setResult(buildRoute(chain, lvl, tgt, enemies, qual, ivInfo.ivs, mode));
+      setResult(buildRoute(chain, lvl, tgt, enemies, qual, ivInfo.ivs));
       setComputing(false);
     }, 650);
   };
@@ -139,25 +138,10 @@ export function RouteGenerator({ species, enemies }: { species: Species[]; enemi
 
         {/* Objetivo + calcular */}
         <div className="mt-4 flex flex-col gap-3 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="flex gap-1.5">
-              {(["xp", "money"] as RouteMode[]).map((m) => (
-                <button
-                  key={m}
-                  type="button"
-                  onClick={() => setMode(m)}
-                  className={`btn !py-1.5 !text-[0.55rem] ${mode === m ? "" : "btn-ghost"}`}
-                  style={mode === m ? { background: m === "money" ? "var(--yellow)" : "var(--green)", color: "#06131a" } : undefined}
-                >
-                  {t(m === "xp" ? "hunt.route.modeXp" : "hunt.route.modeMoney")}
-                </button>
-              ))}
-            </div>
-            <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-text-dim">
-              <input type="checkbox" className="accent-[color:var(--green)]" checked={vip} onChange={(e) => setVip(e.target.checked)} />
-              {t("hunt.vip")}
-            </label>
-          </div>
+          <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-text-dim">
+            <input type="checkbox" className="accent-[color:var(--green)]" checked={vip} onChange={(e) => setVip(e.target.checked)} />
+            {t("hunt.vip")}
+          </label>
           <button
             type="button"
             onClick={calc}
@@ -169,8 +153,6 @@ export function RouteGenerator({ species, enemies }: { species: Species[]; enemi
           </button>
         </div>
       </div>
-
-      <p className="rounded border border-cyan/30 bg-[rgba(55,211,230,0.06)] px-4 py-3 text-[0.7rem] leading-relaxed text-text-dim">{t("hunt.route.note")}</p>
 
       {computing ? (
         <div className="card"><LoadingBall label={t("hunt.route.calcing")} /></div>
@@ -211,7 +193,7 @@ export function RouteGenerator({ species, enemies }: { species: Species[]; enemi
                   </span>
                 </div>
 
-                <div className="flex items-center gap-2 lg:w-36 lg:shrink-0">
+                <div className="flex items-center gap-2 lg:w-36 lg:shrink-0" title={t("hunt.effHint")}>
                   <span className="chip inline-flex items-center gap-1" style={{ background: TYPE_COLOR[p.moveName], color: "#fff" }}>
                     <TypeIcon type={p.moveName} size={11} /> {typeLabel(p.moveName)}
                   </span>

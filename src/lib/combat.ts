@@ -16,8 +16,6 @@ const POWER_CEIL = 1.15; // nunca sugere alvo com Power acima de yourPower*isto
 // (bate com o Est. do PIW Tools). E fator de estimativa, nao formula do jogo.
 const DMG_CAL = 0.35;
 
-export type RouteMode = "xp" | "money";
-
 /** Amplificacao elemental de hunt: vantagem (m-1)*1.5+1, resistencia m/1.5. */
 export function amplify(m: number): number {
   if (m === 0 || m === 1) return m;
@@ -101,15 +99,9 @@ function hitDamage(level: number, power: number, atk: number, def: number, eff: 
 }
 
 /** Melhor hunt pro nivel: dentro da janela de nivel e do teto de Power, a de maior
- *  score do modo (xp/hits pra upar, ouro/hits pra grana). */
-function pickHunt(
-  stage: Species,
-  level: number,
-  ps: PStats,
-  move: Move,
-  enemies: EnemyCombat[],
-  mode: RouteMode,
-): HuntPick | null {
+ *  XP por tempo. Empate de XP/tempo desempata por OURO por tempo (prioriza upar, mas
+ *  entre iguais pega a que da mais dinheiro). */
+function pickHunt(stage: Species, level: number, ps: PStats, move: Move, enemies: EnemyCombat[]): HuntPick | null {
   const windows: [number, number][] = [
     [level - 40, level + 20],
     [level - 80, level + 40],
@@ -117,7 +109,7 @@ function pickHunt(
     [0, Infinity],
   ];
   for (const [lo, hi] of windows) {
-    let best: { score: number; pick: HuntPick } | null = null;
+    let best: { xpps: number; goldps: number; pick: HuntPick } | null = null;
     for (const e of enemies) {
       if (e.huntLevel < lo || e.huntLevel > hi) continue;
       if (e.power > ps.power * POWER_CEIL) continue;
@@ -127,13 +119,16 @@ function pickHunt(
       const def = move.cat === "PHYSICAL" ? e.def : e.spDef;
       const stab = move.type === stage.t1 || move.type === stage.t2 ? 1.5 : 1;
       const dmg = hitDamage(level, move.power, atk, def, eff, stab);
-      // tempo de kill CONTINUO (nao arredonda) — assim a efetividade ainda pesa mesmo
-      // quando voce da overkill (1 hit). O display arredonda pra cima.
-      const killTime = e.effHp / dmg;
-      const hits = Math.max(1, Math.ceil(killTime));
-      const score = (mode === "money" ? e.goldEV : e.xp) / killTime;
-      if (!best || score > best.score) {
-        best = { score, pick: { enemy: e, moveName: move.type, eff, hits, safe: e.power <= ps.power * SAFE ? "safe" : "risky" } };
+      // tempo de kill = numero de ataques (hits >= 1). Voce nao mata em menos de 1
+      // ataque, entao overkill num bicho fraco nao "acelera" — a efetividade so ajuda
+      // quando reduz a quantidade de hits.
+      const hits = Math.max(1, Math.ceil(e.effHp / dmg));
+      const xpps = e.xp / hits;
+      const goldps = e.goldEV / hits;
+      // prioriza XP/tempo; so o ouro desempata quando o XP/tempo e praticamente igual.
+      const better = !best || xpps > best.xpps * 1.0001 || (Math.abs(xpps - best.xpps) <= best.xpps * 1e-4 && goldps > best.goldps);
+      if (better) {
+        best = { xpps, goldps, pick: { enemy: e, moveName: move.type, eff, hits, safe: e.power <= ps.power * SAFE ? "safe" : "risky" } };
       }
     }
     if (best) return best.pick;
@@ -189,7 +184,6 @@ export function buildRoute(
   enemies: EnemyCombat[],
   quality: number,
   ivs: number[],
-  mode: RouteMode,
 ): RouteStep[] {
   const steps: RouteStep[] = [];
   const s = Math.max(1, Math.floor(start));
@@ -200,7 +194,7 @@ export function buildRoute(
     const move = mainMove(stage, lvl);
     if (!move) continue;
     const ps = pstatsAt(stage.bases, lvl, quality, ivs);
-    const pick = pickHunt(stage, lvl, ps, move, enemies, mode);
+    const pick = pickHunt(stage, lvl, ps, move, enemies);
     if (!pick) continue;
 
     const last = steps[steps.length - 1];
