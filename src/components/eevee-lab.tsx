@@ -59,10 +59,12 @@ function chevrons(p: { x: number; y: number }): string[] {
   });
 }
 
-function StatIn({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+function StatIn({ label, value, onChange, iconIndex }: { label: string; value: string; onChange: (v: string) => void; iconIndex: number }) {
   return (
     <label className="flex flex-col gap-1">
-      <span className="text-[0.52rem] uppercase tracking-wide text-text-dim">{label}</span>
+      <span className="inline-flex items-center gap-1 text-[0.52rem] uppercase tracking-wide text-text-dim">
+        <StatIcon index={iconIndex} size={11} />{label}
+      </span>
       <input className="input !py-1.5 text-sm" inputMode="decimal" value={value} onChange={(e) => onChange(e.target.value)} />
     </label>
   );
@@ -170,7 +172,7 @@ export function EeveeLab({ eevee, evos }: { eevee: { pokeId: number; name: strin
           <span className="text-[0.6rem] uppercase tracking-wide text-text-dim">{t("eevee.statsLabel")}</span>
           <div className="mt-2 grid grid-cols-3 gap-2.5">
             {STAT_LABELS.map((lb, i) => (
-              <StatIn key={lb} label={lb} value={stats[i]} onChange={(v) => setStat(i, v)} />
+              <StatIn key={lb} iconIndex={i} label={lb} value={stats[i]} onChange={(v) => setStat(i, v)} />
             ))}
           </div>
 
