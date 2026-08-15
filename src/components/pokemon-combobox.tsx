@@ -5,6 +5,7 @@ import { spriteUrl } from "@/lib/sprites";
 import { TYPE_COLOR } from "@/lib/typing";
 import type { PokeType } from "@/lib/types";
 import { Sprite } from "./sprite";
+import { useT } from "./locale-provider";
 
 export interface ComboCreature {
   pokeId: number;
@@ -19,13 +20,15 @@ export function PokemonCombobox<T extends ComboCreature>({
   creatures,
   value,
   onSelect,
-  placeholder = "Digite e selecione...",
+  placeholder,
 }: {
   creatures: T[];
   value: T | null;
   onSelect: (c: T | null) => void;
   placeholder?: string;
 }) {
+  const tr = useT();
+  const ph = placeholder ?? tr("calc.pick");
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [hi, setHi] = useState(0);
@@ -64,7 +67,7 @@ export function PokemonCombobox<T extends ComboCreature>({
         )}
         <input
           className="min-w-0 flex-1 bg-transparent outline-none"
-          placeholder={value && !open ? value.name : placeholder}
+          placeholder={value && !open ? value.name : ph}
           value={open ? query : value ? value.name : ""}
           onChange={(e) => {
             setQuery(e.target.value);

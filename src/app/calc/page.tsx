@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getData } from "@/lib/data";
 import { Calculator, type CalcCreature } from "@/components/calculator";
+import { T } from "@/components/locale-provider";
 
 export const metadata: Metadata = { title: "Calculadora de IV" };
 
@@ -19,12 +20,10 @@ export default async function CalcPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <div className="eyebrow mb-2">Ferramenta</div>
-        <h1 className="pixel text-xl text-text">Calculadora de IV</h1>
+        <div className="eyebrow mb-2"><T k="calc.eyebrow" /></div>
+        <h1 className="pixel text-xl text-text"><T k="calc.title" /></h1>
         <p className="mt-3 max-w-2xl text-sm text-text-dim">
-          Informe qualidade, nivel e os stats atuais do SEU pokemon capturado — a
-          calculadora estima os IVs individuais, o IV total e o poder, e projeta os
-          stats em qualquer nivel. Formula verificada contra o jogo.
+          <T k="calc.desc" />
         </p>
       </div>
       <Calculator creatures={slim} />

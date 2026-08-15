@@ -6,8 +6,10 @@ import type { Item } from "@/lib/types";
 import { itemIconUrl } from "@/lib/sprites";
 import { Sprite } from "./sprite";
 import { Gold } from "./icons";
+import { useT } from "./locale-provider";
 
 export function ItemsBrowser({ items }: { items: Item[] }) {
+  const t = useT();
   const [q, setQ] = useState("");
   const [cat, setCat] = useState("");
 
@@ -30,22 +32,22 @@ export function ItemsBrowser({ items }: { items: Item[] }) {
       <div className="flex flex-col gap-3 sm:flex-row">
         <input
           className="input sm:max-w-xs"
-          placeholder="Buscar item..."
+          placeholder={t("items.search")}
           value={q}
           onChange={(e) => setQ(e.target.value)}
         />
         <select className="input sm:max-w-[12rem]" value={cat} onChange={(e) => setCat(e.target.value)}>
-          <option value="">Toda categoria</option>
+          <option value="">{t("items.allCat")}</option>
           {categories.map((c) => (
             <option key={c} value={c}>{c}</option>
           ))}
         </select>
       </div>
 
-      <div className="text-[0.7rem] text-text-dim uppercase tracking-wide">{filtered.length} itens</div>
+      <div className="text-[0.7rem] text-text-dim uppercase tracking-wide">{t("items.count", { n: filtered.length })}</div>
 
       {filtered.length === 0 ? (
-        <div className="card p-10 text-center text-text-dim">Nenhum item encontrado.</div>
+        <div className="card p-10 text-center text-text-dim">{t("items.empty")}</div>
       ) : (
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
           {filtered.map((i) => (
@@ -57,10 +59,10 @@ export function ItemsBrowser({ items }: { items: Item[] }) {
                 <div className="truncate text-sm font-medium">{i.name}</div>
                 <div className="text-[0.65rem] text-text-dim uppercase tracking-wide">
                   {i.category}
-                  {i.rare ? " · raro" : ""}
+                  {i.rare ? <> · {t("items.rare")}</> : ""}
                 </div>
                 <div className="mt-0.5 flex items-center gap-1 text-[0.7rem] text-yellow">
-                  <Gold value={i.npcPrice} /> <span className="text-text-dim">npc</span>
+                  <Gold value={i.npcPrice} /> <span className="text-text-dim">{t("items.npc")}</span>
                 </div>
               </div>
             </Link>

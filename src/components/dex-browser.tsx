@@ -6,9 +6,12 @@ import { TYPE_COLOR } from "@/lib/typing";
 import { CreatureCard } from "./creature-card";
 import { TypeFilter } from "./type-filter";
 import { TypeIcon } from "./type-icon";
+import { useT, useTypeLabel } from "./locale-provider";
 
 // Filtro client-side sobre a lista completa (482 itens, barato).
 export function DexBrowser({ creatures }: { creatures: Creature[] }) {
+  const t = useT();
+  const typeLabel = useTypeLabel();
   const [q, setQ] = useState("");
   const [type, setType] = useState<PokeType | "">("");
 
@@ -27,7 +30,7 @@ export function DexBrowser({ creatures }: { creatures: Creature[] }) {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <input
           className="input sm:max-w-xs"
-          placeholder="Buscar por nome ou #id..."
+          placeholder={t("dex.search")}
           value={q}
           onChange={(e) => setQ(e.target.value)}
         />
@@ -37,15 +40,15 @@ export function DexBrowser({ creatures }: { creatures: Creature[] }) {
       {type && (
         <div className="flex flex-wrap gap-2 text-xs">
           <button className="chip" style={{ background: TYPE_COLOR[type], color: "#fff" }} onClick={() => setType("")}>
-            <TypeIcon type={type} size={11} /> {type} ×
+            <TypeIcon type={type} size={11} /> {typeLabel(type)} ×
           </button>
         </div>
       )}
 
-      <div className="text-[0.7rem] text-text-dim uppercase tracking-wide">{filtered.length} pokemons</div>
+      <div className="text-[0.7rem] text-text-dim uppercase tracking-wide">{t("dex.count", { n: filtered.length })}</div>
 
       {filtered.length === 0 ? (
-        <div className="card p-10 text-center text-text-dim">Nada encontrado com esses filtros.</div>
+        <div className="card p-10 text-center text-text-dim">{t("dex.empty")}</div>
       ) : (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
           {filtered.map((c) => (

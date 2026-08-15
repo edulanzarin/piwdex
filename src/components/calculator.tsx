@@ -7,6 +7,7 @@ import type { PokeType } from "@/lib/types";
 import { estimateIvs, powerOf, projectAll, STAT_LABELS } from "@/lib/stats";
 import { Sprite } from "./sprite";
 import { PokemonCombobox } from "./pokemon-combobox";
+import { useT } from "./locale-provider";
 
 export interface CalcCreature {
   pokeId: number;
@@ -35,6 +36,7 @@ function Field({
 }
 
 export function Calculator({ creatures }: { creatures: CalcCreature[] }) {
+  const t = useT();
   const [creature, setCreature] = useState<CalcCreature | null>(null);
   const [level, setLevel] = useState("");
   const [quality, setQuality] = useState("");
@@ -79,11 +81,11 @@ export function Calculator({ creatures }: { creatures: CalcCreature[] }) {
           </div>
           <div className="grid flex-1 gap-3 sm:grid-cols-3">
             <label className="flex flex-col gap-1 sm:col-span-3">
-              <span className="text-[0.6rem] uppercase tracking-wide text-text-dim">Pokemon</span>
+              <span className="text-[0.6rem] uppercase tracking-wide text-text-dim">{t("calc.pokemon")}</span>
               <PokemonCombobox creatures={creatures} value={creature} onSelect={setCreature} />
             </label>
-            <Field label="Nivel" value={level} onChange={setLevel} placeholder="ex: 58" />
-            <Field label="Qualidade" value={quality} onChange={setQuality} placeholder="ex: 1,8" />
+            <Field label={t("calc.level")} value={level} onChange={setLevel} placeholder="ex: 58" />
+            <Field label={t("calc.quality")} value={quality} onChange={setQuality} placeholder="ex: 1,8" />
             {creature && (
               <div className="flex items-end gap-1.5 sm:col-span-1">
                 {[creature.type1, creature.type2].filter(Boolean).map((t) => (
@@ -98,15 +100,15 @@ export function Calculator({ creatures }: { creatures: CalcCreature[] }) {
       {/* Stats atuais */}
       <div className="card p-5">
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="pixel text-[0.72rem] text-cyan">Stats atuais no nivel</h2>
+          <h2 className="pixel text-[0.72rem] text-cyan">{t("calc.currentStats")}</h2>
           {creature && (
             <button className="btn btn-ghost !py-1.5 !text-[0.55rem]" onClick={fillBase} type="button">
-              usar stats base
+              {t("calc.useBase")}
             </button>
           )}
         </div>
         <p className="mb-4 text-sm text-text-dim">
-          Informe os seis stats que o jogo mostra no nivel acima — a calculadora infere os IVs.
+          {t("calc.currentHint")}
         </p>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {STAT_LABELS.map((label, i) => (
@@ -117,11 +119,11 @@ export function Calculator({ creatures }: { creatures: CalcCreature[] }) {
 
       {/* Resultado: IVs estimados */}
       <div className="card p-5">
-        <h2 className="pixel text-[0.72rem] text-green">IVs estimados</h2>
+        <h2 className="pixel text-[0.72rem] text-green">{t("calc.ivEstimated")}</h2>
         {!baseReady ? (
-          <p className="mt-3 text-sm text-text-dim">Escolha o pokemon e informe nivel e qualidade.</p>
+          <p className="mt-3 text-sm text-text-dim">{t("calc.pickFirst")}</p>
         ) : !iv ? (
-          <p className="mt-3 text-sm text-text-dim">Preencha os seis stats atuais (maiores que zero).</p>
+          <p className="mt-3 text-sm text-text-dim">{t("calc.fillStats")}</p>
         ) : (
           <div className="mt-4 flex flex-col gap-4">
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -134,11 +136,11 @@ export function Calculator({ creatures }: { creatures: CalcCreature[] }) {
             </div>
             <div className="flex flex-wrap gap-6 border-t border-border pt-3">
               <div>
-                <div className="text-[0.6rem] uppercase tracking-wide text-text-dim">IV Total</div>
+                <div className="text-[0.6rem] uppercase tracking-wide text-text-dim">{t("calc.ivTotal")}</div>
                 <div className="pixel text-base text-green">{iv.total.toFixed(1)}</div>
               </div>
               <div>
-                <div className="text-[0.6rem] uppercase tracking-wide text-text-dim">Poder</div>
+                <div className="text-[0.6rem] uppercase tracking-wide text-text-dim">{t("calc.power")}</div>
                 <div className="pixel text-base text-yellow">{currentPower?.toLocaleString("pt-BR")}</div>
               </div>
             </div>
@@ -148,12 +150,12 @@ export function Calculator({ creatures }: { creatures: CalcCreature[] }) {
 
       {/* Projecao */}
       <div className="card p-5">
-        <h2 className="pixel text-[0.72rem] text-cyan">Projetar stats para o nivel</h2>
+        <h2 className="pixel text-[0.72rem] text-cyan">{t("calc.project")}</h2>
         <p className="mb-4 mt-2 text-sm text-text-dim">
-          Usa os IVs estimados acima pra projetar os stats e o poder em outro nivel.
+          {t("calc.projectHint")}
         </p>
         <div className="max-w-[10rem]">
-          <Field label="Nivel alvo" value={target} onChange={setTarget} placeholder="ex: 100" />
+          <Field label={t("calc.targetLevel")} value={target} onChange={setTarget} placeholder="ex: 100" />
         </div>
         {projection && (
           <div className="mt-4 flex flex-col gap-4">
@@ -166,7 +168,7 @@ export function Calculator({ creatures }: { creatures: CalcCreature[] }) {
               ))}
             </div>
             <div className="border-t border-border pt-3">
-              <span className="text-[0.6rem] uppercase tracking-wide text-text-dim">Poder no nivel {tgt}</span>
+              <span className="text-[0.6rem] uppercase tracking-wide text-text-dim">{t("calc.powerAt", { n: tgt })}</span>
               <div className="pixel text-base text-yellow">{projection.power.toLocaleString("pt-BR")}</div>
             </div>
           </div>

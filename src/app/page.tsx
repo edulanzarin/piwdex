@@ -1,22 +1,23 @@
 import Link from "next/link";
 import { getData } from "@/lib/data";
 import { PokedexIcon } from "@/components/pokedex-icon";
+import { T, TB } from "@/components/locale-provider";
 
 function ToolCard({
-  eyebrow,
-  title,
-  desc,
+  eyebrowKey,
+  titleKey,
+  descKey,
   href,
-  cta,
+  ctaKey,
   color,
   icon,
   ctaText = "#06131a",
 }: {
-  eyebrow: string;
-  title: string;
-  desc: string;
+  eyebrowKey: string;
+  titleKey: string;
+  descKey: string;
   href: string;
-  cta: string;
+  ctaKey: string;
   color: string;
   icon?: React.ReactNode;
   ctaText?: string;
@@ -29,14 +30,14 @@ function ToolCard({
     >
       <div className="flex items-start justify-between gap-2">
         <div>
-          <div className="eyebrow" style={{ color }}>{eyebrow}</div>
-          <h2 className="pixel mt-2 text-sm" style={{ color }}>{title}</h2>
+          <div className="eyebrow" style={{ color }}><T k={eyebrowKey} /></div>
+          <h2 className="pixel mt-2 text-sm" style={{ color }}><T k={titleKey} /></h2>
         </div>
         {icon && <span className="shrink-0 opacity-90">{icon}</span>}
       </div>
-      <p className="text-sm text-text-dim leading-relaxed">{desc}</p>
+      <p className="text-sm text-text-dim leading-relaxed"><T k={descKey} /></p>
       <span className="btn mt-2 self-start" style={{ background: color, color: ctaText }}>
-        {cta} ›
+        <T k={ctaKey} /> ›
       </span>
     </Link>
   );
@@ -44,33 +45,31 @@ function ToolCard({
 
 export default async function Home() {
   const { counts, generatedAt, totalDropEntries, live } = await getData();
-  const stats = [
-    [counts.creatures, "pokemons"],
-    [counts.items, "itens"],
-    [totalDropEntries.toLocaleString("pt-BR"), "drops mapeados"],
-    [counts.hunts, "pontos de hunt"],
-  ] as const;
+  const stats: [string | number, string][] = [
+    [counts.creatures, "home.stat.pokemons"],
+    [counts.items, "home.stat.items"],
+    [totalDropEntries.toLocaleString("pt-BR"), "home.stat.drops"],
+    [counts.hunts, "home.stat.hunts"],
+  ];
 
   return (
     <div className="flex flex-col gap-10">
       {/* Hero */}
       <section className="card overflow-hidden p-8 sm:p-12">
-        <div className="eyebrow mb-4">Ferramentas Poke Idle World</div>
+        <div className="eyebrow mb-4"><T k="home.eyebrow" /></div>
         <h1 className="pixel text-2xl sm:text-4xl leading-[1.5] text-text">
-          A dex <span style={{ color: "var(--cyan)" }}>completa</span> do{" "}
+          <T k="home.heroPre" /> <span style={{ color: "var(--cyan)" }}><T k="home.heroMid" /></span> <T k="home.heroDo" />{" "}
           <span style={{ color: "var(--green)" }}>Poke Idle World</span>.
         </h1>
         <p className="mt-6 max-w-2xl text-text-dim leading-relaxed">
-          Stats, movesets, evolucoes, <strong className="text-text">chance real de cada drop</strong>,
-          onde farmar cada item e em que area cada pokemon aparece. Puxado direto da
-          fonte-mestra do jogo.
+          <TB k="home.subtitle" bKey="home.subtitleB" />
         </p>
 
         <div className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-4">
           {stats.map(([value, label]) => (
             <div key={label} className="rounded border border-border bg-[rgba(8,14,28,0.5)] px-4 py-3">
               <div className="pixel text-base text-cyan">{value}</div>
-              <div className="mt-1 text-[0.68rem] text-text-dim uppercase tracking-wide">{label}</div>
+              <div className="mt-1 text-[0.68rem] text-text-dim uppercase tracking-wide"><T k={label} /></div>
             </div>
           ))}
         </div>
@@ -79,29 +78,29 @@ export default async function Home() {
       {/* Ferramentas */}
       <section className="grid gap-4 sm:grid-cols-3">
         <ToolCard
-          eyebrow="Escolha sua ferramenta"
-          title="Pokedex"
-          desc="Busca por nome e tipo. Cada ficha traz stats, fraquezas, evolucao, drops com chance real e onde cacar."
+          eyebrowKey="home.card1.eyebrow"
+          titleKey="home.card1.title"
+          descKey="home.card1.desc"
           href="/dex"
-          cta="Abrir Pokedex"
+          ctaKey="home.card1.cta"
           color="#e94b4b"
           ctaText="#fff"
           icon={<PokedexIcon size={44} />}
         />
         <ToolCard
-          eyebrow="Indice reverso"
-          title="Itens & drops"
-          desc="Escolha um item e veja quem dropa e a melhor taxa de farm — ordenado do maior pro menor."
+          eyebrowKey="home.card2.eyebrow"
+          titleKey="home.card2.title"
+          descKey="home.card2.desc"
           href="/items"
-          cta="Abrir itens"
+          ctaKey="home.card2.cta"
           color="var(--green)"
         />
         <ToolCard
-          eyebrow="Ferramenta"
-          title="Calculadora IV"
-          desc="Estime os IVs, o IV total e o poder do seu pokemon a partir da qualidade e dos stats. Formula do jogo."
+          eyebrowKey="home.card3.eyebrow"
+          titleKey="home.card3.title"
+          descKey="home.card3.desc"
           href="/calc"
-          cta="Abrir calculadora"
+          ctaKey="home.card3.cta"
           color="var(--purple)"
         />
       </section>
@@ -109,10 +108,10 @@ export default async function Home() {
       <p className="text-[0.68rem] text-text-dim">
         {live ? (
           <span className="inline-flex items-center gap-1.5">
-            <span className="inline-block h-2 w-2 rounded-full bg-green" /> Catalogo ao vivo, direto do jogo (atualiza sozinho).
+            <span className="inline-block h-2 w-2 rounded-full bg-green" /> <T k="home.live" />
           </span>
         ) : (
-          <>Catalogo do snapshot local ({new Date(generatedAt).toLocaleString("pt-BR")}).</>
+          <T k="home.snapshot" vars={{ date: new Date(generatedAt).toLocaleString("pt-BR") }} />
         )}
       </p>
     </div>

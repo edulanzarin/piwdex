@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { PokeType } from "@/lib/types";
 import { ALL_TYPES, TYPE_COLOR } from "@/lib/typing";
 import { TypeIcon } from "./type-icon";
+import { useT, useTypeLabel } from "./locale-provider";
 
 /** Dropdown de tipo totalmente estilizado (sem <select> nativo): icone pixel + cor. */
 export function TypeFilter({
@@ -13,6 +14,8 @@ export function TypeFilter({
   value: PokeType | "";
   onChange: (t: PokeType | "") => void;
 }) {
+  const t = useT();
+  const typeLabel = useTypeLabel();
   const [open, setOpen] = useState(false);
   const box = useRef<HTMLDivElement>(null);
 
@@ -53,10 +56,10 @@ export function TypeFilter({
               >
                 <TypeIcon type={value} size={10} />
               </span>
-              <span>{value}</span>
+              <span>{typeLabel(value)}</span>
             </>
           ) : (
-            <span className="text-text-dim">Todos os tipos</span>
+            <span className="text-text-dim">{t("dex.allTypes")}</span>
           )}
         </span>
         <span className="text-cyan text-[0.6rem]" style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform .15s" }}>▼</span>
@@ -74,19 +77,19 @@ export function TypeFilter({
             className={`flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm hover:bg-surface-2 ${value === "" ? "bg-surface-2" : ""}`}
           >
             <span className="flex h-4 w-4 items-center justify-center rounded border border-border text-[0.5rem] text-text-dim">•</span>
-            Todos os tipos
+            {t("dex.allTypes")}
           </button>
-          {ALL_TYPES.map((t) => (
+          {ALL_TYPES.map((pt) => (
             <button
-              key={t}
+              key={pt}
               type="button"
-              onClick={() => choose(t)}
-              className={`flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm hover:bg-surface-2 ${value === t ? "bg-surface-2" : ""}`}
+              onClick={() => choose(pt)}
+              className={`flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm hover:bg-surface-2 ${value === pt ? "bg-surface-2" : ""}`}
             >
-              <span className="flex h-4 w-4 items-center justify-center rounded" style={{ background: TYPE_COLOR[t], color: "#fff" }}>
-                <TypeIcon type={t} size={10} />
+              <span className="flex h-4 w-4 items-center justify-center rounded" style={{ background: TYPE_COLOR[pt], color: "#fff" }}>
+                <TypeIcon type={pt} size={10} />
               </span>
-              {t}
+              {typeLabel(pt)}
             </button>
           ))}
         </div>
