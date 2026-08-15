@@ -17,7 +17,7 @@ export function PokedexShell({ children }: { children: React.ReactNode }) {
       setBooting(false);
       return;
     }
-    const t = setTimeout(() => setBooting(false), 1600);
+    const t = setTimeout(() => setBooting(false), 2300);
     return () => clearTimeout(t);
   }, []);
 
@@ -41,18 +41,26 @@ export function PokedexShell({ children }: { children: React.ReactNode }) {
 
       {booting && (
         <div className="pkdx-cover" aria-hidden>
-          <div className="pkdx-door pkdx-door-top">
-            <span className="pkdx-cover-chrome">
-              <span className="pkdx-lens-xl" />
-              <span className="pkdx-cover-led" style={{ background: "#f4d24a" }} />
-              <span className="pkdx-cover-led" style={{ background: "#35e08e" }} />
-            </span>
-          </div>
-          <div className="pkdx-door pkdx-door-bottom" />
-          <div className="pkdx-boot">
-            <Pokeball size={52} className="wiggle" />
-            <span className="pixel mt-4 text-[0.8rem] text-white">ABRINDO POKEDEX</span>
-            <span className="pkdx-dots pixel text-[0.8rem] text-cyan" />
+          <div className="pkdx-stage">
+            {/* tampa de cima: gira abrindo pra tras no eixo X (3d) */}
+            <div className="pkdx-lid pkdx-lid-top">
+              <span className="pkdx-cover-chrome">
+                <span className="pkdx-lens-xl" />
+                <span className="pkdx-cover-led" style={{ background: "#f4d24a" }} />
+                <span className="pkdx-cover-led" style={{ background: "#35e08e" }} />
+              </span>
+              <span className="pkdx-lid-shade" />
+            </div>
+            {/* tampa de baixo */}
+            <div className="pkdx-lid pkdx-lid-bottom">
+              <span className="pkdx-lid-grille" />
+              <span className="pkdx-lid-shade" />
+            </div>
+            <div className="pkdx-boot">
+              <Pokeball size={52} className="wiggle" />
+              <span className="pixel mt-4 text-[0.8rem] text-white">ABRINDO POKEDEX</span>
+              <span className="pkdx-dots pixel text-[0.8rem] text-cyan" />
+            </div>
           </div>
         </div>
       )}
