@@ -3,11 +3,13 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getData } from "@/lib/data";
 import { spriteUrl, itemIconUrl } from "@/lib/sprites";
-import { defensiveProfile, TYPE_COLOR } from "@/lib/typing";
-import type { PokeType } from "@/lib/types";
-import { TypeBadge, TypeBadges } from "@/components/badges";
+import { defensiveDetailed } from "@/lib/typing";
+import type { TypeMult } from "@/lib/typing";
+import { TypeBadge, TypeBadges, TypePill } from "@/components/badges";
 import { Sprite } from "@/components/sprite";
+import { HeroSprite } from "@/components/hero-sprite";
 import { Gold } from "@/components/icons";
+import { Reveal } from "@/components/reveal";
 
 export async function generateStaticParams() {
   const { creatures } = await getData();
@@ -32,13 +34,13 @@ const STATS = [
 
 const MAX_STAT = 200;
 
-function StatBar({ label, value }: { label: string; value: number }) {
+function StatBar({ label, value, best }: { label: string; value: number; best: boolean }) {
   const pct = Math.min(100, (value / MAX_STAT) * 100);
   const hue = Math.round((Math.min(value, MAX_STAT) / MAX_STAT) * 130);
   return (
     <div className="flex items-center gap-3">
       <div className="w-16 shrink-0 text-[0.6rem] text-text-dim uppercase tracking-wide">{label}</div>
-      <div className="w-9 shrink-0 text-right text-sm font-bold tabular-nums">{value}</div>
+      <div className={`w-9 shrink-0 text-right text-sm font-bold tabular-nums ${best ? "text-yellow" : ""}`}>{value}</div>
       <div className="h-2.5 flex-1 rounded-full bg-[rgba(8,14,28,0.7)]">
         <div
           className="h-full rounded-full"
@@ -60,13 +62,38 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
   return <h2 className="pixel mb-4 text-[0.72rem] text-cyan">{children}</h2>;
 }
 
-function TypeGroup({ title, types }: { title: string; types: PokeType[] }) {
+function EffRow({ title, entries, empty }: { title: string; entries: TypeMult[]; empty: string }) {
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <span className="w-36 shrink-0 text-[0.7rem] text-text-dim uppercase tracking-wide">{title}</span>
-      {types.length ? types.map((t) => <TypeBadge key={t} type={t} />) : <span className="text-text-dim">—</span>}
+    <div className="grid grid-cols-[7.5rem_1fr] items-start gap-x-3 gap-y-1">
+      <span className="pt-1 text-[0.68rem] uppercase tracking-wide text-text-dim">{title}</span>
+      {entries.length ? (
+        <div className="flex flex-wrap gap-1.5">
+          {entries.map((e) => (
+            <TypePill key={e.type} type={e.type} mult={e.label} />
+          ))}
+        </div>
+      ) : (
+        <span className="pt-1 text-sm text-text-dim">{empty}</span>
+      )}
     </div>
   );
+}
+
+// Papel do pokemon a partir dos bases — rotulos rapidos pra preencher o cabecalho.
+function roleTags(c: {
+  baseHp: number; baseAtk: number; baseDef: number;
+  baseSpAtk: number; baseSpDef: number; baseSpeed: number;
+}): string[] {
+  const tags: string[] = [];
+  const phys = c.baseAtk, spec = c.baseSpAtk;
+  if (phys >= spec + 15) tags.push("Atacante fisico");
+  else if (spec >= phys + 15) tags.push("Atacante especial");
+  else if (phys >= 90 && spec >= 90) tags.push("Atacante misto");
+  const bulk = c.baseHp + c.baseDef + c.baseSpDef;
+  if (bulk >= 300) tags.push("Tanque");
+  if (c.baseSpeed >= 110) tags.push("Veloz");
+  else if (c.baseSpeed <= 45) tags.push("Lento");
+  return tags.slice(0, 3);
 }
 
 export default async function CreaturePage({
@@ -80,11 +107,14 @@ export default async function CreaturePage({
   if (!c) notFound();
 
   const total = c.baseHp + c.baseAtk + c.baseDef + c.baseSpAtk + c.baseSpDef + c.baseSpeed;
-  const { weak, resist, immune } = defensiveProfile(c.type1, c.type2);
+  const bestStat = Math.max(c.baseHp, c.baseAtk, c.baseDef, c.baseSpAtk, c.baseSpDef, c.baseSpeed);
+  const { weak, resist, immune } = defensiveDetailed(c.type1, c.type2);
   const chain = evolutionChainOf(c);
   const locations = locationsOf(c);
   const loot = [...(c.loot ?? [])].sort((a, b) => b.chance - a.chance);
   const moves = [...(c.attacks ?? [])].sort((a, b) => a.learnLevel - b.learnLevel);
+  const bestMove = moves.reduce<typeof moves[number] | null>((best, m) => (m.power > (best?.power ?? 0) ? m : best), null);
+  const roles = roleTags(c);
 
   return (
     <div className="flex flex-col gap-5">
@@ -93,52 +123,73 @@ export default async function CreaturePage({
       </Link>
 
       {/* Cabecalho */}
-      <div className="card flex flex-col gap-5 p-6 sm:flex-row sm:items-center">
-        <div className="flex h-36 w-36 shrink-0 items-center justify-center rounded bg-[rgba(8,14,28,0.6)]">
-          <Sprite src={spriteUrl(c.pokeId)} alt={c.name} size={120} />
-        </div>
-        <div className="flex flex-col gap-3">
+      <div className="card flex flex-col gap-6 p-6 sm:flex-row sm:items-center">
+        <HeroSprite pokeId={c.pokeId} name={c.name} />
+        <div className="flex flex-1 flex-col gap-3">
           <div className="pixel text-[0.62rem] text-text-dim">#{String(c.pokeId).padStart(3, "0")}</div>
           <h1 className="pixel text-lg text-text">{c.name}</h1>
           <div className="flex flex-wrap items-center gap-2">
             <TypeBadges t1={c.type1} t2={c.type2} />
           </div>
           <p className="text-sm text-text-dim">{c.description}</p>
-          <div className="mt-1 flex flex-wrap gap-x-5 gap-y-1 text-sm">
-            <span className="text-text-dim">Hunt lvl <strong className="text-text">{c.huntLevel}</strong></span>
-            <span className="text-text-dim">XP <strong className="text-text">{c.experience.toLocaleString("pt-BR")}</strong></span>
-            <span className="inline-flex items-center gap-1 text-text-dim">Venda <strong className="text-yellow"><Gold value={c.sellValue} /></strong></span>
-            <span className="inline-flex items-center gap-1 text-text-dim">NPC <strong className="text-yellow"><Gold value={c.priceNpc} /></strong></span>
+
+          {roles.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {roles.map((r) => (
+                <span key={r} className="chip" style={{ background: "var(--surface-2)", color: "var(--text)" }}>{r}</span>
+              ))}
+            </div>
+          )}
+
+          {/* grade de mini-stats — preenche o cabecalho com dado util */}
+          <div className="mt-1 grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <MiniStat label="Total base" value={<span className="text-cyan">{total}</span>} />
+            <MiniStat label="Hunt lvl" value={c.huntLevel} />
+            <MiniStat label="XP" value={c.experience.toLocaleString("pt-BR")} />
+            <MiniStat
+              label="Vende por"
+              value={c.sellValue > 0 ? <Gold value={c.sellValue} /> : <span className="text-text-dim">nao vende</span>}
+              hint="ouro ao vender pro NPC"
+            />
+          </div>
+          <div className="text-[0.68rem] text-text-dim">
+            Loja NPC (compra): {c.priceNpc > 0 ? <span className="inline-flex items-center gap-1 align-middle text-yellow"><Gold value={c.priceNpc} /></span> : "indisponivel"}
           </div>
         </div>
       </div>
 
       <div className="grid gap-5 lg:grid-cols-2">
-        <section className="card p-5">
+        <Reveal className="card p-5">
           <SectionTitle>Stats base</SectionTitle>
           <div className="flex flex-col gap-2.5">
             {STATS.map(([label, key]) => (
-              <StatBar key={key} label={label} value={c[key]} />
+              <StatBar key={key} label={label} value={c[key]} best={c[key] === bestStat} />
             ))}
             <div className="mt-2 flex justify-between border-t border-border pt-2 text-sm">
               <span className="text-text-dim uppercase tracking-wide text-[0.7rem]">Total</span>
               <strong className="tabular-nums text-cyan">{total}</strong>
             </div>
+            {bestMove && bestMove.power > 0 && (
+              <div className="mt-1 flex items-center justify-between text-[0.7rem] text-text-dim">
+                <span>Golpe mais forte</span>
+                <span className="text-text">{bestMove.name} <span className="text-yellow">{bestMove.power}</span></span>
+              </div>
+            )}
           </div>
-        </section>
+        </Reveal>
 
-        <section className="card p-5">
+        <Reveal className="card p-5">
           <SectionTitle>Fraquezas & resistencias</SectionTitle>
           <div className="flex flex-col gap-3 text-sm">
-            <TypeGroup title="Toma mais de" types={weak} />
-            <TypeGroup title="Toma menos de" types={resist} />
-            <TypeGroup title="Imune a" types={immune} />
+            <EffRow title="Toma mais de" entries={weak} empty="Nao tem fraqueza." />
+            <EffRow title="Toma menos de" entries={resist} empty="Nao resiste nada." />
+            <EffRow title="Imune a" entries={immune} empty="—" />
           </div>
-        </section>
+        </Reveal>
       </div>
 
       {chain.length > 1 && (
-        <section className="card p-5">
+        <Reveal className="card p-5">
           <SectionTitle>Evolucao</SectionTitle>
           <div className="flex flex-wrap items-center gap-2">
             {chain.map((stage, i) => (
@@ -158,10 +209,10 @@ export default async function CreaturePage({
               </div>
             ))}
           </div>
-        </section>
+        </Reveal>
       )}
 
-      <section className="card p-5">
+      <Reveal className="card p-5">
         <SectionTitle>Onde cacar</SectionTitle>
         {locations.length ? (
           <div className="flex flex-wrap gap-2">
@@ -174,9 +225,9 @@ export default async function CreaturePage({
         ) : (
           <p className="text-sm text-text-dim">Sem ponto de hunt mapeado (boss ou exclusivo).</p>
         )}
-      </section>
+      </Reveal>
 
-      <section className="card p-5">
+      <Reveal className="card p-5">
         <SectionTitle>Drops ({loot.length})</SectionTitle>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -211,9 +262,9 @@ export default async function CreaturePage({
             </tbody>
           </table>
         </div>
-      </section>
+      </Reveal>
 
-      <section className="card p-5">
+      <Reveal className="card p-5">
         <SectionTitle>Ataques ({moves.length})</SectionTitle>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -241,7 +292,16 @@ export default async function CreaturePage({
             </tbody>
           </table>
         </div>
-      </section>
+      </Reveal>
+    </div>
+  );
+}
+
+function MiniStat({ label, value, hint }: { label: string; value: React.ReactNode; hint?: string }) {
+  return (
+    <div className="rounded border border-border bg-[rgba(8,14,28,0.5)] px-3 py-2" title={hint}>
+      <div className="text-[0.55rem] uppercase tracking-wide text-text-dim">{label}</div>
+      <div className="mt-0.5 flex items-center gap-1 text-sm font-bold tabular-nums">{value}</div>
     </div>
   );
 }
