@@ -185,6 +185,29 @@ export function Calculator({ creatures }: { creatures: CalcCreature[] }) {
       ) : (
       <>{/* resto da ferramenta so quando nao for Eevee */}
 
+      {/* Stats atuais (acima das abas — o Calcular gera analise E projecao) */}
+      <div className="card p-5">
+        <h2 className="pixel mb-3 text-[0.72rem] text-cyan">{t("calc.currentStats")}</h2>
+        <p className="mb-4 text-sm text-text-dim">{t("calc.currentHint")}</p>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          {STAT_LABELS.map((label, i) => (
+            <Field key={label} iconIndex={i} label={label} value={stats[i]} onChange={(v) => setStat(i, v)} />
+          ))}
+        </div>
+        <div className="mt-4 flex flex-col gap-3 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between">
+          <p className="max-w-md text-[0.62rem] leading-relaxed text-text-dim">{t("calc.ivExplain")}</p>
+          <button
+            type="button"
+            onClick={calc}
+            disabled={!canCalc || computing}
+            className="btn shrink-0 self-start disabled:opacity-40 sm:self-auto"
+            style={{ background: "var(--cyan)", color: "#06131a" }}
+          >
+            {computing ? `${t("calc.calcing")}...` : `${t("calc.calcBtn")} ›`}
+          </button>
+        </div>
+      </div>
+
       {/* Abas */}
       <div className="flex flex-wrap gap-2">
         <TabBtn active={tab === "analise"} onClick={() => setTab("analise")} rows={CHART_ROWS} label={t("calc.tab.analise")} />
@@ -211,31 +234,6 @@ export function Calculator({ creatures }: { creatures: CalcCreature[] }) {
           <p className="mt-3 text-[0.62rem] text-text-dim">{t("calc.bst")} <span className="pixel ml-1 text-[0.7rem] text-cyan">{profile.bst}</span></p>
         </div>
       )}
-
-      {/* Stats atuais */}
-      <div className="card p-5">
-        <h2 className="pixel mb-3 text-[0.72rem] text-cyan">{t("calc.currentStats")}</h2>
-        <p className="mb-4 text-sm text-text-dim">
-          {t("calc.currentHint")}
-        </p>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {STAT_LABELS.map((label, i) => (
-            <Field key={label} iconIndex={i} label={label} value={stats[i]} onChange={(v) => setStat(i, v)} />
-          ))}
-        </div>
-        <div className="mt-4 flex flex-col gap-3 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between">
-          <p className="max-w-md text-[0.62rem] leading-relaxed text-text-dim">{t("calc.ivExplain")}</p>
-          <button
-            type="button"
-            onClick={calc}
-            disabled={!canCalc || computing}
-            className="btn shrink-0 self-start disabled:opacity-40 sm:self-auto"
-            style={{ background: "var(--cyan)", color: "#06131a" }}
-          >
-            {computing ? `${t("calc.calcing")}...` : `${t("calc.calcBtn")} ›`}
-          </button>
-        </div>
-      </div>
 
       {/* Resultado: IVs estimados */}
       <div className="card p-5">
@@ -284,37 +282,28 @@ export function Calculator({ creatures }: { creatures: CalcCreature[] }) {
       /* Aba: Projetar nivel */
       <div className="card p-5">
         <h2 className="pixel mb-2 inline-flex items-center gap-2 text-[0.72rem] text-cyan"><TabIcon rows={LEVELUP_ROWS} size={14} />{t("calc.project")}</h2>
+        <p className="mb-4 mt-1 text-sm text-text-dim">{t("calc.projectHint")}</p>
+        <div className="max-w-[10rem]">
+          <Field label={t("calc.targetLevel")} value={target} onChange={setTarget} placeholder="ex: 100" />
+        </div>
         {!res ? (
-          <div className="mt-3 flex flex-col items-start gap-3">
-            <p className="text-sm text-text-dim">{t("calc.projNeedCalc")}</p>
-            <button type="button" onClick={() => setTab("analise")} className="btn btn-ghost inline-flex items-center gap-2">
-              <TabIcon rows={CHART_ROWS} /> {t("calc.tab.analise")} ›
-            </button>
-          </div>
-        ) : (
-          <>
-            <p className="mb-4 mt-1 text-sm text-text-dim">{t("calc.projectHint")}</p>
-            <div className="max-w-[10rem]">
-              <Field label={t("calc.targetLevel")} value={target} onChange={setTarget} placeholder="ex: 100" />
+          <p className="mt-4 text-sm text-text-dim">{t("calc.projNeedCalc")}</p>
+        ) : projection ? (
+          <div className="mt-4 flex flex-col gap-4">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {STAT_LABELS.map((label, i) => (
+                <div key={label} className="rounded border border-border bg-[rgba(8,14,28,0.5)] px-3 py-2">
+                  <div className="inline-flex items-center gap-1 text-[0.58rem] uppercase tracking-wide text-text-dim"><StatIcon index={i} size={11} />{label}</div>
+                  <div className="tabular-nums text-lg font-bold text-cyan">{projection.stats[i]}</div>
+                </div>
+              ))}
             </div>
-            {projection && (
-              <div className="mt-4 flex flex-col gap-4">
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                  {STAT_LABELS.map((label, i) => (
-                    <div key={label} className="rounded border border-border bg-[rgba(8,14,28,0.5)] px-3 py-2">
-                      <div className="inline-flex items-center gap-1 text-[0.58rem] uppercase tracking-wide text-text-dim"><StatIcon index={i} size={11} />{label}</div>
-                      <div className="tabular-nums text-lg font-bold text-cyan">{projection.stats[i]}</div>
-                    </div>
-                  ))}
-                </div>
-                <div className="border-t border-border pt-3">
-                  <span className="text-[0.6rem] uppercase tracking-wide text-text-dim">{t("calc.powerAt", { n: tgt })}</span>
-                  <div className="pixel text-base text-yellow">{projection.power.toLocaleString("pt-BR")}</div>
-                </div>
-              </div>
-            )}
-          </>
-        )}
+            <div className="border-t border-border pt-3">
+              <span className="text-[0.6rem] uppercase tracking-wide text-text-dim">{t("calc.powerAt", { n: tgt })}</span>
+              <div className="pixel text-base text-yellow">{projection.power.toLocaleString("pt-BR")}</div>
+            </div>
+          </div>
+        ) : null}
       </div>
       )}
       </>
