@@ -41,13 +41,22 @@ function StatBar({ label, value, best }: { label: string; value: number; best: b
     <div className="flex items-center gap-3">
       <div className="w-16 shrink-0 text-[0.6rem] text-text-dim uppercase tracking-wide">{label}</div>
       <div className={`w-9 shrink-0 text-right text-sm font-bold tabular-nums ${best ? "text-yellow" : ""}`}>{value}</div>
-      <div className="h-2.5 flex-1 rounded-full bg-[rgba(8,14,28,0.7)]">
-        <div
-          className="h-full rounded-full"
-          style={{ width: `${pct}%`, background: `hsl(${hue} 75% 50%)`, boxShadow: `0 0 8px -2px hsl(${hue} 75% 50%)` }}
-        />
+      <div className="statbar flex-1">
+        <div className="statbar-fill" style={{ width: `${pct}%`, background: `hsl(${hue} 68% 48%)` }} />
       </div>
     </div>
+  );
+}
+
+// Pin pixel simples pra "onde cacar".
+function MapPin({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 8 8" fill="currentColor" shapeRendering="crispEdges" style={{ imageRendering: "pixelated", flexShrink: 0 }} aria-hidden="true">
+      {["..###...", ".#####..", "#######.", "#######.", "#######.", ".#####..", "..###...", "...#...."].flatMap((row, y) =>
+        row.split("").map((ch, x) => (ch === "#" ? <rect key={`${x}-${y}`} x={x} y={y} width={1} height={1} /> : null)),
+      )}
+      <rect x={3} y={2} width={2} height={2} fill="#0a1020" />
+    </svg>
   );
 }
 
@@ -187,49 +196,58 @@ export default async function CreaturePage({
           <div className="my-4 border-t border-border" />
           <div className="mb-2 text-[0.6rem] uppercase tracking-wide text-text-dim">Ataque — golpes do tipo dele (STAB)</div>
           <div className="flex flex-col gap-3 text-sm">
-            <EffRow title="Causa mais dano em" entries={offensive} empty="Nenhum tipo recebe dano extra." />
+            <EffRow title="Forte contra" entries={offensive} empty="Nenhum tipo recebe dano extra." />
           </div>
         </Reveal>
       </div>
 
-      {chain.length > 1 && (
-        <Reveal className="card p-5">
-          <SectionTitle>Evolucao</SectionTitle>
-          <div className="flex flex-wrap items-center gap-2">
-            {chain.map((stage, i) => (
-              <div key={stage.creature.pokeId} className="flex items-center gap-2">
-                {i > 0 && (
-                  <span className="pixel text-[0.55rem] text-text-dim">lvl {stage.evolveLevel ?? "?"} ›</span>
-                )}
-                <Link
-                  href={`/dex/${stage.creature.pokeId}`}
-                  className={`flex flex-col items-center rounded p-2 hover:bg-surface-2 ${
-                    stage.creature.pokeId === c.pokeId ? "bg-surface-2 ring-1 ring-[color:var(--border-strong)]" : ""
-                  }`}
-                >
-                  <Sprite src={spriteUrl(stage.creature.pokeId)} alt={stage.creature.name} size={60} />
-                  <span className="text-[0.7rem]">{stage.creature.name}</span>
-                </Link>
-              </div>
-            ))}
-          </div>
-        </Reveal>
-      )}
-
-      <Reveal className="card p-5">
-        <SectionTitle>Onde cacar</SectionTitle>
-        {locations.length ? (
-          <div className="flex flex-wrap gap-2">
-            {locations.map((h) => (
-              <span key={h.slug} className="chip" style={{ background: "var(--surface-2)", color: "var(--text)" }}>
-                {h.name} · {h.area}{h.level ? ` lvl ${h.level}` : ""}
-              </span>
-            ))}
-          </div>
-        ) : (
-          <p className="text-sm text-text-dim">Sem ponto de hunt mapeado (boss ou exclusivo).</p>
+      <div className={`grid gap-5 ${chain.length > 1 ? "lg:grid-cols-2" : ""}`}>
+        {chain.length > 1 && (
+          <Reveal className="card flex flex-col p-5">
+            <SectionTitle>Evolucao</SectionTitle>
+            <div className="flex flex-1 flex-wrap items-center justify-center gap-3">
+              {chain.map((stage, i) => (
+                <div key={stage.creature.pokeId} className="flex items-center gap-3">
+                  {i > 0 && (
+                    <span className="pixel text-[0.55rem] text-text-dim">lvl {stage.evolveLevel ?? "?"} ›</span>
+                  )}
+                  <Link
+                    href={`/dex/${stage.creature.pokeId}`}
+                    className={`flex flex-col items-center rounded p-2 hover:bg-surface-2 ${
+                      stage.creature.pokeId === c.pokeId ? "bg-surface-2 ring-1 ring-[color:var(--border-strong)]" : ""
+                    }`}
+                  >
+                    <Sprite src={spriteUrl(stage.creature.pokeId)} alt={stage.creature.name} size={68} />
+                    <span className="text-[0.72rem]">{stage.creature.name}</span>
+                  </Link>
+                </div>
+              ))}
+            </div>
+          </Reveal>
         )}
-      </Reveal>
+
+        <Reveal className="card p-5">
+          <SectionTitle>Onde cacar</SectionTitle>
+          {locations.length ? (
+            <div className="flex flex-col gap-2">
+              {locations.map((h) => (
+                <div key={h.slug} className="flex items-center gap-3 rounded border border-border bg-[rgba(8,14,28,0.5)] px-3 py-2">
+                  <span className="text-red"><MapPin size={18} /></span>
+                  <div className="flex flex-col">
+                    <span className="text-sm text-text">{h.name}</span>
+                    <span className="text-[0.68rem] uppercase tracking-wide text-text-dim">{h.area}</span>
+                  </div>
+                  {h.level ? (
+                    <span className="chip ml-auto" style={{ background: "var(--surface-2)", color: "var(--text)" }}>lvl {h.level}</span>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-text-dim">Sem ponto de hunt mapeado (boss ou exclusivo).</p>
+          )}
+        </Reveal>
+      </div>
 
       <Reveal className="card p-5">
         <SectionTitle>Drops ({loot.length})</SectionTitle>

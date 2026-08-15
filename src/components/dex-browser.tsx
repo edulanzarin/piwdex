@@ -47,7 +47,7 @@ export function DexBrowser({ creatures }: { creatures: Creature[] }) {
       {filtered.length === 0 ? (
         <div className="card p-10 text-center text-text-dim">Nada encontrado com esses filtros.</div>
       ) : (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
           {filtered.map((c) => (
             <CreatureCard key={c.pokeId} creature={c} />
           ))}
