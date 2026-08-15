@@ -8,6 +8,7 @@ import { STAT_LABELS, estimateIvs, projectAll } from "@/lib/stats";
 import { Sprite } from "./sprite";
 import { TypeBadges } from "./badges";
 import { LoadingBall } from "./loaders";
+import { StatIcon } from "./stat-icons";
 import { useT } from "./locale-provider";
 
 export interface EvoNode {
@@ -91,7 +92,7 @@ function EvoNodeCard({ evo, compact }: { evo: NodeData; compact?: boolean }) {
       <div className="mt-0.5 grid w-full grid-cols-2 gap-x-3 gap-y-0.5 border-t border-border/60 pt-2">
         {STAT_LABELS.map((lb, i) => (
           <div key={lb} className="flex justify-between text-[0.56rem]">
-            <span className="text-text-dim">{lb}</span>
+            <span className="inline-flex items-center gap-1 text-text-dim"><StatIcon index={i} size={9} />{lb}</span>
             <span className={`tabular-nums ${evo.stats ? (i === maxIdx ? "font-bold text-green" : "text-text") : "text-text-dim"}`}>
               {evo.stats ? evo.stats[i] : "???"}
             </span>
@@ -182,7 +183,7 @@ export function EeveeLab({ eevee, evos }: { eevee: { pokeId: number; name: strin
                   </span>
                   <span className="flex flex-wrap gap-x-3 gap-y-0.5 text-[0.58rem] text-text-dim">
                     {STAT_LABELS.map((lb, i) => (
-                      <span key={lb}>{lb} <span className="text-text">{result.ivs[i].toFixed(0)}</span></span>
+                      <span key={lb} className="inline-flex items-center gap-1"><StatIcon index={i} size={9} />{lb} <span className="text-text">{result.ivs[i].toFixed(0)}</span></span>
                     ))}
                   </span>
                 </span>
@@ -231,7 +232,7 @@ export function EeveeLab({ eevee, evos }: { eevee: { pokeId: number; name: strin
                 <div className="mt-0.5 grid w-full grid-cols-2 gap-x-3 gap-y-0.5 border-t border-border/60 pt-2">
                   {STAT_LABELS.map((lb, i) => (
                     <div key={lb} className="flex justify-between text-[0.56rem]">
-                      <span className="text-text-dim">{lb}</span>
+                      <span className="inline-flex items-center gap-1 text-text-dim"><StatIcon index={i} size={9} />{lb}</span>
                       <span className={`tabular-nums ${eStats ? (i === eMax ? "font-bold text-green" : "text-text") : "text-text-dim"}`}>{eStats ? eStats[i] : "???"}</span>
                     </div>
                   ))}
@@ -257,7 +258,7 @@ export function EeveeLab({ eevee, evos }: { eevee: { pokeId: number; name: strin
                 <div className="mt-0.5 grid w-full max-w-[220px] grid-cols-2 gap-x-3 gap-y-0.5 border-t border-border/60 pt-2">
                   {STAT_LABELS.map((lb, i) => (
                     <div key={lb} className="flex justify-between text-[0.56rem]">
-                      <span className="text-text-dim">{lb}</span>
+                      <span className="inline-flex items-center gap-1 text-text-dim"><StatIcon index={i} size={9} />{lb}</span>
                       <span className={`tabular-nums ${eStats ? (i === eMax ? "font-bold text-green" : "text-text") : "text-text-dim"}`}>{eStats ? eStats[i] : "???"}</span>
                     </div>
                   ))}

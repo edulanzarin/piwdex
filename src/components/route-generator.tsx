@@ -11,6 +11,7 @@ import { Coin } from "./icons";
 import { useT, useTypeLabel } from "./locale-provider";
 import { TYPE_COLOR } from "@/lib/typing";
 import { STAT_LABELS, estimateIvs, powerOf } from "@/lib/stats";
+import { StatIcon } from "./stat-icons";
 import { buildChain, buildRoute, SIM_IV, type Species, type EnemyCombat, type RouteStep } from "@/lib/combat";
 
 const compact = (n: number): string => {
@@ -25,10 +26,12 @@ const area = (a: string) => a.charAt(0).toUpperCase() + a.slice(1);
 const effLabel = (m: number) => (Number.isInteger(m) ? `${m}x` : `${+m.toFixed(2)}x`);
 const SIM_IVS = Array<number>(6).fill(SIM_IV);
 
-function StatIn({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+function StatIn({ label, value, onChange, iconIndex }: { label: string; value: string; onChange: (v: string) => void; iconIndex: number }) {
   return (
     <label className="flex flex-col gap-1">
-      <span className="text-[0.52rem] uppercase tracking-wide text-text-dim">{label}</span>
+      <span className="inline-flex items-center gap-1 text-[0.52rem] uppercase tracking-wide text-text-dim">
+        <StatIcon index={iconIndex} size={10} />{label}
+      </span>
       <input className="input !py-1.5 text-sm" inputMode="decimal" value={value} onChange={(e) => onChange(e.target.value)} />
     </label>
   );
@@ -120,7 +123,7 @@ export function RouteGenerator({ species, enemies }: { species: Species[]; enemi
           </div>
           <div className="grid grid-cols-3 gap-2.5">
             {STAT_LABELS.map((lb, i) => (
-              <StatIn key={lb} label={lb} value={stats[i]} onChange={(v) => setStat(i, v)} />
+              <StatIn key={lb} iconIndex={i} label={lb} value={stats[i]} onChange={(v) => setStat(i, v)} />
             ))}
           </div>
           {(ivInfo.total != null || ivInfo.power != null) && (

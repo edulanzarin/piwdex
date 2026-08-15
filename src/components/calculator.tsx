@@ -7,6 +7,7 @@ import type { PokeType } from "@/lib/types";
 import { estimateIvs, powerOf, projectAll, STAT_LABELS } from "@/lib/stats";
 import { Sprite } from "./sprite";
 import { TypeBadges } from "./badges";
+import { StatIcon } from "./stat-icons";
 import { PokemonCombobox } from "./pokemon-combobox";
 import { useT } from "./locale-provider";
 
@@ -26,13 +27,15 @@ const num = (s: string): number => {
 };
 
 function Field({
-  label, value, onChange, placeholder,
+  label, value, onChange, placeholder, iconIndex,
 }: {
-  label: string; value: string; onChange: (v: string) => void; placeholder?: string;
+  label: string; value: string; onChange: (v: string) => void; placeholder?: string; iconIndex?: number;
 }) {
   return (
     <label className="flex flex-col gap-1">
-      <span className="text-[0.6rem] uppercase tracking-wide text-text-dim">{label}</span>
+      <span className="inline-flex items-center gap-1 text-[0.6rem] uppercase tracking-wide text-text-dim">
+        {iconIndex != null && <StatIcon index={iconIndex} size={12} />}{label}
+      </span>
       <input className="input" inputMode="decimal" value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} />
     </label>
   );
@@ -112,7 +115,7 @@ export function Calculator({ creatures }: { creatures: CalcCreature[] }) {
         </p>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {STAT_LABELS.map((label, i) => (
-            <Field key={label} label={label} value={stats[i]} onChange={(v) => setStat(i, v)} />
+            <Field key={label} iconIndex={i} label={label} value={stats[i]} onChange={(v) => setStat(i, v)} />
           ))}
         </div>
       </div>
@@ -129,7 +132,7 @@ export function Calculator({ creatures }: { creatures: CalcCreature[] }) {
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               {STAT_LABELS.map((label, i) => (
                 <div key={label} className="rounded border border-border bg-[rgba(8,14,28,0.5)] px-3 py-2">
-                  <div className="text-[0.58rem] uppercase tracking-wide text-text-dim">{label}</div>
+                  <div className="inline-flex items-center gap-1 text-[0.58rem] uppercase tracking-wide text-text-dim"><StatIcon index={i} size={11} />{label}</div>
                   <div className="tabular-nums text-lg font-bold text-text">{iv.ivs[i].toFixed(1)}</div>
                 </div>
               ))}
@@ -162,7 +165,7 @@ export function Calculator({ creatures }: { creatures: CalcCreature[] }) {
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               {STAT_LABELS.map((label, i) => (
                 <div key={label} className="rounded border border-border bg-[rgba(8,14,28,0.5)] px-3 py-2">
-                  <div className="text-[0.58rem] uppercase tracking-wide text-text-dim">{label}</div>
+                  <div className="inline-flex items-center gap-1 text-[0.58rem] uppercase tracking-wide text-text-dim"><StatIcon index={i} size={11} />{label}</div>
                   <div className="tabular-nums text-lg font-bold text-cyan">{projection.stats[i]}</div>
                 </div>
               ))}

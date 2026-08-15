@@ -7,6 +7,7 @@ import { defensiveDetailed, offensiveDetailed } from "@/lib/typing";
 import type { TypeMult } from "@/lib/typing";
 import { TypeBadge, TypeBadges, TypePill } from "@/components/badges";
 import { AcqBadge } from "@/components/acq-badge";
+import { StatIcon } from "@/components/stat-icons";
 import { Sprite } from "@/components/sprite";
 import { HeroSprite } from "@/components/hero-sprite";
 import { Gold } from "@/components/icons";
@@ -37,12 +38,14 @@ const STATS = [
 
 const MAX_STAT = 200;
 
-function StatBar({ label, value, best }: { label: string; value: number; best: boolean }) {
+function StatBar({ label, value, best, iconIndex }: { label: string; value: number; best: boolean; iconIndex: number }) {
   const pct = Math.min(100, (value / MAX_STAT) * 100);
   const hue = Math.round((Math.min(value, MAX_STAT) / MAX_STAT) * 130);
   return (
     <div className="flex items-center gap-3">
-      <div className="w-16 shrink-0 text-[0.6rem] text-text-dim uppercase tracking-wide">{label}</div>
+      <div className="flex w-16 shrink-0 items-center gap-1.5 text-[0.6rem] text-text-dim uppercase tracking-wide">
+        <StatIcon index={iconIndex} size={12} />{label}
+      </div>
       <div className={`w-9 shrink-0 text-right text-sm font-bold tabular-nums ${best ? "text-yellow" : ""}`}>{value}</div>
       <div className="statbar flex-1">
         <div className="statbar-fill" style={{ width: `${pct}%`, background: `hsl(${hue} 68% 48%)` }} />
@@ -183,8 +186,8 @@ export default async function CreaturePage({
             <Link href="/calc" className="text-cyan hover:underline"><T k="cr.statsHintLink" /> ›</Link>
           </p>
           <div className="flex flex-col gap-2.5">
-            {STATS.map(([label, key]) => (
-              <StatBar key={key} label={label} value={c[key]} best={c[key] === bestStat} />
+            {STATS.map(([label, key], i) => (
+              <StatBar key={key} iconIndex={i} label={label} value={c[key]} best={c[key] === bestStat} />
             ))}
             <div className="mt-2 flex justify-between border-t border-border pt-2 text-sm">
               <span className="text-text-dim uppercase tracking-wide text-[0.7rem]"><T k="cr.total" /></span>
