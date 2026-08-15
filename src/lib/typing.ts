@@ -68,3 +68,36 @@ export function defensiveProfile(def1: PokeType, def2: PokeType | null) {
   }
   return { weak, resist, immune };
 }
+
+export interface TypeMult {
+  type: PokeType;
+  mult: number;
+  label: string; // "x4", "x2", "1/2", "1/4", "0"
+}
+
+const multLabel = (m: number): string => {
+  if (m === 0) return "0";
+  if (m === 4) return "x4";
+  if (m === 2) return "x2";
+  if (m === 0.5) return "1/2";
+  if (m === 0.25) return "1/4";
+  return `x${m}`;
+};
+
+/** Mesma coisa que defensiveProfile, mas com o multiplicador exato de cada tipo,
+ *  ordenado do mais perigoso ao mais inofensivo. */
+export function defensiveDetailed(def1: PokeType, def2: PokeType | null) {
+  const weak: TypeMult[] = [];
+  const resist: TypeMult[] = [];
+  const immune: TypeMult[] = [];
+  for (const atk of ALL_TYPES) {
+    const m = effectiveness(atk, def1, def2);
+    const entry: TypeMult = { type: atk, mult: m, label: multLabel(m) };
+    if (m === 0) immune.push(entry);
+    else if (m > 1) weak.push(entry);
+    else if (m < 1) resist.push(entry);
+  }
+  weak.sort((a, b) => b.mult - a.mult);
+  resist.sort((a, b) => a.mult - b.mult);
+  return { weak, resist, immune };
+}

@@ -2,8 +2,10 @@
 
 import { useMemo, useState } from "react";
 import type { Creature, PokeType } from "@/lib/types";
-import { ALL_TYPES, TYPE_COLOR } from "@/lib/typing";
+import { TYPE_COLOR } from "@/lib/typing";
 import { CreatureCard } from "./creature-card";
+import { TypeFilter } from "./type-filter";
+import { TypeIcon } from "./type-icon";
 
 // Filtro client-side sobre a lista completa (482 itens, barato).
 export function DexBrowser({ creatures }: { creatures: Creature[] }) {
@@ -29,22 +31,13 @@ export function DexBrowser({ creatures }: { creatures: Creature[] }) {
           value={q}
           onChange={(e) => setQ(e.target.value)}
         />
-        <select
-          className="input sm:max-w-[12rem]"
-          value={type}
-          onChange={(e) => setType(e.target.value as PokeType | "")}
-        >
-          <option value="">Todos os tipos</option>
-          {ALL_TYPES.map((t) => (
-            <option key={t} value={t}>{t}</option>
-          ))}
-        </select>
+        <TypeFilter value={type} onChange={setType} />
       </div>
 
       {type && (
         <div className="flex flex-wrap gap-2 text-xs">
           <button className="chip" style={{ background: TYPE_COLOR[type], color: "#fff" }} onClick={() => setType("")}>
-            {type} ×
+            <TypeIcon type={type} size={11} /> {type} ×
           </button>
         </div>
       )}
