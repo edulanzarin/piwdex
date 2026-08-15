@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getData } from "@/lib/data";
 import { PokedexIcon } from "@/components/pokedex-icon";
-import { ItemsIcon, HuntIcon, CalcIcon } from "@/components/tool-icons";
+import { ItemsIcon, HuntIcon, CalcIcon, EeveeIcon } from "@/components/tool-icons";
 import { T } from "@/components/locale-provider";
 
 function ToolCard({
@@ -25,7 +25,6 @@ function ToolCard({
     <Link
       href={href}
       className="card card-link flex items-start gap-4 p-5 sm:p-6"
-      style={{ borderColor: `${color}55` }}
     >
       {icon && <span className="shrink-0">{icon}</span>}
       <div className="flex min-w-0 flex-col gap-2.5">
@@ -108,6 +107,15 @@ export default async function Home() {
           color="var(--purple)"
           ctaText="#1a1030"
           icon={<CalcIcon size={52} />}
+        />
+        <ToolCard
+          titleKey="home.card5.title"
+          descKey="home.card5.desc"
+          href="/eevee"
+          ctaKey="home.card5.cta"
+          color="var(--cyan)"
+          ctaText="#06131a"
+          icon={<EeveeIcon size={52} />}
         />
       </section>
 

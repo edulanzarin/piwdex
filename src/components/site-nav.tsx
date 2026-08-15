@@ -1,20 +1,28 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { Pokeball } from "./pokeball";
-import { T } from "./locale-provider";
+import { PokedexIcon } from "./pokedex-icon";
+import { ItemsIcon, HuntIcon, CalcIcon, EeveeIcon } from "./tool-icons";
+import { useT } from "./locale-provider";
 import { LangSwitcher } from "./lang-switcher";
 
-const TABS: [string, string][] = [
-  ["nav.dex", "/dex"],
-  ["nav.items", "/items"],
-  ["nav.hunt", "/hunt"],
-  ["nav.calc", "/calc"],
+const TABS: { key: string; href: string; Icon: (p: { size?: number }) => React.ReactNode }[] = [
+  { key: "nav.dex", href: "/dex", Icon: PokedexIcon },
+  { key: "nav.items", href: "/items", Icon: ItemsIcon },
+  { key: "nav.hunt", href: "/hunt", Icon: HuntIcon },
+  { key: "nav.calc", href: "/calc", Icon: CalcIcon },
+  { key: "nav.eevee", href: "/eevee", Icon: EeveeIcon },
 ];
 
 export function SiteNav() {
+  const t = useT();
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
+
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-[rgba(7,11,22,0.82)] backdrop-blur">
       <div className="container-page flex h-16 items-center justify-between gap-3">
@@ -27,10 +35,25 @@ export function SiteNav() {
         </Link>
 
         <div className="flex items-center gap-2 sm:gap-3">
+          {/* Desktop: icones com tooltip */}
           <nav className="hidden items-center gap-1 sm:flex">
-            {TABS.map(([key, href]) => (
-              <Link key={href} href={href} className="tab"><T k={key} /></Link>
-            ))}
+            {TABS.map(({ key, href, Icon }) => {
+              const active = isActive(href);
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  title={t(key)}
+                  aria-label={t(key)}
+                  className={`group relative flex h-10 w-10 items-center justify-center rounded transition hover:bg-surface-2 ${active ? "bg-surface-2 ring-1 ring-[color:var(--border-strong)]" : ""}`}
+                >
+                  <Icon size={22} />
+                  <span className="pointer-events-none absolute left-1/2 top-full z-40 mt-1.5 -translate-x-1/2 whitespace-nowrap rounded border border-border bg-[color:var(--surface-solid)] px-2 py-1 text-[0.55rem] uppercase tracking-wide text-text-dim opacity-0 transition group-hover:opacity-100">
+                    {t(key)}
+                  </span>
+                </Link>
+              );
+            })}
           </nav>
           <span className="hidden h-5 w-px bg-border sm:block" />
           <LangSwitcher />
@@ -51,14 +74,15 @@ export function SiteNav() {
       {open && (
         <nav className="border-t border-border bg-[rgba(7,11,22,0.97)] sm:hidden">
           <div className="container-page flex flex-col py-1">
-            {TABS.map(([key, href]) => (
+            {TABS.map(({ key, href, Icon }) => (
               <Link
                 key={href}
                 href={href}
-                className="border-b border-border/40 py-3 pixel text-[0.7rem] text-text-dim last:border-0 hover:text-cyan"
+                className={`flex items-center gap-3 border-b border-border/40 py-3 pixel text-[0.7rem] last:border-0 hover:text-cyan ${isActive(href) ? "text-cyan" : "text-text-dim"}`}
                 onClick={() => setOpen(false)}
               >
-                <T k={key} />
+                <Icon size={20} />
+                {t(key)}
               </Link>
             ))}
           </div>

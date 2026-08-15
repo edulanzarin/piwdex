@@ -73,3 +73,21 @@ const CALC_ROWS = [
   ".KKKKKKKKKK.",
 ];
 export const CalcIcon = ({ size = 52 }: { size?: number }) => render(CALC_ROWS, CALC, size);
+
+// Cabeca da Eevee (Laboratorio da Eevee).
+const EEVEE: Record<string, string> = { d: "#5c3d20", F: "#b5844f", k: "#2b1a0c", C: "#f2e2b8" };
+const EEVEE_ROWS = [
+  "dd......dd..",
+  ".dFd....dFd.",
+  ".dFFd..dFFd.",
+  ".dFFFddFFFd.",
+  "dFFFFFFFFFFd",
+  "dFkFFFFFFkFd",
+  "dFFFFFFFFFFd",
+  "dFFFFkkFFFFd",
+  ".dFFFFFFFFd.",
+  ".dFFFFFFFFd.",
+  "..dCCCCCCd..",
+  "...dCCCCd...",
+];
+export const EeveeIcon = ({ size = 52 }: { size?: number }) => render(EEVEE_ROWS, EEVEE, size);
