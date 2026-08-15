@@ -174,6 +174,10 @@ export default async function CreaturePage({
       <div className="grid gap-5 lg:grid-cols-2">
         <Reveal className="card p-5">
           <SectionTitle><T k="cr.statsBase" /></SectionTitle>
+          <p className="-mt-2 mb-4 text-[0.68rem] leading-relaxed text-text-dim">
+            <T k="cr.statsHint" />{" "}
+            <Link href="/calc" className="text-cyan hover:underline"><T k="cr.statsHintLink" /> ›</Link>
+          </p>
           <div className="flex flex-col gap-2.5">
             {STATS.map(([label, key]) => (
               <StatBar key={key} label={label} value={c[key]} best={c[key] === bestStat} />
