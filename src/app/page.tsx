@@ -10,6 +10,7 @@ function ToolCard({
   cta,
   color,
   icon,
+  ctaText = "#06131a",
 }: {
   eyebrow: string;
   title: string;
@@ -18,6 +19,7 @@ function ToolCard({
   cta: string;
   color: string;
   icon?: React.ReactNode;
+  ctaText?: string;
 }) {
   return (
     <Link
@@ -33,7 +35,7 @@ function ToolCard({
         {icon && <span className="shrink-0 opacity-90">{icon}</span>}
       </div>
       <p className="text-sm text-text-dim leading-relaxed">{desc}</p>
-      <span className="btn mt-2 self-start" style={{ background: color, color: "#06131a" }}>
+      <span className="btn mt-2 self-start" style={{ background: color, color: ctaText }}>
         {cta} ›
       </span>
     </Link>
@@ -82,7 +84,8 @@ export default async function Home() {
           desc="Busca por nome e tipo. Cada ficha traz stats, fraquezas, evolucao, drops com chance real e onde cacar."
           href="/dex"
           cta="Abrir Pokedex"
-          color="var(--cyan)"
+          color="#e94b4b"
+          ctaText="#fff"
           icon={<PokedexIcon size={44} />}
         />
         <ToolCard
