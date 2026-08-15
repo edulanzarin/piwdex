@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Sprite } from "./sprite";
 import { spriteUrl } from "@/lib/sprites";
+import { useT } from "./locale-provider";
 
 const ANIM_BASE =
   "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated";
@@ -15,6 +16,7 @@ const hasAnimated = (id: number) => id > 0 && id <= 649;
  * cards da dex. Alterna shiny. Ids sem gif caem no sprite estatico.
  */
 export function HeroSprite({ pokeId, name, size = 132 }: { pokeId: number; name: string; size?: number }) {
+  const t = useT();
   const [shiny, setShiny] = useState(false);
   const animated = hasAnimated(pokeId);
   const src = animated
@@ -39,7 +41,7 @@ export function HeroSprite({ pokeId, name, size = 132 }: { pokeId: number; name:
         title={shiny ? "Ver forma normal" : "Ver forma shiny"}
       >
         <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ background: shiny ? "#3a2c00" : "var(--yellow)" }} />
-        {shiny ? "Ver normal" : "Ver shiny"}
+        {shiny ? t("cr.seeNormal") : t("cr.seeShiny")}
       </button>
     </div>
   );

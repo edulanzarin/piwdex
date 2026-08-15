@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Pokeball } from "./pokeball";
+import { useT } from "./locale-provider";
 
 /**
  * Envolve o conteudo da dex num "aparelho" Pokedex e toca uma animacao de
@@ -9,17 +10,19 @@ import { Pokeball } from "./pokeball";
  * toda antes de revelar o grid — como se voce abrisse a Pokedex de verdade.
  * Respeita prefers-reduced-motion (pula direto pro aberto).
  */
-export function PokedexShell({ children }: { children: React.ReactNode }) {
-  const [booting, setBooting] = useState(true);
+export function PokedexShell({ children, animate = true }: { children: React.ReactNode; animate?: boolean }) {
+  const t = useT();
+  const [booting, setBooting] = useState(animate);
 
   useEffect(() => {
+    if (!animate) return;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       setBooting(false);
       return;
     }
-    const t = setTimeout(() => setBooting(false), 2300);
-    return () => clearTimeout(t);
-  }, []);
+    const to = setTimeout(() => setBooting(false), 2300);
+    return () => clearTimeout(to);
+  }, [animate]);
 
   return (
     <div className="pkdx">
@@ -58,7 +61,7 @@ export function PokedexShell({ children }: { children: React.ReactNode }) {
             </div>
             <div className="pkdx-boot">
               <Pokeball size={52} className="wiggle" />
-              <span className="pixel mt-4 text-[0.8rem] text-white">ABRINDO POKEDEX</span>
+              <span className="pixel mt-4 text-[0.8rem] text-white">{t("dex.opening")}</span>
               <span className="pkdx-dots pixel text-[0.8rem] text-cyan" />
             </div>
           </div>
