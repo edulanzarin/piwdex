@@ -22,6 +22,36 @@ function MiniBox({ label, value }: { label: string; value: React.ReactNode }) {
   );
 }
 
+// Icones pixel das abas (monocromaticos, herdam a cor do texto).
+const CHART_ROWS = [
+  "............", ".........##.", ".........##.", ".....##..##.",
+  ".....##..##.", ".##..##..##.", ".##..##..##.", ".##..##..##.",
+  ".##..##..##.", "############", "............", "............",
+];
+const LEVELUP_ROWS = [
+  "............", ".....##.....", "....####....", "...######...",
+  "..########..", ".##########.", ".....##.....", ".....##.....",
+  ".....##.....", ".....##.....", "............", "............",
+];
+function TabIcon({ rows, size = 13 }: { rows: string[]; size?: number }) {
+  const rects: React.ReactNode[] = [];
+  rows.forEach((r, y) => { for (let x = 0; x < r.length; x++) if (r[x] === "#") rects.push(<rect key={`${x}-${y}`} x={x} y={y} width={1} height={1} />); });
+  return <svg width={size} height={size} viewBox="0 0 12 12" fill="currentColor" shapeRendering="crispEdges" style={{ imageRendering: "pixelated" }} aria-hidden="true">{rects}</svg>;
+}
+function TabBtn({ active, onClick, rows, label }: { active: boolean; onClick: () => void; rows: string[]; label: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`inline-flex items-center gap-2 rounded border px-4 py-2 pixel text-[0.62rem] transition ${
+        active ? "border-[color:var(--cyan)] bg-surface-2 text-cyan" : "border-border text-text-dim hover:text-text"
+      }`}
+    >
+      <TabIcon rows={rows} /> {label}
+    </button>
+  );
+}
+
 const EEVEE_ID = 133;
 
 export interface CalcCreature {
@@ -118,6 +148,7 @@ export function Calculator({ creatures }: { creatures: CalcCreature[] }) {
 
   const isEevee = creature?.pokeId === EEVEE_ID;
   const profile = creature ? analyze(creature.bases) : null;
+  const [tab, setTab] = useState<"analise" | "projetar">("analise");
 
   const setStat = (i: number, v: string) =>
     setStats((prev) => prev.map((s, j) => (j === i ? v : s)));
@@ -152,8 +183,16 @@ export function Calculator({ creatures }: { creatures: CalcCreature[] }) {
           </Link>
         </div>
       ) : (
-      <>{/* resto da calculadora so quando nao for Eevee */}
+      <>{/* resto da ferramenta so quando nao for Eevee */}
 
+      {/* Abas */}
+      <div className="flex flex-wrap gap-2">
+        <TabBtn active={tab === "analise"} onClick={() => setTab("analise")} rows={CHART_ROWS} label={t("calc.tab.analise")} />
+        <TabBtn active={tab === "projetar"} onClick={() => setTab("projetar")} rows={LEVELUP_ROWS} label={t("calc.tab.projetar")} />
+      </div>
+
+      {tab === "analise" ? (
+      <>
       {/* Perfil / analise a partir do base */}
       {creature && profile && (
         <div className="card p-5">
@@ -240,32 +279,44 @@ export function Calculator({ creatures }: { creatures: CalcCreature[] }) {
         )}
       </div>
 
-      {/* Projecao */}
+      </>
+      ) : (
+      /* Aba: Projetar nivel */
       <div className="card p-5">
-        <h2 className="pixel text-[0.72rem] text-cyan">{t("calc.project")}</h2>
-        <p className="mb-4 mt-2 text-sm text-text-dim">
-          {t("calc.projectHint")}
-        </p>
-        <div className="max-w-[10rem]">
-          <Field label={t("calc.targetLevel")} value={target} onChange={setTarget} placeholder="ex: 100" />
-        </div>
-        {projection && (
-          <div className="mt-4 flex flex-col gap-4">
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-              {STAT_LABELS.map((label, i) => (
-                <div key={label} className="rounded border border-border bg-[rgba(8,14,28,0.5)] px-3 py-2">
-                  <div className="inline-flex items-center gap-1 text-[0.58rem] uppercase tracking-wide text-text-dim"><StatIcon index={i} size={11} />{label}</div>
-                  <div className="tabular-nums text-lg font-bold text-cyan">{projection.stats[i]}</div>
-                </div>
-              ))}
-            </div>
-            <div className="border-t border-border pt-3">
-              <span className="text-[0.6rem] uppercase tracking-wide text-text-dim">{t("calc.powerAt", { n: tgt })}</span>
-              <div className="pixel text-base text-yellow">{projection.power.toLocaleString("pt-BR")}</div>
-            </div>
+        <h2 className="pixel mb-2 inline-flex items-center gap-2 text-[0.72rem] text-cyan"><TabIcon rows={LEVELUP_ROWS} size={14} />{t("calc.project")}</h2>
+        {!res ? (
+          <div className="mt-3 flex flex-col items-start gap-3">
+            <p className="text-sm text-text-dim">{t("calc.projNeedCalc")}</p>
+            <button type="button" onClick={() => setTab("analise")} className="btn btn-ghost inline-flex items-center gap-2">
+              <TabIcon rows={CHART_ROWS} /> {t("calc.tab.analise")} ›
+            </button>
           </div>
+        ) : (
+          <>
+            <p className="mb-4 mt-1 text-sm text-text-dim">{t("calc.projectHint")}</p>
+            <div className="max-w-[10rem]">
+              <Field label={t("calc.targetLevel")} value={target} onChange={setTarget} placeholder="ex: 100" />
+            </div>
+            {projection && (
+              <div className="mt-4 flex flex-col gap-4">
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  {STAT_LABELS.map((label, i) => (
+                    <div key={label} className="rounded border border-border bg-[rgba(8,14,28,0.5)] px-3 py-2">
+                      <div className="inline-flex items-center gap-1 text-[0.58rem] uppercase tracking-wide text-text-dim"><StatIcon index={i} size={11} />{label}</div>
+                      <div className="tabular-nums text-lg font-bold text-cyan">{projection.stats[i]}</div>
+                    </div>
+                  ))}
+                </div>
+                <div className="border-t border-border pt-3">
+                  <span className="text-[0.6rem] uppercase tracking-wide text-text-dim">{t("calc.powerAt", { n: tgt })}</span>
+                  <div className="pixel text-base text-yellow">{projection.power.toLocaleString("pt-BR")}</div>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
+      )}
       </>
       )}
     </div>
