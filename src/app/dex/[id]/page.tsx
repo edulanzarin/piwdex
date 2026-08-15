@@ -8,6 +8,7 @@ import type { TypeMult } from "@/lib/typing";
 import { TypeBadge, TypeBadges, TypePill } from "@/components/badges";
 import { AcqBadge } from "@/components/acq-badge";
 import { StatIcon } from "@/components/stat-icons";
+import { CASINO_PRICE } from "@/lib/casino-prices";
 import { Sprite } from "@/components/sprite";
 import { HeroSprite } from "@/components/hero-sprite";
 import { Gold } from "@/components/icons";
@@ -171,8 +172,8 @@ export default async function CreaturePage({
             <MiniStat label={<T k="cr.huntLvl" />} value={c.huntLevel} />
             <MiniStat label={<T k="cr.xp" />} value={c.experience.toLocaleString("pt-BR")} />
             <MiniStat
-              label={<T k="cr.value" />}
-              value={<Gold value={c.sellValue > 0 ? c.sellValue : c.priceNpc} />}
+              label={<T k={CASINO_PRICE[c.pokeId] ? "cr.casino" : "cr.value"} />}
+              value={<Gold value={CASINO_PRICE[c.pokeId] ?? (c.sellValue > 0 ? c.sellValue : c.priceNpc)} />}
             />
           </div>
         </div>
