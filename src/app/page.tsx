@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getData } from "@/lib/data";
 import { PokedexIcon } from "@/components/pokedex-icon";
+import { ItemsIcon, HuntIcon, CalcIcon } from "@/components/tool-icons";
 import { T } from "@/components/locale-provider";
 
 function ToolCard({
@@ -23,17 +24,17 @@ function ToolCard({
   return (
     <Link
       href={href}
-      className="card card-link flex flex-col gap-3 p-6"
+      className="card card-link flex items-start gap-4 p-5 sm:p-6"
       style={{ borderColor: `${color}55` }}
     >
-      <div className="flex items-start justify-between gap-2">
-        <h2 className="pixel text-sm" style={{ color }}><T k={titleKey} /></h2>
-        {icon && <span className="shrink-0 opacity-90">{icon}</span>}
+      {icon && <span className="shrink-0">{icon}</span>}
+      <div className="flex min-w-0 flex-col gap-2.5">
+        <h2 className="pixel text-[0.8rem] sm:text-sm" style={{ color }}><T k={titleKey} /></h2>
+        <p className="text-sm text-text-dim leading-relaxed"><T k={descKey} /></p>
+        <span className="btn mt-1 self-start whitespace-nowrap" style={{ background: color, color: ctaText }}>
+          <T k={ctaKey} /> ›
+        </span>
       </div>
-      <p className="text-sm text-text-dim leading-relaxed"><T k={descKey} /></p>
-      <span className="btn mt-2 self-start" style={{ background: color, color: ctaText }}>
-        <T k={ctaKey} /> ›
-      </span>
     </Link>
   );
 }
@@ -50,9 +51,9 @@ export default async function Home() {
   return (
     <div className="flex flex-col gap-10">
       {/* Hero */}
-      <section className="card overflow-hidden p-8 sm:p-12">
+      <section className="card overflow-hidden p-6 sm:p-10 lg:p-12">
         <div className="eyebrow mb-4"><T k="home.eyebrow" /></div>
-        <h1 className="pixel text-2xl sm:text-4xl leading-[1.5] text-text">
+        <h1 className="pixel text-lg leading-[1.5] text-text break-words sm:text-3xl lg:text-4xl">
           <T k="home.heroPre" /> <span style={{ color: "var(--cyan)" }}><T k="home.heroMid" /></span> <T k="home.heroDo" />{" "}
           <span style={{ color: "var(--green)" }}>Poke Idle World</span>.
         </h1>
@@ -71,7 +72,7 @@ export default async function Home() {
       </section>
 
       {/* Ferramentas */}
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <section className="grid gap-4 sm:grid-cols-2">
         <ToolCard
           titleKey="home.card1.title"
           descKey="home.card1.desc"
@@ -79,7 +80,7 @@ export default async function Home() {
           ctaKey="home.card1.cta"
           color="#e94b4b"
           ctaText="#fff"
-          icon={<PokedexIcon size={44} />}
+          icon={<PokedexIcon size={52} />}
         />
         <ToolCard
           titleKey="home.card2.title"
@@ -87,6 +88,8 @@ export default async function Home() {
           href="/items"
           ctaKey="home.card2.cta"
           color="var(--green)"
+          ctaText="#052012"
+          icon={<ItemsIcon size={52} />}
         />
         <ToolCard
           titleKey="home.card4.title"
@@ -95,6 +98,7 @@ export default async function Home() {
           ctaKey="home.card4.cta"
           color="var(--yellow)"
           ctaText="#06131a"
+          icon={<HuntIcon size={52} />}
         />
         <ToolCard
           titleKey="home.card3.title"
@@ -102,6 +106,8 @@ export default async function Home() {
           href="/calc"
           ctaKey="home.card3.cta"
           color="var(--purple)"
+          ctaText="#1a1030"
+          icon={<CalcIcon size={52} />}
         />
       </section>
 

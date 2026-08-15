@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import { LOCALES, type Locale } from "@/lib/i18n";
 import { useLocale } from "./locale-provider";
 
@@ -36,22 +37,48 @@ function Flag({ code }: { code: Locale }) {
 
 export function LangSwitcher() {
   const { locale, setLocale } = useLocale();
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const current = LOCALES.find((l) => l.code === locale) ?? LOCALES[0];
+
+  useEffect(() => {
+    const onDoc = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, []);
+
   return (
-    <div className="flex items-center gap-1">
-      {LOCALES.map(({ code, label }) => (
-        <button
-          key={code}
-          type="button"
-          onClick={() => setLocale(code)}
-          title={code}
-          className={`flex items-center gap-1.5 rounded px-1.5 py-1 text-[0.55rem] font-bold uppercase transition ${
-            locale === code ? "bg-surface-2 text-text ring-1 ring-[color:var(--border)]" : "text-text-dim hover:text-text"
-          }`}
-        >
-          <Flag code={code} />
-          <span className="hidden sm:inline">{label}</span>
-        </button>
-      ))}
+    <div className="relative" ref={ref}>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="flex items-center gap-1.5 rounded border border-border px-2 py-1.5 text-[0.6rem] font-bold uppercase text-text hover:bg-surface-2"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+      >
+        <Flag code={current.code} />
+        <span>{current.label}</span>
+        <span className="text-[0.5rem] text-text-dim">▾</span>
+      </button>
+      {open && (
+        <div className="absolute right-0 z-50 mt-1 w-40 overflow-hidden rounded border border-[color:var(--border-strong)] bg-[#0b1122] shadow-[0_10px_40px_-10px_rgba(0,0,0,0.8)]">
+          {LOCALES.map(({ code, name }) => (
+            <button
+              key={code}
+              type="button"
+              onClick={() => { setLocale(code); setOpen(false); }}
+              className={`flex w-full items-center gap-2.5 px-3 py-2 text-left text-[0.72rem] ${
+                locale === code ? "bg-surface-2 text-text" : "text-text-dim hover:bg-surface-2 hover:text-text"
+              }`}
+            >
+              <Flag code={code} />
+              <span className="uppercase tracking-wide">{name}</span>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
