@@ -11,7 +11,7 @@ import {
 import { spriteUrl, itemIconUrl } from "@/lib/sprites";
 import { defensiveProfile, TYPE_COLOR } from "@/lib/typing";
 import type { PokeType } from "@/lib/types";
-import { RarityBadge, TypeBadge, TypeBadges } from "@/components/badges";
+import { TypeBadge, TypeBadges } from "@/components/badges";
 import { Sprite } from "@/components/sprite";
 
 export function generateStaticParams() {
@@ -104,7 +104,6 @@ export default async function CreaturePage({
           <h1 className="pixel text-lg text-text">{c.name}</h1>
           <div className="flex flex-wrap items-center gap-2">
             <TypeBadges t1={c.type1} t2={c.type2} />
-            <RarityBadge rarity={c.rarity} />
           </div>
           <p className="text-sm text-text-dim">{c.description}</p>
           <div className="mt-1 flex flex-wrap gap-x-5 gap-y-1 text-sm">

@@ -1,7 +1,6 @@
 import Link from "next/link";
 import type { Creature } from "@/lib/types";
 import { spriteUrl } from "@/lib/sprites";
-import { RARITY_COLOR } from "@/lib/typing";
 import { TypeBadges } from "./badges";
 import { Sprite } from "./sprite";
 
@@ -10,7 +9,6 @@ export function CreatureCard({ creature }: { creature: Creature }) {
     <Link
       href={`/dex/${creature.pokeId}`}
       className="card card-link flex flex-col items-center gap-2 p-3"
-      style={{ borderBottom: `2px solid ${RARITY_COLOR[creature.rarity]}` }}
     >
       <Sprite src={spriteUrl(creature.pokeId)} alt={creature.name} size={76} />
       <div className="text-center">

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { dropSourcesOf, getItem, items } from "@/lib/data";
 import { itemIconUrl, spriteUrl } from "@/lib/sprites";
-import { RarityBadge, TypeBadges } from "@/components/badges";
+import { TypeBadges } from "@/components/badges";
 import { Sprite } from "@/components/sprite";
 
 export function generateStaticParams() {
@@ -88,7 +88,6 @@ export default async function ItemPage({
                       <Link href={`/dex/${creature.pokeId}`} className="flex items-center gap-2 hover:text-cyan">
                         <Sprite src={spriteUrl(creature.pokeId)} alt="" size={30} />
                         <span>{creature.name}</span>
-                        <RarityBadge rarity={creature.rarity} />
                       </Link>
                     </td>
                     <td className="py-1.5"><TypeBadges t1={creature.type1} t2={creature.type2} /></td>
