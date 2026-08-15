@@ -71,6 +71,10 @@ const num = (s: string): number => {
 };
 
 const IV_MAX_TOTAL = 192; // 32 por stat x 6
+const IV_MAX = 32; // por stat
+
+// Cor do IV por stat (0..32): verde ja bom, amarelo mediano, vermelho ruim.
+const ivColor = (v: number) => (v >= 26 ? "text-green" : v >= 14 ? "text-yellow" : "text-red");
 
 // Perfil a partir dos stats base (chaves de traducao).
 function analyze(bases: number[]) {
@@ -145,6 +149,12 @@ export function Calculator({ creatures }: { creatures: CalcCreature[] }) {
     if (!res || !creature || !Number.isFinite(tgt) || tgt <= 0) return null;
     return projectAll(creature.bases, res.ivs, tgt, qual);
   }, [res, creature, tgt, qual]);
+
+  // "Perfeito": mesmo pokemon com IV maximo (32 em tudo) no mesmo nivel/qualidade.
+  const perfect = useMemo(() => {
+    if (!res || !creature) return null;
+    return projectAll(creature.bases, Array<number>(6).fill(32), lvl, qual);
+  }, [res, creature, lvl, qual]);
 
   const isEevee = creature?.pokeId === EEVEE_ID;
   const profile = creature ? analyze(creature.bases) : null;
@@ -276,6 +286,54 @@ export function Calculator({ creatures }: { creatures: CalcCreature[] }) {
           </div>
         )}
       </div>
+
+      {/* Seu vs perfeito */}
+      {res && iv && perfect && creature && (
+        <div className="card p-5">
+          <h2 className="pixel mb-1 text-[0.72rem] text-yellow">{t("calc.compare")}</h2>
+          <p className="mb-4 text-[0.62rem] leading-relaxed text-text-dim">{t("calc.compareHint")}</p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {/* Seu */}
+            <div className="rounded-lg border border-[color:var(--cyan)] p-4">
+              <div className="mb-3 flex items-center justify-between">
+                <span className="pixel text-[0.62rem] text-cyan">{t("calc.compareYou", { name: creature.name })}</span>
+                <span className="text-[0.58rem] tabular-nums text-text-dim">{iv.total.toFixed(0)}/{IV_MAX_TOTAL} · {Math.round((iv.total / IV_MAX_TOTAL) * 100)}%</span>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                {STAT_LABELS.map((lb, i) => (
+                  <div key={lb} className="flex items-center justify-between text-[0.72rem]">
+                    <span className="inline-flex items-center gap-1 text-text-dim"><StatIcon index={i} size={11} />{lb}</span>
+                    <span className="flex items-center gap-3 tabular-nums">
+                      <span className="w-10 text-right text-text">{statVals[i]}</span>
+                      <span className={`w-12 text-right ${ivColor(res.ivs[i])}`}>{res.ivs[i].toFixed(0)}/{IV_MAX}</span>
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-3 border-t border-border pt-2 text-[0.6rem] uppercase tracking-wide text-text-dim">{t("calc.power")} <span className="pixel ml-1 text-[0.7rem] text-yellow">{currentPower?.toLocaleString("pt-BR")}</span></div>
+            </div>
+            {/* Perfeito */}
+            <div className="rounded-lg border border-[color:var(--green)] p-4">
+              <div className="mb-3 flex items-center justify-between">
+                <span className="pixel text-[0.62rem] text-green">{t("calc.comparePerfect")}</span>
+                <span className="text-[0.58rem] tabular-nums text-text-dim">{IV_MAX_TOTAL}/{IV_MAX_TOTAL} · 100%</span>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                {STAT_LABELS.map((lb, i) => (
+                  <div key={lb} className="flex items-center justify-between text-[0.72rem]">
+                    <span className="inline-flex items-center gap-1 text-text-dim"><StatIcon index={i} size={11} />{lb}</span>
+                    <span className="flex items-center gap-3 tabular-nums">
+                      <span className="w-10 text-right text-green">{perfect.stats[i]}</span>
+                      <span className="w-12 text-right text-green">{IV_MAX}/{IV_MAX}</span>
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-3 border-t border-border pt-2 text-[0.6rem] uppercase tracking-wide text-text-dim">{t("calc.power")} <span className="pixel ml-1 text-[0.7rem] text-yellow">{perfect.power.toLocaleString("pt-BR")}</span></div>
+            </div>
+          </div>
+        </div>
+      )}
 
       </>
       ) : (
