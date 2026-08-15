@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getData } from "@/lib/data";
-import { itemIconUrl, spriteUrl } from "@/lib/sprites";
-import { TypeBadges } from "@/components/badges";
+import { itemIconUrl } from "@/lib/sprites";
 import { Sprite } from "@/components/sprite";
+import { DropSourcesTable } from "@/components/drop-sources-table";
 import { Gold } from "@/components/icons";
 import { T } from "@/components/locale-provider";
 
@@ -22,13 +22,6 @@ export async function generateMetadata({
   const { getItem } = await getData();
   const item = getItem(Number(id));
   return { title: item ? item.name : "Item" };
-}
-
-function pctLabel(p: number): string {
-  if (p >= 10) return `${p.toFixed(1)}%`;
-  if (p >= 1) return `${p.toFixed(2)}%`;
-  if (p >= 0.01) return `${p.toFixed(3)}%`;
-  return `${p.toFixed(4)}%`;
 }
 
 export default async function ItemPage({
@@ -77,36 +70,18 @@ export default async function ItemPage({
             <T k="item.noDrop" />
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left text-[0.62rem] uppercase tracking-wide text-text-dim">
-                  <th className="pb-2 font-medium"><T k="col.pokemon" /></th>
-                  <th className="pb-2 font-medium"><T k="col.types" /></th>
-                  <th className="pb-2 text-right font-medium"><T k="col.huntLvl" /></th>
-                  <th className="pb-2 text-right font-medium"><T k="col.qty" /></th>
-                  <th className="pb-2 text-right font-medium"><T k="col.chance" /></th>
-                </tr>
-              </thead>
-              <tbody>
-                {sources.map(({ creature, chancePct, minCount, maxCount }) => (
-                  <tr key={creature.pokeId} className="group cursor-pointer border-t border-border hover:bg-surface-2">
-                    <td className="py-1.5">
-                      <Link href={`/dex/${creature.pokeId}`} className="flex items-center gap-2 text-cyan group-hover:underline">
-                        <Sprite src={spriteUrl(creature.pokeId)} alt="" size={30} />
-                        <span>{creature.name}</span>
-                        <span className="text-[0.6rem] text-text-dim opacity-0 transition group-hover:opacity-100">›</span>
-                      </Link>
-                    </td>
-                    <td className="py-1.5"><TypeBadges t1={creature.type1} t2={creature.type2} /></td>
-                    <td className="py-1.5 text-right tabular-nums">{creature.huntLevel}</td>
-                    <td className="py-1.5 text-right text-text-dim">{minCount === maxCount ? minCount : `${minCount}–${maxCount}`}</td>
-                    <td className="py-1.5 text-right tabular-nums">{chancePct === 0 ? <T k="special" /> : pctLabel(chancePct)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <DropSourcesTable
+            sources={sources.map(({ creature, chancePct, minCount, maxCount }) => ({
+              pokeId: creature.pokeId,
+              name: creature.name,
+              type1: creature.type1,
+              type2: creature.type2,
+              huntLevel: creature.huntLevel,
+              chancePct,
+              minCount,
+              maxCount,
+            }))}
+          />
         )}
       </section>
     </div>
