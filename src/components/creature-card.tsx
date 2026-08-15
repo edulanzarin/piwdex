@@ -1,15 +1,20 @@
 import Link from "next/link";
-import type { Creature } from "@/lib/types";
+import type { Acquisition, Creature } from "@/lib/types";
 import { spriteUrl } from "@/lib/sprites";
 import { TypeBadges } from "./badges";
+import { AcqBadge } from "./acq-badge";
 import { Sprite } from "./sprite";
 
-export function CreatureCard({ creature }: { creature: Creature }) {
+export function CreatureCard({ creature, acq }: { creature: Creature; acq?: Acquisition }) {
   return (
     <Link
       href={`/dex/${creature.pokeId}`}
-      className="card card-link flex flex-col items-center gap-2 p-3"
+      className="card card-link relative flex flex-col items-center gap-2 p-3"
     >
+      {/* So marca as origens fora do comum (evolucao/especial); caca e o padrao. */}
+      {acq && acq !== "hunt" && (
+        <AcqBadge kind={acq} className="absolute right-1.5 top-1.5 !text-[0.5rem] !px-1.5 !py-0.5" />
+      )}
       <Sprite src={spriteUrl(creature.pokeId)} alt={creature.name} size={76} />
       <div className="text-center">
         <div className="text-[0.6rem] text-text-dim">

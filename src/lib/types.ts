@@ -11,6 +11,12 @@ export type Rarity =
 
 export type AttackCategory = "PHYSICAL" | "SPECIAL" | "STATUS";
 
+// Como se consegue o pokemon (derivado, nao vem do jogo):
+//  hunt    = tem ponto de caca (map-markers)
+//  evo     = nao se caca, mas outro pokemon evolui pra ele
+//  special = nao se caca nem evolui pra ele -> loja/cassino/ovo/evento
+export type Acquisition = "hunt" | "evo" | "special";
+
 export interface Attack {
   name: string;
   type: PokeType;

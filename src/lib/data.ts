@@ -5,7 +5,7 @@
 
 import { cache } from "react";
 import { fetchSource } from "./source";
-import type { Creature, DropSource, EvolutionStage, Hunt, Item } from "./types";
+import type { Acquisition, Creature, DropSource, EvolutionStage, Hunt, Item } from "./types";
 
 // chance vem em escala 0..100000; porcentagem = chance / 1000. (Puro, sem fetch.)
 export const chanceToPct = (chance: number): number => chance / 1000;
@@ -22,6 +22,7 @@ export interface DB {
   getItem: (id: number) => Item | undefined;
   getItemByName: (name: string) => Item | undefined;
   locationsOf: (c: Creature) => Hunt[];
+  acquisitionOf: (c: Creature) => Acquisition;
   dropSourcesOf: (itemName: string) => DropSource[];
   evolutionChainOf: (c: Creature) => EvolutionStage[];
 }
@@ -59,6 +60,17 @@ export const getData = cache(async (): Promise<DB> => {
     const arr = huntsByCreature.get(best.pokeId) ?? [];
     arr.push(h);
     huntsByCreature.set(best.pokeId, arr);
+  }
+
+  // Alvos de evolucao: quem e o "para onde" de alguma evolucao chega por evoluir.
+  const evolveTargets = new Set<number>();
+  for (const c of creatures) if (c.evolvesToId != null) evolveTargets.add(c.evolvesToId);
+  // Como se consegue: tem spot -> caca; senao e alvo de evolucao -> evolucao;
+  // senao -> especial (loja/cassino/ovo/evento). Puro dado derivado.
+  function acquisitionOf(c: Creature): Acquisition {
+    if ((huntsByCreature.get(c.pokeId)?.length ?? 0) > 0) return "hunt";
+    if (evolveTargets.has(c.pokeId)) return "evo";
+    return "special";
   }
 
   // indice reverso de drop: nome do item -> criaturas que dropam (com % convertida).
@@ -112,6 +124,7 @@ export const getData = cache(async (): Promise<DB> => {
     getItem: (id) => itemById.get(id),
     getItemByName: (name) => itemByName.get(name),
     locationsOf: (c) => huntsByCreature.get(c.pokeId) ?? [],
+    acquisitionOf,
     dropSourcesOf: (itemName) => dropSourcesByItem.get(itemName) ?? [],
     evolutionChainOf,
   };

@@ -6,6 +6,7 @@ import { spriteUrl, itemIconUrl } from "@/lib/sprites";
 import { defensiveDetailed, offensiveDetailed } from "@/lib/typing";
 import type { TypeMult } from "@/lib/typing";
 import { TypeBadge, TypeBadges, TypePill } from "@/components/badges";
+import { AcqBadge } from "@/components/acq-badge";
 import { Sprite } from "@/components/sprite";
 import { HeroSprite } from "@/components/hero-sprite";
 import { Gold } from "@/components/icons";
@@ -113,9 +114,10 @@ export default async function CreaturePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const { getCreature, evolutionChainOf, locationsOf, getItemByName } = await getData();
+  const { getCreature, evolutionChainOf, locationsOf, getItemByName, acquisitionOf } = await getData();
   const c = getCreature(Number(id));
   if (!c) notFound();
+  const acq = acquisitionOf(c);
 
   const total = c.baseHp + c.baseAtk + c.baseDef + c.baseSpAtk + c.baseSpDef + c.baseSpeed;
   const bestStat = Math.max(c.baseHp, c.baseAtk, c.baseDef, c.baseSpAtk, c.baseSpDef, c.baseSpeed);
@@ -147,6 +149,7 @@ export default async function CreaturePage({
           <h1 className="pixel text-lg text-text">{c.name}</h1>
           <div className="flex flex-wrap items-center gap-2">
             <TypeBadges t1={c.type1} t2={c.type2} />
+            <AcqBadge kind={acq} />
           </div>
           <p className="text-sm text-text-dim">{c.description}</p>
 
@@ -255,7 +258,12 @@ export default async function CreaturePage({
               ))}
             </div>
           ) : (
-            <p className="text-sm text-text-dim"><T k="cr.noHunt" /></p>
+            <div className="flex flex-col gap-2">
+              <AcqBadge kind={acq} className="self-start" />
+              <p className="text-sm text-text-dim">
+                <T k={acq === "special" ? "dex.acq.specialHint" : "dex.acq.evoHint"} />
+              </p>
+            </div>
           )}
         </Reveal>
       </div>
