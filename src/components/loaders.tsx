@@ -15,15 +15,15 @@ export function GridSkeleton({ count = 18 }: { count?: number }) {
   );
 }
 
-// Loader de tela cheia: pikachu pixel pulando.
+// Loader de tela cheia: Mew pixel girando.
 export function LoadingBall({ label = "Carregando" }: { label?: string }) {
   return (
     <div className="flex flex-col items-center justify-center gap-4 py-20">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src={animatedSpriteUrl(25)}
+        src={animatedSpriteUrl(151)}
         alt=""
-        className="bounce-y h-20 w-20"
+        className="spin h-20 w-20"
         style={{ imageRendering: "pixelated" }}
       />
       <div className="pixel text-[0.6rem] text-text-dim">{label}...</div>

@@ -40,9 +40,9 @@ export function Sprite({
         <span className="skeleton absolute inset-0 flex items-center justify-center rounded">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={animatedSpriteUrl(25)}
+            src={animatedSpriteUrl(151)}
             alt=""
-            className="bounce-y"
+            className="spin"
             style={{ imageRendering: "pixelated", width: Math.min(size * 0.72, 44), height: Math.min(size * 0.72, 44) }}
           />
         </span>
