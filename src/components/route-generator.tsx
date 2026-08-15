@@ -137,15 +137,18 @@ export function RouteGenerator({ species, enemies }: { species: Species[]; enemi
           </div>
         </div>
 
-        <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-3 border-t border-border pt-4">
-          <label className="flex items-center gap-2">
-            <span className="text-[0.6rem] uppercase tracking-wide text-cyan">{t("hunt.kpm")}</span>
-            <input className="input w-20 !py-1.5" inputMode="numeric" placeholder="—" value={kpm} onChange={(e) => setKpm(e.target.value)} />
-          </label>
-          <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-text-dim">
-            <input type="checkbox" className="accent-[color:var(--green)]" checked={vip} onChange={(e) => setVip(e.target.checked)} />
-            {t("hunt.vip")}
-          </label>
+        <div className="mt-4 border-t border-border pt-4">
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+            <label className="flex items-center gap-2">
+              <span className="text-[0.6rem] uppercase tracking-wide text-cyan">{t("hunt.kpm")}</span>
+              <input className="input w-20 !py-1.5" inputMode="numeric" placeholder="—" value={kpm} onChange={(e) => setKpm(e.target.value)} />
+            </label>
+            <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-text-dim">
+              <input type="checkbox" className="accent-[color:var(--green)]" checked={vip} onChange={(e) => setVip(e.target.checked)} />
+              {t("hunt.vip")}
+            </label>
+          </div>
+          <p className="mt-2 text-[0.62rem] leading-relaxed text-text-dim">{t("hunt.route.kpmHint")}</p>
         </div>
       </div>
 
