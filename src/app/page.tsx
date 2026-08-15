@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getData } from "@/lib/data";
+import { PokedexIcon } from "@/components/pokedex-icon";
 
 function ToolCard({
   eyebrow,
@@ -8,6 +9,7 @@ function ToolCard({
   href,
   cta,
   color,
+  icon,
 }: {
   eyebrow: string;
   title: string;
@@ -15,6 +17,7 @@ function ToolCard({
   href: string;
   cta: string;
   color: string;
+  icon?: React.ReactNode;
 }) {
   return (
     <Link
@@ -22,8 +25,13 @@ function ToolCard({
       className="card card-link flex flex-col gap-3 p-6"
       style={{ borderColor: `${color}55` }}
     >
-      <div className="eyebrow" style={{ color }}>{eyebrow}</div>
-      <h2 className="pixel text-sm" style={{ color }}>{title}</h2>
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <div className="eyebrow" style={{ color }}>{eyebrow}</div>
+          <h2 className="pixel mt-2 text-sm" style={{ color }}>{title}</h2>
+        </div>
+        {icon && <span className="shrink-0 opacity-90">{icon}</span>}
+      </div>
       <p className="text-sm text-text-dim leading-relaxed">{desc}</p>
       <span className="btn mt-2 self-start" style={{ background: color, color: "#06131a" }}>
         {cta} ›
@@ -55,10 +63,6 @@ export default async function Home() {
           onde farmar cada item e em que area cada pokemon aparece. Puxado direto da
           fonte-mestra do jogo.
         </p>
-        <div className="mt-8 flex flex-wrap gap-3">
-          <Link href="/dex" className="btn btn-cyan">Abrir Pokedex ›</Link>
-          <Link href="/items" className="btn btn-ghost">Itens & drops</Link>
-        </div>
 
         <div className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-4">
           {stats.map(([value, label]) => (
@@ -79,6 +83,7 @@ export default async function Home() {
           href="/dex"
           cta="Abrir Pokedex"
           color="var(--cyan)"
+          icon={<PokedexIcon size={44} />}
         />
         <ToolCard
           eyebrow="Indice reverso"
