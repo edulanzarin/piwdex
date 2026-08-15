@@ -118,6 +118,7 @@ export default async function CreaturePage({
   const c = getCreature(Number(id));
   if (!c) notFound();
   const acq = acquisitionOf(c);
+  const isEevee = c.pokeId === 133; // ramifica por pedra -> estrela propria
 
   const total = c.baseHp + c.baseAtk + c.baseDef + c.baseSpAtk + c.baseSpDef + c.baseSpeed;
   const bestStat = Math.max(c.baseHp, c.baseAtk, c.baseDef, c.baseSpAtk, c.baseSpDef, c.baseSpeed);
@@ -215,8 +216,18 @@ export default async function CreaturePage({
         </Reveal>
       </div>
 
-      <div className={`grid gap-5 ${chain.length > 1 ? "lg:grid-cols-2" : ""}`}>
-        {chain.length > 1 && (
+      <div className={`grid gap-5 ${chain.length > 1 || isEevee ? "lg:grid-cols-2" : ""}`}>
+        {isEevee ? (
+          <Reveal className="card flex flex-col p-5">
+            <SectionTitle><T k="cr.evolution" /></SectionTitle>
+            <div className="flex flex-1 flex-col items-center justify-center gap-4 py-4 text-center">
+              <p className="max-w-xs text-sm text-text-dim"><T k="eevee.branches" /></p>
+              <Link href="/eevee" className="btn" style={{ background: "var(--cyan)", color: "#06131a" }}>
+                <T k="eevee.open" /> ›
+              </Link>
+            </div>
+          </Reveal>
+        ) : chain.length > 1 && (
           <Reveal className="card flex flex-col p-5">
             <SectionTitle><T k="cr.evolution" /></SectionTitle>
             <div className="flex flex-1 flex-wrap items-center justify-center gap-3">
