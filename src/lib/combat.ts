@@ -75,7 +75,7 @@ export function mainMove(stage: Species, level: number): Move | null {
 /** Melhor hunt pro nivel: entre os alvos que voce ENCARA (Power) e na janela de nivel,
  *  a de maior XP x efetividade. Empate desempata por OURO x efetividade (prioriza upar,
  *  mas entre iguais pega a que da mais dinheiro). */
-function pickHunt(stage: Species, level: number, yourPower: number, enemies: EnemyCombat[]): HuntPick | null {
+function pickHunt(stage: Species, level: number, yourPower: number, enemies: EnemyCombat[], mode: "xp" | "gold" = "xp"): HuntPick | null {
   const move = mainMove(stage, level);
   if (!move) return null;
   const windows: [number, number][] = [
@@ -91,8 +91,9 @@ function pickHunt(stage: Species, level: number, yourPower: number, enemies: Ene
       if (e.power > yourPower * POWER_CEIL) continue;
       const eff = huntEffectiveness(move.type, e.t1, e.t2);
       if (eff <= 0) continue;
-      const primary = e.xp * eff; // proxy de XP por tempo (efetividade = menos hits no jogo)
-      const secondary = e.goldEV * eff;
+      // mode "xp": rankeia por XP (desempata por ouro); "gold": o inverso.
+      const primary = (mode === "gold" ? e.goldEV : e.xp) * eff;
+      const secondary = (mode === "gold" ? e.xp : e.goldEV) * eff;
       const better = !best || primary > best.primary * 1.0001 || (Math.abs(primary - best.primary) <= best.primary * 1e-4 && secondary > best.secondary);
       if (better) {
         best = { primary, secondary, pick: { enemy: e, moveName: move.type, eff, safe: e.power <= yourPower * SAFE ? "safe" : "risky" } };
@@ -144,6 +145,8 @@ export interface RouteStep {
   pick: HuntPick;
 }
 
+export type RouteMode = "xp" | "gold";
+
 export function buildRoute(
   chain: Species[],
   start: number,
@@ -151,6 +154,7 @@ export function buildRoute(
   enemies: EnemyCombat[],
   quality: number,
   ivs: number[],
+  mode: RouteMode = "xp",
 ): RouteStep[] {
   const steps: RouteStep[] = [];
   const s = Math.max(1, Math.floor(start));
@@ -159,7 +163,7 @@ export function buildRoute(
   for (let lvl = s; lvl <= t; lvl++) {
     const stage = activeStage(chain, lvl);
     const yourPower = projectAll(stage.bases, ivs, lvl, quality).power;
-    const pick = pickHunt(stage, lvl, yourPower, enemies);
+    const pick = pickHunt(stage, lvl, yourPower, enemies, mode);
     if (!pick) continue;
 
     const last = steps[steps.length - 1];
