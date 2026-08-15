@@ -1,10 +1,9 @@
 import Link from "next/link";
 import { getData } from "@/lib/data";
 import { PokedexIcon } from "@/components/pokedex-icon";
-import { T, TB } from "@/components/locale-provider";
+import { T } from "@/components/locale-provider";
 
 function ToolCard({
-  eyebrowKey,
   titleKey,
   descKey,
   href,
@@ -13,7 +12,6 @@ function ToolCard({
   icon,
   ctaText = "#06131a",
 }: {
-  eyebrowKey: string;
   titleKey: string;
   descKey: string;
   href: string;
@@ -29,10 +27,7 @@ function ToolCard({
       style={{ borderColor: `${color}55` }}
     >
       <div className="flex items-start justify-between gap-2">
-        <div>
-          <div className="eyebrow" style={{ color }}><T k={eyebrowKey} /></div>
-          <h2 className="pixel mt-2 text-sm" style={{ color }}><T k={titleKey} /></h2>
-        </div>
+        <h2 className="pixel text-sm" style={{ color }}><T k={titleKey} /></h2>
         {icon && <span className="shrink-0 opacity-90">{icon}</span>}
       </div>
       <p className="text-sm text-text-dim leading-relaxed"><T k={descKey} /></p>
@@ -62,7 +57,7 @@ export default async function Home() {
           <span style={{ color: "var(--green)" }}>Poke Idle World</span>.
         </h1>
         <p className="mt-6 max-w-2xl text-text-dim leading-relaxed">
-          <TB k="home.subtitle" bKey="home.subtitleB" />
+          <T k="home.subtitle" />
         </p>
 
         <div className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -78,7 +73,6 @@ export default async function Home() {
       {/* Ferramentas */}
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <ToolCard
-          eyebrowKey="home.card1.eyebrow"
           titleKey="home.card1.title"
           descKey="home.card1.desc"
           href="/dex"
@@ -88,7 +82,6 @@ export default async function Home() {
           icon={<PokedexIcon size={44} />}
         />
         <ToolCard
-          eyebrowKey="home.card2.eyebrow"
           titleKey="home.card2.title"
           descKey="home.card2.desc"
           href="/items"
@@ -96,7 +89,6 @@ export default async function Home() {
           color="var(--green)"
         />
         <ToolCard
-          eyebrowKey="home.card4.eyebrow"
           titleKey="home.card4.title"
           descKey="home.card4.desc"
           href="/hunt"
@@ -105,7 +97,6 @@ export default async function Home() {
           ctaText="#06131a"
         />
         <ToolCard
-          eyebrowKey="home.card3.eyebrow"
           titleKey="home.card3.title"
           descKey="home.card3.desc"
           href="/calc"
