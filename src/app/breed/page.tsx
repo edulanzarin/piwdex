@@ -1,16 +1,21 @@
 import type { Metadata } from "next";
 import { getData } from "@/lib/data";
-import { BreedTool } from "@/components/breed-tool";
-import type { ComboCreature } from "@/components/pokemon-combobox";
+import { BreedTool, type BreedCreature } from "@/components/breed-tool";
 import { T } from "@/components/locale-provider";
 
-export const metadata: Metadata = { title: "Breeding Simulator" };
+export const metadata: Metadata = { title: "Planejador de Breeding" };
 
 export default async function BreedPage() {
   const { creatures } = await getData();
-  // Lista enxuta pro seletor de especie (so o que a colecao/simulador precisa).
-  const slim: ComboCreature[] = creatures
-    .map((c) => ({ pokeId: c.pokeId, name: c.name, type1: c.type1, type2: c.type2 }))
+  // Lista enxuta pro seletor de especie + bases (pra projetar os stats reais do ovo).
+  const slim: BreedCreature[] = creatures
+    .map((c) => ({
+      pokeId: c.pokeId,
+      name: c.name,
+      type1: c.type1,
+      type2: c.type2,
+      bases: [c.baseHp, c.baseAtk, c.baseDef, c.baseSpAtk, c.baseSpDef, c.baseSpeed],
+    }))
     .sort((a, b) => a.name.localeCompare(b.name));
 
   return (

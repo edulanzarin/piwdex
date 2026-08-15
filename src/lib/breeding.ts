@@ -184,3 +184,63 @@ export function projectEgg(a: BreedMon, b: BreedMon, mode: BreedMode, doubleSton
     cost,
   };
 }
+
+// ---- Planejador de Quality (feature propria do piwdex) ----
+// Do Q atual ate um alvo: quantos breeds (pela media de ganho), custo estimado e
+// os dois riscos do jogo — passar de 0.150 num passo (perde o par) e estourar 2.600.
+
+const MAX_GAIN: Record<BreedMode, number> = { free: 0.04, pheromone: 0.3 };
+
+export interface PlanLine {
+  mode: BreedMode;
+  breeds: number; // estimativa pela media
+  money: number;
+  stones: number;
+  pheromones: number;
+  maxStepGain: number;
+  orphanRisk: boolean; // um ganho pode passar de 0.150 e orfar o filho na leva
+  capWaste: boolean; // rolls altos passam do teto 2.600
+}
+
+export interface QualityPlan {
+  base: number;
+  target: number;
+  cap: number | null;
+  effectiveTarget: number;
+  delta: number;
+  reached: boolean;
+  free: PlanLine;
+  pheromone: PlanLine;
+}
+
+function planLine(base: number, effTarget: number, mode: BreedMode, shiny: boolean): PlanLine {
+  const delta = Math.max(0, effTarget - base);
+  const breeds = delta <= 1e-9 ? 0 : Math.ceil(delta / expectedGain(mode));
+  const maxStepGain = MAX_GAIN[mode];
+  return {
+    mode,
+    breeds,
+    money: breeds * BASE_COST,
+    stones: breeds * BASE_STONES,
+    pheromones: mode === "pheromone" ? breeds * PHEROMONE_NORMAL_COUNT : 0,
+    maxStepGain,
+    orphanRisk: maxStepGain > QUALITY_DIFF_MAX + 1e-9,
+    capWaste: !shiny && base + maxStepGain > QUALITY_MAX_NORMAL + 1e-9,
+  };
+}
+
+export function planQuality(base: number, target: number, shiny: boolean): QualityPlan {
+  const cap = shiny ? null : QUALITY_MAX_NORMAL;
+  const effectiveTarget = cap != null ? Math.min(target, cap) : target;
+  const delta = round3(Math.max(0, effectiveTarget - base));
+  return {
+    base: round3(base),
+    target: round3(target),
+    cap,
+    effectiveTarget: round3(effectiveTarget),
+    delta,
+    reached: delta <= 1e-9,
+    free: planLine(base, effectiveTarget, "free", shiny),
+    pheromone: planLine(base, effectiveTarget, "pheromone", shiny),
+  };
+}
