@@ -39,11 +39,26 @@ export const getData = cache(async (): Promise<DB> => {
     itemByName.set(i.name, i);
   }
 
-  const huntsByLooktype = new Map<number, Hunt[]>();
+  const creaturesByLooktype = new Map<number, Creature[]>();
+  for (const c of creatures) {
+    const arr = creaturesByLooktype.get(c.looktype) ?? [];
+    arr.push(c);
+    creaturesByLooktype.set(c.looktype, arr);
+  }
+  // Um looktype pode ser dividido por varias criaturas (ex.: Gyarados e Furious
+  // Gyarados). Atribui cada ponto de hunt a criatura cujo huntLevel e o mais proximo
+  // do nivel do ponto — assim o spot de Outland/150 vai pro Furious, nao pro Gyarados.
+  const huntsByCreature = new Map<number, Hunt[]>();
   for (const h of hunts) {
-    const arr = huntsByLooktype.get(h.looktype) ?? [];
+    const cands = creaturesByLooktype.get(h.looktype);
+    if (!cands || cands.length === 0) continue;
+    let best = cands[0];
+    for (const c of cands) {
+      if (Math.abs(c.huntLevel - h.level) < Math.abs(best.huntLevel - h.level)) best = c;
+    }
+    const arr = huntsByCreature.get(best.pokeId) ?? [];
     arr.push(h);
-    huntsByLooktype.set(h.looktype, arr);
+    huntsByCreature.set(best.pokeId, arr);
   }
 
   // indice reverso de drop: nome do item -> criaturas que dropam (com % convertida).
@@ -96,7 +111,7 @@ export const getData = cache(async (): Promise<DB> => {
     getCreature: (pokeId) => creatureById.get(pokeId),
     getItem: (id) => itemById.get(id),
     getItemByName: (name) => itemByName.get(name),
-    locationsOf: (c) => huntsByLooktype.get(c.looktype) ?? [],
+    locationsOf: (c) => huntsByCreature.get(c.pokeId) ?? [],
     dropSourcesOf: (itemName) => dropSourcesByItem.get(itemName) ?? [],
     evolutionChainOf,
   };
