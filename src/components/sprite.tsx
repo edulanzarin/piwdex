@@ -22,12 +22,13 @@ export function Sprite({
   const ref = useRef<HTMLImageElement>(null);
   const [state, setState] = useState<"loading" | "ok" | "error">(src ? "loading" : "error");
 
+  // Reinicia ao trocar o src — sem isto, um src que comeca null (ex.: preview da
+  // calculadora antes de escolher) trava em "error" e a nova imagem nunca renderiza.
   useEffect(() => {
+    if (!src) { setState("error"); return; }
+    setState("loading");
     const img = ref.current;
-    if (!img) return;
-    if (img.complete) {
-      setState(img.naturalWidth > 0 ? "ok" : "error");
-    }
+    if (img && img.complete) setState(img.naturalWidth > 0 ? "ok" : "error");
   }, [src]);
 
   return (

@@ -24,11 +24,11 @@ type NodeData = EvoNode & { stats?: number[] };
 
 // Posicoes dos 5 pontos da estrela (pentagon, ponta pra cima) em %.
 const POS = [
-  { x: 50, y: 15 },
-  { x: 86, y: 44 },
-  { x: 73, y: 85 },
-  { x: 27, y: 85 },
-  { x: 14, y: 44 },
+  { x: 50, y: 12 },
+  { x: 90, y: 42 },
+  { x: 75, y: 88 },
+  { x: 25, y: 88 },
+  { x: 10, y: 42 },
 ];
 const CENTER = { x: 50, y: 52 };
 const NODE_W = 168;
@@ -104,6 +104,7 @@ interface Result {
   ivs: number[];
   ivTotal: number;
   target: number;
+  eeveeStats: number[];
   nodes: NodeData[];
 }
 
@@ -132,12 +133,15 @@ export function EeveeLab({ eevee, evos }: { eevee: { pokeId: number; name: strin
     window.setTimeout(() => {
       const e = estimateIvs(eevee.bases, statVals, lvl, qual);
       const nodes: NodeData[] = evos.map((ev) => ({ ...ev, stats: projectAll(ev.bases, e.ivs, tgt, qual).stats }));
-      setResult({ ivs: e.ivs, ivTotal: e.total, target: tgt, nodes });
+      const eeveeStats = projectAll(eevee.bases, e.ivs, tgt, qual).stats;
+      setResult({ ivs: e.ivs, ivTotal: e.total, target: tgt, eeveeStats, nodes });
       setComputing(false);
     }, 500);
   };
 
   const nodes: NodeData[] = result ? result.nodes : evos;
+  const eStats = result?.eeveeStats;
+  const eMax = eStats ? eStats.indexOf(Math.max(...eStats)) : -1;
   const setStat = (i: number, v: string) => setStats((p) => p.map((s, j) => (j === i ? v : s)));
 
   return (
@@ -203,7 +207,7 @@ export function EeveeLab({ eevee, evos }: { eevee: { pokeId: number; name: strin
         ) : (
           <>
             {/* Desktop: estrela radial */}
-            <div className="relative mx-auto hidden aspect-square w-full max-w-[640px] sm:block">
+            <div className="relative mx-auto hidden aspect-square w-full max-w-[760px] sm:block">
               <svg viewBox="0 0 100 100" className="absolute inset-0 h-full w-full" aria-hidden>
                 {POS.map((p, i) => (
                   <g key={i}>
@@ -214,14 +218,22 @@ export function EeveeLab({ eevee, evos }: { eevee: { pokeId: number; name: strin
                   </g>
                 ))}
               </svg>
-              <Link href={`/dex/${eevee.pokeId}`} className="card card-link absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-2 p-3 text-center" style={{ left: `${CENTER.x}%`, top: `${CENTER.y}%`, width: 150 }}>
-                <Sprite src={spriteUrl(eevee.pokeId)} alt={eevee.name} size={60} />
+              <Link href={`/dex/${eevee.pokeId}`} className="card card-link absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-2 p-3 text-center ring-1 ring-[color:var(--border-strong)]" style={{ left: `${CENTER.x}%`, top: `${CENTER.y}%`, width: NODE_W }}>
+                <Sprite src={spriteUrl(eevee.pokeId)} alt={eevee.name} size={56} />
                 <div>
                   <div className="text-[0.55rem] text-text-dim">#{String(eevee.pokeId).padStart(3, "0")}</div>
                   <div className="text-sm font-semibold leading-tight">{eevee.name}</div>
                 </div>
                 <TypeBadges t1={eevee.t1} t2={eevee.t2} />
-                {result && <span className="text-[0.55rem] uppercase tracking-wide text-cyan">{t("eevee.atLevel", { n: result.target })}</span>}
+                {result && <span className="text-[0.5rem] uppercase tracking-wide text-cyan">{t("eevee.atLevel", { n: result.target })}</span>}
+                <div className="mt-0.5 grid w-full grid-cols-2 gap-x-3 gap-y-0.5 border-t border-border/60 pt-2">
+                  {STAT_LABELS.map((lb, i) => (
+                    <div key={lb} className="flex justify-between text-[0.56rem]">
+                      <span className="text-text-dim">{lb}</span>
+                      <span className={`tabular-nums ${eStats ? (i === eMax ? "font-bold text-green" : "text-text") : "text-text-dim"}`}>{eStats ? eStats[i] : "???"}</span>
+                    </div>
+                  ))}
+                </div>
               </Link>
               {nodes.slice(0, 5).map((evo, i) => (
                 <div key={evo.pokeId} className="absolute -translate-x-1/2 -translate-y-1/2" style={{ left: `${POS[i].x}%`, top: `${POS[i].y}%` }}>
@@ -232,14 +244,21 @@ export function EeveeLab({ eevee, evos }: { eevee: { pokeId: number; name: strin
 
             {/* Mobile: Eevee no topo + grid */}
             <div className="flex flex-col gap-3 sm:hidden">
-              <Link href={`/dex/${eevee.pokeId}`} className="card card-link flex items-center gap-3 p-3">
-                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded bg-[rgba(8,14,28,0.5)]">
-                  <Sprite src={spriteUrl(eevee.pokeId)} alt={eevee.name} size={48} />
+              <Link href={`/dex/${eevee.pokeId}`} className="card card-link col-span-2 flex flex-col items-center gap-2 p-3 text-center ring-1 ring-[color:var(--border-strong)]">
+                <Sprite src={spriteUrl(eevee.pokeId)} alt={eevee.name} size={48} />
+                <div>
+                  <div className="text-[0.55rem] text-text-dim">#{String(eevee.pokeId).padStart(3, "0")}</div>
+                  <div className="text-sm font-semibold leading-tight">{eevee.name}</div>
                 </div>
-                <div className="flex flex-col gap-1">
-                  <span className="text-[0.55rem] text-text-dim">#{String(eevee.pokeId).padStart(3, "0")} · {eevee.name}</span>
-                  <TypeBadges t1={eevee.t1} t2={eevee.t2} />
-                  {result && <span className="text-[0.55rem] uppercase tracking-wide text-cyan">{t("eevee.atLevel", { n: result.target })}</span>}
+                <TypeBadges t1={eevee.t1} t2={eevee.t2} />
+                {result && <span className="text-[0.5rem] uppercase tracking-wide text-cyan">{t("eevee.atLevel", { n: result.target })}</span>}
+                <div className="mt-0.5 grid w-full max-w-[220px] grid-cols-2 gap-x-3 gap-y-0.5 border-t border-border/60 pt-2">
+                  {STAT_LABELS.map((lb, i) => (
+                    <div key={lb} className="flex justify-between text-[0.56rem]">
+                      <span className="text-text-dim">{lb}</span>
+                      <span className={`tabular-nums ${eStats ? (i === eMax ? "font-bold text-green" : "text-text") : "text-text-dim"}`}>{eStats ? eStats[i] : "???"}</span>
+                    </div>
+                  ))}
                 </div>
               </Link>
               <div className="grid grid-cols-2 gap-3">

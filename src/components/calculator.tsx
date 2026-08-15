@@ -1,13 +1,16 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { spriteUrl } from "@/lib/sprites";
-import { TYPE_COLOR } from "@/lib/typing";
 import type { PokeType } from "@/lib/types";
 import { estimateIvs, powerOf, projectAll, STAT_LABELS } from "@/lib/stats";
 import { Sprite } from "./sprite";
+import { TypeBadges } from "./badges";
 import { PokemonCombobox } from "./pokemon-combobox";
 import { useT } from "./locale-provider";
+
+const EEVEE_ID = 133;
 
 export interface CalcCreature {
   pokeId: number;
@@ -64,49 +67,46 @@ export function Calculator({ creatures }: { creatures: CalcCreature[] }) {
     return projectAll(creature.bases, iv.ivs, tgt, qual);
   }, [iv, creature, tgt, qual]);
 
+  const isEevee = creature?.pokeId === EEVEE_ID;
+
   const setStat = (i: number, v: string) =>
     setStats((prev) => prev.map((s, j) => (j === i ? v : s)));
-
-  const fillBase = () => {
-    if (creature) setStats(creature.bases.map(String));
-  };
 
   return (
     <div className="flex flex-col gap-5">
       {/* Selecao + nivel + qualidade */}
       <div className="card p-5">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
-          <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded bg-[rgba(8,14,28,0.6)]">
-            <Sprite src={creature ? spriteUrl(creature.pokeId) : null} alt={creature?.name ?? ""} size={80} />
+          <div className="flex shrink-0 flex-col items-center gap-2">
+            <div className="flex h-24 w-24 items-center justify-center rounded bg-[rgba(8,14,28,0.6)]">
+              <Sprite src={creature ? spriteUrl(creature.pokeId) : null} alt={creature?.name ?? ""} size={80} />
+            </div>
+            {creature && <TypeBadges t1={creature.type1} t2={creature.type2} />}
           </div>
-          <div className="grid flex-1 gap-3 sm:grid-cols-3">
-            <label className="flex flex-col gap-1 sm:col-span-3">
+          <div className="grid flex-1 gap-3 sm:grid-cols-2">
+            <label className="flex flex-col gap-1 sm:col-span-2">
               <span className="text-[0.6rem] uppercase tracking-wide text-text-dim">{t("calc.pokemon")}</span>
               <PokemonCombobox creatures={creatures} value={creature} onSelect={setCreature} />
             </label>
             <Field label={t("calc.level")} value={level} onChange={setLevel} placeholder="ex: 58" />
             <Field label={t("calc.quality")} value={quality} onChange={setQuality} placeholder="ex: 1,8" />
-            {creature && (
-              <div className="flex items-end gap-1.5 sm:col-span-1">
-                {[creature.type1, creature.type2].filter(Boolean).map((t) => (
-                  <span key={t} className="chip" style={{ background: TYPE_COLOR[t as PokeType], color: "#fff" }}>{t}</span>
-                ))}
-              </div>
-            )}
           </div>
         </div>
       </div>
 
+      {isEevee ? (
+        <div className="card flex flex-col items-center gap-3 p-8 text-center">
+          <p className="max-w-sm text-sm text-text-dim">{t("calc.eeveeHint")}</p>
+          <Link href="/eevee" className="btn" style={{ background: "var(--cyan)", color: "#06131a" }}>
+            {t("eevee.open")} ›
+          </Link>
+        </div>
+      ) : (
+      <>{/* resto da calculadora so quando nao for Eevee */}
+
       {/* Stats atuais */}
       <div className="card p-5">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="pixel text-[0.72rem] text-cyan">{t("calc.currentStats")}</h2>
-          {creature && (
-            <button className="btn btn-ghost !py-1.5 !text-[0.55rem]" onClick={fillBase} type="button">
-              {t("calc.useBase")}
-            </button>
-          )}
-        </div>
+        <h2 className="pixel mb-3 text-[0.72rem] text-cyan">{t("calc.currentStats")}</h2>
         <p className="mb-4 text-sm text-text-dim">
           {t("calc.currentHint")}
         </p>
@@ -174,6 +174,8 @@ export function Calculator({ creatures }: { creatures: CalcCreature[] }) {
           </div>
         )}
       </div>
+      </>
+      )}
     </div>
   );
 }
