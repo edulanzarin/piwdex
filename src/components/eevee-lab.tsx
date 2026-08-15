@@ -23,15 +23,16 @@ export interface EvoNode {
 type NodeData = EvoNode & { stats?: number[] };
 
 // Posicoes dos 5 pontos da estrela (pentagon, ponta pra cima) em %.
+// Margem folgada nas bordas pra o hover (glow) nao ultrapassar o container.
 const POS = [
-  { x: 50, y: 12 },
-  { x: 90, y: 42 },
-  { x: 75, y: 88 },
-  { x: 25, y: 88 },
-  { x: 10, y: 42 },
+  { x: 50, y: 17 },
+  { x: 85, y: 44 },
+  { x: 78, y: 83 },
+  { x: 22, y: 83 },
+  { x: 15, y: 44 },
 ];
 const CENTER = { x: 50, y: 52 };
-const NODE_W = 168;
+const NODE_W = 152;
 
 const numF = (s: string) => parseFloat(String(s).replace(",", "."));
 const numI = (s: string) => parseInt(s, 10);
@@ -46,7 +47,7 @@ function chevrons(p: { x: number; y: number }): string[] {
   const px = -uy;
   const py = ux;
   const s = 2.2;
-  return [0.44, 0.54].map((t) => {
+  return [0.34, 0.46].map((t) => {
     const mx = CENTER.x + dx * t;
     const my = CENTER.y + dy * t;
     const a = `${mx - s * ux + s * px},${my - s * uy + s * py}`;
@@ -201,13 +202,13 @@ export function EeveeLab({ eevee, evos }: { eevee: { pokeId: number; name: strin
       </div>
 
       {/* A estrela — sempre visivel (stats como ??? ate calcular) */}
-      <div className="card p-4 sm:p-6">
+      <div className="card p-5 sm:p-10">
         {computing ? (
           <LoadingBall label={t("eevee.calcing")} />
         ) : (
           <>
             {/* Desktop: estrela radial */}
-            <div className="relative mx-auto hidden aspect-square w-full max-w-[760px] sm:block">
+            <div className="relative mx-auto hidden aspect-square w-full max-w-[700px] sm:block">
               <svg viewBox="0 0 100 100" className="absolute inset-0 h-full w-full" aria-hidden>
                 {POS.map((p, i) => (
                   <g key={i}>

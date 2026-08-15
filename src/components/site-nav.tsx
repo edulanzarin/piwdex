@@ -4,17 +4,16 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { Pokeball } from "./pokeball";
-import { PokedexIcon } from "./pokedex-icon";
-import { ItemsIcon, HuntIcon, CalcIcon, EeveeIcon } from "./tool-icons";
+import { NavDex, NavItems, NavHunt, NavCalc, NavLab } from "./nav-icons";
 import { useT } from "./locale-provider";
 import { LangSwitcher } from "./lang-switcher";
 
 const TABS: { key: string; href: string; Icon: (p: { size?: number }) => React.ReactNode }[] = [
-  { key: "nav.dex", href: "/dex", Icon: PokedexIcon },
-  { key: "nav.items", href: "/items", Icon: ItemsIcon },
-  { key: "nav.hunt", href: "/hunt", Icon: HuntIcon },
-  { key: "nav.calc", href: "/calc", Icon: CalcIcon },
-  { key: "nav.eevee", href: "/eevee", Icon: EeveeIcon },
+  { key: "nav.dex", href: "/dex", Icon: NavDex },
+  { key: "nav.items", href: "/items", Icon: NavItems },
+  { key: "nav.hunt", href: "/hunt", Icon: NavHunt },
+  { key: "nav.calc", href: "/calc", Icon: NavCalc },
+  { key: "nav.eevee", href: "/eevee", Icon: NavLab },
 ];
 
 export function SiteNav() {
@@ -45,7 +44,7 @@ export function SiteNav() {
                   href={href}
                   title={t(key)}
                   aria-label={t(key)}
-                  className={`group relative flex h-10 w-10 items-center justify-center rounded transition hover:bg-surface-2 ${active ? "bg-surface-2 ring-1 ring-[color:var(--border-strong)]" : ""}`}
+                  className={`group relative flex h-10 w-10 items-center justify-center rounded transition hover:bg-surface-2 ${active ? "bg-surface-2 text-cyan ring-1 ring-[color:var(--border-strong)]" : "text-text-dim hover:text-text"}`}
                 >
                   <Icon size={22} />
                   <span className="pointer-events-none absolute left-1/2 top-full z-40 mt-1.5 -translate-x-1/2 whitespace-nowrap rounded border border-border bg-[color:var(--surface-solid)] px-2 py-1 text-[0.55rem] uppercase tracking-wide text-text-dim opacity-0 transition group-hover:opacity-100">
