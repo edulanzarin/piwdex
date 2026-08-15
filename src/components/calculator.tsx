@@ -6,6 +6,7 @@ import { TYPE_COLOR } from "@/lib/typing";
 import type { PokeType } from "@/lib/types";
 import { estimateIvs, powerOf, projectAll, STAT_LABELS } from "@/lib/stats";
 import { Sprite } from "./sprite";
+import { PokemonCombobox } from "./pokemon-combobox";
 
 export interface CalcCreature {
   pokeId: number;
@@ -34,16 +35,11 @@ function Field({
 }
 
 export function Calculator({ creatures }: { creatures: CalcCreature[] }) {
-  const [query, setQuery] = useState("");
+  const [creature, setCreature] = useState<CalcCreature | null>(null);
   const [level, setLevel] = useState("");
   const [quality, setQuality] = useState("");
   const [stats, setStats] = useState<string[]>(["", "", "", "", "", ""]);
   const [target, setTarget] = useState("");
-
-  const creature = useMemo(
-    () => creatures.find((c) => c.name.toLowerCase() === query.trim().toLowerCase()) ?? null,
-    [creatures, query],
-  );
 
   const lvl = num(level);
   const qual = num(quality);
@@ -84,16 +80,7 @@ export function Calculator({ creatures }: { creatures: CalcCreature[] }) {
           <div className="grid flex-1 gap-3 sm:grid-cols-3">
             <label className="flex flex-col gap-1 sm:col-span-3">
               <span className="text-[0.6rem] uppercase tracking-wide text-text-dim">Pokemon</span>
-              <input
-                className="input"
-                list="calc-pokes"
-                placeholder="Digite e selecione..."
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-              />
-              <datalist id="calc-pokes">
-                {creatures.map((c) => <option key={c.pokeId} value={c.name} />)}
-              </datalist>
+              <PokemonCombobox creatures={creatures} value={creature} onSelect={setCreature} />
             </label>
             <Field label="Nivel" value={level} onChange={setLevel} placeholder="ex: 58" />
             <Field label="Qualidade" value={quality} onChange={setQuality} placeholder="ex: 1,8" />
