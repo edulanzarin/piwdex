@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { Item } from "@/lib/types";
 import { itemIconUrl } from "@/lib/sprites";
 import { Sprite } from "./sprite";
+import { SelectMenu } from "./select-menu";
 import { Gold } from "./icons";
 import { useT } from "./locale-provider";
 
@@ -36,12 +37,12 @@ export function ItemsBrowser({ items }: { items: Item[] }) {
           value={q}
           onChange={(e) => setQ(e.target.value)}
         />
-        <select className="input sm:max-w-[12rem]" value={cat} onChange={(e) => setCat(e.target.value)}>
-          <option value="">{t("items.allCat")}</option>
-          {categories.map((c) => (
-            <option key={c} value={c}>{c}</option>
-          ))}
-        </select>
+        <SelectMenu
+          value={cat}
+          onChange={setCat}
+          className="sm:max-w-[12rem]"
+          options={[{ value: "", label: t("items.allCat") }, ...categories.map((c) => ({ value: c, label: c }))]}
+        />
       </div>
 
       <div className="text-[0.7rem] text-text-dim uppercase tracking-wide">{t("items.count", { n: filtered.length })}</div>
@@ -62,7 +63,7 @@ export function ItemsBrowser({ items }: { items: Item[] }) {
                   {i.rare ? <> · {t("items.rare")}</> : ""}
                 </div>
                 <div className="mt-0.5 flex items-center gap-1 text-[0.7rem] text-yellow">
-                  <Gold value={i.npcPrice} /> <span className="text-text-dim">{t("items.npc")}</span>
+                  <Gold value={i.npcPrice} />
                 </div>
               </div>
             </Link>

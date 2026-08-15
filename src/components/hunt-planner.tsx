@@ -7,6 +7,7 @@ import type { PokeType } from "@/lib/types";
 import { Sprite } from "./sprite";
 import { TypeBadges } from "./badges";
 import { TypeFilter } from "./type-filter";
+import { SelectMenu } from "./select-menu";
 import { Coin, Gold } from "./icons";
 import { useT } from "./locale-provider";
 
@@ -80,15 +81,15 @@ export function EconomyTable({ rows, areas }: { rows: HuntRow[]; areas: string[]
             onChange={(e) => setQ(e.target.value)}
           />
           <TypeFilter value={type} onChange={setType} />
-          <label className="flex flex-col gap-1">
+          <div className="flex flex-col gap-1">
             <span className="text-[0.55rem] uppercase tracking-wide text-text-dim">{t("hunt.allAreas")}</span>
-            <select className="input cursor-pointer pr-8" value={areaSel} onChange={(e) => setAreaSel(e.target.value)}>
-              <option value="">{t("hunt.allAreas")}</option>
-              {areas.map((a) => (
-                <option key={a} value={a}>{area(a)}</option>
-              ))}
-            </select>
-          </label>
+            <SelectMenu
+              value={areaSel}
+              onChange={setAreaSel}
+              className="sm:max-w-[12rem]"
+              options={[{ value: "", label: t("hunt.allAreas") }, ...areas.map((a) => ({ value: a, label: area(a) }))]}
+            />
+          </div>
           <label className="flex flex-col gap-1">
             <span className="text-[0.55rem] uppercase tracking-wide text-text-dim">{t("hunt.maxLvl")}</span>
             <input
@@ -99,15 +100,20 @@ export function EconomyTable({ rows, areas }: { rows: HuntRow[]; areas: string[]
               onChange={(e) => setMaxLvl(e.target.value)}
             />
           </label>
-          <label className="flex flex-col gap-1">
+          <div className="flex flex-col gap-1">
             <span className="text-[0.55rem] uppercase tracking-wide text-text-dim">{t("hunt.sortBy")}</span>
-            <select className="input cursor-pointer pr-8" value={sort} onChange={(e) => setSort(e.target.value as Sort)}>
-              <option value="gold">{t("hunt.sort.gold")}</option>
-              <option value="xp">{t("hunt.sort.xp")}</option>
-              <option value="lvl">{t("hunt.sort.lvl")}</option>
-              <option value="name">{t("hunt.sort.name")}</option>
-            </select>
-          </label>
+            <SelectMenu
+              value={sort}
+              onChange={(v) => setSort(v as Sort)}
+              className="sm:max-w-[13rem]"
+              options={[
+                { value: "gold", label: t("hunt.sort.gold") },
+                { value: "xp", label: t("hunt.sort.xp") },
+                { value: "lvl", label: t("hunt.sort.lvl") },
+                { value: "name", label: t("hunt.sort.name") },
+              ]}
+            />
+          </div>
         </div>
       </div>
 
