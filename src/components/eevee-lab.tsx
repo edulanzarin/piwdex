@@ -18,22 +18,42 @@ export interface EvoNode {
   stoneIcon: string | null;
 }
 
-interface EvoResult extends EvoNode {
-  power: number;
-  stats: number[];
-}
+type NodeData = EvoNode & { stats?: number[] };
 
 // Posicoes dos 5 pontos da estrela (pentagon, ponta pra cima) em %.
 const POS = [
-  { x: 50, y: 9 },
-  { x: 88, y: 37 },
-  { x: 72, y: 85 },
-  { x: 28, y: 85 },
-  { x: 12, y: 37 },
+  { x: 50, y: 16 },
+  { x: 90, y: 44 },
+  { x: 73, y: 86 },
+  { x: 27, y: 86 },
+  { x: 10, y: 44 },
 ];
+const CENTER = { x: 50, y: 52 };
 
 const numF = (s: string) => parseFloat(String(s).replace(",", "."));
 const numI = (s: string) => parseInt(s, 10);
+
+// Gera 2 chevrons (">>") apontando do centro pra cada ponto, pra dar cara de estrela.
+function chevrons(p: { x: number; y: number }): string[] {
+  const dx = p.x - CENTER.x;
+  const dy = p.y - CENTER.y;
+  const len = Math.hypot(dx, dy) || 1;
+  const ux = dx / len;
+  const uy = dy / len;
+  const px = -uy;
+  const py = ux;
+  const s = 2.2;
+  return [0.44, 0.54].map((t) => {
+    const mx = CENTER.x + dx * t;
+    const my = CENTER.y + dy * t;
+    const tipX = mx + s * ux;
+    const tipY = my + s * uy;
+    const a = `${mx - s * ux + s * px},${my - s * uy + s * py}`;
+    const b = `${tipX},${tipY}`;
+    const c = `${mx - s * ux - s * px},${my - s * uy - s * py}`;
+    return `${a} ${b} ${c}`;
+  });
+}
 
 function StatIn({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
   return (
@@ -44,8 +64,8 @@ function StatIn({ label, value, onChange }: { label: string; value: string; onCh
   );
 }
 
-function EvoNodeCard({ evo, compact }: { evo: EvoResult; compact?: boolean }) {
-  const maxIdx = evo.stats.indexOf(Math.max(...evo.stats));
+function EvoNodeCard({ evo, compact }: { evo: NodeData; compact?: boolean }) {
+  const maxIdx = evo.stats ? evo.stats.indexOf(Math.max(...evo.stats)) : -1;
   return (
     <div className="card flex flex-col items-center gap-1.5 p-3 text-center" style={compact ? undefined : { width: 168 }}>
       <div className="flex h-14 w-14 items-center justify-center rounded bg-[rgba(8,14,28,0.5)]">
@@ -62,15 +82,16 @@ function EvoNodeCard({ evo, compact }: { evo: EvoResult; compact?: boolean }) {
           {evo.stoneName}
         </span>
       )}
-      {/* Stats projetados — o maior (o "forte" da evolucao) fica destacado. */}
-      <div className="mt-1 grid w-full grid-cols-2 gap-x-3 gap-y-0.5">
-        {STAT_LABELS.map((lb, i) => (
-          <div key={lb} className="flex justify-between text-[0.56rem]">
-            <span className="text-text-dim">{lb}</span>
-            <span className={`tabular-nums ${i === maxIdx ? "font-bold text-green" : "text-text"}`}>{evo.stats[i]}</span>
-          </div>
-        ))}
-      </div>
+      {evo.stats && (
+        <div className="mt-1 grid w-full grid-cols-2 gap-x-3 gap-y-0.5">
+          {STAT_LABELS.map((lb, i) => (
+            <div key={lb} className="flex justify-between text-[0.56rem]">
+              <span className="text-text-dim">{lb}</span>
+              <span className={`tabular-nums ${i === maxIdx ? "font-bold text-green" : "text-text"}`}>{evo.stats![i]}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -90,20 +111,67 @@ export function EeveeLab({ eevee, evos }: { eevee: { pokeId: number; name: strin
 
   const iv = useMemo(() => (ready ? estimateIvs(eevee.bases, statVals, lvl, qual) : null), [ready, eevee.bases, statVals, lvl, qual]);
 
-  const results = useMemo<{ arr: EvoResult[] } | null>(() => {
-    if (!iv) return null;
-    const arr = evos.map((e) => {
-      const p = projectAll(e.bases, iv.ivs, tgt, qual);
-      return { ...e, power: p.power, stats: p.stats };
-    });
-    return { arr };
-  }, [iv, evos, tgt, qual]);
+  // A estrela existe SEMPRE; os stats projetados entram nos nos quando ha IV.
+  const nodes = useMemo<NodeData[]>(
+    () => (iv ? evos.map((e) => ({ ...e, stats: projectAll(e.bases, iv.ivs, tgt, qual).stats })) : evos),
+    [iv, evos, tgt, qual],
+  );
 
   const setStat = (i: number, v: string) => setStats((p) => p.map((s, j) => (j === i ? v : s)));
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Entradas */}
+      {/* A estrela — sempre visivel */}
+      <div className="card p-4 sm:p-6">
+        {/* Desktop: estrela radial */}
+        <div className="relative mx-auto hidden aspect-square w-full max-w-[620px] sm:block">
+          <svg viewBox="0 0 100 100" className="absolute inset-0 h-full w-full" aria-hidden>
+            {POS.map((p, i) => (
+              <g key={i}>
+                <line x1={CENTER.x} y1={CENTER.y} x2={p.x} y2={p.y} stroke="var(--border-strong)" strokeWidth={0.35} />
+                {chevrons(p).map((pts, k) => (
+                  <polyline key={k} points={pts} fill="none" stroke="var(--cyan)" strokeWidth={0.7} strokeLinecap="round" strokeLinejoin="round" opacity={0.75} />
+                ))}
+              </g>
+            ))}
+          </svg>
+          {/* Eevee no centro */}
+          <div className="absolute -translate-x-1/2 -translate-y-1/2" style={{ left: `${CENTER.x}%`, top: `${CENTER.y}%` }}>
+            <div className="card flex flex-col items-center gap-1 p-3" style={{ width: 132 }}>
+              <div className="flex h-16 w-16 items-center justify-center rounded bg-[rgba(8,14,28,0.5)]">
+                <Sprite src={spriteUrl(eevee.pokeId)} alt={eevee.name} size={54} />
+              </div>
+              <div className="text-sm text-text">{eevee.name}</div>
+              {iv && <span className="text-[0.55rem] uppercase tracking-wide text-cyan">{t("eevee.atLevel", { n: tgt })}</span>}
+            </div>
+          </div>
+          {nodes.slice(0, 5).map((evo, i) => (
+            <div key={evo.pokeId} className="absolute -translate-x-1/2 -translate-y-1/2" style={{ left: `${POS[i].x}%`, top: `${POS[i].y}%` }}>
+              <EvoNodeCard evo={evo} />
+            </div>
+          ))}
+        </div>
+
+        {/* Mobile: Eevee no topo + grid das evolucoes */}
+        <div className="flex flex-col gap-3 sm:hidden">
+          <div className="card flex items-center gap-3 p-3">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded bg-[rgba(8,14,28,0.5)]">
+              <Sprite src={spriteUrl(eevee.pokeId)} alt={eevee.name} size={48} />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-sm text-text">{eevee.name}</span>
+              {iv && <span className="text-[0.55rem] uppercase tracking-wide text-cyan">{t("eevee.atLevel", { n: tgt })}</span>}
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            {nodes.map((evo) => (
+              <EvoNodeCard key={evo.pokeId} evo={evo} compact />
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Entradas — preenche pra calcular os stats de cada evolucao */}
       <div className="card p-5">
         <div className="grid gap-4 sm:grid-cols-3">
           <label className="flex flex-col gap-1">
@@ -127,7 +195,7 @@ export function EeveeLab({ eevee, evos }: { eevee: { pokeId: number; name: strin
               <StatIn key={lb} label={lb} value={stats[i]} onChange={(v) => setStat(i, v)} />
             ))}
           </div>
-          {iv && (
+          {iv ? (
             <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-1">
               <span className="text-[0.62rem] uppercase tracking-wide text-text-dim">
                 {t("eevee.ivTotal")} <span className="pixel ml-1 text-[0.7rem] text-green">{iv.total.toFixed(1)}</span>
@@ -138,57 +206,12 @@ export function EeveeLab({ eevee, evos }: { eevee: { pokeId: number; name: strin
                 ))}
               </span>
             </div>
+          ) : (
+            <p className="mt-3 text-[0.62rem] text-text-dim">{t("eevee.fill")}</p>
           )}
           <p className="mt-3 text-[0.62rem] leading-relaxed text-text-dim">{t("eevee.ivNote")}</p>
         </div>
       </div>
-
-      {/* Estrela / grid */}
-      {!results ? (
-        <div className="card p-10 text-center text-text-dim">{t("eevee.fill")}</div>
-      ) : (
-        <>
-          {/* Desktop: estrela radial */}
-          <div className="relative mx-auto hidden aspect-square w-full max-w-[600px] sm:block">
-            <svg viewBox="0 0 100 100" className="absolute inset-0 h-full w-full" preserveAspectRatio="none" aria-hidden>
-              {POS.map((p, i) => (
-                <line key={i} x1={50} y1={50} x2={p.x} y2={p.y} stroke="var(--border-strong)" strokeWidth={0.4} />
-              ))}
-            </svg>
-            {/* Eevee no centro */}
-            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-              <div className="card flex flex-col items-center gap-1 p-3" style={{ width: 130 }}>
-                <div className="flex h-16 w-16 items-center justify-center rounded bg-[rgba(8,14,28,0.5)]">
-                  <Sprite src={spriteUrl(eevee.pokeId)} alt={eevee.name} size={54} />
-                </div>
-                <div className="text-sm text-text">{eevee.name}</div>
-                <span className="text-[0.55rem] uppercase tracking-wide text-cyan">{t("eevee.atLevel", { n: tgt })}</span>
-              </div>
-            </div>
-            {results.arr.slice(0, 5).map((evo, i) => (
-              <div key={evo.pokeId} className="absolute -translate-x-1/2 -translate-y-1/2" style={{ left: `${POS[i].x}%`, top: `${POS[i].y}%` }}>
-                <EvoNodeCard evo={evo} />
-              </div>
-            ))}
-          </div>
-
-          {/* Mobile: grid */}
-          <div className="grid grid-cols-2 gap-3 sm:hidden">
-            <div className="card col-span-2 flex items-center gap-3 p-3">
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded bg-[rgba(8,14,28,0.5)]">
-                <Sprite src={spriteUrl(eevee.pokeId)} alt={eevee.name} size={48} />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-sm text-text">{eevee.name}</span>
-                <span className="text-[0.55rem] uppercase tracking-wide text-cyan">{t("eevee.atLevel", { n: tgt })}</span>
-              </div>
-            </div>
-            {results.arr.map((evo) => (
-              <EvoNodeCard key={evo.pokeId} evo={evo} compact />
-            ))}
-          </div>
-        </>
-      )}
     </div>
   );
 }
