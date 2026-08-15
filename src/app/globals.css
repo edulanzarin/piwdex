@@ -338,98 +338,6 @@ img { image-rendering: pixelated; }
     .pkdx-lens { width: 2rem; height: 2rem; }
   }
 
-  /* ---- cobertura de abertura 3D (tela cheia) ---- */
-  .pkdx-cover { position: fixed; inset: 0; z-index: 60; pointer-events: none; }
-  /* palco com perspectiva: as tampas giram em 3d dentro dele */
-  .pkdx-stage {
-    position: absolute; inset: 0;
-    perspective: 1600px;
-    perspective-origin: 50% 50%;
-  }
-  .pkdx-lid {
-    position: absolute; left: 0; right: 0; height: 50%;
-    background: linear-gradient(180deg, #ee5052 0%, #c9333a 60%, #a8272f 100%);
-    backface-visibility: hidden;
-    box-shadow: inset 0 0 80px rgba(0,0,0,0.3);
-    will-change: transform;
-  }
-  /* sombra que escurece a tampa conforme ela vira (da volume 3d) */
-  .pkdx-lid-shade {
-    position: absolute; inset: 0; background: #000; opacity: 0;
-    animation: lidShade 2.3s ease-in forwards;
-  }
-  @keyframes lidShade { 0%, 18% { opacity: 0; } 100% { opacity: 0.72; } }
-
-  /* dobradica nas bordas externas (topo/base da tela): as tampas giram pra tras
-     em 3d e liberam o centro progressivamente. Motion visivel do inicio ao fim. */
-  .pkdx-lid-top {
-    top: 0;
-    transform-origin: top center;
-    border-bottom: 4px solid #7c1c22;
-    animation: lidTop 2.3s cubic-bezier(0.34, 0.06, 0.28, 1) forwards;
-  }
-  .pkdx-lid-bottom {
-    bottom: 0;
-    transform-origin: bottom center;
-    border-top: 4px solid #7c1c22;
-    animation: lidBottom 2.3s cubic-bezier(0.34, 0.06, 0.28, 1) forwards;
-  }
-  @keyframes lidTop { 0%, 12% { transform: rotateX(0deg); } 100% { transform: rotateX(-90deg); } }
-  @keyframes lidBottom { 0%, 12% { transform: rotateX(0deg); } 100% { transform: rotateX(90deg); } }
-
-  /* lente + leds na juncao (quina de baixo da tampa de cima) */
-  .pkdx-cover-chrome {
-    position: absolute; bottom: 0; left: 0; right: 0;
-    display: flex; align-items: center; gap: 1rem;
-    padding: 0 8vw 1.4rem;
-    transform: translateY(50%);
-    z-index: 1;
-  }
-  .pkdx-cover-led {
-    width: 1rem; height: 1rem; border-radius: 50%;
-    box-shadow: 0 0 10px -1px currentColor, inset 0 0 4px rgba(255,255,255,0.6);
-  }
-  /* grelha decorativa na tampa de baixo */
-  .pkdx-lid-grille {
-    position: absolute; top: 1.4rem; left: 8vw; width: 6rem; height: 0.9rem; border-radius: 3px;
-    background: repeating-linear-gradient(90deg, rgba(0,0,0,0.35) 0 3px, transparent 3px 8px);
-  }
-
-  /* device dando "power on": leve zoom + fade quando as tampas comecam a abrir */
-  .pkdx-body-in { animation: bodyIn 2.3s ease-out; }
-  @keyframes bodyIn {
-    0%, 20% { transform: scale(0.96); opacity: 0.3; }
-    70% { transform: scale(1.01); opacity: 1; }
-    100% { transform: scale(1); opacity: 1; }
-  }
-  /* varredura de energizar a telinha */
-  .pkdx-flash {
-    position: absolute; inset: 0; z-index: 3; pointer-events: none;
-    background: linear-gradient(180deg, rgba(55,211,230,0.55), transparent 45%);
-    animation: flash 2.3s ease-out forwards;
-  }
-  @keyframes flash {
-    0%, 82% { opacity: 0; transform: translateY(-100%); }
-    90% { opacity: 1; }
-    100% { opacity: 0; transform: translateY(180%); }
-  }
-
-  .pkdx-lens-xl {
-    width: 5.5rem; height: 5.5rem; border-radius: 50%;
-    background: radial-gradient(circle at 34% 30%, #bff3ff 0%, #63c7f0 22%, #2b8fe0 55%, #12508f 100%);
-    box-shadow: 0 0 0 7px #f4f4f4, 0 0 0 9px rgba(0,0,0,0.4), inset 0 0 16px rgba(255,255,255,0.6);
-    flex-shrink: 0;
-  }
-  .pkdx-boot {
-    position: absolute; inset: 0; z-index: 4;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    background: radial-gradient(closest-side at 50% 50%, rgba(0,0,0,0.55), transparent 46%);
-    text-shadow: 0 2px 4px rgba(0,0,0,0.7);
-    animation: bootFade 2.3s ease forwards;
-  }
-  @keyframes bootFade { 0%, 15% { opacity: 1; } 26%, 100% { opacity: 0; } }
-  @keyframes dots { 0% { content: ""; } 33% { content: "."; } 66% { content: ".."; } 100% { content: "..."; } }
-  .pkdx-dots::after { content: "..."; animation: dots 0.9s steps(1) infinite; }
 
   /* sprite da pokedex flutuando na home */
   @keyframes floaty { 0%, 100% { transform: translateY(0) rotate(-3deg); } 50% { transform: translateY(-8px) rotate(-3deg); } }
@@ -443,6 +351,5 @@ img { image-rendering: pixelated; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .pkdx-float, .bounce-y, .wiggle, .spin, .scanline, .pkdx-dots::after { animation: none; }
-  .pkdx-door-top, .pkdx-door-bottom { animation-duration: 0.01s; }
+  .pkdx-float, .bounce-y, .wiggle, .spin, .scanline { animation: none; }
 }
