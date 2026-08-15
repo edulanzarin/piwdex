@@ -1,0 +1,21 @@
+# deps
+/node_modules
+
+# next
+/.next
+/out
+next-env.d.ts
+
+# builds
+/build
+*.tsbuildinfo
+
+# env
+.env
+.env.local
+
+# snapshots crus por data (o normalizado versionado fica em src/data/piwdex.json)
+/data/raw
+
+# os
+.DS_Store
