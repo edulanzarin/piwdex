@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { spriteUrl } from "@/lib/sprites";
 import type { PokeType } from "@/lib/types";
@@ -8,6 +8,7 @@ import { estimateIvs, powerOf, projectAll, STAT_LABELS } from "@/lib/stats";
 import { Sprite } from "./sprite";
 import { TypeBadges } from "./badges";
 import { StatIcon } from "./stat-icons";
+import { LoadingBall } from "./loaders";
 import { Coin } from "./icons";
 import { PokemonCombobox } from "./pokemon-combobox";
 import { useT } from "./locale-provider";
@@ -87,20 +88,33 @@ export function Calculator({ creatures }: { creatures: CalcCreature[] }) {
   const statsReady = statVals.every((v) => Number.isFinite(v) && v > 0);
   const baseReady = creature && Number.isFinite(lvl) && lvl > 0 && Number.isFinite(qual) && qual > 0;
 
-  // Estima IVs a partir dos stats atuais.
-  const iv = useMemo(() => {
-    if (!baseReady || !statsReady) return null;
-    return estimateIvs(creature!.bases, statVals, lvl, qual);
-  }, [baseReady, statsReady, creature, statVals, lvl, qual]);
+  const canCalc = Boolean(baseReady) && statsReady;
 
-  const currentPower = baseReady && statsReady ? powerOf(statVals, qual) : null;
+  // Resultado (IVs + poder) so aparece ao clicar Calcular.
+  const [computing, setComputing] = useState(false);
+  const [res, setRes] = useState<{ ivs: number[]; total: number; power: number } | null>(null);
+  const statsKey = stats.join(",");
+  useEffect(() => { setRes(null); }, [statsKey, level, quality, creature?.pokeId]);
 
-  // Projecao pro nivel alvo usando os IVs estimados.
+  const calc = () => {
+    if (!canCalc || !creature) return;
+    setComputing(true);
+    window.setTimeout(() => {
+      const e = estimateIvs(creature.bases, statVals, lvl, qual);
+      setRes({ ivs: e.ivs, total: e.total, power: powerOf(statVals, qual) });
+      setComputing(false);
+    }, 400);
+  };
+
+  const iv = res ? { ivs: res.ivs, total: res.total } : null;
+  const currentPower = res?.power ?? null;
+
+  // Projecao pro nivel alvo, reativa a partir dos IVs ja calculados.
   const tgt = num(target);
   const projection = useMemo(() => {
-    if (!iv || !creature || !Number.isFinite(tgt) || tgt <= 0) return null;
-    return projectAll(creature.bases, iv.ivs, tgt, qual);
-  }, [iv, creature, tgt, qual]);
+    if (!res || !creature || !Number.isFinite(tgt) || tgt <= 0) return null;
+    return projectAll(creature.bases, res.ivs, tgt, qual);
+  }, [res, creature, tgt, qual]);
 
   const isEevee = creature?.pokeId === EEVEE_ID;
   const profile = creature ? analyze(creature.bases) : null;
@@ -170,15 +184,27 @@ export function Calculator({ creatures }: { creatures: CalcCreature[] }) {
             <Field key={label} iconIndex={i} label={label} value={stats[i]} onChange={(v) => setStat(i, v)} />
           ))}
         </div>
+        <div className="mt-4 flex flex-col gap-3 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between">
+          <p className="max-w-md text-[0.62rem] leading-relaxed text-text-dim">{t("calc.ivExplain")}</p>
+          <button
+            type="button"
+            onClick={calc}
+            disabled={!canCalc || computing}
+            className="btn shrink-0 self-start disabled:opacity-40 sm:self-auto"
+            style={{ background: "var(--cyan)", color: "#06131a" }}
+          >
+            {computing ? `${t("calc.calcing")}...` : `${t("calc.calcBtn")} ›`}
+          </button>
+        </div>
       </div>
 
       {/* Resultado: IVs estimados */}
       <div className="card p-5">
         <h2 className="pixel text-[0.72rem] text-green">{t("calc.ivEstimated")}</h2>
-        {!baseReady ? (
-          <p className="mt-3 text-sm text-text-dim">{t("calc.pickFirst")}</p>
-        ) : !iv ? (
-          <p className="mt-3 text-sm text-text-dim">{t("calc.fillStats")}</p>
+        {computing ? (
+          <LoadingBall label={t("calc.calcing")} />
+        ) : !res || !iv ? (
+          <p className="mt-3 text-sm text-text-dim">{canCalc ? t("calc.hitCalc") : t("calc.fillStats")}</p>
         ) : (
           <div className="mt-4 flex flex-col gap-4">
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
