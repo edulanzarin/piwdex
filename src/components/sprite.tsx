@@ -37,7 +37,7 @@ export function Sprite({
     >
       {state === "loading" && (
         <span className="skeleton absolute inset-0 flex items-center justify-center rounded">
-          <Pokeball size={Math.min(24, size / 2.4)} className="spin opacity-60" />
+          <Pokeball size={Math.min(26, size / 2.2)} className="wiggle opacity-70" />
         </span>
       )}
       {state === "error" && (

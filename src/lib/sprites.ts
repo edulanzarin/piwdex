@@ -12,6 +12,11 @@ export function spriteUrl(pokeId: number, shiny = false): string | null {
   return `${SPRITE_BASE}/${shiny ? "shiny/" : ""}${pokeId}.png`;
 }
 
+/** Sprite ANIMADO (gif gen5) — existe ate ~id 649. Usado nos loaders. */
+export function animatedSpriteUrl(pokeId: number): string {
+  return `${SPRITE_BASE}/versions/generation-v/black-white/animated/${pokeId}.gif`;
+}
+
 /** Icone do item. Absoluto (/assets/...) usa a raiz do jogo; bare vira /assets/items/. */
 export function itemIconUrl(item: Item): string {
   const icon = item.icon;
