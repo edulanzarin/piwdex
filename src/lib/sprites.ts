@@ -45,10 +45,16 @@ export function animatedSpriteUrl(pokeId: number): string {
   return `${SPRITE_BASE}/versions/generation-v/black-white/animated/${pokeId}.gif`;
 }
 
-/** Icone do item. Absoluto (/assets/...) usa a raiz do jogo; bare vira /assets/items/. */
-export function itemIconUrl(item: Item): string {
-  const icon = item.icon;
+/** Icone de item pelo nome do arquivo. Absoluto (/assets/...) usa a raiz do jogo;
+ *  bare vira /assets/items/. Vale pra itens do catalogo e do inventario/deposito. */
+export function assetIconUrl(icon: string): string {
+  if (!icon) return "";
   if (icon.startsWith("http")) return icon;
   if (icon.startsWith("/")) return `${GAME_HOST}${icon}`;
   return `${GAME_HOST}/assets/items/${icon}`;
+}
+
+/** Icone do item do catalogo. */
+export function itemIconUrl(item: Item): string {
+  return assetIconUrl(item.icon);
 }

@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { spriteUrl } from "@/lib/sprites";
-import type { DexEntry, MarketMon, Profile } from "@/lib/game-account";
+import { spriteUrl, assetIconUrl } from "@/lib/sprites";
+import type { Account, AccountItem, MarketMon } from "@/lib/game-account";
 import { Sprite } from "./sprite";
 import { LoadingBall } from "./loaders";
 import { PokemonCombobox, type ComboCreature } from "./pokemon-combobox";
@@ -12,6 +12,8 @@ import { Coin, Diamond, Star } from "./icons";
 const fmt = (n: number) => n.toLocaleString("pt-BR");
 const numI = (s: string) => { const v = parseInt(s.replace(/\D/g, ""), 10); return Number.isFinite(v) ? v : null; };
 const ivColor = (v: number | null) => (v == null ? "text-text-dim" : v >= 150 ? "text-green" : v >= 100 ? "text-yellow" : "text-text");
+const fmtDate = (s: string) => (s ? new Date(s).toLocaleDateString("pt-BR") : "—");
+const pct = (n: number) => `${n > 0 ? "+" : ""}${+n.toFixed(1)}%`;
 
 const Money = ({ currency, size = 12 }: { currency: string; size?: number }) =>
   currency === "DIAMONDS" ? <span className="text-cyan"><Diamond size={size} /></span> : <Coin size={size} />;
@@ -19,7 +21,7 @@ const Money = ({ currency, size = 12 }: { currency: string; size?: number }) =>
 type State =
   | { status: "loading" }
   | { status: "disconnected" }
-  | { status: "connected"; profile: Profile | null; pokedex: DexEntry[] };
+  | { status: "connected"; account: Account };
 
 function ConnectForm({ onConnected }: { onConnected: () => void }) {
   const t = useT();
@@ -61,32 +63,184 @@ function ConnectForm({ onConnected }: { onConnected: () => void }) {
   );
 }
 
-function ProfileHeader({ profile }: { profile: Profile }) {
-  const t = useT();
-  const box = (label: string, value: React.ReactNode) => (
+// --- blocos text-forward (rótulo escrito, sem ícone em cada coisa) ---
+function Stat({ label, value, color = "text-text" }: { label: string; value: React.ReactNode; color?: string }) {
+  return (
     <div className="rounded border border-border bg-[rgba(8,14,28,0.5)] px-3 py-2">
-      <div className="text-[0.52rem] uppercase tracking-wide text-text-dim">{label}</div>
-      <div className="mt-0.5 inline-flex items-center gap-1 pixel text-[0.72rem]">{value}</div>
+      <div className="text-[0.5rem] uppercase tracking-wide text-text-dim">{label}</div>
+      <div className={`mt-0.5 pixel text-[0.72rem] ${color}`}>{value}</div>
     </div>
   );
+}
+function Row({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between gap-3 border-b border-border/40 py-1.5 last:border-b-0">
+      <span className="text-[0.58rem] uppercase tracking-wide text-text-dim">{label}</span>
+      <span className="text-right text-[0.72rem] text-text">{value}</span>
+    </div>
+  );
+}
+function Section({ title, color, extra, children }: { title: string; color: string; extra?: React.ReactNode; children: React.ReactNode }) {
   return (
     <div className="card p-4">
-      <div className="mb-3 flex items-center gap-2">
-        <span className="pixel text-[0.72rem] text-green">{profile.name}</span>
-        {profile.vip && <span className="chip" style={{ background: "var(--yellow)", color: "#3a2c00" }}>VIP</span>}
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <h3 className={`pixel text-[0.6rem] ${color}`}>{title}</h3>
+        {extra}
       </div>
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-        {box(t("account.profile.level"), <span className="text-cyan">{fmt(profile.level)}</span>)}
-        {box(t("account.profile.gold"), <span className="text-yellow inline-flex items-center gap-1"><Coin />{fmt(profile.gold)}</span>)}
-        {box(t("account.profile.diamonds"), <span className="text-cyan inline-flex items-center gap-1"><Diamond />{fmt(profile.diamonds)}</span>)}
-        {box(t("account.profile.catches"), <span className="text-text">{fmt(profile.catches)}</span>)}
+      {children}
+    </div>
+  );
+}
+const OnOff = ({ on }: { on: boolean }) => {
+  const t = useT();
+  return <span className={on ? "text-green" : "text-text-dim"}>{t(on ? "account.on" : "account.off")}</span>;
+};
+
+function Overview({ account }: { account: Account }) {
+  const t = useT();
+  const p = account.profile;
+  const xpPct = p.xpForNext > 0 ? Math.min(100, (p.xpInLevel / p.xpForNext) * 100) : 0;
+  return (
+    <div className="card p-4">
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <span className="pixel text-[0.8rem] text-green">{p.name}</span>
+        {account.trainer.vip && <span className="chip" style={{ background: "var(--yellow)", color: "#3a2c00" }}>VIP</span>}
+        <span className="text-[0.55rem] uppercase tracking-wide text-text-dim">{t(`account.gender.${account.trainer.gender}`)}</span>
       </div>
-      {profile.pokedexTotal > 0 && (
-        <div className="mt-2 text-[0.62rem] text-text-dim">
-          {t("account.profile.pokedex")} <span className="pixel text-[0.68rem] text-green">{profile.pokedexCount}</span>/{profile.pokedexTotal}
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+        <Stat label={t("account.profile.level")} value={fmt(p.level)} color="text-cyan" />
+        <Stat label={t("account.profile.gold")} value={fmt(p.gold)} color="text-yellow" />
+        <Stat label={t("account.profile.diamonds")} value={fmt(p.diamonds)} color="text-cyan" />
+        <Stat label={t("account.profile.catches")} value={fmt(p.catches)} />
+        <Stat label={t("account.profile.pokedex")} value={<span className="text-green">{p.pokedexCount}<span className="text-text-dim">/{p.pokedexTotal}</span></span>} />
+        <Stat label={t("account.f.rank")} value={p.rank > 0 ? `#${fmt(p.rank)}` : "—"} />
+      </div>
+      {p.xpForNext > 0 && (
+        <div className="mt-3">
+          <div className="mb-1 flex justify-between text-[0.55rem] text-text-dim">
+            <span>XP · {t("account.profile.level")} {p.level}</span>
+            <span className="tabular-nums">{fmt(p.xpInLevel)} / {fmt(p.xpForNext)}</span>
+          </div>
+          <div className="h-2 overflow-hidden rounded bg-[rgba(8,14,28,0.7)]">
+            <div className="h-full rounded bg-[color:var(--green)]" style={{ width: `${xpPct}%` }} />
+          </div>
         </div>
       )}
     </div>
+  );
+}
+
+function TrainerCard({ account }: { account: Account }) {
+  const t = useT();
+  const tr = account.trainer;
+  return (
+    <Section title={t("account.sec.trainer")} color="text-cyan">
+      <div className="grid gap-x-6 sm:grid-cols-2">
+        <Row label={t("account.f.skin")} value={`#${tr.lookType}`} />
+        <Row label={t("account.f.clan")} value={tr.clan ? `${tr.clan} · #${tr.clanRank}` : "—"} />
+        <Row label={t("account.f.profession")} value={tr.profession ? `${tr.profession}${tr.professionRankName ? " · " + tr.professionRankName : ""}` : "—"} />
+        <Row label={t("account.f.catchBonus")} value={<span className="text-green">{pct(tr.catchBonusPct)}</span>} />
+        <Row label={t("account.f.vipUntil")} value={tr.vipUntil ? fmtDate(tr.vipUntil) : "—"} />
+        <Row label={t("account.f.breedingSlots")} value={fmt(tr.breedingSlots)} />
+        <Row label={t("account.f.diamondsBought")} value={fmt(tr.diamondsPurchased)} />
+        <Row label={t("account.f.referral")} value={tr.referralCode ?? "—"} />
+      </div>
+    </Section>
+  );
+}
+
+function AutomationCard({ account, nameById }: { account: Account; nameById: (id: number) => string | undefined }) {
+  const t = useT();
+  const a = account.auto;
+  const ballName = (id: number) => account.balls.find((b) => b.id === id)?.name ?? `#${id}`;
+  return (
+    <Section title={t("account.sec.auto")} color="text-purple">
+      <div className="grid gap-x-6 sm:grid-cols-2">
+        <Row label={t("account.f.autoCatch")} value={<span><OnOff on={a.autoCatch} /> · {ballName(a.autoCatchBallId)}</span>} />
+        <Row label={t("account.f.autoCatchShiny")} value={<span><OnOff on={a.autoCatchShiny} /> · {ballName(a.autoCatchShinyBallId)}</span>} />
+        <Row label={t("account.f.autoPotion")} value={<span><OnOff on={a.autoPotion} /> · {a.autoPotionThreshold}%</span>} />
+        <Row label={t("account.f.autoRevive")} value={<OnOff on={a.autoRevive} />} />
+        <Row label={t("account.f.selectedBall")} value={ballName(a.selectedBallId)} />
+        <Row label={t("account.f.starter")} value={nameById(a.starterId) ?? `#${a.starterId}`} />
+      </div>
+    </Section>
+  );
+}
+
+function StreakCard({ account }: { account: Account }) {
+  const t = useT();
+  const s = account.streak;
+  return (
+    <Section title={t("account.sec.streak")} color="text-yellow">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <Stat label={t("account.f.streakPoints")} value={fmt(s.available)} color="text-yellow" />
+        <Stat label={t("account.f.streakKills")} value={fmt(s.totalKills)} />
+        <Stat label={t("account.f.streakBonus")} value={<span className="text-green">{pct(s.bonusExp + s.bonusLoot + s.bonusShiny)}</span>} />
+        <Stat label="EXP · Loot · Shiny" value={<span className="text-green">{pct(s.bonusExp)} · {pct(s.bonusLoot)} · {pct(s.bonusShiny)}</span>} />
+      </div>
+    </Section>
+  );
+}
+
+function BreedingCard({ account }: { account: Account }) {
+  const t = useT();
+  const b = account.breeding;
+  if (!b.unlocked && b.eggs.length === 0 && b.usedSlots === 0 && b.pheromones === 0) return null;
+  return (
+    <Section title={t("account.sec.breeding")} color="text-pink">
+      <div className="grid grid-cols-3 gap-2">
+        <Stat label={t("account.f.breedSlots")} value={`${b.usedSlots}/${b.maxSlots}`} />
+        <Stat label={t("account.f.pheromones")} value={fmt(b.pheromones)} />
+        <Stat label={t("account.f.eggs")} value={fmt(b.eggs.length)} />
+      </div>
+      {b.eggs.length > 0 && (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {b.eggs.map((e) => (
+            <span key={e.id} className="chip inline-flex items-center gap-1">
+              {e.name}{e.dexId ? ` · #${e.dexId}` : ""}{e.shiny && <span className="text-yellow"><Star size={9} /></span>}{e.ready && <span className="text-green">✓</span>}
+            </span>
+          ))}
+        </div>
+      )}
+    </Section>
+  );
+}
+
+function ItemsCard({ title, color, items }: { title: string; color: string; items: AccountItem[] }) {
+  if (!items.length) return null;
+  return (
+    <Section title={`${title} (${items.length})`} color={color}>
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+        {items.map((it) => (
+          <div key={it.id} className="flex items-center gap-2 rounded border border-border bg-[rgba(8,14,28,0.5)] px-2 py-1.5">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center">
+              <Sprite src={assetIconUrl(it.icon)} alt={it.name} size={26} />
+            </span>
+            <div className="min-w-0 text-[0.6rem] leading-tight">
+              <div className="truncate">{it.name}</div>
+              <div className="tabular-nums text-text-dim">x{fmt(it.quantity)}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </Section>
+  );
+}
+
+function BallsCard({ account }: { account: Account }) {
+  const t = useT();
+  const balls = account.balls.filter((b) => b.count > 0 || b.selected || b.infinite);
+  if (!balls.length) return null;
+  return (
+    <Section title={t("account.sec.balls")} color="text-cyan">
+      <div className="flex flex-wrap gap-2">
+        {balls.map((b) => (
+          <span key={b.id} className={`chip inline-flex items-center gap-1 ${b.selected ? "border border-[color:var(--cyan)] text-cyan" : ""}`}>
+            {b.name} · <span className="tabular-nums">{b.infinite ? "∞" : fmt(b.count)}</span>
+          </span>
+        ))}
+      </div>
+    </Section>
   );
 }
 
@@ -197,42 +351,18 @@ function MarketAdvisor({ creatures }: { creatures: ComboCreature[] }) {
   );
 }
 
-function DexGrid({ pokedex }: { pokedex: DexEntry[] }) {
-  const t = useT();
-  const [open, setOpen] = useState(false);
-  return (
-    <div className="card p-4">
-      <button type="button" onClick={() => setOpen((o) => !o)} className="pixel text-[0.6rem] text-text-dim hover:text-cyan">
-        {t("account.dex.title")} ({pokedex.length}) {open ? "−" : "+"}
-      </button>
-      {open && (
-        <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-6">
-          {pokedex.map((e) => (
-            <div key={e.dexId} className="flex items-center gap-2 rounded border border-border bg-[rgba(8,14,28,0.5)] px-2 py-1.5">
-              <Sprite src={spriteUrl(e.dexId)} alt={e.name} size={30} />
-              <div className="min-w-0 text-[0.58rem] leading-tight">
-                <div className="truncate">{e.name}</div>
-                <div className="text-text-dim">{t("account.dex.tier")} {e.tier} · {e.count}x</div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
 export function AccountPanel({ creatures }: { creatures: ComboCreature[] }) {
   const t = useT();
   const [state, setState] = useState<State>({ status: "loading" });
+  const nameById = (id: number) => creatures.find((c) => c.pokeId === id)?.name;
 
   const load = async () => {
     setState({ status: "loading" });
     try {
       const res = await fetch("/api/collection", { cache: "no-store" });
       if (res.status === 401) return setState({ status: "disconnected" });
-      const j = (await res.json()) as { connected?: boolean; profile?: Profile | null; pokedex?: DexEntry[] };
-      if (j.connected) setState({ status: "connected", profile: j.profile ?? null, pokedex: j.pokedex ?? [] });
+      const j = (await res.json()) as { connected?: boolean; account?: Account };
+      if (j.connected && j.account) setState({ status: "connected", account: j.account });
       else setState({ status: "disconnected" });
     } catch {
       setState({ status: "disconnected" });
@@ -248,15 +378,24 @@ export function AccountPanel({ creatures }: { creatures: ComboCreature[] }) {
   if (state.status === "loading") return <div className="card p-8"><LoadingBall label={t("account.loading")} /></div>;
   if (state.status === "disconnected") return <ConnectForm onConnected={load} />;
 
+  const account = state.account;
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="pixel text-[0.72rem] text-green">{t("account.connected.title")}</h2>
         <button type="button" onClick={disconnect} className="btn btn-ghost">{t("account.disconnect")}</button>
       </div>
-      {state.profile && <ProfileHeader profile={state.profile} />}
+      <Overview account={account} />
+      <TrainerCard account={account} />
+      <AutomationCard account={account} nameById={nameById} />
+      <StreakCard account={account} />
+      <BreedingCard account={account} />
+      <div className="grid gap-5 lg:grid-cols-2">
+        <ItemsCard title={t("account.sec.inventory")} color="text-green" items={account.inventory} />
+        <ItemsCard title={t("account.sec.depot")} color="text-yellow" items={account.depot} />
+      </div>
+      <BallsCard account={account} />
       <MarketAdvisor creatures={creatures} />
-      {state.pokedex.length > 0 && <DexGrid pokedex={state.pokedex} />}
     </div>
   );
 }
