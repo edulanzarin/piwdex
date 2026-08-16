@@ -8,7 +8,6 @@ import { LoadingBall } from "./loaders";
 import type { ComboCreature } from "./pokemon-combobox";
 import { useT } from "./locale-provider";
 import { Star } from "./icons";
-import { BookmarkletDemo } from "./bookmarklet-demo";
 
 const fmt = (n: number) => n.toLocaleString("pt-BR");
 const fmtDate = (s: string) => (s ? new Date(s).toLocaleDateString("pt-BR") : "—");
@@ -55,21 +54,15 @@ function ConnectForm({ expired }: { expired?: boolean }) {
       )}
       <p className="mt-3 text-sm text-text-dim">{t("account.connect.help")}</p>
 
-      <div className="mt-4 grid gap-4 md:grid-cols-2 md:items-start">
-        {/* Passos + botao */}
-        <div className="rounded border border-[color:var(--cyan)]/40 bg-[rgba(57,139,240,0.06)] p-4">
-          <div className="pixel text-[0.6rem] text-cyan">{t("account.bm.title")}</div>
-          <ol className="mt-2 flex flex-col gap-1 text-[0.7rem] leading-relaxed text-text-dim">
-            {["s1", "s2", "s3"].map((s) => (
-              <li key={s} className="flex gap-2"><span className="text-cyan">›</span><span>{t(`account.bm.${s}`)}</span></li>
-            ))}
-          </ol>
-          <div className="mt-3"><Bookmarklet /></div>
-          <p className="mt-2 text-[0.58rem] leading-relaxed text-text-dim">{t("account.bm.note")}</p>
-        </div>
-
-        {/* Demo animado do passo a passo */}
-        <BookmarkletDemo />
+      <div className="mt-4 rounded border border-[color:var(--cyan)]/40 bg-[rgba(57,139,240,0.06)] p-4">
+        <div className="pixel text-[0.6rem] text-cyan">{t("account.bm.title")}</div>
+        <ol className="mt-2 flex flex-col gap-1 text-[0.7rem] leading-relaxed text-text-dim">
+          {["s1", "s2", "s3"].map((s) => (
+            <li key={s} className="flex gap-2"><span className="text-cyan">›</span><span>{t(`account.bm.${s}`)}</span></li>
+          ))}
+        </ol>
+        <div className="mt-3"><Bookmarklet /></div>
+        <p className="mt-2 text-[0.58rem] leading-relaxed text-text-dim">{t("account.bm.note")}</p>
       </div>
     </div>
   );
