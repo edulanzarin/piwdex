@@ -1,15 +1,17 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { getGameLink, saveGameShard } from "@/lib/game-link";
+import { getGameLink, saveGameShard, updateGameTokens } from "@/lib/game-link";
 import { fetchActivePokes } from "@/lib/game-ws";
-import { huntSession } from "@/lib/game-hunt-session";
 import { autoSellSession } from "@/lib/game-auto-sell-session";
+import { huntSession } from "@/lib/game-hunt-session";
+import { parsePokeSellCfg } from "@/lib/poke-sell";
+import type { Tokens } from "@/lib/game-auth";
 
 export const runtime = "nodejs";
 
-// Hunt Analyzer ao vivo: GET le o estado da sessao que o piwdex segura; POST start/stop
-// controla. start SEGURA a sessao WS do jogo (kicka o navegador — single-session) e faz
-// poll do analyzer. Ver src/lib/game-hunt-session.ts.
+// Venda automatica 24/7: GET le o estado do robo; POST start/stop controla. start SEGURA
+// a sessao WS (kicka o navegador — single-session) e vende sozinho a cada ciclo. Ver
+// src/lib/game-auto-sell-session.ts. Mutuamente exclusivo com o Hunt Analyzer.
 
 async function ctx() {
   const s = await auth();
@@ -23,7 +25,7 @@ async function ctx() {
 export async function GET() {
   const c = await ctx();
   if (c.error) return c.error;
-  return NextResponse.json(huntSession.getState());
+  return NextResponse.json(autoSellSession.getState());
 }
 
 export async function POST(req: Request) {
@@ -32,22 +34,28 @@ export async function POST(req: Request) {
   const b = (await req.json().catch(() => ({}))) as Record<string, unknown>;
 
   if (b.action === "stop") {
-    huntSession.stop();
-    return NextResponse.json(huntSession.getState());
+    autoSellSession.stop();
+    return NextResponse.json(autoSellSession.getState());
   }
   if (b.action === "start") {
-    const slug = typeof b.slug === "string" && b.slug.trim() ? b.slug.trim() : null;
-    if (!slug) return NextResponse.json({ error: "no_slug" }, { status: 400 });
-    // garante o shard (cacheado no link; senao descobre e salva)
+    const cfg = parsePokeSellCfg(b.config);
+    // sem raridade marcada => nao venderia nada; recusa pra nao dar falsa sensacao de ligado
+    if (!cfg.sellRarities.length) return NextResponse.json({ error: "empty_config" }, { status: 400 });
+
+    // garante o shard (cacheado; senao descobre e salva)
     let shard = c.shard;
     if (!shard) {
       const r = await fetchActivePokes(c.tokens, null).catch(() => null);
       if (r) { shard = r.shard; if (r.shard !== c.shard) await saveGameShard(c.userId, r.shard); }
     }
     if (!shard) return NextResponse.json({ error: "no_shard" }, { status: 502 });
-    autoSellSession.stop(); // single-session: os dois seguram o WS — Hunt para a venda automatica
-    huntSession.start(c.tokens, shard, slug);
-    return NextResponse.json(huntSession.getState());
+
+    // single-session: o Hunt tambem segura o WS — ligar a venda automatica para o Hunt.
+    huntSession.stop();
+
+    const persist = (t: Tokens) => updateGameTokens(c.userId, t);
+    autoSellSession.start(c.tokens, shard, cfg, persist);
+    return NextResponse.json(autoSellSession.getState());
   }
   return NextResponse.json({ error: "bad_action" }, { status: 400 });
 }

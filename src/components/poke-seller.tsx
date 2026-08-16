@@ -15,7 +15,7 @@
 // desligadas com aviso. O backend (POST /api/vip/shop action sell-pokes) ja vende por
 // pokeId; falta so a fonte da lista.
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ToggleButton } from "./toggle-button";
 import { LoadingBall } from "./loaders";
 import { useT } from "./locale-provider";
@@ -26,6 +26,12 @@ import type { Rarity } from "@/lib/types";
 interface SimPoke { id: string; name: string; level: number; shiny: boolean; ivTotal: number; quality: number; sellValue: number; rarity: Rarity }
 type Sim = { s: "idle" } | { s: "loading" } | { s: "error"; code: string } | { s: "ok"; pokes: SimPoke[]; total: number };
 const fmt = (n: number) => n.toLocaleString("pt-BR");
+
+// estado do robo de venda automatica 24/7 (GET /api/vip/autosell)
+type AutoStatus = "idle" | "connecting" | "running" | "kicked" | "error";
+interface AutoState { status: AutoStatus; since: number | null; lastSweepAt: number | null; lastSold: number; soldTotal: number; goldTotal: number }
+const AUTO_COLOR: Record<AutoStatus, string> = { idle: "var(--text-dim)", connecting: "var(--yellow)", running: "var(--green)", kicked: "var(--yellow)", error: "var(--pink)" };
+const hhmm = (ms: number | null) => (ms ? new Date(ms).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" }) : "—");
 
 export interface PokeSellConfig {
   sellRarities: Rarity[]; // raridades que PODEM ser vendidas (o resto nunca vende)
@@ -122,6 +128,28 @@ export function PokeSeller() {
 
   // hidrata do localStorage so no cliente (evita mismatch de SSR)
   useEffect(() => setCfg(load()), []);
+
+  // robo de venda automatica 24/7: poll do estado a cada 4s
+  const [auto, setAuto] = useState<AutoState | null>(null);
+  const [autoBusy, setAutoBusy] = useState(false);
+  const loadAuto = useCallback(async () => {
+    try {
+      const r = await fetch("/api/vip/autosell", { cache: "no-store" });
+      const j = (await r.json().catch(() => null)) as AutoState | null;
+      if (j && "status" in j) setAuto(j);
+    } catch {}
+  }, []);
+  useEffect(() => { loadAuto(); const id = setInterval(loadAuto, 4000); return () => clearInterval(id); }, [loadAuto]);
+
+  const toggleAuto = async (on: boolean) => {
+    setAutoBusy(true);
+    try {
+      const body = on ? { action: "start", config: cfg } : { action: "stop" };
+      const r = await fetch("/api/vip/autosell", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      const j = (await r.json().catch(() => null)) as AutoState | null;
+      if (j && "status" in j) setAuto(j);
+    } finally { setAutoBusy(false); }
+  };
 
   // puxa a lista viva (WS) e mostra o que bate as travas — nada e vendido ainda
   const simulate = async () => {
@@ -227,6 +255,48 @@ export function PokeSeller() {
           <Slider value={cfg.maxQuality} min={0} max={QUALITY_MAX} step={QUALITY_STEP} decimals={2} onChange={(n) => patch({ maxQuality: n })} />
         </Row>
       </div>
+
+      {/* venda automatica 24/7: o piwdex segura a sessao e vende sozinho pelas travas acima */}
+      {(() => {
+        const status: AutoStatus = auto?.status ?? "idle";
+        const on = status === "running" || status === "connecting";
+        return (
+          <div className="card flex flex-col gap-3 p-5">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="min-w-0">
+                <h3 className="pixel text-[0.6rem] text-yellow">{t("robo.auto.title")}</h3>
+                <p className="mt-1 text-[0.62rem] text-text-dim">{t("robo.auto.desc")}</p>
+              </div>
+              {on ? (
+                <button type="button" onClick={() => toggleAuto(false)} disabled={autoBusy} className="btn btn-ghost">{t("robo.auto.stop")}</button>
+              ) : (
+                <button type="button" onClick={() => toggleAuto(true)} disabled={autoBusy || cfg.sellRarities.length === 0} className="btn btn-cyan disabled:opacity-40">{t("robo.auto.start")} ›</button>
+              )}
+            </div>
+            <div className="flex items-center gap-2 text-[0.72rem] font-semibold">
+              <span className="inline-block h-2 w-2 rounded-full" style={{ background: AUTO_COLOR[status] }} />
+              {t(`robo.auto.status.${status}`)}
+            </div>
+            {auto && (auto.soldTotal > 0 || auto.lastSweepAt) && (
+              <div className="grid grid-cols-3 gap-2">
+                <div className="rounded border border-border p-2.5">
+                  <div className="text-[0.5rem] uppercase tracking-wide text-text-dim">{t("robo.auto.sold")}</div>
+                  <div className="mt-0.5 pixel text-[0.7rem] text-text">{fmt(auto.soldTotal)}</div>
+                </div>
+                <div className="rounded border border-border p-2.5">
+                  <div className="text-[0.5rem] uppercase tracking-wide text-text-dim">{t("robo.auto.gold")}</div>
+                  <div className="mt-0.5 pixel text-[0.7rem] text-yellow">{fmt(auto.goldTotal)}</div>
+                </div>
+                <div className="rounded border border-border p-2.5">
+                  <div className="text-[0.5rem] uppercase tracking-wide text-text-dim">{t("robo.auto.lastSweep")}</div>
+                  <div className="mt-0.5 pixel text-[0.7rem] text-text">{hhmm(auto.lastSweepAt)}</div>
+                </div>
+              </div>
+            )}
+            <p className="text-[0.58rem] leading-relaxed text-text-dim">{t("robo.auto.warn")}</p>
+          </div>
+        );
+      })()}
 
       {/* simulacao + venda: puxa a lista viva do WS, voce confere e confirma */}
       <div className="card flex flex-col gap-3 p-5">

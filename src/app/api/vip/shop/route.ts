@@ -5,21 +5,8 @@ import { fetchShop, fetchInventory, fetchLocks, buyBall, buyItem, sellItems, sel
 import { fetchActivePokes } from "@/lib/game-ws";
 import { normalizeActivePokes } from "@/lib/game-account";
 import { getData } from "@/lib/data";
-import { RARITY_ORDER } from "@/lib/typing";
+import { parsePokeSellCfg, filterSellable } from "@/lib/poke-sell";
 import type { Rarity } from "@/lib/types";
-
-// travas da venda de pokemon vindas do cliente (piw:poke-sell-config:v2), validadas.
-interface PokeSellCfg { sellRarities: Rarity[]; keepShiny: boolean; maxIv: number; maxQuality: number }
-function parseCfg(raw: unknown): PokeSellCfg {
-  const c = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
-  const rar = Array.isArray(c.sellRarities) ? c.sellRarities.filter((r): r is Rarity => RARITY_ORDER.includes(r as Rarity)) : [];
-  return {
-    sellRarities: rar,
-    keepShiny: c.keepShiny !== false, // default protege shiny
-    maxIv: typeof c.maxIv === "number" ? c.maxIv : 0, // default 0 = nao vende nada (seguro)
-    maxQuality: typeof c.maxQuality === "number" ? c.maxQuality : 0,
-  };
-}
 
 export const runtime = "nodejs";
 
@@ -94,17 +81,12 @@ export async function POST(req: Request) {
     w = await sellItems(c.tokens, items);
   } else if (action === "sim-pokes") {
     // Simulacao: puxa a lista viva do WS, aplica as travas e devolve o que SERIA vendido.
-    const cfg = parseCfg(b.config);
+    const cfg = parsePokeSellCfg(b.config);
     const pokes = await livePokes(c);
     if (!pokes) return NextResponse.json({ error: "ws_unreachable" }, { status: 502 });
     const data = await getData();
-    const matches = pokes
-      .filter((p) => !p.team && !p.leader && !p.starter) // nunca o time ativo
-      .filter((p) => !(cfg.keepShiny && p.shiny))
-      .map((p) => ({ ...p, rarity: data.getCreature(p.speciesId)?.rarity ?? ("COMMON" as Rarity) }))
-      .filter((p) => cfg.sellRarities.includes(p.rarity))
-      .filter((p) => p.ivTotal <= cfg.maxIv && p.quality <= cfg.maxQuality)
-      .sort((a, b2) => a.quality - b2.quality || a.ivTotal - b2.ivTotal);
+    const rarityOf = (sid: number): Rarity => data.getCreature(sid)?.rarity ?? "COMMON";
+    const matches = filterSellable(pokes, cfg, rarityOf);
     const gold = matches.reduce((s, p) => s + p.sellValue, 0);
     return NextResponse.json({ pokes: matches, gold, total: pokes.length });
   } else if (action === "sell-pokes") {
