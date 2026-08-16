@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import { getData } from "@/lib/data";
 import { itemIconUrl } from "@/lib/sprites";
-import { projectStat } from "@/lib/stats";
-import { SIM_IV, type EnemyCombat, type Species, type Move } from "@/lib/combat";
+import { enemyCombatStats, type EnemyCombat, type Species, type Move } from "@/lib/combat";
 import { HuntTool } from "@/components/hunt-tool";
 import type { HuntRow } from "@/components/hunt-planner";
 import type { PokeType } from "@/lib/types";
@@ -11,11 +10,6 @@ import { NavHunt } from "@/components/nav-icons";
 import { T } from "@/components/locale-provider";
 
 export const metadata: Metadata = { title: "Hunt Planner" };
-
-// Power (soma dos stats) de um pokemon num nivel — metrica de forca do jogo.
-function powerAt(bases: number[], level: number): number {
-  return bases.reduce((sum, b, i) => sum + projectStat(b, SIM_IV, level, 1, i), 0);
-}
 
 export default async function HuntPage() {
   const db = await getData();
@@ -33,6 +27,8 @@ export default async function HuntPage() {
       type: a.type as PokeType,
       power: a.power,
       learn: a.learnLevel,
+      category: a.category,
+      cooldownMs: a.cooldownMs,
     }));
     species.push({
       pokeId: c.pokeId,
@@ -77,6 +73,7 @@ export default async function HuntPage() {
     });
 
     const hl = Math.max(1, c.huntLevel);
+    const cs = enemyCombatStats(bases, hl);
     enemies.push({
       pokeId: c.pokeId,
       name: c.name,
@@ -87,7 +84,9 @@ export default async function HuntPage() {
       spotCount: locs.length,
       xp: c.experience,
       goldEV,
-      power: powerAt(bases, hl),
+      hp: cs.hp,
+      def: cs.def,
+      spDef: cs.spDef,
     });
   }
 

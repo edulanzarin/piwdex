@@ -12,7 +12,7 @@ import { useT, useTypeLabel } from "./locale-provider";
 import { TYPE_COLOR } from "@/lib/typing";
 import { STAT_LABELS, estimateIvs, powerOf } from "@/lib/stats";
 import { StatIcon } from "./stat-icons";
-import { buildChain, buildRoute, SIM_IV, type Species, type EnemyCombat, type RouteStep, type RouteMode } from "@/lib/combat";
+import { buildRoute, SIM_IV, type Species, type EnemyCombat, type RouteStep, type RouteMode } from "@/lib/combat";
 
 const compact = (n: number): string => {
   if (!Number.isFinite(n)) return "—";
@@ -124,8 +124,7 @@ export function RouteGenerator({ species, enemies }: { species: Species[]; enemi
     setComputing(true);
     // pequeno atraso pra mostrar o loader (o calculo em si e instantaneo).
     window.setTimeout(() => {
-      const chain = buildChain(byId, picked);
-      setResult(buildRoute(chain, lvl, tgt, enemies, qual, ivInfo.ivs, mode));
+      setResult(buildRoute(picked, lvl, tgt, enemies, qual, ivInfo.ivs, mode, vip));
       setComputing(false);
     }, 650);
   };
@@ -221,61 +220,52 @@ export function RouteGenerator({ species, enemies }: { species: Species[]; enemi
         <div className="card p-10 text-center text-text-dim">{t("hunt.route.empty")}</div>
       ) : (
         <div className="flex flex-col gap-3">
-          {result.map((step, i) => {
-            const p = step.pick;
-            const evolved = i > 0 && result[i - 1].stageId !== step.stageId;
-            const xp = p.enemy.xp * (vip ? 1.5 : 1);
+          {result.map((step) => {
+            const e = step.enemy;
+            const est = step.est;
             return (
-              <div key={`${step.from}-${step.stageId}-${p.enemy.pokeId}`} className="card flex flex-col gap-4 p-4 lg:flex-row lg:items-center">
-                <div className="flex items-center gap-3 lg:w-52 lg:shrink-0">
-                  <span className="pixel text-[0.62rem] text-cyan">{t("hunt.route.band", { a: step.from, b: step.to })}</span>
-                  <span className="flex items-center gap-1.5">
-                    <Sprite src={spriteUrl(step.stageId)} alt={step.stageName} size={28} />
-                    <span className="flex flex-col leading-tight">
-                      <span className="text-[0.78rem] text-text">{step.stageName}</span>
-                      {evolved && <span className="text-[0.52rem] uppercase tracking-wide text-green">▲ evo</span>}
-                    </span>
-                  </span>
-                </div>
+              <div key={`${step.from}-${e.pokeId}`} className="card flex flex-col gap-4 p-4 lg:flex-row lg:items-center">
+                <span className="pixel text-[0.62rem] text-cyan lg:w-24 lg:shrink-0">{t("hunt.route.band", { a: step.from, b: step.to })}</span>
 
                 <div className="flex flex-1 items-center gap-3 border-t border-border/50 pt-3 lg:border-l lg:border-t-0 lg:pl-4 lg:pt-0">
                   <span className="text-[0.58rem] uppercase tracking-wide text-text-dim">{t("hunt.route.hunt")}</span>
                   <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded bg-[rgba(8,14,28,0.5)]">
-                    <Sprite src={spriteUrl(p.enemy.pokeId)} alt={p.enemy.name} size={34} />
+                    <Sprite src={spriteUrl(e.pokeId)} alt={e.name} size={34} />
                   </span>
                   <span className="flex flex-col gap-1">
                     <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                      <span className="text-text">{p.enemy.name}</span>
-                      <span className="text-[0.58rem] uppercase tracking-wide text-text-dim">{p.enemy.areas.map(area).join(", ")} · lvl {p.enemy.huntLevel}</span>
+                      <span className="text-text">{e.name}</span>
+                      <span className="text-[0.58rem] uppercase tracking-wide text-text-dim">{e.areas.map(area).join(", ")} · lvl {e.huntLevel}</span>
                     </span>
-                    <TypeBadges t1={p.enemy.t1} t2={p.enemy.t2} />
+                    <TypeBadges t1={e.t1} t2={e.t2} />
                   </span>
                 </div>
 
-                <div className="flex items-center gap-2 lg:w-36 lg:shrink-0" title={t("hunt.effHint")}>
-                  <span className="chip inline-flex items-center gap-1" style={{ background: TYPE_COLOR[p.moveName], color: "#fff" }}>
-                    <TypeIcon type={p.moveName} size={11} /> {typeLabel(p.moveName)}
+                <div className="flex items-center gap-2 lg:w-32 lg:shrink-0" title={t("hunt.effHint")}>
+                  <span className="chip inline-flex items-center gap-1" style={{ background: TYPE_COLOR[est.moveName], color: "#fff" }}>
+                    <TypeIcon type={est.moveName} size={11} /> {typeLabel(est.moveName)}
                   </span>
-                  <span className={`pixel text-[0.7rem] ${p.eff >= 2 ? "text-green" : p.eff > 1 ? "text-cyan" : "text-text-dim"}`}>{effLabel(p.eff)}</span>
+                  <span className={`pixel text-[0.7rem] ${est.eff >= 2 ? "text-green" : est.eff > 1 ? "text-cyan" : "text-text-dim"}`}>{effLabel(est.eff)}</span>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 border-t border-border/50 pt-3 text-right lg:w-40 lg:shrink-0 lg:border-l lg:border-t-0 lg:pl-4 lg:pt-0">
+                <div className="grid grid-cols-3 gap-3 border-t border-border/50 pt-3 text-right lg:w-56 lg:shrink-0 lg:border-l lg:border-t-0 lg:pl-4 lg:pt-0">
                   <div className="flex flex-col items-end gap-0.5">
-                    <span className="inline-flex items-center gap-1 text-[0.5rem] uppercase tracking-wide text-text-dim"><StatIcon index={0} size={9} />{t("hunt.col.xp")}</span>
-                    <span className="tabular-nums text-sm font-bold text-green">{compact(xp)}</span>
+                    <span className="text-[0.5rem] uppercase tracking-wide text-text-dim">{t("hunt.col.kosh")}</span>
+                    <span className="tabular-nums text-sm font-bold text-cyan">{compact(est.kosH)}</span>
                   </div>
                   <div className="flex flex-col items-end gap-0.5">
-                    <span className="text-[0.5rem] uppercase tracking-wide text-text-dim">{t("hunt.col.gold")}</span>
-                    <span className="inline-flex items-center gap-1 tabular-nums text-sm font-bold text-yellow"><Coin />{compact(p.enemy.goldEV)}</span>
+                    <span className="inline-flex items-center gap-1 text-[0.5rem] uppercase tracking-wide text-text-dim"><StatIcon index={0} size={9} />{t("hunt.col.xph")}</span>
+                    <span className="tabular-nums text-sm font-bold text-green">{compact(est.xpH)}</span>
+                  </div>
+                  <div className="flex flex-col items-end gap-0.5">
+                    <span className="text-[0.5rem] uppercase tracking-wide text-text-dim">{t("hunt.col.goldh")}</span>
+                    <span className="inline-flex items-center gap-1 tabular-nums text-sm font-bold text-yellow"><Coin />{compact(est.goldH)}</span>
                   </div>
                 </div>
-
-                <span className={`chip self-start lg:self-center ${p.safe === "safe" ? "text-green" : "text-yellow"}`} style={{ background: "var(--surface-2)" }}>
-                  {t(p.safe === "safe" ? "hunt.route.safe" : "hunt.route.risky")}
-                </span>
               </div>
             );
           })}
+          <p className="mt-1 text-[0.62rem] leading-relaxed text-text-dim">{t("hunt.route.estimate")}</p>
         </div>
       )}
     </div>

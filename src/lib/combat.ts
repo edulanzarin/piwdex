@@ -1,17 +1,31 @@
-// Motor da rota de hunt. Usa SO dados reais do jogo: efetividade de tipo (com a
-// amplificacao de hunt da doc Combat), XP e ouro por kill, e o Power (soma dos stats
-// x qualidade) pra saber o que voce encara. O jogo NAO publica a formula de dano nem
-// a de velocidade de ataque, entao NAO estimamos hits/KOs-h — seria numero inventado
-// (e enganoso: nao bate com o jogo real). A ordenacao usa XP x efetividade, que sao
-// os dois sinais reais de "quanto XP mais rapido".
+// Motor da rota de hunt do Poke Idle World.
+//
+// Fundamentado nos sistemas publicos do jogo (pokepedia/systems):
+//  - Combate na hunt: HP do wild x5, dano x1.8/hit, vantagem elemental +50% (ambos os
+//    lados). A amplificacao elemental esta em amplify().
+//  - Evolucao reseta pro Lv.1 (ou mantem o nivel com Evolution Stones) e NAO re-rola
+//    IV/Quality. Ou seja: o pokemon que voce escolhe E o pokemon — a rota nao "volta"
+//    pra forma anterior. Por isso a rota usa a especie escolhida em todos os niveis.
+//  - Stats: stat = round((base + 2*IV) * nivel/100 * Quality^exp). XP/kill fixo por especie.
+//
+// O jogo NAO publica a formula de dano nem a de captura. Entao KOs/h, XP/h e ouro/h sao
+// ESTIMATIVA: modelamos a velocidade de kill por dano-por-segundo (poder do golpe x razao
+// de stats x STAB x efetividade) contra o HP reforcado, mais um overhead fixo por kill.
+// As constantes (DMG_K, OVERHEAD_S) sao calibradas pra bater a ordem de grandeza do jogo;
+// servem pra COMPARAR hunts, nao como numero exato. A ordenacao e robusta a elas.
 
-import { projectAll } from "./stats";
+import { projectStat } from "./stats";
 import { effectiveness } from "./typing";
-import type { PokeType } from "./types";
+import type { AttackCategory, PokeType } from "./types";
 
 export const SIM_IV = 21;
-const SAFE = 0.85; // enemyPower <= yourPower*SAFE -> seguro (senao arriscado)
-const POWER_CEIL = 1.15; // nunca sugere alvo com Power acima de yourPower*isto
+
+// Reforco de hunt + calibracao do modelo de kill-speed.
+export const WILD_HP_MULT = 5; // HP do wild x5 (doc do jogo)
+const WILD_Q = 1.0; // qualidade base do wild (capturas ~common)
+const WILD_IV = 15;
+const DMG_K = 0.06; // constante de calibracao do dano estimado
+const OVERHEAD_S = 5; // segundos fixos por kill (spawn/aproximacao/animacao), estimativa
 
 /** Amplificacao elemental de hunt: vantagem (m-1)*1.5+1, resistencia m/1.5.
  *  Confere com a doc: x1.5->x1.75, x2->x2.5, x4->x5.5, x0.5->x0.33. */
@@ -28,6 +42,8 @@ export interface Move {
   type: PokeType;
   power: number;
   learn: number;
+  category: AttackCategory;
+  cooldownMs: number;
 }
 
 export interface Species {
@@ -51,128 +67,149 @@ export interface EnemyCombat {
   spotCount: number;
   xp: number;
   goldEV: number;
-  power: number; // Power do alvo no huntLevel
+  hp: number; // HP reforcado no huntLevel (ja x5), baseline de wild
+  def: number; // Def no huntLevel (baseline)
+  spDef: number; // Sp.Def no huntLevel (baseline)
 }
 
-export interface HuntPick {
-  enemy: EnemyCombat;
-  moveName: PokeType; // tipo do golpe principal usado
-  eff: number; // efetividade amplificada (real)
-  safe: "safe" | "risky"; // pela comparacao de Power
+export interface KillEstimate {
+  moveName: PokeType; // tipo do golpe de maior DPS
+  category: AttackCategory;
+  eff: number; // efetividade amplificada desse golpe
+  hits: number; // hits pra derrubar (estimativa)
+  kosH: number; // KOs/h estimado
+  xpH: number; // XP/h estimado (com VIP se ligado)
+  goldH: number; // ouro/h estimado (loot)
 }
 
-/** Golpe do pokemon com maior DANO EFETIVO contra um alvo especifico:
- *  poder * STAB (1.5 se o tipo do golpe e o do pokemon) * efetividade amplificada.
- *  E o que o jogo faz — usa o soco de Luta no Tyranitar (super efetivo), nao um golpe
- *  Normal so por ter nivel de aprendizado maior. Ignora golpes imunes (eff 0). */
-export function bestMoveVs(stage: Species, level: number, e: EnemyCombat): { move: Move; eff: number } | null {
-  let best: { move: Move; eff: number; dmg: number } | null = null;
-  for (const mv of stage.moves) {
-    if (mv.power <= 0 || mv.learn > level) continue;
+// Golpe de maior DANO-POR-SEGUNDO contra o alvo (poder x razao de stats x STAB x eff,
+// dividido pelo cooldown). E o que decide a velocidade de kill.
+function bestMoveDps(species: Species, level: number, ivs: number[], quality: number, e: EnemyCombat) {
+  const atk = projectStat(species.bases[1], ivs[1], level, quality, 1);
+  const spa = projectStat(species.bases[3], ivs[3], level, quality, 3);
+  let best: { mv: Move; eff: number; dmg: number; dps: number } | null = null;
+  for (const mv of species.moves) {
+    if (mv.power <= 0 || mv.learn > level || mv.cooldownMs <= 0) continue;
     const eff = huntEffectiveness(mv.type, e.t1, e.t2);
-    if (eff <= 0) continue; // golpe sem efeito nesse alvo (imune)
-    const stab = mv.type === stage.t1 || mv.type === stage.t2 ? 1.5 : 1;
-    const dmg = mv.power * stab * eff;
-    if (!best || dmg > best.dmg) best = { move: mv, eff, dmg };
+    if (eff <= 0) continue; // imune
+    const stab = mv.type === species.t1 || mv.type === species.t2 ? 1.5 : 1;
+    const off = mv.category === "SPECIAL" ? spa : atk;
+    const def = mv.category === "SPECIAL" ? e.spDef : e.def;
+    const dmg = Math.max(1, DMG_K * mv.power * (off / Math.max(1, def)) * stab * eff);
+    const dps = dmg / (mv.cooldownMs / 1000);
+    if (!best || dps > best.dps) best = { mv, eff, dmg, dps };
   }
-  return best ? { move: best.move, eff: best.eff } : null;
+  return best;
 }
 
-/** Melhor hunt pro nivel: entre TODOS os alvos que voce encara (Power <= o seu * teto),
- *  a de maior XP x efetividade, usando o melhor golpe seu contra cada alvo. Sem janela de
- *  nivel — um alvo de nivel mais baixo em que voce e super efetivo (mata rapido) vale mais
- *  que um da sua faixa em que voce bate 1x. O Power ja limita o que e forte demais.
- *  Empate desempata por OURO x efetividade (prioriza upar, mas entre iguais pega mais $). */
-function pickHunt(stage: Species, level: number, yourPower: number, enemies: EnemyCombat[], mode: "xp" | "gold" = "xp"): HuntPick | null {
-  // Prefere alvos SEGUROS (Power <= o seu * SAFE); so cai pro arriscado (ate o teto) se
-  // nao houver nenhum seguro — assim nao recomenda risco quando ha uma opcao tranquila.
-  for (const cap of [yourPower * SAFE, yourPower * POWER_CEIL]) {
-    let best: { primary: number; secondary: number; pick: HuntPick } | null = null;
-    for (const e of enemies) {
-      if (e.power > cap) continue;
-      const bm = bestMoveVs(stage, level, e);
-      if (!bm) continue;
-      // mode "xp": rankeia por XP (desempata por ouro); "gold": o inverso.
-      const primary = (mode === "gold" ? e.goldEV : e.xp) * bm.eff;
-      const secondary = (mode === "gold" ? e.xp : e.goldEV) * bm.eff;
-      const better = !best || primary > best.primary * 1.0001 || (Math.abs(primary - best.primary) <= best.primary * 1e-4 && secondary > best.secondary);
-      if (better) {
-        best = { primary, secondary, pick: { enemy: e, moveName: bm.move.type, eff: bm.eff, safe: e.power <= yourPower * SAFE ? "safe" : "risky" } };
-      }
-    }
-    if (best) return best.pick;
-  }
-  return null;
+/** Estimativa de rendimento contra um alvo: velocidade de kill -> KOs/h, XP/h, ouro/h. */
+export function killEstimate(
+  species: Species,
+  level: number,
+  ivs: number[],
+  quality: number,
+  e: EnemyCombat,
+  vip: boolean,
+): KillEstimate | null {
+  const bm = bestMoveDps(species, level, ivs, quality, e);
+  if (!bm) return null;
+  const hits = Math.max(1, Math.ceil(e.hp / bm.dmg));
+  const timePerKill = e.hp / bm.dps + OVERHEAD_S;
+  const kosH = 3600 / timePerKill;
+  return {
+    moveName: bm.mv.type,
+    category: bm.mv.category,
+    eff: bm.eff,
+    hits,
+    kosH,
+    xpH: e.xp * kosH * (vip ? 1.5 : 1),
+    goldH: e.goldEV * kosH,
+  };
 }
 
-export function activeStage(chain: Species[], level: number): Species {
-  let cur = chain[0];
-  for (const s of chain) {
-    if (s.evolveLevel == null || s.evolveLevel <= level) cur = s;
-    else break;
-  }
-  return cur;
+/** Stats de combate do wild no huntLevel (baseline de captura). HP ja reforcado (x5). */
+export function enemyCombatStats(bases: number[], huntLevel: number): { hp: number; def: number; spDef: number } {
+  return {
+    hp: projectStat(bases[0], WILD_IV, huntLevel, WILD_Q, 0) * WILD_HP_MULT,
+    def: projectStat(bases[2], WILD_IV, huntLevel, WILD_Q, 2),
+    spDef: projectStat(bases[4], WILD_IV, huntLevel, WILD_Q, 4),
+  };
 }
 
-export function buildChain(byId: Map<number, Species>, picked: Species): Species[] {
-  let base = picked;
-  const guard = new Set<number>();
-  for (;;) {
-    if (guard.has(base.pokeId)) break;
-    guard.add(base.pokeId);
-    let prev: Species | undefined;
-    for (const s of byId.values()) if (s.evolvesToId === base.pokeId) { prev = s; break; }
-    if (!prev) break;
-    base = prev;
+export type RouteMode = "xp" | "gold";
+
+// Alcance de nivel: voce caca em torno do seu nivel (sem limite pra baixo, margem pra
+// cima). Impede rota mandar um lvl 48 pra uma hunt lvl 150, e deixa alvos super-efetivos
+// um pouco acima ao alcance. Acima disso o wild fica tanky demais (kill-speed ja pune).
+export const reachOf = (level: number): number => level + Math.max(8, level * 0.15);
+
+export interface RoutePick {
+  score: number;
+  enemy: EnemyCombat;
+  est: KillEstimate;
+}
+
+function pickHunt(
+  species: Species,
+  level: number,
+  ivs: number[],
+  quality: number,
+  enemies: EnemyCombat[],
+  mode: RouteMode,
+  vip: boolean,
+): RoutePick | null {
+  const reach = reachOf(level);
+  let best: RoutePick | null = null;
+  for (const e of enemies) {
+    if (e.huntLevel > reach) continue;
+    const est = killEstimate(species, level, ivs, quality, e, vip);
+    if (!est) continue;
+    const score = mode === "gold" ? est.goldH : est.xpH;
+    if (!best || score > best.score) best = { score, enemy: e, est };
   }
-  const chain: Species[] = [base];
-  const seen = new Set<number>([base.pokeId]);
-  let cur = base;
-  while (cur.evolvesToId != null) {
-    const next = byId.get(cur.evolvesToId);
-    if (!next || seen.has(next.pokeId)) break;
-    chain.push(next);
-    seen.add(next.pokeId);
-    cur = next;
-  }
-  return chain;
+  return best;
 }
 
 export interface RouteStep {
   from: number;
   to: number;
-  stageId: number;
-  stageName: string;
-  pick: HuntPick;
+  enemy: EnemyCombat;
+  est: KillEstimate;
 }
 
-export type RouteMode = "xp" | "gold";
-
+/** Rota do nivel `start` ao `target` com a especie ESCOLHIDA (sem evoluir/voltar).
+ *  Em cada nivel pega a hunt de maior XP/h (ou ouro/h) dentro do alcance; so troca de
+ *  hunt quando a nova ganha da atual por margem (>8%), pra as faixas ficarem limpas. */
 export function buildRoute(
-  chain: Species[],
+  species: Species,
   start: number,
   target: number,
   enemies: EnemyCombat[],
   quality: number,
   ivs: number[],
   mode: RouteMode = "xp",
+  vip = false,
 ): RouteStep[] {
   const steps: RouteStep[] = [];
   const s = Math.max(1, Math.floor(start));
   const t = Math.max(s + 1, Math.floor(target));
+  const SWITCH_MARGIN = 1.08;
 
   for (let lvl = s; lvl <= t; lvl++) {
-    const stage = activeStage(chain, lvl);
-    const yourPower = projectAll(stage.bases, ivs, lvl, quality).power;
-    const pick = pickHunt(stage, lvl, yourPower, enemies, mode);
-    if (!pick) continue;
-
+    const p = pickHunt(species, lvl, ivs, quality, enemies, mode, vip);
+    if (!p) continue;
     const last = steps[steps.length - 1];
-    if (last && last.stageId === stage.pokeId && last.pick.enemy.pokeId === pick.enemy.pokeId) {
-      last.to = lvl;
-    } else {
-      steps.push({ from: lvl, to: lvl, stageId: stage.pokeId, stageName: stage.name, pick });
+    if (last) {
+      // rendimento do alvo ATUAL neste nivel — so troca se o novo ganha por margem.
+      const curEst = killEstimate(species, lvl, ivs, quality, last.enemy, vip);
+      const curScore = curEst ? (mode === "gold" ? curEst.goldH : curEst.xpH) : 0;
+      if (curEst && p.score <= curScore * SWITCH_MARGIN) {
+        last.to = lvl;
+        last.est = curEst; // atualiza o rendimento pro nivel corrente da faixa
+        continue;
+      }
     }
+    steps.push({ from: lvl, to: lvl, enemy: p.enemy, est: p.est });
   }
   return steps;
 }
