@@ -11,7 +11,6 @@ import type { Currency } from "@/lib/game-account";
 import { Sprite } from "./sprite";
 import { LoadingBall } from "./loaders";
 import { PokemonCombobox, type ComboCreature } from "./pokemon-combobox";
-import { SelectMenu } from "./select-menu";
 import { ToggleButton } from "./toggle-button";
 import { useT } from "./locale-provider";
 import { Star, Coin, Diamond } from "./icons";
@@ -115,49 +114,63 @@ function NewWatch({ creatures, onCreated }: { creatures: ComboCreature[]; onCrea
     }
   };
 
-  const field = "w-full rounded border border-border bg-[rgba(8,14,28,0.6)] px-3 py-2 text-sm text-text placeholder:text-text-dim focus:border-[color:var(--cyan)] focus:outline-none";
-  const lbl = "mb-1 block text-[0.5rem] uppercase tracking-wide text-text-dim";
+  const lblCls = "text-[0.55rem] uppercase tracking-wide text-text-dim";
 
   return (
-    <div className="card p-4">
-      <h3 className="pixel text-[0.6rem] text-cyan">{t("alerts.new.title")}</h3>
-      <p className="mt-2 text-[0.7rem] text-text-dim">{t("alerts.new.help")}</p>
-
-      <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        <div className="sm:col-span-2 lg:col-span-1">
-          <span className={lbl}>{t("alerts.f.species")}</span>
-          <PokemonCombobox value={species} onSelect={setSpecies} creatures={creatures} placeholder={t("alerts.f.anySpecies")} />
+    <div className="flex flex-col gap-4">
+      <div>
+        <h2 className="pixel text-[0.8rem] text-cyan">{t("alerts.new.title")}</h2>
+        <p className="mt-2 max-w-2xl text-sm text-text-dim">{t("alerts.new.help")}</p>
+      </div>
+      <div className="card flex flex-col gap-4 p-5">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <label className="flex flex-col gap-1 sm:col-span-2 lg:col-span-1">
+            <span className={lblCls}>{t("alerts.f.species")}</span>
+            <PokemonCombobox creatures={creatures} value={species} onSelect={setSpecies} placeholder={t("alerts.f.anySpecies")} />
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className={lblCls}>{t("alerts.f.maxGold")}</span>
+            <input className="input" inputMode="numeric" placeholder="—" value={maxGold} onChange={(e) => setMaxGold(e.target.value)} />
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className={lblCls}>{t("alerts.f.maxDia")}</span>
+            <input className="input" inputMode="numeric" placeholder="—" value={maxDia} onChange={(e) => setMaxDia(e.target.value)} />
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className={lblCls}>{t("alerts.f.minQuality")}</span>
+            <select className="input" value={minQ} onChange={(e) => setMinQ(e.target.value)}>
+              {qualityOpts.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className={lblCls}>{t("alerts.f.minIv")}</span>
+            <select className="input" value={minIv} onChange={(e) => setMinIv(e.target.value)}>
+              <option value="">{t("alerts.quality.any")}</option>
+              <option value="100">≥ 100</option>
+              <option value="150">≥ 150</option>
+            </select>
+          </label>
+          <div className="flex flex-col gap-1">
+            <span className={lblCls}>{t("alerts.f.filters")}</span>
+            <div className="flex flex-wrap items-center gap-2">
+              <ToggleButton active={shiny} onClick={() => setShiny((v) => !v)} accent="yellow">
+                <Star size={12} /> {t("alerts.f.shiny")}
+              </ToggleButton>
+              <ToggleButton active={belowFair} onClick={() => setBelowFair((v) => !v)} accent="green">
+                {t("alerts.f.belowFair")}
+              </ToggleButton>
+            </div>
+          </div>
         </div>
-        <div>
-          <span className={lbl}>{t("alerts.f.maxGold")}</span>
-          <input inputMode="numeric" value={maxGold} onChange={(e) => setMaxGold(e.target.value)} placeholder="—" className={field} />
-        </div>
-        <div>
-          <span className={lbl}>{t("alerts.f.maxDia")}</span>
-          <input inputMode="numeric" value={maxDia} onChange={(e) => setMaxDia(e.target.value)} placeholder="—" className={field} />
-        </div>
-        <div>
-          <span className={lbl}>{t("alerts.f.minQuality")}</span>
-          <SelectMenu value={minQ} onChange={setMinQ} options={qualityOpts} />
-        </div>
-        <div>
-          <span className={lbl}>{t("alerts.f.minIv")}</span>
-          <input inputMode="numeric" value={minIv} onChange={(e) => setMinIv(e.target.value)} placeholder="—" className={field} />
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-[0.72rem] font-semibold text-red">{err ?? ""}</span>
+          <button type="button" onClick={submit} disabled={busy} className="btn btn-cyan disabled:opacity-40">
+            {busy ? `${t("alerts.new.saving")}...` : `${t("alerts.new.save")} ›`}
+          </button>
         </div>
       </div>
-
-      <div className="mt-3 flex flex-wrap items-center gap-2">
-        <ToggleButton active={shiny} onClick={() => setShiny((v) => !v)} accent="yellow">
-          <Star size={12} /> {t("alerts.f.shiny")}
-        </ToggleButton>
-        <ToggleButton active={belowFair} onClick={() => setBelowFair((v) => !v)} accent="green">
-          {t("alerts.f.belowFair")}
-        </ToggleButton>
-        <button type="button" onClick={submit} disabled={busy} className="btn btn-cyan ml-auto disabled:opacity-50">
-          {busy ? `${t("alerts.new.saving")}...` : `${t("alerts.new.save")} ›`}
-        </button>
-      </div>
-      {err && <p className="mt-2 text-[0.72rem] font-semibold text-red">{err}</p>}
     </div>
   );
 }
