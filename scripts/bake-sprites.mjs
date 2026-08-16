@@ -69,12 +69,16 @@ async function main() {
   await mkdir(OUT_DIR, { recursive: true });
   console.log("Baixando indice de outfits...");
   const index = await getJson(`${HOST}${PACK_BASE}/outfits-index.json?v=2`);
-  const entries = Object.entries(index.outfits)
-    .map(([id, o]) => ({ looktype: Number(id), o }))
-    .filter(({ o }) => o.kind === "pokemon");
-  console.log(`${entries.length} outfits de pokemon a recortar (concorrencia ${CONCURRENCY})...`);
+  // Recorta os pokemons E as skins de player (trainer/premium/clan/hunt) — a skin do
+  // jogador (characters/me.lookType) e uma dessas. Mesmo recorte (frame frontal).
+  const SKIN_KINDS = new Set(["trainer", "premium", "clan", "hunt"]);
+  const all = Object.entries(index.outfits).map(([id, o]) => ({ looktype: Number(id), o }));
+  const entries = all.filter(({ o }) => o.kind === "pokemon" || SKIN_KINDS.has(o.kind));
+  const nPoke = entries.filter((e) => e.o.kind === "pokemon").length;
+  console.log(`${entries.length} outfits a recortar (${nPoke} pokemon + ${entries.length - nPoke} skins; concorrencia ${CONCURRENCY})...`);
 
   const baked = [];
+  const skins = {}; // looktype -> nome da skin (ex.: "Gamer VIP Outfit")
   const failed = [];
   let done = 0;
   // pool simples de concorrencia
@@ -84,7 +88,8 @@ async function main() {
       const { looktype, o } = entries[cursor++];
       try {
         await bakeOne(looktype, o);
-        baked.push(looktype);
+        if (o.kind === "pokemon") baked.push(looktype);
+        else skins[looktype] = o.name || String(looktype);
       } catch (err) {
         failed.push({ looktype, name: o.name, err: err.message });
       }
@@ -102,11 +107,11 @@ async function main() {
   const generatedAt = new Date().toISOString();
   await writeFile(
     join(ROOT, "src/data/game-sprites.json"),
-    JSON.stringify({ syncedAt: generatedAt, source: `${HOST}${PACK_BASE}`, baked, pokeToLook }, null, 2) + "\n",
+    JSON.stringify({ syncedAt: generatedAt, source: `${HOST}${PACK_BASE}`, baked, skins, pokeToLook }, null, 2) + "\n",
     "utf8",
   );
 
-  console.log(`\nOK: ${baked.length} sprites -> public/game-sprites/ ; mapa -> src/data/game-sprites.json`);
+  console.log(`\nOK: ${baked.length} pokemon + ${Object.keys(skins).length} skins -> public/game-sprites/ ; mapa -> src/data/game-sprites.json`);
   if (failed.length) {
     console.warn(`${failed.length} falharam:`, failed.slice(0, 12).map((f) => `${f.name}#${f.looktype}(${f.err})`).join(", "));
   }

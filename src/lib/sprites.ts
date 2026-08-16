@@ -15,12 +15,24 @@ const SPRITE_BASE =
 
 const POKE_TO_LOOK: Record<string, number> = gameSprites.pokeToLook;
 const BAKED = new Set<number>(gameSprites.baked);
+// Skins de player (trainer/premium/clan): looktype -> nome. Recortadas no mesmo lote.
+const SKIN_NAMES = gameSprites.skins as Record<string, string>;
 
 /** Arte do jogo pro pokemon (self-hostada), ou null se nao houver recorte. */
 export function gameSpriteUrl(pokeId: number): string | null {
   const look = POKE_TO_LOOK[String(pokeId)];
   if (look != null && BAKED.has(look)) return `/game-sprites/${look}.webp`;
   return null;
+}
+
+/** Arte da skin do jogador (self-hostada) pelo lookType, ou null se nao recortada. */
+export function skinSpriteUrl(lookType: number): string | null {
+  return SKIN_NAMES[String(lookType)] ? `/game-sprites/${lookType}.webp` : null;
+}
+
+/** Nome da skin (ex.: "Gamer VIP Outfit"), ou null. */
+export function skinName(lookType: number): string | null {
+  return SKIN_NAMES[String(lookType)] ?? null;
 }
 
 // Variantes (Furious/Brave/Evil/Ancient...) tem pokeId >= 10000 sem sprite propria na

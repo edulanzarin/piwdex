@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { assetIconUrl } from "@/lib/sprites";
+import { assetIconUrl, skinSpriteUrl, skinName } from "@/lib/sprites";
 import type { Account, AccountItem } from "@/lib/game-account";
 import { Sprite } from "./sprite";
 import { LoadingBall } from "./loaders";
@@ -105,32 +105,46 @@ function Overview({ account }: { account: Account }) {
   const t = useT();
   const p = account.profile;
   const xpPct = p.xpForNext > 0 ? Math.min(100, (p.xpInLevel / p.xpForNext) * 100) : 0;
+  const skinUrl = skinSpriteUrl(account.trainer.lookType);
+  const skin = skinName(account.trainer.lookType);
   return (
     <div className="card p-4">
-      <div className="mb-3 flex flex-wrap items-center gap-2">
-        <span className="pixel text-[0.8rem] text-green">{p.name}</span>
-        {account.trainer.vip && <span className="chip" style={{ background: "var(--yellow)", color: "#3a2c00" }}>VIP</span>}
-        <span className="text-[0.55rem] uppercase tracking-wide text-text-dim">{t(`account.gender.${account.trainer.gender}`)}</span>
-      </div>
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
-        <Stat label={t("account.profile.level")} value={fmt(p.level)} color="text-cyan" />
-        <Stat label={t("account.profile.gold")} value={fmt(p.gold)} color="text-yellow" />
-        <Stat label={t("account.profile.diamonds")} value={fmt(p.diamonds)} color="text-cyan" />
-        <Stat label={t("account.profile.catches")} value={fmt(p.catches)} />
-        <Stat label={t("account.profile.pokedex")} value={<span className="text-green">{p.pokedexCount}<span className="text-text-dim">/{p.pokedexTotal}</span></span>} />
-        <Stat label={t("account.f.rank")} value={p.rank > 0 ? `#${fmt(p.rank)}` : "—"} />
-      </div>
-      {p.xpForNext > 0 && (
-        <div className="mt-3">
-          <div className="mb-1 flex justify-between text-[0.55rem] text-text-dim">
-            <span>XP · {t("account.profile.level")} {p.level}</span>
-            <span className="tabular-nums">{fmt(p.xpInLevel)} / {fmt(p.xpForNext)}</span>
+      <div className="flex items-start gap-4">
+        {skinUrl && (
+          <div className="shrink-0 text-center">
+            <div className="flex h-[68px] w-[68px] items-center justify-center rounded-lg border border-[color:var(--cyan)]/40 bg-[rgba(8,14,28,0.6)]">
+              <Sprite src={skinUrl} alt={skin ?? "skin"} size={56} />
+            </div>
+            {skin && <div className="mt-1 w-[68px] text-[0.48rem] leading-tight text-text-dim">{skin}</div>}
           </div>
-          <div className="h-2 overflow-hidden rounded bg-[rgba(8,14,28,0.7)]">
-            <div className="h-full rounded bg-[color:var(--green)]" style={{ width: `${xpPct}%` }} />
+        )}
+        <div className="min-w-0 flex-1">
+          <div className="mb-3 flex flex-wrap items-center gap-2">
+            <span className="pixel text-[0.8rem] text-green">{p.name}</span>
+            {account.trainer.vip && <span className="chip" style={{ background: "var(--yellow)", color: "#3a2c00" }}>VIP</span>}
+            <span className="text-[0.55rem] uppercase tracking-wide text-text-dim">{t(`account.gender.${account.trainer.gender}`)}</span>
           </div>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+            <Stat label={t("account.profile.level")} value={fmt(p.level)} color="text-cyan" />
+            <Stat label={t("account.profile.gold")} value={fmt(p.gold)} color="text-yellow" />
+            <Stat label={t("account.profile.diamonds")} value={fmt(p.diamonds)} color="text-cyan" />
+            <Stat label={t("account.profile.catches")} value={fmt(p.catches)} />
+            <Stat label={t("account.profile.pokedex")} value={<span className="text-green">{p.pokedexCount}<span className="text-text-dim">/{p.pokedexTotal}</span></span>} />
+            <Stat label={t("account.f.rank")} value={p.rank > 0 ? `#${fmt(p.rank)}` : "—"} />
+          </div>
+          {p.xpForNext > 0 && (
+            <div className="mt-3">
+              <div className="mb-1 flex justify-between text-[0.55rem] text-text-dim">
+                <span>XP · {t("account.profile.level")} {p.level}</span>
+                <span className="tabular-nums">{fmt(p.xpInLevel)} / {fmt(p.xpForNext)}</span>
+              </div>
+              <div className="h-2 overflow-hidden rounded bg-[rgba(8,14,28,0.7)]">
+                <div className="h-full rounded bg-[color:var(--green)]" style={{ width: `${xpPct}%` }} />
+              </div>
+            </div>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 }
@@ -141,7 +155,7 @@ function TrainerCard({ account }: { account: Account }) {
   return (
     <Section title={t("account.sec.trainer")} color="text-cyan">
       <div className="grid gap-x-6 sm:grid-cols-2">
-        <Row label={t("account.f.skin")} value={`#${tr.lookType}`} />
+        <Row label={t("account.f.skin")} value={skinName(tr.lookType) ? `${skinName(tr.lookType)} · #${tr.lookType}` : `#${tr.lookType}`} />
         <Row label={t("account.f.clan")} value={tr.clan ? `${tr.clan} · #${tr.clanRank}` : "—"} />
         <Row label={t("account.f.profession")} value={tr.profession ? `${tr.profession}${tr.professionRankName ? " · " + tr.professionRankName : ""}` : "—"} />
         <Row label={t("account.f.catchBonus")} value={<span className="text-green">{pct(tr.catchBonusPct)}</span>} />
