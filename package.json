@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "ingest": "node scripts/ingest.mjs",
+    "bake:sprites": "node scripts/bake-sprites.mjs",
     "dev": "next dev -p ${PORT:-4070}",
     "build": "next build",
     "start": "next start -p ${PORT:-4070}",
