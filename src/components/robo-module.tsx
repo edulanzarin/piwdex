@@ -9,7 +9,7 @@ import { useEffect, useState } from "react";
 import { RoboPanel } from "./robo-panel";
 import { DropSeller } from "./drop-seller";
 import { PokeSeller } from "./poke-seller";
-import { HuntAnalyzer } from "./hunt-analyzer";
+import { HuntAnalyzer, type HuntOption } from "./hunt-analyzer";
 import { useT } from "./locale-provider";
 import { Star } from "./icons";
 
@@ -38,7 +38,7 @@ function AutoBuySoon() {
   );
 }
 
-export function RoboModule() {
+export function RoboModule({ hunts }: { hunts: HuntOption[] }) {
   const t = useT();
   const [sec, setSec] = useState<Section>("automacao");
 
@@ -72,7 +72,7 @@ export function RoboModule() {
       </div>
 
       {sec === "automacao" && <RoboPanel />}
-      {sec === "hunt" && <HuntAnalyzer />}
+      {sec === "hunt" && <HuntAnalyzer hunts={hunts} />}
       {sec === "vender-drops" && <DropSeller />}
       {sec === "vender-pokes" && <PokeSeller />}
       {sec === "auto-compra" && <AutoBuySoon />}

@@ -28,11 +28,31 @@ export default async function VipPage({ searchParams }: { searchParams: Promise<
     );
   }
 
-  // VIP ativo: consultor de mercado (+ robo em breve).
-  const { creatures } = await getData();
+  // VIP ativo: consultor de mercado + conta + robo.
+  const db = await getData();
+  const { creatures, hunts } = db;
   const slim: ComboCreature[] = creatures
     .map((c) => ({ pokeId: c.pokeId, name: c.name, type1: c.type1, type2: c.type2 }))
     .sort((a, b) => a.name.localeCompare(b.name));
+
+  // Catalogo de hunts pro seletor do Robo: o slug alimenta o enter-hunt; o pokemon do
+  // ponto vem do looktype (a criatura de huntLevel mais proximo do nivel da hunt), pro sprite.
+  const byLook = new Map<number, typeof creatures>();
+  for (const c of creatures) {
+    const arr = byLook.get(c.looktype) ?? [];
+    arr.push(c);
+    byLook.set(c.looktype, arr);
+  }
+  const huntOptions = hunts.map((h) => {
+    const cands = byLook.get(h.looktype);
+    let pokeId: number | null = null;
+    if (cands?.length) {
+      let best = cands[0];
+      for (const c of cands) if (Math.abs(c.huntLevel - h.level) < Math.abs(best.huntLevel - h.level)) best = c;
+      pokeId = best.pokeId;
+    }
+    return { slug: h.slug, name: h.name, level: h.level, area: h.area, pokeId };
+  });
 
   // Stats base por especie, pro modal de detalhe de cada anuncio do mercado.
   const dex: Record<number, MarketDex> = {};
@@ -54,7 +74,7 @@ export default async function VipPage({ searchParams }: { searchParams: Promise<
           <p className="mt-3 max-w-2xl text-sm text-text-dim"><T k="vip.active.desc" /></p>
         </div>
 
-        <VipTabs creatures={slim} dex={dex} />
+        <VipTabs creatures={slim} dex={dex} hunts={huntOptions} />
       </div>
     </ToolFrame>
   );

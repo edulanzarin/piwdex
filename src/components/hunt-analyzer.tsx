@@ -4,9 +4,15 @@
 // servidor (POST /api/vip/hunt) e faz poll do estado (GET) a cada 5s enquanto ao vivo.
 // Ver src/lib/game-hunt-session.ts. Single-session: ligar desconecta o jogo no browser.
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useT } from "./locale-provider";
 import { Coin, Star } from "./icons";
+import { Sprite } from "./sprite";
+import { spriteUrl } from "@/lib/sprites";
+
+// Uma hunt do catalogo do jogo: o `slug` e exatamente o que o enter-hunt come; o resto
+// e detalhe pro seletor (nivel, area, sprite do pokemon daquele ponto).
+export interface HuntOption { slug: string; name: string; level: number; area: string; pokeId: number | null }
 
 interface Analyzer {
   kills: number; seconds: number; xpGained: number;
@@ -31,12 +37,27 @@ function Stat({ label, value, accent }: { label: string; value: string; accent?:
   );
 }
 
-export function HuntAnalyzer() {
+export function HuntAnalyzer({ hunts }: { hunts: HuntOption[] }) {
   const t = useT();
   const [st, setSt] = useState<HuntState | null>(null);
   const [slug, setSlug] = useState("");
   const [busy, setBusy] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [q, setQ] = useState("");
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const selected = hunts.find((h) => h.slug === slug) ?? null;
+
+  // hunts filtradas pela busca e agrupadas por area (kanto/outland/orre), ordenadas por nivel.
+  const grouped = useMemo(() => {
+    const needle = q.trim().toLowerCase();
+    const filt = needle ? hunts.filter((h) => h.name.toLowerCase().includes(needle) || h.slug.includes(needle)) : hunts;
+    const byArea = new Map<string, HuntOption[]>();
+    for (const h of filt) { const a = byArea.get(h.area) ?? []; a.push(h); byArea.set(h.area, a); }
+    return [...byArea.entries()]
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([area, list]) => [area, [...list].sort((x, y) => x.level - y.level)] as const);
+  }, [hunts, q]);
 
   const load = useCallback(async () => {
     try {
@@ -82,12 +103,17 @@ export function HuntAnalyzer() {
         </span>
         {!running ? (
           <>
-            <input
-              value={slug}
-              onChange={(e) => setSlug(e.target.value)}
-              placeholder={t("robo.hunt.slugPh")}
-              className="input w-40"
-            />
+            <button type="button" onClick={() => setPickerOpen(true)} className="btn btn-ghost inline-flex items-center gap-2">
+              {selected ? (
+                <>
+                  {selected.pokeId != null && <Sprite src={spriteUrl(selected.pokeId)} alt={selected.name} size={18} />}
+                  <span className="truncate">{selected.name}</span>
+                  <span className="text-text-dim">Lv{selected.level}</span>
+                </>
+              ) : (
+                t("robo.hunt.pick")
+              )}
+            </button>
             <button type="button" onClick={() => slug.trim() && send({ action: "start", slug: slug.trim() })} disabled={busy || !slug.trim()} className="btn btn-cyan disabled:opacity-40">
               {t("robo.hunt.start")} ›
             </button>
@@ -96,6 +122,46 @@ export function HuntAnalyzer() {
           <button type="button" onClick={() => send({ action: "stop" })} disabled={busy} className="btn btn-ghost">{t("robo.hunt.stop")}</button>
         )}
       </div>
+
+      {/* modal de escolha da hunt — busca + agrupado por area, com sprite e nivel */}
+      {pickerOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setPickerOpen(false)}>
+          <div className="card flex max-h-[80vh] w-full max-w-lg flex-col p-4" onClick={(e) => e.stopPropagation()}>
+            <div className="mb-3 flex items-center justify-between">
+              <h3 className="pixel text-[0.7rem] text-cyan">{t("robo.hunt.pickTitle")}</h3>
+              <button type="button" onClick={() => setPickerOpen(false)} className="btn btn-ghost">✕</button>
+            </div>
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("robo.hunt.searchPh")} className="input mb-3" autoFocus />
+            <div className="flex-1 overflow-auto pr-1">
+              {grouped.length === 0 ? (
+                <p className="py-6 text-center text-[0.72rem] text-text-dim">{t("robo.hunt.noHunts")}</p>
+              ) : (
+                grouped.map(([area, list]) => (
+                  <div key={area} className="mb-3">
+                    <div className="mb-1 text-[0.55rem] uppercase tracking-wide text-text-dim">{area}</div>
+                    <div className="grid gap-1 sm:grid-cols-2">
+                      {list.map((h) => (
+                        <button
+                          key={h.slug}
+                          type="button"
+                          onClick={() => { setSlug(h.slug); setPickerOpen(false); setQ(""); }}
+                          className={`flex items-center gap-2 rounded border p-1.5 text-left transition ${h.slug === slug ? "border-cyan bg-[color:var(--cyan)]/10" : "border-border hover:bg-surface-2"}`}
+                        >
+                          <span className="flex h-7 w-7 shrink-0 items-center justify-center">
+                            {h.pokeId != null && <Sprite src={spriteUrl(h.pokeId)} alt={h.name} size={24} />}
+                          </span>
+                          <span className="min-w-0 flex-1 truncate text-[0.72rem]">{h.name}</span>
+                          <span className="shrink-0 text-[0.6rem] text-text-dim">Lv{h.level}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* stats */}
       {a && (
