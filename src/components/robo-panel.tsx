@@ -159,7 +159,7 @@ export function RoboPanel() {
         <p className="mt-2 max-w-2xl text-sm text-text-dim">{t("robo.desc")}</p>
       </div>
 
-      <div className="card flex flex-col p-5">
+      <div className="card z-20 flex flex-col p-5">
         <Row title={t("robo.autoCatch")} desc={a.isVip ? t("robo.autoCatch.desc") : t("robo.vipOnly")}>
           {sw("autoCatch", a.autoCatch, !a.isVip)}
         </Row>
