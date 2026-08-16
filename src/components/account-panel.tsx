@@ -8,6 +8,7 @@ import { LoadingBall } from "./loaders";
 import type { ComboCreature } from "./pokemon-combobox";
 import { useT } from "./locale-provider";
 import { Star } from "./icons";
+import { BookmarkletDemo } from "./bookmarklet-demo";
 
 const fmt = (n: number) => n.toLocaleString("pt-BR");
 const fmtDate = (s: string) => (s ? new Date(s).toLocaleDateString("pt-BR") : "—");
@@ -42,25 +43,8 @@ function Bookmarklet() {
   );
 }
 
-function ConnectForm({ onConnected, expired }: { onConnected: () => void; expired?: boolean }) {
+function ConnectForm({ expired }: { expired?: boolean }) {
   const t = useT();
-  const [raw, setRaw] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
-  const submit = async () => {
-    setBusy(true);
-    setErr(null);
-    try {
-      const res = await fetch("/api/connect", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ raw }) });
-      const j = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string };
-      if (res.ok && j.ok) return onConnected();
-      setErr(t(`account.err.${j.error ?? "unauthorized"}`));
-    } catch {
-      setErr(t("account.err.unreachable"));
-    } finally {
-      setBusy(false);
-    }
-  };
   return (
     <div className="card p-5">
       <h2 className="pixel text-[0.72rem] text-cyan">{t("account.connect.title")}</h2>
@@ -71,34 +55,21 @@ function ConnectForm({ onConnected, expired }: { onConnected: () => void; expire
       )}
       <p className="mt-3 text-sm text-text-dim">{t("account.connect.help")}</p>
 
-      {/* Jeito facil: bookmarklet (1 clique na aba do jogo) */}
-      <div className="mt-4 rounded border border-[color:var(--cyan)]/40 bg-[rgba(57,139,240,0.06)] p-4">
-        <div className="pixel text-[0.6rem] text-cyan">{t("account.bm.title")}</div>
-        <ol className="mt-2 flex flex-col gap-1 text-[0.7rem] leading-relaxed text-text-dim">
-          {["s1", "s2", "s3"].map((s) => (
-            <li key={s} className="flex gap-2"><span className="text-cyan">›</span><span>{t(`account.bm.${s}`)}</span></li>
-          ))}
-        </ol>
-        <div className="mt-3"><Bookmarklet /></div>
-        <p className="mt-2 text-[0.58rem] leading-relaxed text-text-dim">{t("account.bm.note")}</p>
-      </div>
-
-      {/* Fallback: colar manual */}
-      <div className="mt-4 border-t border-border pt-4">
-        <div className="text-[0.58rem] uppercase tracking-wide text-text-dim">{t("account.connect.manual")}</div>
-        <ol className="mt-2 flex flex-col gap-1.5 text-[0.72rem] leading-relaxed text-text-dim">
-          {["step1", "step2", "step3"].map((s) => (
-            <li key={s} className="flex gap-2"><span className="text-cyan">›</span><span>{t(`account.connect.${s}`)}</span></li>
-          ))}
-        </ol>
-        <textarea className="input mt-3 h-20 w-full font-mono text-[0.72rem]" placeholder={t("account.connect.placeholder")} value={raw} onChange={(e) => setRaw(e.target.value)} spellCheck={false} />
-        {err && <p className="mt-2 text-[0.72rem] font-semibold text-red">{err}</p>}
-        <div className="mt-3 flex items-center justify-between gap-3">
-          <p className="text-[0.6rem] leading-relaxed text-text-dim">{t("account.privacy")}</p>
-          <button type="button" onClick={submit} disabled={busy || raw.trim().length < 10} className="btn btn-cyan shrink-0 disabled:opacity-40">
-            {busy ? `${t("account.connect.connecting")}...` : `${t("account.connect.btn")} ›`}
-          </button>
+      <div className="mt-4 grid gap-4 md:grid-cols-2 md:items-start">
+        {/* Passos + botao */}
+        <div className="rounded border border-[color:var(--cyan)]/40 bg-[rgba(57,139,240,0.06)] p-4">
+          <div className="pixel text-[0.6rem] text-cyan">{t("account.bm.title")}</div>
+          <ol className="mt-2 flex flex-col gap-1 text-[0.7rem] leading-relaxed text-text-dim">
+            {["s1", "s2", "s3"].map((s) => (
+              <li key={s} className="flex gap-2"><span className="text-cyan">›</span><span>{t(`account.bm.${s}`)}</span></li>
+            ))}
+          </ol>
+          <div className="mt-3"><Bookmarklet /></div>
+          <p className="mt-2 text-[0.58rem] leading-relaxed text-text-dim">{t("account.bm.note")}</p>
         </div>
+
+        {/* Demo animado do passo a passo */}
+        <BookmarkletDemo />
       </div>
     </div>
   );
@@ -319,7 +290,7 @@ export function AccountPanel({ creatures }: { creatures: ComboCreature[] }) {
   };
 
   if (state.status === "loading") return <div className="card p-8"><LoadingBall label={t("account.loading")} /></div>;
-  if (state.status === "disconnected") return <ConnectForm onConnected={load} expired={state.expired} />;
+  if (state.status === "disconnected") return <ConnectForm expired={state.expired} />;
 
   const account = state.account;
   return (
