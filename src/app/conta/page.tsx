@@ -1,12 +1,19 @@
 import type { Metadata } from "next";
+import { getData } from "@/lib/data";
 import { ToolFrame } from "@/components/tool-frame";
 import { NavAccount } from "@/components/nav-icons";
 import { AccountPanel } from "@/components/account-panel";
+import type { ComboCreature } from "@/components/pokemon-combobox";
 import { T } from "@/components/locale-provider";
 
 export const metadata: Metadata = { title: "Minha conta" };
 
-export default function ContaPage() {
+export default async function ContaPage() {
+  const { creatures } = await getData();
+  const slim: ComboCreature[] = creatures
+    .map((c) => ({ pokeId: c.pokeId, name: c.name, type1: c.type1, type2: c.type2 }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+
   return (
     <ToolFrame accent="#4f8bf0" label="CONTA" icon={<NavAccount size={13} />}>
       <div className="flex flex-col gap-6">
@@ -15,7 +22,7 @@ export default function ContaPage() {
           <h1 className="pixel text-xl" style={{ color: "#4f8bf0" }}><T k="account.title" /></h1>
           <p className="mt-3 max-w-2xl text-sm text-text-dim"><T k="account.desc" /></p>
         </div>
-        <AccountPanel />
+        <AccountPanel creatures={slim} />
       </div>
     </ToolFrame>
   );

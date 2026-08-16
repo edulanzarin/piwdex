@@ -1,47 +1,53 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { decryptSession, encryptSession, gameFetch, SESSION_COOKIE } from "@/lib/game-auth";
-import { getData } from "@/lib/data";
-import { normalizeAccount } from "@/lib/game-account";
+import { decryptSession, encryptSession, gameFetch, SESSION_COOKIE, type Tokens } from "@/lib/game-auth";
+import { normalizePokedex, normalizeProfile } from "@/lib/game-account";
 
 export const runtime = "nodejs";
 
-const clearCookie = (res: NextResponse) =>
-  res.cookies.set(SESSION_COOKIE, "", { httpOnly: true, path: "/", maxAge: 0 });
+const clearCookie = (res: NextResponse) => res.cookies.set(SESSION_COOKIE, "", { httpOnly: true, path: "/", maxAge: 0 });
+const setCookie = (res: NextResponse, tokens: Tokens) =>
+  res.cookies.set(SESSION_COOKIE, encryptSession(tokens), {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 60 * 60 * 24 * 30,
+  });
 
-// Retorna a colecao do jogador (characters/me) normalizada com Power/IV calculados.
-// Inclui o RAW pra a gente finalizar o mapeamento de campos com um token real.
-export async function GET(req: Request) {
+// Perfil (level/gold/diamonds/catches) + pokedex agregado (all-pokes: especie/tier/count).
+export async function GET() {
   const store = await cookies();
-  const tokens = decryptSession(store.get(SESSION_COOKIE)?.value);
-  if (!tokens) return NextResponse.json({ connected: false }, { status: 401 });
+  const initial = decryptSession(store.get(SESSION_COOKIE)?.value);
+  if (!initial) return NextResponse.json({ connected: false }, { status: 401 });
 
-  let result;
+  let tokens: Tokens = initial;
+  let changed = false;
+  const call = async (path: string) => {
+    const r = await gameFetch(path, tokens);
+    if (r.changed) {
+      tokens = r.tokens;
+      changed = true;
+    }
+    return r.res;
+  };
+
+  let profRes: Response, dexRes: Response;
   try {
-    result = await gameFetch("/api/characters/me", tokens);
+    profRes = await call("/api/game/profile");
+    dexRes = await call("/api/game/all-pokes");
   } catch {
     return NextResponse.json({ connected: true, error: "game_unreachable" }, { status: 502 });
   }
-  if (!result.res.ok) {
+  if (profRes.status === 401 || dexRes.status === 401) {
     const res = NextResponse.json({ connected: false, error: "expired" }, { status: 401 });
     clearCookie(res);
     return res;
   }
 
-  const raw = await result.res.json().catch(() => null);
-  const { creatures } = await getData();
-  const mons = normalizeAccount(raw, creatures);
-
-  const wantRaw = new URL(req.url).searchParams.get("raw") === "1";
-  const res = NextResponse.json({ connected: true, mons, raw: wantRaw ? raw : undefined });
-  if (result.changed) {
-    res.cookies.set(SESSION_COOKIE, encryptSession(result.tokens), {
-      httpOnly: true,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
-      path: "/",
-      maxAge: 60 * 60 * 24 * 30,
-    });
-  }
+  const profile = normalizeProfile(await profRes.json().catch(() => null));
+  const pokedex = normalizePokedex(await dexRes.json().catch(() => null));
+  const res = NextResponse.json({ connected: true, profile, pokedex });
+  if (changed) setCookie(res, tokens);
   return res;
 }
