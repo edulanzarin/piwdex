@@ -3,7 +3,8 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { getData } from "@/lib/data";
 import { ToolFrame } from "@/components/tool-frame";
-import { MarketAdvisor, type MarketDex } from "@/components/market-advisor";
+import { type MarketDex } from "@/components/market-advisor";
+import { VipTabs } from "@/components/vip-tabs";
 import { VipPaywall } from "@/components/vip-paywall";
 import type { ComboCreature } from "@/components/pokemon-combobox";
 import { Star } from "@/components/icons";
@@ -53,12 +54,7 @@ export default async function VipPage({ searchParams }: { searchParams: Promise<
           <p className="mt-3 max-w-2xl text-sm text-text-dim"><T k="vip.active.desc" /></p>
         </div>
 
-        <MarketAdvisor creatures={slim} dex={dex} />
-
-        <div className="card p-5">
-          <h2 className="pixel text-[0.72rem]" style={{ color: ACCENT }}><T k="vip.robot.title" /></h2>
-          <p className="mt-3 text-sm text-text-dim"><T k="vip.robot.soon" /></p>
-        </div>
+        <VipTabs creatures={slim} dex={dex} />
       </div>
     </ToolFrame>
   );
