@@ -14,10 +14,12 @@ const fmtDate = (s: string) => (s ? new Date(s).toLocaleDateString("pt-BR") : "�
 const pct = (n: number) => `${n > 0 ? "+" : ""}${+n.toFixed(1)}%`;
 const ivColor = (v: number) => (v >= 150 ? "text-green" : v >= 100 ? "text-yellow" : "text-text");
 
+interface TeamSnapshot { list: ActivePoke[]; total: number; at: string }
+
 type State =
   | { status: "loading" }
   | { status: "disconnected"; expired?: boolean }
-  | { status: "connected"; account: Account };
+  | { status: "connected"; account: Account; team: TeamSnapshot | null };
 
 // Bookmarklet: le sessionStorage["pokeweb:tokens"] na aba do jogo e abre /conectar com o
 // token no hash. Gerado com a origem atual (dev/prod). href setado via ref pra o React nao
@@ -303,31 +305,44 @@ function TeamMon({ p }: { p: ActivePoke }) {
   );
 }
 
-// Time ativo (WebSocket): OPT-IN. Ler o time exige conectar no WS do jogo, que E a
-// sessao de jogo — se o jogo estiver aberto em outra aba, o jogo desconecta ela ("conta
-// em uso"). Por isso NAO busca sozinho: o usuario clica ciente disso (idealmente com o
-// jogo fechado; como e idle, o normal e a aba estar fechada e nao chutar ninguem).
+// Time ativo: mostra o SNAPSHOT capturado no connect (sem tocar o jogo). "Atualizar"
+// repuxa ao vivo pelo WS — isso toma a sessao de jogo (pode cair a aba do jogo se
+// estiver aberta), por isso e explicito. hint curto, sem alarme.
+const hhmm = (iso: string) => {
+  if (!iso) return "";
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? "" : d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+};
+
 type TeamState =
   | { status: "idle" }
   | { status: "loading" }
   | { status: "error" }
-  | { status: "ok"; team: ActivePoke[]; total: number };
+  | { status: "ok"; team: ActivePoke[]; total: number; at: string };
 
-function ActiveTeamCard() {
+function ActiveTeamCard({ initial }: { initial: TeamSnapshot | null }) {
   const t = useT();
-  const [state, setState] = useState<TeamState>({ status: "idle" });
+  const [state, setState] = useState<TeamState>(
+    initial ? { status: "ok", team: initial.list, total: initial.total, at: initial.at } : { status: "idle" },
+  );
 
   const load = async () => {
     setState({ status: "loading" });
     try {
       const res = await fetch("/api/active-pokes", { cache: "no-store" });
       if (!res.ok) return setState({ status: "error" });
-      const j = (await res.json()) as { team?: ActivePoke[]; total?: number };
-      setState({ status: "ok", team: j.team ?? [], total: j.total ?? 0 });
+      const j = (await res.json()) as { team?: ActivePoke[]; total?: number; at?: string };
+      setState({ status: "ok", team: j.team ?? [], total: j.total ?? 0, at: j.at ?? "" });
     } catch {
       setState({ status: "error" });
     }
   };
+
+  const reload = (
+    <button type="button" onClick={load} className="btn btn-ghost" disabled={state.status === "loading"}>
+      {t("account.team.reload")}
+    </button>
+  );
 
   return (
     <Section
@@ -336,32 +351,39 @@ function ActiveTeamCard() {
       extra={
         state.status === "ok" ? (
           <div className="flex items-center gap-3">
-            <span className="text-[0.55rem] text-text-dim">{t("account.team.total").replace("{n}", fmt(state.total))}</span>
-            <button type="button" onClick={load} className="btn btn-ghost">{t("account.team.reload")}</button>
+            <span className="text-[0.55rem] text-text-dim">
+              {t("account.team.total").replace("{n}", fmt(state.total))}
+              {hhmm(state.at) && ` · ${hhmm(state.at)}`}
+            </span>
+            {reload}
           </div>
         ) : null
       }
     >
       {state.status === "idle" ? (
-        <div className="flex flex-col items-start gap-3">
-          <p className="rounded border border-[color:var(--yellow)]/40 bg-[rgba(240,200,60,0.06)] px-3 py-2 text-[0.68rem] leading-relaxed text-text-dim">
-            {t("account.team.warn")}
-          </p>
+        <div className="flex flex-wrap items-center gap-3">
           <button type="button" onClick={load} className="btn btn-cyan">{t("account.team.load")} ›</button>
+          <span className="text-[0.6rem] text-text-dim">{t("account.team.hint")}</span>
         </div>
       ) : state.status === "loading" ? (
         <div className="py-3"><LoadingBall label={t("account.team.loading")} /></div>
       ) : state.status === "error" ? (
-        <div className="flex flex-col items-start gap-2">
-          <p className="text-[0.72rem] text-text-dim">{t("account.team.error")}</p>
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="text-[0.72rem] text-text-dim">{t("account.team.error")}</span>
           <button type="button" onClick={load} className="btn btn-ghost">{t("account.team.load")}</button>
         </div>
       ) : state.team.length === 0 ? (
-        <p className="text-[0.72rem] text-text-dim">{t("account.team.empty")}</p>
-      ) : (
-        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-          {state.team.map((p) => <TeamMon key={p.id} p={p} />)}
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="text-[0.72rem] text-text-dim">{t("account.team.empty")}</span>
+          {reload}
         </div>
+      ) : (
+        <>
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {state.team.map((p) => <TeamMon key={p.id} p={p} />)}
+          </div>
+          <p className="mt-2 text-[0.55rem] text-text-dim">{t("account.team.hint")}</p>
+        </>
       )}
     </Section>
   );
@@ -377,8 +399,8 @@ export function AccountPanel({ creatures }: { creatures: ComboCreature[] }) {
     try {
       const res = await fetch("/api/collection", { cache: "no-store" });
       if (res.status === 401) return setState({ status: "disconnected" });
-      const j = (await res.json()) as { connected?: boolean; account?: Account; reason?: string };
-      if (j.connected && j.account) setState({ status: "connected", account: j.account });
+      const j = (await res.json()) as { connected?: boolean; account?: Account; reason?: string; team?: TeamSnapshot | null };
+      if (j.connected && j.account) setState({ status: "connected", account: j.account, team: j.team ?? null });
       else setState({ status: "disconnected", expired: j.reason === "expired" });
     } catch {
       setState({ status: "disconnected" });
@@ -402,7 +424,7 @@ export function AccountPanel({ creatures }: { creatures: ComboCreature[] }) {
         <button type="button" onClick={disconnect} className="btn btn-ghost">{t("account.disconnect")}</button>
       </div>
       <Overview account={account} />
-      <ActiveTeamCard />
+      <ActiveTeamCard initial={state.team} />
       <TrainerCard account={account} />
       <AutomationCard account={account} nameById={nameById} />
       <StreakCard account={account} />

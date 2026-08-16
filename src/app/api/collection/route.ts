@@ -74,5 +74,5 @@ export async function GET() {
   });
 
   if (changed) await updateGameTokens(userId, tokens);
-  return NextResponse.json({ connected: true, account });
+  return NextResponse.json({ connected: true, account, team: link.team });
 }

@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { gameFetch, parseTokens } from "@/lib/game-auth";
-import { saveGameLink } from "@/lib/game-link";
+import { saveGameLink, saveGameShard, saveTeamSnapshot } from "@/lib/game-link";
+import { fetchActivePokes } from "@/lib/game-ws";
+import { normalizeActivePokes } from "@/lib/game-account";
 
 export const runtime = "nodejs";
 
@@ -37,5 +39,19 @@ export async function POST(req: Request) {
   const playerName = data?.character?.name ?? data?.name ?? null;
 
   await saveGameLink(session.user.id, result.tokens, { playerName });
+
+  // Ja que conectar toma a sessao de jogo de qualquer jeito, aproveita pra puxar o
+  // time (WS) AGORA e guardar o snapshot — a Conta mostra sem reconectar depois. Nao
+  // bloqueia o connect: se o WS falhar, conecta mesmo assim (Conta oferece "carregar").
+  try {
+    const pokes = await fetchActivePokes(result.tokens, null);
+    if (pokes) {
+      const all = normalizeActivePokes(pokes.pokes);
+      const team = all.filter((p) => p.team).sort((a, b) => a.slot - b.slot);
+      await saveGameShard(session.user.id, pokes.shard);
+      await saveTeamSnapshot(session.user.id, team, all.length);
+    }
+  } catch { /* time fica pra um "atualizar" na Conta */ }
+
   return NextResponse.json({ ok: true });
 }

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { getGameLink, saveGameShard } from "@/lib/game-link";
+import { getGameLink, saveGameShard, saveTeamSnapshot } from "@/lib/game-link";
 import { fetchActivePokes } from "@/lib/game-ws";
 import { normalizeActivePokes } from "@/lib/game-account";
 
@@ -30,5 +30,6 @@ export async function GET() {
 
   const all = normalizeActivePokes(result.pokes);
   const team = all.filter((p) => p.team).sort((a, b) => a.slot - b.slot);
-  return NextResponse.json({ team, total: all.length });
+  await saveTeamSnapshot(userId, team, all.length); // atualiza o snapshot mostrado na Conta
+  return NextResponse.json({ team, total: all.length, at: new Date().toISOString() });
 }

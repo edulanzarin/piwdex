@@ -1,9 +1,16 @@
 import { queryOne, query } from "@/lib/db";
 import { encryptStr, decryptStr, type Tokens } from "@/lib/game-auth";
+import type { ActivePoke } from "@/lib/game-account";
 
 // Vinculo da conta do jogo por usuario do piwdex (tabela game_links). Substitui o
 // cookie de sessao: os tokens do jogo ficam no banco, cifrados, presos ao usuario
 // logado. status 'expired' = o refresh falhou, precisa reconectar.
+
+export interface TeamSnapshot {
+  list: ActivePoke[];
+  total: number;
+  at: string; // ISO
+}
 
 export interface GameLink {
   tokens: Tokens;
@@ -11,6 +18,7 @@ export interface GameLink {
   playerName: string | null;
   status: "active" | "expired";
   shard: number | null;
+  team: TeamSnapshot | null;
 }
 
 interface GameLinkRow {
@@ -20,11 +28,15 @@ interface GameLinkRow {
   player_name: string | null;
   status: string;
   shard: number | null;
+  team_snapshot: ActivePoke[] | null;
+  team_total: number | null;
+  team_at: string | null;
 }
 
 export async function getGameLink(userId: string): Promise<GameLink | null> {
   const row = await queryOne<GameLinkRow>(
-    `SELECT access_token, refresh_token, cmid, player_name, status, shard
+    `SELECT access_token, refresh_token, cmid, player_name, status, shard,
+            team_snapshot, team_total, team_at
        FROM game_links WHERE user_id = $1`,
     [userId],
   );
@@ -38,12 +50,23 @@ export async function getGameLink(userId: string): Promise<GameLink | null> {
     playerName: row.player_name,
     status: row.status === "expired" ? "expired" : "active",
     shard: row.shard,
+    team: row.team_snapshot
+      ? { list: row.team_snapshot, total: row.team_total ?? row.team_snapshot.length, at: row.team_at ?? "" }
+      : null,
   };
 }
 
 // Cacheia o shard do WebSocket descoberto (evita varrer todos os shards de novo).
 export async function saveGameShard(userId: string, shard: number): Promise<void> {
   await query(`UPDATE game_links SET shard = $2 WHERE user_id = $1`, [userId, shard]);
+}
+
+// Guarda o snapshot do time (capturado no connect ou num "atualizar"), com a hora.
+export async function saveTeamSnapshot(userId: string, team: ActivePoke[], total: number): Promise<void> {
+  await query(
+    `UPDATE game_links SET team_snapshot = $2, team_total = $3, team_at = now() WHERE user_id = $1`,
+    [userId, JSON.stringify(team), total],
+  );
 }
 
 // Cria/atualiza o vinculo (ao conectar). Zera o status pra 'active'.
