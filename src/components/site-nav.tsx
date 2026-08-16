@@ -80,19 +80,19 @@ export function SiteNav({ user }: { user: NavUser | null }) {
           <span className="hidden h-5 w-px bg-border sm:block" />
 
           {/* VIP + login/logout (desktop) — icones no mesmo padrao da nav */}
-          <div className="hidden items-center gap-1 sm:flex">
+          <div className="hidden items-center gap-2 sm:flex">
             <Link
               href="/vip"
               title="VIP"
               aria-label="VIP"
-              className={`${ICON_BTN} text-yellow ${user?.vip ? "bg-surface-2 ring-1 ring-[color:var(--yellow)]/45" : "hover:bg-[rgba(240,200,60,0.12)]"}`}
+              className={`${ICON_BTN} ${user?.vip ? "text-text" : "text-text-dim hover:text-text"}`}
             >
-              <NavVip size={22} />
+              <NavVip size={22} filled={user?.vip} />
               <Tip>VIP{user?.vip ? " · ativo" : ""}</Tip>
             </Link>
             {user ? (
               <>
-                <span className="max-w-[8rem] truncate pixel text-[0.58rem] text-text">{user.name ?? "conta"}</span>
+                <span className="ml-1 max-w-[8rem] truncate pixel text-[0.58rem] text-text">{user.name ?? "conta"}</span>
                 <form action={logout} className="flex">
                   <button
                     type="submit"
@@ -154,7 +154,7 @@ export function SiteNav({ user }: { user: NavUser | null }) {
               className="flex items-center gap-3 border-b border-border/40 py-3 pixel text-[0.7rem] text-yellow"
               onClick={() => setOpen(false)}
             >
-              <NavVip size={20} />
+              <NavVip size={20} filled={user?.vip} />
               VIP {user?.vip && <span className="text-[0.55rem] text-text-dim">ativo</span>}
             </Link>
 

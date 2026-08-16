@@ -84,10 +84,13 @@ export const NavLab = ({ size }: { size?: number }) => (
   </Base>
 );
 
-// Estrela (VIP).
-export const NavVip = ({ size }: { size?: number }) => (
+// Estrela (VIP). `filled` pinta o miolo (VIP ativo); sem ele fica so o contorno (apagada).
+export const NavVip = ({ size, filled }: { size?: number; filled?: boolean }) => (
   <Base size={size}>
-    <path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.8-5.2 2.8 1-5.8L3.5 9.7l5.9-.9L12 3.5Z" />
+    <path
+      d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.8-5.2 2.8 1-5.8L3.5 9.7l5.9-.9L12 3.5Z"
+      fill={filled ? "currentColor" : "none"}
+    />
   </Base>
 );
 
