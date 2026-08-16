@@ -1,8 +1,25 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { getGameLink, updateGameTokens } from "@/lib/game-link";
+import { getGameLink, updateGameTokens, saveGameShard } from "@/lib/game-link";
 import { fetchShop, fetchInventory, fetchLocks, buyBall, buyItem, sellItems, sellPokes, type WriteResult } from "@/lib/game-shop";
+import { fetchActivePokes } from "@/lib/game-ws";
+import { normalizeActivePokes } from "@/lib/game-account";
 import { getData } from "@/lib/data";
+import { RARITY_ORDER } from "@/lib/typing";
+import type { Rarity } from "@/lib/types";
+
+// travas da venda de pokemon vindas do cliente (piw:poke-sell-config:v2), validadas.
+interface PokeSellCfg { sellRarities: Rarity[]; keepShiny: boolean; maxIv: number; maxQuality: number }
+function parseCfg(raw: unknown): PokeSellCfg {
+  const c = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+  const rar = Array.isArray(c.sellRarities) ? c.sellRarities.filter((r): r is Rarity => RARITY_ORDER.includes(r as Rarity)) : [];
+  return {
+    sellRarities: rar,
+    keepShiny: c.keepShiny !== false, // default protege shiny
+    maxIv: typeof c.maxIv === "number" ? c.maxIv : 0, // default 0 = nao vende nada (seguro)
+    maxQuality: typeof c.maxQuality === "number" ? c.maxQuality : 0,
+  };
+}
 
 export const runtime = "nodejs";
 
@@ -16,7 +33,15 @@ async function ctx() {
   if (!s.user.vip) return { error: NextResponse.json({ error: "vip_only" }, { status: 403 }) };
   const link = await getGameLink(s.user.id);
   if (!link || link.status === "expired") return { error: NextResponse.json({ error: "not_connected" }, { status: 409 }) };
-  return { userId: s.user.id, tokens: link.tokens };
+  return { userId: s.user.id, tokens: link.tokens, shard: link.shard };
+}
+
+// Lista viva dos pokemon individuais (via WS, shard cacheado). null se o WS falhar.
+async function livePokes(c: { userId: string; tokens: import("@/lib/game-auth").Tokens; shard: number | null }) {
+  const r = await fetchActivePokes(c.tokens, c.shard);
+  if (!r) return null;
+  if (r.shard !== c.shard) await saveGameShard(c.userId, r.shard);
+  return normalizeActivePokes(r.pokes);
 }
 
 const isPosInt = (v: unknown): v is number => typeof v === "number" && Number.isInteger(v) && v > 0;
@@ -67,10 +92,32 @@ export async function POST(req: Request) {
       .filter((i) => isPosInt(i.itemId) && isPosInt(i.qty)) as { itemId: number; qty: number }[];
     if (!items.length) return NextResponse.json({ error: "empty" }, { status: 400 });
     w = await sellItems(c.tokens, items);
+  } else if (action === "sim-pokes") {
+    // Simulacao: puxa a lista viva do WS, aplica as travas e devolve o que SERIA vendido.
+    const cfg = parseCfg(b.config);
+    const pokes = await livePokes(c);
+    if (!pokes) return NextResponse.json({ error: "ws_unreachable" }, { status: 502 });
+    const data = await getData();
+    const matches = pokes
+      .filter((p) => !p.team && !p.leader && !p.starter) // nunca o time ativo
+      .filter((p) => !(cfg.keepShiny && p.shiny))
+      .map((p) => ({ ...p, rarity: data.getCreature(p.speciesId)?.rarity ?? ("COMMON" as Rarity) }))
+      .filter((p) => cfg.sellRarities.includes(p.rarity))
+      .filter((p) => p.ivTotal <= cfg.maxIv && p.quality <= cfg.maxQuality)
+      .sort((a, b2) => a.quality - b2.quality || a.ivTotal - b2.ivTotal);
+    const gold = matches.reduce((s, p) => s + p.sellValue, 0);
+    return NextResponse.json({ pokes: matches, gold, total: pokes.length });
   } else if (action === "sell-pokes") {
     const ids = Array.isArray(b.pokeIds) ? b.pokeIds.filter((x) => typeof x === "string" && x.length > 0) : [];
     if (!ids.length) return NextResponse.json({ error: "empty" }, { status: 400 });
-    w = await sellPokes(c.tokens, ids as string[]);
+    // Guarda-costas server-side: re-le a lista viva e RECUSA vender time/lider/starter,
+    // mesmo que o cliente mande esses ids. Venda de pokemon e irreversivel.
+    const pokes = await livePokes(c);
+    if (!pokes) return NextResponse.json({ error: "ws_unreachable" }, { status: 502 });
+    const guarded = new Set(pokes.filter((p) => p.team || p.leader || p.starter).map((p) => p.id));
+    const safe = (ids as string[]).filter((id) => !guarded.has(id));
+    if (!safe.length) return NextResponse.json({ error: "all_protected" }, { status: 400 });
+    w = await sellPokes(c.tokens, safe);
   } else {
     return NextResponse.json({ error: "bad_action" }, { status: 400 });
   }

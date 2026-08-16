@@ -15,12 +15,17 @@
 // desligadas com aviso. O backend (POST /api/vip/shop action sell-pokes) ja vende por
 // pokeId; falta so a fonte da lista.
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ToggleButton } from "./toggle-button";
+import { LoadingBall } from "./loaders";
 import { useT } from "./locale-provider";
 import { Coin, Star } from "./icons";
 import { RARITY_COLOR, RARITY_ORDER } from "@/lib/typing";
 import type { Rarity } from "@/lib/types";
+
+interface SimPoke { id: string; name: string; level: number; shiny: boolean; ivTotal: number; quality: number; sellValue: number; rarity: Rarity }
+type Sim = { s: "idle" } | { s: "loading" } | { s: "error"; code: string } | { s: "ok"; pokes: SimPoke[]; total: number };
+const fmt = (n: number) => n.toLocaleString("pt-BR");
 
 export interface PokeSellConfig {
   sellRarities: Rarity[]; // raridades que PODEM ser vendidas (o resto nunca vende)
@@ -115,9 +120,68 @@ export function PokeSeller() {
   const t = useT();
   const [cfg, setCfg] = useState<PokeSellConfig>(DEFAULTS);
   const [saved, setSaved] = useState(false);
+  const [sim, setSim] = useState<Sim>({ s: "idle" });
+  const [sel, setSel] = useState<Set<string>>(new Set());
+  const [selling, setSelling] = useState(false);
+  const [flash, setFlash] = useState<string | null>(null);
 
   // hidrata do localStorage so no cliente (evita mismatch de SSR)
   useEffect(() => setCfg(load()), []);
+
+  // puxa a lista viva (WS) e mostra o que bate as travas — nada e vendido ainda
+  const simulate = async () => {
+    setSim({ s: "loading" });
+    setFlash(null);
+    try {
+      const res = await fetch("/api/vip/shop", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "sim-pokes", config: cfg }),
+      });
+      const j = (await res.json().catch(() => ({}))) as { pokes?: SimPoke[]; total?: number; error?: string };
+      if (res.ok) {
+        const pokes = j.pokes ?? [];
+        setSim({ s: "ok", pokes, total: j.total ?? pokes.length });
+        setSel(new Set(pokes.map((p) => p.id)));
+      } else {
+        setSim({ s: "error", code: j.error ?? "failed" });
+      }
+    } catch {
+      setSim({ s: "error", code: "failed" });
+    }
+  };
+
+  const toggleSel = (id: string) => setSel((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
+
+  const { count, gold } = useMemo(() => {
+    let count = 0, gold = 0;
+    if (sim.s === "ok") for (const p of sim.pokes) if (sel.has(p.id)) { count++; gold += p.sellValue; }
+    return { count, gold };
+  }, [sim, sel]);
+
+  const sell = async () => {
+    if (sim.s !== "ok") return;
+    const pokeIds = sim.pokes.filter((p) => sel.has(p.id)).map((p) => p.id);
+    if (!pokeIds.length) return;
+    setSelling(true);
+    try {
+      const res = await fetch("/api/vip/shop", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "sell-pokes", pokeIds }),
+      });
+      const j = (await res.json().catch(() => ({}))) as { result?: { goldGained?: number; sold?: number } };
+      if (res.ok) {
+        setFlash(t("robo.pokes.sold", { gold: fmt(j.result?.goldGained ?? gold), n: j.result?.sold ?? pokeIds.length }));
+        setSim({ s: "idle" });
+        setSel(new Set());
+      } else {
+        setFlash(t("robo.pokes.failed"));
+      }
+    } finally {
+      setSelling(false);
+    }
+  };
 
   const patch = (p: Partial<PokeSellConfig>) => {
     setCfg((c) => {
@@ -169,19 +233,65 @@ export function PokeSeller() {
         </Row>
       </div>
 
-      {/* simulacao + venda: travada ate a fonte da lista (WS) existir */}
-      <div className="card relative overflow-hidden p-5">
-        <div className="flex items-start gap-3">
-          <span className="mt-0.5 shrink-0 text-cyan"><Star size={13} /></span>
+      {/* simulacao + venda: puxa a lista viva do WS, voce confere e confirma */}
+      <div className="card flex flex-col gap-3 p-5">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="min-w-0">
-            <h3 className="pixel text-[0.6rem] text-cyan">{t("robo.pokes.locked.title")}</h3>
-            <p className="mt-2 text-[0.72rem] leading-relaxed text-text-dim">{t("robo.pokes.locked.desc")}</p>
-            <button type="button" disabled className="btn btn-cyan mt-3 cursor-not-allowed opacity-40" title={t("robo.pokes.locked.title")}>
-              {t("robo.pokes.simulate")} ›
-            </button>
-            <p className="mt-2 text-[0.62rem] text-text-dim">{t("robo.pokes.simulate.desc")}</p>
+            <h3 className="pixel text-[0.6rem] text-cyan">{t("robo.pokes.simulate")}</h3>
+            <p className="mt-1 text-[0.62rem] text-text-dim">{t("robo.pokes.protected")}</p>
           </div>
+          {sim.s !== "ok" ? (
+            <button type="button" onClick={simulate} disabled={sim.s === "loading" || cfg.sellRarities.length === 0} className="btn btn-cyan disabled:opacity-40">
+              {sim.s === "loading" ? `${t("robo.pokes.simulating")}...` : `${t("robo.pokes.simulate")} ›`}
+            </button>
+          ) : (
+            <button type="button" onClick={() => { setSim({ s: "idle" }); setSel(new Set()); }} className="btn btn-ghost">{t("robo.pokes.redo")}</button>
+          )}
+          {flash && <span className="w-full text-right text-[0.72rem] font-semibold text-green sm:w-auto">{flash}</span>}
         </div>
+
+        {sim.s === "loading" && <LoadingBall label={t("robo.pokes.simulating")} />}
+        {sim.s === "error" && (
+          <p className="text-[0.72rem] text-text-dim">{sim.code === "not_connected" ? t("robo.connect") : t("robo.pokes.wsError")}</p>
+        )}
+        {sim.s === "ok" && (sim.pokes.length === 0 ? (
+          <p className="text-[0.72rem] text-text-dim">{t("robo.pokes.simEmpty")}</p>
+        ) : (
+          <div className="flex flex-col gap-3">
+            <span className="text-[0.68rem] text-text-dim">{t("robo.pokes.simCount", { n: sim.pokes.length, total: sim.total })}</span>
+            <div className="grid max-h-96 gap-1.5 overflow-auto pr-1 sm:grid-cols-2">
+              {sim.pokes.map((p) => {
+                const on = sel.has(p.id);
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => toggleSel(p.id)}
+                    className="flex items-center gap-2.5 rounded border p-2 text-left transition"
+                    style={{ borderColor: on ? "var(--cyan)" : "var(--border)", background: on ? "color-mix(in srgb, var(--cyan) 8%, transparent)" : "transparent" }}
+                  >
+                    <span className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border text-[0.6rem] ${on ? "border-cyan bg-cyan text-[#06131a]" : "border-border text-transparent"}`}>✓</span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5">
+                        <span className="truncate text-sm">{p.name}</span>
+                        <span className="shrink-0 text-[0.6rem] text-text-dim">Lv{p.level}</span>
+                        {p.shiny && <span className="shrink-0 text-yellow"><Star size={9} /></span>}
+                        <span className="shrink-0 rounded px-1 text-[0.5rem] font-bold uppercase" style={{ background: RARITY_COLOR[p.rarity], color: "#06111a" }}>{p.rarity}</span>
+                      </div>
+                      <div className="text-[0.6rem] text-text-dim">IV {p.ivTotal} · Q {p.quality.toFixed(2)} · <span className="text-yellow">{fmt(p.sellValue)}</span></div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+            <div className="flex items-center justify-between gap-3 border-t border-border pt-3">
+              <span className="text-[0.72rem] text-text-dim">{t("robo.sell.selected", { n: count })}</span>
+              <button type="button" onClick={sell} disabled={selling || count === 0} className="btn btn-cyan disabled:opacity-40">
+                {selling ? `${t("robo.pokes.selling")}...` : `${t("robo.pokes.confirm", { n: count, gold: fmt(gold) })} ›`}
+              </button>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );

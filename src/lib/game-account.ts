@@ -22,6 +22,8 @@ export interface ActivePoke {
   team: boolean;
   slot: number;
   leader: boolean;
+  starter: boolean;
+  sellValue: number; // ouro que o NPC paga por ele
   ivTotal: number;
   quality: number;
   power: number;
@@ -44,6 +46,8 @@ export function normalizeActivePokes(list: unknown): ActivePoke[] {
       team: Boolean(p.team),
       slot: num(p.slot),
       leader: Boolean(p.leader),
+      starter: Boolean(p.starter),
+      sellValue: num(p.sellValue),
       ivTotal: num(p.ivTotal),
       quality: num(p.quality),
       power: num(p.power),
