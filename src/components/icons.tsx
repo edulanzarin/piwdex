@@ -1,33 +1,33 @@
-// Icones pixel (SVG, crispEdges) — moeda de ouro e preco formatado. Sem emoji.
+// Icones pixel (SVG, crispEdges) — moeda de DOLAR do jogo e preco formatado. Sem emoji.
+// O jogo nao publica um arquivo de icone pra moeda (usa emoji/formato de numero); entao
+// desenhamos a nossa, uma moeda dourada com "$" pra ler como dolar (nao "ouro generico").
 
 export function Coin({ size = 14, className = "" }: { size?: number; className?: string }) {
-  // moeda 8x8: borda escura, ouro, brilho.
-  const G = "#f4c430", D = "#8a5a12", L = "#ffe98a";
-  const grid = [
-    "..DDDD..",
-    ".DGGGGD.",
-    "DGLGGGGD",
-    "DGLGGGGD",
-    "DGGGGGGD",
-    "DGGGGGGD",
-    ".DGGGGD.",
-    "..DDDD..",
-  ];
-  const C: Record<string, string> = { G, D, L };
+  // moeda 12x12 gerada por circulo: anel escuro, ouro, brilho e um "$" em relevo.
+  const G = "#f4c430", D = "#8a5a12", L = "#ffe98a", K = "#6b4310";
+  const N = 12, c = 5.5, r = 5.7, rIn = 4.5;
+  const dollar = new Set([
+    "6,2", "4,3", "5,3", "6,3", "7,3", "4,4", "6,4", "4,5", "5,5", "6,5",
+    "5,6", "6,6", "6,7", "7,7", "4,8", "5,8", "6,8", "7,8", "5,9", "6,9",
+  ]);
+  const hi = new Set(["3,3", "3,4", "2,4", "4,2"]);
   const cells: React.ReactNode[] = [];
-  grid.forEach((row, y) =>
-    row.split("").forEach((c, x) => {
-      if (C[c]) cells.push(<rect key={`${x}-${y}`} x={x} y={y} width={1} height={1} fill={C[c]} />);
-    }),
-  );
+  for (let y = 0; y < N; y++)
+    for (let x = 0; x < N; x++) {
+      const d = Math.hypot(x - c, y - c);
+      if (d > r + 0.5) continue;
+      const key = `${x},${y}`;
+      const fill = dollar.has(key) ? K : d > rIn ? D : hi.has(key) ? L : G;
+      cells.push(<rect key={key} x={x} y={y} width={1} height={1} fill={fill} />);
+    }
   return (
-    <svg width={size} height={size} viewBox="0 0 8 8" shapeRendering="crispEdges" className={className} aria-hidden>
+    <svg width={size} height={size} viewBox="0 0 12 12" shapeRendering="crispEdges" className={className} aria-hidden>
       {cells}
     </svg>
   );
 }
 
-/** Preco em ouro do jogo: moeda + valor. */
+/** Preco em dolares do jogo: moeda + valor. */
 export function Gold({ value, className = "" }: { value: number; className?: string }) {
   return (
     <span className={`inline-flex items-center gap-1 tabular-nums ${className}`}>

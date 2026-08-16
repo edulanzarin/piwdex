@@ -9,7 +9,9 @@
 //   /game/asset-packs/outfits-index.json  -> outfits[id=looktype]{manifest,kind,...}
 //   manifest (replace ^/assets-packs -> /game/asset-packs) -> categories[0]:
 //     .pages[p].image (webp) + .assets{ source, frames:[{page,x,y,w,h}] }
-//   source "<dir>_<lx>_<ly>_<frame>.png"; pegamos dir=3, frame=1 (rect ja e o sprite cheio).
+//   source "<frame>_<lx>_<ly>_<dir>.png" (ATENCAO: direcao e o ULTIMO campo, 1..4;
+//     frame e o PRIMEIRO, 1..3). Frente parada = frame 1, direcao 3 -> "1_1_1_3.png"
+//     (dir 1 = costas, 2 = direita, 3 = frente/sul, 4 = esquerda). rect ja e o sprite cheio.
 //
 // Saidas: public/game-sprites/<looktype>.webp  +  src/data/game-sprites.json
 //   { syncedAt, baked:[looktype...], pokeToLook:{pokeId:looktype} }
@@ -45,10 +47,11 @@ async function bakeOne(looktype, entry) {
   const manifest = await getJson(resolvePack(entry.manifest));
   const cat = Object.values(manifest.categories)[0];
   const assets = Object.values(cat.assets || manifest.assets || {});
-  // direcao 3 (de frente), frame 1 (parado). Fallback: qualquer dir3, depois qualquer asset.
+  // frente parada = frame 1, direcao 3 (source "1_1_1_3.png"; direcao e o ULTIMO campo).
+  // Fallback: qualquer frame na direcao 3, depois o primeiro asset.
   const pick =
-    assets.find((a) => /(^|\/)3_\d+_\d+_1\.png$/.test(a.source)) ||
-    assets.find((a) => /(^|\/)3_\d+_\d+_\d+\.png$/.test(a.source)) ||
+    assets.find((a) => /(^|\/)1_\d+_\d+_3\.png$/.test(a.source)) ||
+    assets.find((a) => /(^|\/)\d+_\d+_\d+_3\.png$/.test(a.source)) ||
     assets[0];
   if (!pick || !pick.frames?.[0]) throw new Error("sem frame frontal");
   const fr = pick.frames[0];
