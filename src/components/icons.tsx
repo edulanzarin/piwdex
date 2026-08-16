@@ -65,6 +65,22 @@ export function Star({ size = 12, className = "" }: { size?: number; className?:
   );
 }
 
+/** Sino pixel (alertas). Herda currentColor; mesmo dialeto do Star. Sem emoji. */
+export function Bell({ size = 20, className = "" }: { size?: number; className?: string }) {
+  const rows = ["....##....", "...####...", "...####...", "..######..", "..######..", ".########.", "##########", "....##...."];
+  const cells: React.ReactNode[] = [];
+  rows.forEach((r, y) =>
+    [...r].forEach((ch, x) => {
+      if (ch === "#") cells.push(<rect key={`${x}-${y}`} x={x} y={y + (y === 7 ? 3 : 1)} width={1} height={1} fill="currentColor" />);
+    }),
+  );
+  return (
+    <svg width={size} height={size} viewBox="0 0 12 12" shapeRendering="crispEdges" className={className} style={{ imageRendering: "pixelated" }} aria-hidden>
+      {cells}
+    </svg>
+  );
+}
+
 /** Preco em dolares do jogo: moeda + valor. */
 export function Gold({ value, className = "" }: { value: number; className?: string }) {
   return (

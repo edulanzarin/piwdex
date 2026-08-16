@@ -7,6 +7,7 @@ import { Pokeball } from "./pokeball";
 import { NavDex, NavItems, NavHunt, NavCalc, NavLab, NavBreed, NavAccount } from "./nav-icons";
 import { useT } from "./locale-provider";
 import { LangSwitcher } from "./lang-switcher";
+import { NavBell } from "./nav-bell";
 import { logout } from "@/lib/actions/auth";
 
 export interface NavUser {
@@ -90,6 +91,7 @@ export function SiteNav({ user }: { user: NavUser | null }) {
             )}
           </div>
 
+          {user?.vip && <NavBell />}
           <LangSwitcher />
           <button
             type="button"

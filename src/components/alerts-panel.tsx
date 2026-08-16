@@ -198,6 +198,10 @@ function WatchRow({ w, onToggle, onDelete, t }: { w: Watchlist; onToggle: (a: bo
         <div className="truncate text-[0.62rem] text-text-dim">{watchSummary(w, t)}</div>
       </div>
       <ToggleButton active={w.active} onClick={() => onToggle(!w.active)} accent="green" title={t(w.active ? "alerts.pause" : "alerts.resume")}>
+        <span
+          className="inline-block h-1.5 w-1.5 rounded-full"
+          style={{ background: w.active ? "var(--green)" : "var(--text-dim)" }}
+        />
         {t(w.active ? "alerts.on" : "alerts.off")}
       </ToggleButton>
       <button type="button" onClick={onDelete} title={t("alerts.delete")} className="text-text-dim transition hover:text-red">✕</button>
