@@ -39,6 +39,7 @@ export async function GET(req: Request) {
   const maxGold = q.get("maxGold") ? Number(q.get("maxGold")) : null;
   const maxDiamonds = q.get("maxDiamonds") ? Number(q.get("maxDiamonds")) : null;
   const shinyOnly = q.get("shiny") === "1";
+  const typeSel = q.get("type") ?? ""; // tipo (lutador, agua...) — casa type1 OU type2 da especie
   const minQ = q.get("minQ") ? Number(q.get("minQ")) : null; // Quality minima
   const minIv = q.get("minIv") ? Number(q.get("minIv")) : null; // IV total minimo
   const sort = q.get("sort") ?? "potential"; // potential | quality | iv | power | value | price
@@ -67,6 +68,14 @@ export async function GET(req: Request) {
 
   let mons = loaded.mons;
   if (sp != null) mons = mons.filter((m) => m.speciesId === sp);
+  if (typeSel) {
+    const typesById = new Map<number, [string, string | null]>();
+    for (const c of creatures) typesById.set(c.pokeId, [c.type1, c.type2]);
+    mons = mons.filter((m) => {
+      const ts = typesById.get(m.speciesId);
+      return !!ts && (ts[0] === typeSel || ts[1] === typeSel);
+    });
+  }
   if (shinyOnly) mons = mons.filter((m) => m.shiny);
   const budgeted = maxGold != null || maxDiamonds != null;
   if (budgeted) {

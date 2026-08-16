@@ -13,6 +13,7 @@ import { Sprite } from "./sprite";
 import { LoadingBall } from "./loaders";
 import { PokemonCombobox, type ComboCreature } from "./pokemon-combobox";
 import { TypeBadges } from "./badges";
+import { TypeFilter } from "./type-filter";
 import { StatBar } from "./stat-bar";
 import { Modal } from "./modal";
 import { Pagination } from "./pagination";
@@ -242,6 +243,7 @@ export function MarketAdvisor({
 }) {
   const t = useT();
   const [species, setSpecies] = useState<ComboCreature | null>(null);
+  const [type, setType] = useState<PokeType | "">("");
   const [maxGold, setMaxGold] = useState("");
   const [maxDiamonds, setMaxDiamonds] = useState("");
   const [minQ, setMinQ] = useState("");
@@ -264,6 +266,7 @@ export function MarketAdvisor({
     try {
       const p = new URLSearchParams();
       if (sp) p.set("sp", String(sp.pokeId));
+      if (type) p.set("type", type);
       const g = numI(maxGold);
       const d = numI(maxDiamonds);
       if (g != null) p.set("maxGold", String(g));
@@ -298,11 +301,15 @@ export function MarketAdvisor({
         <p className="mt-2 max-w-2xl text-sm text-text-dim">{t("account.market.desc")}</p>
       </div>
       <div className="card flex flex-col gap-4 p-5">
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <label className="flex flex-col gap-1 sm:col-span-2 lg:col-span-1">
             <span className="text-[0.55rem] uppercase tracking-wide text-text-dim">{t("account.market.species")}</span>
             <PokemonCombobox creatures={creatures} value={species} onSelect={setSpecies} placeholder={t("account.market.anySpecies")} />
           </label>
+          <div className="flex flex-col gap-1">
+            <span className="text-[0.55rem] uppercase tracking-wide text-text-dim">{t("account.market.type")}</span>
+            <TypeFilter value={type} onChange={setType} />
+          </div>
           <label className="flex flex-col gap-1">
             <span className="text-[0.55rem] uppercase tracking-wide text-text-dim">{t("account.market.maxGold")}</span>
             <input className="input" inputMode="numeric" placeholder="—" value={maxGold} onChange={(e) => setMaxGold(e.target.value)} />
@@ -339,11 +346,14 @@ export function MarketAdvisor({
               <option value="price">{t("account.market.sort.price")}</option>
             </select>
           </label>
+          <div className="flex flex-col gap-1">
+            <span className="text-[0.55rem] uppercase tracking-wide text-text-dim">{t("alerts.f.filters")}</span>
+            <ToggleButton active={shiny} onClick={() => setShiny((s) => !s)} accent="yellow">
+              <Star size={13} /> {t("account.market.shiny")}
+            </ToggleButton>
+          </div>
         </div>
-        <div className="flex items-center justify-between gap-3">
-          <ToggleButton active={shiny} onClick={() => setShiny((s) => !s)} accent="yellow">
-            <Star size={13} /> {t("account.market.shiny")}
-          </ToggleButton>
+        <div className="flex items-center justify-end gap-3">
           <button type="button" onClick={() => search()} disabled={busy} className="btn btn-cyan disabled:opacity-40">
             {busy ? `${t("account.market.searching")}...` : `${t("account.market.search")} ›`}
           </button>
