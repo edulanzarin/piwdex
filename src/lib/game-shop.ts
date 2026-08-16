@@ -53,6 +53,16 @@ export async function fetchInventory(tokens: Tokens): Promise<{ items: InvItem[]
   return { items, tokens: r.tokens, changed: r.changed };
 }
 
+// Itens travados pelo jogador (cadeado) — o jogo recusa vender esses. GET /api/game/item/lock
+// -> { locked: [itemId, ...] }.
+export async function fetchLocks(tokens: Tokens): Promise<{ locked: Set<number>; tokens: Tokens; changed: boolean } | null> {
+  const r = await gameFetch("/api/game/item/lock", tokens).catch(() => null);
+  if (!r || !r.res.ok) return null;
+  const raw = (await r.res.json().catch(() => null)) as { locked?: unknown } | null;
+  const arr = Array.isArray(raw?.locked) ? raw!.locked : [];
+  return { locked: new Set(arr.filter((x): x is number => typeof x === "number")), tokens: r.tokens, changed: r.changed };
+}
+
 export interface WriteResult<T = unknown> { ok: boolean; status: number; data: T | null; tokens: Tokens; changed: boolean }
 
 async function send<T = unknown>(path: string, tokens: Tokens, body: unknown): Promise<WriteResult<T>> {

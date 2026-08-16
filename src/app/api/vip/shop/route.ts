@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { getGameLink, updateGameTokens } from "@/lib/game-link";
-import { fetchShop, fetchInventory, buyBall, buyItem, sellItems, sellPokes, type WriteResult } from "@/lib/game-shop";
+import { fetchShop, fetchInventory, fetchLocks, buyBall, buyItem, sellItems, sellPokes, type WriteResult } from "@/lib/game-shop";
 import { getData } from "@/lib/data";
 
 export const runtime = "nodejs";
@@ -25,19 +25,21 @@ export async function GET() {
   const c = await ctx();
   if (c.error) return c.error;
 
-  const [shopR, invR, data] = await Promise.all([
+  const [shopR, invR, locksR, data] = await Promise.all([
     fetchShop(c.tokens).catch(() => null),
     fetchInventory(c.tokens).catch(() => null),
+    fetchLocks(c.tokens).catch(() => null),
     getData(),
   ]);
   if (!shopR && !invR) return NextResponse.json({ error: "game_unreachable" }, { status: 502 });
-  const tokens = invR?.tokens ?? shopR?.tokens ?? c.tokens;
-  if (shopR?.changed || invR?.changed) await updateGameTokens(c.userId, tokens);
+  const tokens = invR?.tokens ?? locksR?.tokens ?? shopR?.tokens ?? c.tokens;
+  if (shopR?.changed || invR?.changed || locksR?.changed) await updateGameTokens(c.userId, tokens);
 
-  // So DROPS de hunt (categoria 'loot') sao vendaveis no NPC — pocao/revive/pedra sao
-  // compra-only. (Itens bloqueados o jogo recusa; ver /api/game/item/lock — TODO.)
+  // So DROPS de hunt (categoria 'loot') e NAO travados sao vendaveis no NPC — pocao/
+  // revive/pedra sao compra-only; o cadeado o jogo recusa vender.
+  const locked = locksR?.locked ?? new Set<number>();
   const inventory = (invR?.items ?? [])
-    .filter((i) => i.category === "loot" && i.npcPrice > 0 && i.quantity > 0)
+    .filter((i) => i.category === "loot" && i.npcPrice > 0 && i.quantity > 0 && !locked.has(i.id))
     .map((i) => ({ ...i, rare: data.getItem(i.id)?.rare ?? false }))
     .sort((a, b) => b.npcPrice * b.quantity - a.npcPrice * a.quantity);
 
