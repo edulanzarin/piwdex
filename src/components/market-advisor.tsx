@@ -4,10 +4,11 @@
 // ao vivo do jogo via /api/market e ranqueia por Power/IV/Quality reais dos anuncios.
 // Cada card abre um modal com os stats base da especie (vindos do catalogo via `dex`).
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { spriteUrl } from "@/lib/sprites";
 import type { MarketMon, Currency } from "@/lib/game-account";
 import type { PokeType, Rarity } from "@/lib/types";
+import { buildBench, ivGrade, priceGrade, dealRatio, type Grade, type DealBench } from "@/lib/market-value";
 import { Sprite } from "./sprite";
 import { LoadingBall } from "./loaders";
 import { PokemonCombobox, type ComboCreature } from "./pokemon-combobox";
@@ -16,6 +17,28 @@ import { StatBar } from "./stat-bar";
 import { Modal } from "./modal";
 import { useT } from "./locale-provider";
 import { Star, Coin, Diamond } from "./icons";
+
+// Cor de cada nota (genes ou preco): verde otimo, amarelo mediano, vermelho ruim.
+const GRADE_VAR: Record<Grade, string> = { great: "var(--green)", ok: "var(--yellow)", bad: "var(--red)" };
+
+// Etiqueta colorida (contorno + fundo suave), boa nas tres cores sobre fundo escuro.
+function GradeChip({ grade, label }: { grade: Grade; label: string }) {
+  const c = GRADE_VAR[grade];
+  return (
+    <span
+      className="inline-flex items-center rounded px-1.5 py-0.5 text-[0.55rem] font-bold uppercase tracking-wide"
+      style={{ background: `color-mix(in srgb, ${c} 20%, transparent)`, border: `1px solid ${c}`, color: c }}
+    >
+      {label}
+    </span>
+  );
+}
+
+// "+35%" / "-18%" de custo-beneficio vs a mediana da moeda.
+function dealPct(ratio: number): string {
+  const p = Math.round((ratio - 1) * 100);
+  return `${p >= 0 ? "+" : ""}${p}%`;
+}
 
 // Stats base da especie (do catalogo) — o que o modal precisa alem do anuncio.
 export interface MarketDex {
@@ -61,12 +84,15 @@ function Tile({ label, children }: { label: string; children: React.ReactNode })
   );
 }
 
-function MarketMonModal({ mon, dex, onClose }: { mon: MarketMon; dex?: MarketDex; onClose: () => void }) {
+function MarketMonModal({ mon, dex, bench, onClose }: { mon: MarketMon; dex?: MarketDex; bench: DealBench; onClose: () => void }) {
   const t = useT();
   const total = dex
     ? dex.baseHp + dex.baseAtk + dex.baseDef + dex.baseSpAtk + dex.baseSpDef + dex.baseSpeed
     : null;
   const best = dex ? Math.max(dex.baseHp, dex.baseAtk, dex.baseDef, dex.baseSpAtk, dex.baseSpDef, dex.baseSpeed) : 0;
+  const genes = ivGrade(mon.ivTotal);
+  const deal = priceGrade(mon, bench);
+  const ratio = dealRatio(mon, bench);
 
   return (
     <Modal onClose={onClose} className="w-full max-w-md gap-5 p-5">
@@ -101,6 +127,28 @@ function MarketMonModal({ mon, dex, onClose }: { mon: MarketMon; dex?: MarketDex
           <Tile label={t("account.market.price")}><span className="text-text"><Price currency={mon.currency} value={mon.price} size={13} /></span></Tile>
         </div>
 
+        {/* Veredito: genes (qualidade) e preco (vale a pena) */}
+        {(genes || deal) && (
+          <div className="flex flex-col gap-2 rounded border border-border bg-[rgba(8,14,28,0.5)] p-3">
+            <div className="pixel text-[0.62rem] text-purple">{t("account.market.verdict")}</div>
+            {genes && (
+              <div className="flex items-center justify-between gap-2 text-[0.72rem]">
+                <span className="text-text-dim">{t("account.market.qualityLabel")}</span>
+                <GradeChip grade={genes} label={t(`account.market.quality.${genes}`)} />
+              </div>
+            )}
+            {deal && (
+              <div className="flex items-center justify-between gap-2 text-[0.72rem]">
+                <span className="text-text-dim">{t("account.market.dealLabel")}</span>
+                <span className="flex items-center gap-2">
+                  {ratio != null && <span className="tabular-nums text-text-dim">{t("account.market.dealVs", { p: dealPct(ratio) })}</span>}
+                  <GradeChip grade={deal} label={t(`account.market.deal.${deal}`)} />
+                </span>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Stats base da especie */}
         {dex && (
           <div className="flex flex-col gap-2.5">
@@ -130,6 +178,9 @@ export function MarketAdvisor({ creatures, dex }: { creatures: ComboCreature[]; 
   const [busy, setBusy] = useState(false);
   const [mons, setMons] = useState<MarketMon[] | null>(null);
   const [selected, setSelected] = useState<MarketMon | null>(null);
+
+  // Baseline de custo-beneficio (mediana Power/preco por moeda) sobre os anuncios listados.
+  const bench = useMemo(() => buildBench(mons ?? []), [mons]);
 
   const search = async () => {
     setBusy(true);
@@ -198,12 +249,16 @@ export function MarketAdvisor({ creatures, dex }: { creatures: ComboCreature[]; 
         <div className="card p-6 text-center text-sm text-text-dim">{t("account.market.empty")}</div>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {mons.map((m) => (
+          {mons.map((m) => {
+            const qGrade = ivGrade(m.ivTotal);
+            const dGrade = priceGrade(m, bench);
+            return (
             <button
               key={m.listingId}
               type="button"
               onClick={() => setSelected(m)}
               className="card flex items-center gap-3 p-3 text-left transition hover:border-[color:var(--border-strong)] hover:bg-surface-2"
+              style={qGrade ? { borderLeftColor: GRADE_VAR[qGrade], borderLeftWidth: 3 } : undefined}
             >
               <div className="relative flex h-14 w-14 shrink-0 items-center justify-center rounded bg-[rgba(8,14,28,0.6)]">
                 <Sprite src={spriteUrl(m.speciesId, m.shiny)} alt={m.name} size={48} />
@@ -219,18 +274,21 @@ export function MarketAdvisor({ creatures, dex }: { creatures: ComboCreature[]; 
                   {m.ivTotal != null && <span>{t("account.col.iv")} <span className={ivColor(m.ivTotal)}>{m.ivTotal}</span>/192</span>}
                   {m.quality != null && <span>{t("account.col.quality")} <span className="text-cyan">{m.quality.toFixed(3)}</span></span>}
                 </div>
-                <div className="mt-1.5 inline-flex items-center gap-1 pixel text-[0.7rem] text-text">
+                <div className="mt-1.5 flex flex-wrap items-center gap-1.5 pixel text-[0.7rem] text-text">
                   <Price currency={m.currency} value={m.price} />
-                  {m.belowNpc && <span className="ml-1 chip" style={{ background: "var(--green)", color: "#052012" }}>{t("account.market.belowNpc")}</span>}
+                  {dGrade && <GradeChip grade={dGrade} label={t(`account.market.deal.${dGrade}`)} />}
+                  {m.belowNpc && <span className="chip" style={{ background: "var(--green)", color: "#052012" }}>{t("account.market.belowNpc")}</span>}
                 </div>
               </div>
             </button>
-          ))}
+            );
+          })}
         </div>
       )}
+      <p className="text-[0.6rem] italic text-text-dim">{t("account.market.legend")}</p>
       <p className="text-[0.6rem] italic text-text-dim">{t("account.market.hint")}</p>
 
-      {selected && <MarketMonModal mon={selected} dex={dex?.[selected.speciesId]} onClose={() => setSelected(null)} />}
+      {selected && <MarketMonModal mon={selected} dex={dex?.[selected.speciesId]} bench={bench} onClose={() => setSelected(null)} />}
     </div>
   );
 }
