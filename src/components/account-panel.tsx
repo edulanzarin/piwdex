@@ -7,16 +7,13 @@ import { Sprite } from "./sprite";
 import { LoadingBall } from "./loaders";
 import { PokemonCombobox, type ComboCreature } from "./pokemon-combobox";
 import { useT } from "./locale-provider";
-import { Coin, Diamond, Star } from "./icons";
+import { Star } from "./icons";
 
 const fmt = (n: number) => n.toLocaleString("pt-BR");
 const numI = (s: string) => { const v = parseInt(s.replace(/\D/g, ""), 10); return Number.isFinite(v) ? v : null; };
 const ivColor = (v: number | null) => (v == null ? "text-text-dim" : v >= 150 ? "text-green" : v >= 100 ? "text-yellow" : "text-text");
 const fmtDate = (s: string) => (s ? new Date(s).toLocaleDateString("pt-BR") : "—");
 const pct = (n: number) => `${n > 0 ? "+" : ""}${+n.toFixed(1)}%`;
-
-const Money = ({ currency, size = 12 }: { currency: string; size?: number }) =>
-  currency === "DIAMONDS" ? <span className="text-cyan"><Diamond size={size} /></span> : <Coin size={size} />;
 
 type State =
   | { status: "loading" }
@@ -297,11 +294,11 @@ function MarketAdvisor({ creatures }: { creatures: ComboCreature[] }) {
             <PokemonCombobox creatures={creatures} value={species} onSelect={setSpecies} placeholder={t("account.market.anySpecies")} />
           </label>
           <label className="flex flex-col gap-1">
-            <span className="inline-flex items-center gap-1 text-[0.55rem] uppercase tracking-wide text-text-dim"><Coin />{t("account.market.maxGold")}</span>
+            <span className="text-[0.55rem] uppercase tracking-wide text-text-dim">{t("account.market.maxGold")}</span>
             <input className="input" inputMode="numeric" placeholder="—" value={maxGold} onChange={(e) => setMaxGold(e.target.value)} />
           </label>
           <label className="flex flex-col gap-1">
-            <span className="inline-flex items-center gap-1 text-[0.55rem] uppercase tracking-wide text-text-dim"><span className="text-cyan"><Diamond /></span>{t("account.market.maxDiamonds")}</span>
+            <span className="text-[0.55rem] uppercase tracking-wide text-text-dim">{t("account.market.maxDiamonds")}</span>
             <input className="input" inputMode="numeric" placeholder="—" value={maxDiamonds} onChange={(e) => setMaxDiamonds(e.target.value)} />
           </label>
           <label className="flex flex-col gap-1">
@@ -347,7 +344,7 @@ function MarketAdvisor({ creatures }: { creatures: ComboCreature[] }) {
                   {m.quality != null && <span>{t("account.col.quality")} <span className="text-cyan">{m.quality.toFixed(3)}</span></span>}
                 </div>
                 <div className="mt-1.5 inline-flex items-center gap-1 pixel text-[0.7rem] text-text">
-                  <Money currency={m.currency} />{fmt(m.price)}
+                  <span className="text-text-dim">{m.currency === "DIAMONDS" ? "◆" : "$"}</span>{fmt(m.price)}
                   {m.belowNpc && <span className="ml-1 chip" style={{ background: "var(--green)", color: "#052012" }}>{t("account.market.belowNpc")}</span>}
                 </div>
               </div>
