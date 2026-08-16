@@ -34,6 +34,25 @@ export async function fetchShop(tokens: Tokens): Promise<{ shop: ShopCatalog; to
   };
 }
 
+// Itens vendaveis da mochila (drops da hunt). Le /api/game/depot -> inventory (bag).
+export interface InvItem { id: number; name: string; icon: string; quantity: number; npcPrice: number; category: string }
+
+export async function fetchInventory(tokens: Tokens): Promise<{ items: InvItem[]; tokens: Tokens; changed: boolean } | null> {
+  const r = await gameFetch("/api/game/depot", tokens).catch(() => null);
+  if (!r || !r.res.ok) return null;
+  const raw = (await r.res.json().catch(() => null)) as Record<string, unknown> | null;
+  const bag = (Array.isArray(raw?.inventory) ? raw!.inventory : []) as Record<string, unknown>[];
+  const items = bag.map((i) => ({
+    id: num(i.id),
+    name: String(i.name ?? ""),
+    icon: i.icon ? abs(String(i.icon)) : "",
+    quantity: num(i.quantity),
+    npcPrice: num(i.npcPrice),
+    category: String(i.category ?? "loot"),
+  }));
+  return { items, tokens: r.tokens, changed: r.changed };
+}
+
 export interface WriteResult<T = unknown> { ok: boolean; status: number; data: T | null; tokens: Tokens; changed: boolean }
 
 async function send<T = unknown>(path: string, tokens: Tokens, body: unknown): Promise<WriteResult<T>> {

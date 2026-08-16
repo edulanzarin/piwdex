@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { getGameLink, updateGameTokens } from "@/lib/game-link";
-import { fetchShop, buyBall, buyItem, sellItems, sellPokes, type WriteResult } from "@/lib/game-shop";
+import { fetchShop, fetchInventory, buyBall, buyItem, sellItems, sellPokes, type WriteResult } from "@/lib/game-shop";
+import { getData } from "@/lib/data";
 
 export const runtime = "nodejs";
 
@@ -23,10 +24,23 @@ const isPosInt = (v: unknown): v is number => typeof v === "number" && Number.is
 export async function GET() {
   const c = await ctx();
   if (c.error) return c.error;
-  const r = await fetchShop(c.tokens).catch(() => null);
-  if (!r) return NextResponse.json({ error: "game_unreachable" }, { status: 502 });
-  if (r.changed) await updateGameTokens(c.userId, r.tokens);
-  return NextResponse.json({ shop: r.shop });
+
+  const [shopR, invR, data] = await Promise.all([
+    fetchShop(c.tokens).catch(() => null),
+    fetchInventory(c.tokens).catch(() => null),
+    getData(),
+  ]);
+  if (!shopR && !invR) return NextResponse.json({ error: "game_unreachable" }, { status: 502 });
+  const tokens = invR?.tokens ?? shopR?.tokens ?? c.tokens;
+  if (shopR?.changed || invR?.changed) await updateGameTokens(c.userId, tokens);
+
+  // So drops vendaveis (npcPrice > 0), com a flag `rare` do catalogo do piwdex pra avisar.
+  const inventory = (invR?.items ?? [])
+    .filter((i) => i.npcPrice > 0 && i.quantity > 0)
+    .map((i) => ({ ...i, rare: data.getItem(i.id)?.rare ?? false }))
+    .sort((a, b) => b.npcPrice * b.quantity - a.npcPrice * a.quantity);
+
+  return NextResponse.json({ shop: shopR?.shop ?? null, inventory });
 }
 
 export async function POST(req: Request) {
