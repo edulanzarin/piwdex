@@ -28,6 +28,7 @@ async function loadMarket(tokens: Tokens): Promise<{ mons?: MarketMon[]; status:
 export async function GET(req: Request) {
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ connected: false, error: "not_logged" }, { status: 401 });
+  if (!session.user.vip) return NextResponse.json({ error: "vip_only" }, { status: 403 }); // mercado e VIP
   const link = await getGameLink(session.user.id);
   if (!link || link.status === "expired") return NextResponse.json({ connected: false, reason: "expired" }, { status: 401 });
   const tokens = link.tokens;

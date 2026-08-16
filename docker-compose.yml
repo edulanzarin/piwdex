@@ -51,6 +51,8 @@ services:
       AUTH_SECRET: ${AUTH_SECRET:-}
       SESSION_SECRET: ${SESSION_SECRET:-}
       GAME_HOST: ${GAME_HOST:-https://poke.idleworld.online}
+      APP_URL: ${APP_URL:-}
+      MP_ACCESS_TOKEN: ${MP_ACCESS_TOKEN:-}
     ports:
       - "${APP_PORT:-4070}:3000"
     depends_on:

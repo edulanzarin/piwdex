@@ -69,12 +69,18 @@ export function SiteNav({ user }: { user: NavUser | null }) {
           </nav>
           <span className="hidden h-5 w-px bg-border sm:block" />
 
-          {/* Login/logout (desktop) */}
+          {/* VIP + login/logout (desktop) */}
           <div className="hidden items-center gap-2 sm:flex">
+            <Link
+              href="/vip"
+              className={`btn ${user?.vip ? "btn-ghost" : ""}`}
+              style={user?.vip ? undefined : { background: "var(--yellow)", color: "#3a2c00" }}
+            >
+              VIP
+            </Link>
             {user ? (
               <>
                 <span className="max-w-[8rem] truncate pixel text-[0.58rem] text-text">{user.name ?? "conta"}</span>
-                <VipChip />
                 <form action={logout}>
                   <button type="submit" className="btn btn-ghost">{t("auth.logout")}</button>
                 </form>
@@ -113,6 +119,15 @@ export function SiteNav({ user }: { user: NavUser | null }) {
                 {t(key)}
               </Link>
             ))}
+
+            {/* VIP (mobile) */}
+            <Link
+              href="/vip"
+              className="flex items-center gap-2 border-b border-border/40 py-3 pixel text-[0.7rem] text-yellow"
+              onClick={() => setOpen(false)}
+            >
+              VIP {user?.vip && <span className="text-[0.55rem] text-text-dim">ativo</span>}
+            </Link>
 
             {/* Login/logout (mobile) */}
             {user ? (

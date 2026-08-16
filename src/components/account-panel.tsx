@@ -325,8 +325,10 @@ function ActiveTeamCard({ initial }: { initial: TeamSnapshot | null }) {
   const [state, setState] = useState<TeamState>(
     initial ? { status: "ok", team: initial.list, total: initial.total, at: initial.at } : { status: "idle" },
   );
+  const [confirming, setConfirming] = useState(false);
 
   const load = async () => {
+    setConfirming(false);
     setState({ status: "loading" });
     try {
       const res = await fetch("/api/active-pokes", { cache: "no-store" });
@@ -338,8 +340,10 @@ function ActiveTeamCard({ initial }: { initial: TeamSnapshot | null }) {
     }
   };
 
+  // Puxar ao vivo toma a sessao do jogo -> confirma antes.
+  const ask = () => setConfirming(true);
   const reload = (
-    <button type="button" onClick={load} className="btn btn-ghost" disabled={state.status === "loading"}>
+    <button type="button" onClick={ask} className="btn btn-ghost" disabled={state.status === "loading"}>
       {t("account.team.reload")}
     </button>
   );
@@ -361,16 +365,13 @@ function ActiveTeamCard({ initial }: { initial: TeamSnapshot | null }) {
       }
     >
       {state.status === "idle" ? (
-        <div className="flex flex-wrap items-center gap-3">
-          <button type="button" onClick={load} className="btn btn-cyan">{t("account.team.load")} ›</button>
-          <span className="text-[0.6rem] text-text-dim">{t("account.team.hint")}</span>
-        </div>
+        <button type="button" onClick={ask} className="btn btn-cyan">{t("account.team.load")} ›</button>
       ) : state.status === "loading" ? (
         <div className="py-3"><LoadingBall label={t("account.team.loading")} /></div>
       ) : state.status === "error" ? (
         <div className="flex flex-wrap items-center gap-3">
           <span className="text-[0.72rem] text-text-dim">{t("account.team.error")}</span>
-          <button type="button" onClick={load} className="btn btn-ghost">{t("account.team.load")}</button>
+          <button type="button" onClick={ask} className="btn btn-ghost">{t("account.team.load")}</button>
         </div>
       ) : state.team.length === 0 ? (
         <div className="flex flex-wrap items-center gap-3">
@@ -378,12 +379,22 @@ function ActiveTeamCard({ initial }: { initial: TeamSnapshot | null }) {
           {reload}
         </div>
       ) : (
-        <>
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {state.team.map((p) => <TeamMon key={p.id} p={p} />)}
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          {state.team.map((p) => <TeamMon key={p.id} p={p} />)}
+        </div>
+      )}
+
+      {confirming && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setConfirming(false)}>
+          <div className="card w-full max-w-sm p-5" onClick={(e) => e.stopPropagation()}>
+            <h3 className="pixel text-[0.7rem] text-cyan">{t("account.team.confirmTitle")}</h3>
+            <p className="mt-3 text-[0.75rem] leading-relaxed text-text-dim">{t("account.team.confirmBody")}</p>
+            <div className="mt-4 flex justify-end gap-2">
+              <button type="button" onClick={() => setConfirming(false)} className="btn btn-ghost">{t("account.team.cancel")}</button>
+              <button type="button" onClick={load} className="btn btn-cyan">{t("account.team.reload")}</button>
+            </div>
           </div>
-          <p className="mt-2 text-[0.55rem] text-text-dim">{t("account.team.hint")}</p>
-        </>
+        </div>
       )}
     </Section>
   );
