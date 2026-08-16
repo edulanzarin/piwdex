@@ -153,6 +153,12 @@ export function Calculator({ creatures }: { creatures: CalcCreature[] }) {
     return projectAll(creature.bases, res.ivs, tgt, qual);
   }, [res, creature, tgt, qual]);
 
+  // "Perfeito" projetado no MESMO nivel alvo (IV 32 em tudo) — pro card dividido.
+  const perfectProjection = useMemo(() => {
+    if (!res || !creature || !Number.isFinite(tgt) || tgt <= 0) return null;
+    return projectAll(creature.bases, Array<number>(6).fill(32), tgt, qual);
+  }, [res, creature, tgt, qual]);
+
   // "Perfeito": mesmo pokemon com IV maximo (32 em tudo) no mesmo nivel/qualidade.
   const perfect = useMemo(() => {
     if (!res || !creature) return null;
@@ -358,19 +364,48 @@ export function Calculator({ creatures }: { creatures: CalcCreature[] }) {
         </div>
         {!res ? (
           <p className="mt-4 text-sm text-text-dim">{t("calc.projNeedCalc")}</p>
-        ) : projection ? (
+        ) : projection && perfectProjection && iv && creature ? (
           <div className="mt-4 flex flex-col gap-4">
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-              {STAT_LABELS.map((label, i) => (
-                <div key={label} className="rounded border border-border bg-[rgba(8,14,28,0.5)] px-3 py-2">
-                  <div className="inline-flex items-center gap-1 text-[0.58rem] uppercase tracking-wide text-text-dim"><StatIcon index={i} size={11} />{label}</div>
-                  <div className="tabular-nums text-lg font-bold text-cyan">{projection.stats[i]}</div>
+            <p className="text-[0.62rem] leading-relaxed text-text-dim">{t("calc.projCompareHint", { n: tgt })}</p>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {/* Seu, projetado no nivel alvo */}
+              <div className="rounded-lg border border-[color:var(--cyan)] p-4">
+                <div className="mb-3 flex items-center justify-between">
+                  <span className="pixel text-[0.62rem] text-cyan">{t("calc.compareYou", { name: creature.name })}</span>
+                  <span className="text-[0.58rem] tabular-nums text-text-dim">{iv.total.toFixed(0)}/{IV_MAX_TOTAL} · {Math.round((iv.total / IV_MAX_TOTAL) * 100)}%</span>
                 </div>
-              ))}
-            </div>
-            <div className="border-t border-border pt-3">
-              <span className="text-[0.6rem] uppercase tracking-wide text-text-dim">{t("calc.powerAt", { n: tgt })}</span>
-              <div className="pixel text-base text-yellow">{projection.power.toLocaleString("pt-BR")}</div>
+                <div className="flex flex-col gap-1.5">
+                  {STAT_LABELS.map((lb, i) => (
+                    <div key={lb} className="flex items-center justify-between text-[0.72rem]">
+                      <span className="inline-flex items-center gap-1 text-text-dim"><StatIcon index={i} size={11} />{lb}</span>
+                      <span className="flex items-center gap-3 tabular-nums">
+                        <span className="w-12 text-right text-cyan">{projection.stats[i]}</span>
+                        <span className={`w-12 text-right ${ivColor(res.ivs[i])}`}>{res.ivs[i].toFixed(0)}/{IV_MAX}</span>
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-3 border-t border-border pt-2 text-[0.6rem] uppercase tracking-wide text-text-dim">{t("calc.powerAt", { n: tgt })} <span className="pixel ml-1 text-[0.7rem] text-yellow">{projection.power.toLocaleString("pt-BR")}</span></div>
+              </div>
+              {/* Perfeito, projetado no nivel alvo */}
+              <div className="rounded-lg border border-[color:var(--green)] p-4">
+                <div className="mb-3 flex items-center justify-between">
+                  <span className="pixel text-[0.62rem] text-green">{t("calc.comparePerfect")}</span>
+                  <span className="text-[0.58rem] tabular-nums text-text-dim">{IV_MAX_TOTAL}/{IV_MAX_TOTAL} · 100%</span>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  {STAT_LABELS.map((lb, i) => (
+                    <div key={lb} className="flex items-center justify-between text-[0.72rem]">
+                      <span className="inline-flex items-center gap-1 text-text-dim"><StatIcon index={i} size={11} />{lb}</span>
+                      <span className="flex items-center gap-3 tabular-nums">
+                        <span className="w-12 text-right text-green">{perfectProjection.stats[i]}</span>
+                        <span className="w-12 text-right text-green">{IV_MAX}/{IV_MAX}</span>
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-3 border-t border-border pt-2 text-[0.6rem] uppercase tracking-wide text-text-dim">{t("calc.powerAt", { n: tgt })} <span className="pixel ml-1 text-[0.7rem] text-yellow">{perfectProjection.power.toLocaleString("pt-BR")}</span></div>
+              </div>
             </div>
           </div>
         ) : null}
