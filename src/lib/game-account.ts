@@ -11,6 +11,53 @@ import type { Creature } from "./types";
 const num = (v: unknown, d = 0): number => (typeof v === "number" && Number.isFinite(v) ? v : d);
 const str = (v: unknown, d = ""): string => (typeof v === "string" ? v : d);
 
+// Pokemon individual ATIVO (do WebSocket ws<shard>, evento "pokes"). E o unico
+// lugar com os individuos + IV/quality/power; a REST so da o agregado.
+export interface ActivePoke {
+  id: string;
+  speciesId: number;
+  name: string;
+  level: number;
+  shiny: boolean;
+  team: boolean;
+  slot: number;
+  leader: boolean;
+  ivTotal: number;
+  quality: number;
+  power: number;
+  type1: string;
+  hp: number;
+  maxHp: number;
+  stats: { hp: number; atk: number; def: number; spAtk: number; spDef: number; speed: number };
+}
+
+export function normalizeActivePokes(list: unknown): ActivePoke[] {
+  if (!Array.isArray(list)) return [];
+  return (list as Record<string, unknown>[]).map((p) => {
+    const s = (p.stats ?? {}) as Record<string, unknown>;
+    return {
+      id: str(p.id),
+      speciesId: num(p.speciesId),
+      name: str(p.name, "?"),
+      level: num(p.level),
+      shiny: Boolean(p.shiny),
+      team: Boolean(p.team),
+      slot: num(p.slot),
+      leader: Boolean(p.leader),
+      ivTotal: num(p.ivTotal),
+      quality: num(p.quality),
+      power: num(p.power),
+      type1: str(p.type1),
+      hp: num(p.hp),
+      maxHp: num(p.maxHp),
+      stats: {
+        hp: num(s.hp), atk: num(s.atk), def: num(s.def),
+        spAtk: num(s.spAtk), spDef: num(s.spDef), speed: num(s.speed),
+      },
+    };
+  });
+}
+
 export interface Profile {
   name: string;
   level: number;

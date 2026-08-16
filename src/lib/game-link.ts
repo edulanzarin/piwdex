@@ -10,6 +10,7 @@ export interface GameLink {
   cmid: string | null;
   playerName: string | null;
   status: "active" | "expired";
+  shard: number | null;
 }
 
 interface GameLinkRow {
@@ -18,11 +19,12 @@ interface GameLinkRow {
   cmid: string | null;
   player_name: string | null;
   status: string;
+  shard: number | null;
 }
 
 export async function getGameLink(userId: string): Promise<GameLink | null> {
   const row = await queryOne<GameLinkRow>(
-    `SELECT access_token, refresh_token, cmid, player_name, status
+    `SELECT access_token, refresh_token, cmid, player_name, status, shard
        FROM game_links WHERE user_id = $1`,
     [userId],
   );
@@ -35,7 +37,13 @@ export async function getGameLink(userId: string): Promise<GameLink | null> {
     cmid: row.cmid,
     playerName: row.player_name,
     status: row.status === "expired" ? "expired" : "active",
+    shard: row.shard,
   };
+}
+
+// Cacheia o shard do WebSocket descoberto (evita varrer todos os shards de novo).
+export async function saveGameShard(userId: string, shard: number): Promise<void> {
+  await query(`UPDATE game_links SET shard = $2 WHERE user_id = $1`, [userId, shard]);
 }
 
 // Cria/atualiza o vinculo (ao conectar). Zera o status pra 'active'.

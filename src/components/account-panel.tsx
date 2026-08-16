@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { assetIconUrl, skinSpriteUrl, skinName } from "@/lib/sprites";
-import type { Account, AccountItem } from "@/lib/game-account";
+import { assetIconUrl, skinSpriteUrl, skinName, spriteUrl } from "@/lib/sprites";
+import type { Account, AccountItem, ActivePoke } from "@/lib/game-account";
 import { Sprite } from "./sprite";
 import { LoadingBall } from "./loaders";
 import type { ComboCreature } from "./pokemon-combobox";
@@ -12,6 +12,7 @@ import { Star } from "./icons";
 const fmt = (n: number) => n.toLocaleString("pt-BR");
 const fmtDate = (s: string) => (s ? new Date(s).toLocaleDateString("pt-BR") : "—");
 const pct = (n: number) => `${n > 0 ? "+" : ""}${+n.toFixed(1)}%`;
+const ivColor = (v: number) => (v >= 150 ? "text-green" : v >= 100 ? "text-yellow" : "text-text");
 
 type State =
   | { status: "loading" }
@@ -278,6 +279,74 @@ function BallsCard({ account }: { account: Account }) {
   );
 }
 
+function TeamMon({ p }: { p: ActivePoke }) {
+  const t = useT();
+  return (
+    <div className="flex items-center gap-3 rounded border border-border bg-[rgba(8,14,28,0.5)] p-2.5">
+      <div className="relative flex h-14 w-14 shrink-0 items-center justify-center rounded bg-[rgba(8,14,28,0.6)]">
+        <Sprite src={spriteUrl(p.speciesId, p.shiny)} alt={p.name} size={48} />
+        {p.shiny && <span className="absolute right-0.5 top-0.5 text-yellow"><Star size={11} /></span>}
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-1.5">
+          <span className="truncate text-sm font-semibold">{p.name}</span>
+          {p.leader && <span className="chip" style={{ background: "var(--green)", color: "#052012" }}>{t("account.team.leader")}</span>}
+        </div>
+        <div className="text-[0.58rem] text-text-dim">Lv.{p.level}</div>
+        <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[0.62rem] text-text-dim">
+          <span>{t("account.col.power")} <span className="text-yellow">{fmt(p.power)}</span></span>
+          <span>{t("account.col.iv")} <span className={ivColor(p.ivTotal)}>{p.ivTotal}</span>/192</span>
+          <span>{t("account.col.quality")} <span className="text-cyan">{p.quality.toFixed(3)}</span></span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Time ativo (WebSocket): busca separada da conta REST (conecta no shard e espera o
+// evento "pokes"), por isso tem loading proprio.
+function ActiveTeamCard() {
+  const t = useT();
+  const [state, setState] = useState<
+    { status: "loading" } | { status: "error" } | { status: "ok"; team: ActivePoke[]; total: number }
+  >({ status: "loading" });
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const res = await fetch("/api/active-pokes", { cache: "no-store" });
+        if (!res.ok) { if (alive) setState({ status: "error" }); return; }
+        const j = (await res.json()) as { team?: ActivePoke[]; total?: number };
+        if (alive) setState({ status: "ok", team: j.team ?? [], total: j.total ?? 0 });
+      } catch {
+        if (alive) setState({ status: "error" });
+      }
+    })();
+    return () => { alive = false; };
+  }, []);
+
+  return (
+    <Section
+      title={t("account.sec.team")}
+      color="text-green"
+      extra={state.status === "ok" ? <span className="text-[0.55rem] text-text-dim">{t("account.team.total").replace("{n}", fmt(state.total))}</span> : null}
+    >
+      {state.status === "loading" ? (
+        <div className="py-3"><LoadingBall label={t("account.team.loading")} /></div>
+      ) : state.status === "error" ? (
+        <p className="text-[0.72rem] text-text-dim">{t("account.team.error")}</p>
+      ) : state.team.length === 0 ? (
+        <p className="text-[0.72rem] text-text-dim">{t("account.team.empty")}</p>
+      ) : (
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          {state.team.map((p) => <TeamMon key={p.id} p={p} />)}
+        </div>
+      )}
+    </Section>
+  );
+}
+
 export function AccountPanel({ creatures }: { creatures: ComboCreature[] }) {
   const t = useT();
   const [state, setState] = useState<State>({ status: "loading" });
@@ -313,6 +382,7 @@ export function AccountPanel({ creatures }: { creatures: ComboCreature[] }) {
         <button type="button" onClick={disconnect} className="btn btn-ghost">{t("account.disconnect")}</button>
       </div>
       <Overview account={account} />
+      <ActiveTeamCard />
       <TrainerCard account={account} />
       <AutomationCard account={account} nameById={nameById} />
       <StreakCard account={account} />
