@@ -8,8 +8,7 @@ import { useEffect, useState } from "react";
 import { MarketAdvisor, type MarketDex } from "./market-advisor";
 import { WishlistPanel } from "./wishlist-panel";
 import { AlertsInbox } from "./alerts-inbox";
-import { RoboPanel } from "./robo-panel";
-import { DropSeller } from "./drop-seller";
+import { RoboModule } from "./robo-module";
 import type { ComboCreature } from "./pokemon-combobox";
 import { useT } from "./locale-provider";
 import { Coin, Heart, Bell } from "./icons";
@@ -68,12 +67,7 @@ export function VipTabs({ creatures, dex }: { creatures: ComboCreature[]; dex: R
       {tab === "mercado" && <MarketAdvisor creatures={creatures} dex={dex} />}
       {tab === "desejos" && <WishlistPanel creatures={creatures} dex={dex} focusWishId={focusWish} />}
       {tab === "alertas" && <AlertsInbox onUnread={setUnread} onJumpToWish={jumpToWish} />}
-      {tab === "robo" && (
-        <div className="flex flex-col gap-8">
-          <RoboPanel />
-          <DropSeller />
-        </div>
-      )}
+      {tab === "robo" && <RoboModule />}
     </div>
   );
 }

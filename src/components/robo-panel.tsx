@@ -8,7 +8,6 @@ import { useEffect, useRef, useState } from "react";
 import { LoadingBall } from "./loaders";
 import { ToggleButton } from "./toggle-button";
 import { useT } from "./locale-provider";
-import { Star } from "./icons";
 
 interface Auto {
   autoCatch: boolean;
@@ -207,11 +206,6 @@ export function RoboPanel() {
         <Row title={t("robo.selectedBall")} desc={t("robo.selectedBall.desc")}>
           <BallSelect balls={st.balls} value={a.selectedBallId} onChange={(id) => set("selectedBallId", id)} disabled={busy === "selectedBallId"} />
         </Row>
-      </div>
-
-      <div className="card p-4">
-        <h3 className="pixel flex items-center gap-2 text-[0.6rem] text-cyan"><Star size={11} /> {t("robo.soon.title")}</h3>
-        <p className="mt-2 text-[0.72rem] leading-relaxed text-text-dim">{t("robo.soon.desc")}</p>
       </div>
     </div>
   );
