@@ -4,7 +4,7 @@
 // ao vivo do jogo via /api/market e ranqueia por Power/IV/Quality reais dos anuncios.
 // Cada card abre um modal com os stats base da especie (vindos do catalogo via `dex`).
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { spriteUrl } from "@/lib/sprites";
 import type { MarketMon, Currency } from "@/lib/game-account";
 import type { PokeType, Rarity } from "@/lib/types";
@@ -188,7 +188,15 @@ function MarketMonModal({ mon, dex, onClose }: { mon: MarketMon; dex?: MarketDex
   );
 }
 
-export function MarketAdvisor({ creatures, dex }: { creatures: ComboCreature[]; dex?: Record<number, MarketDex> }) {
+export function MarketAdvisor({
+  creatures,
+  dex,
+  focus,
+}: {
+  creatures: ComboCreature[];
+  dex?: Record<number, MarketDex>;
+  focus?: { speciesId: number; nonce: number } | null; // pulo vindo de um alerta clicado
+}) {
   const t = useT();
   const [species, setSpecies] = useState<ComboCreature | null>(null);
   const [maxGold, setMaxGold] = useState("");
@@ -206,11 +214,13 @@ export function MarketAdvisor({ creatures, dex }: { creatures: ComboCreature[]; 
   const pageCount = mons ? Math.max(1, Math.ceil(mons.length / PAGE_SIZE)) : 1;
   const paged = mons ? mons.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE) : [];
 
-  const search = async () => {
+  const search = async (over?: ComboCreature | null) => {
+    const sp = over === undefined ? species : over;
+    if (over !== undefined) setSpecies(over);
     setBusy(true);
     try {
       const p = new URLSearchParams();
-      if (species) p.set("sp", String(species.pokeId));
+      if (sp) p.set("sp", String(sp.pokeId));
       const g = numI(maxGold);
       const d = numI(maxDiamonds);
       if (g != null) p.set("maxGold", String(g));
@@ -230,6 +240,13 @@ export function MarketAdvisor({ creatures, dex }: { creatures: ComboCreature[]; 
       setBusy(false);
     }
   };
+
+  // Clique num alerta de snipe pula pra ca com a especie ja buscada.
+  useEffect(() => {
+    if (!focus?.speciesId) return;
+    search(creatures.find((c) => c.pokeId === focus.speciesId) ?? null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focus?.nonce]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -284,7 +301,7 @@ export function MarketAdvisor({ creatures, dex }: { creatures: ComboCreature[]; 
           <ToggleButton active={shiny} onClick={() => setShiny((s) => !s)} accent="yellow">
             <Star size={13} /> {t("account.market.shiny")}
           </ToggleButton>
-          <button type="button" onClick={search} disabled={busy} className="btn btn-cyan disabled:opacity-40">
+          <button type="button" onClick={() => search()} disabled={busy} className="btn btn-cyan disabled:opacity-40">
             {busy ? `${t("account.market.searching")}...` : `${t("account.market.search")} ›`}
           </button>
         </div>

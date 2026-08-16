@@ -1,49 +1,29 @@
 "use client";
 
-// Aba Alertas (VIP): o sniper passivo. Duas metades — "Minhas buscas" (watchlists que
-// o worker varre) e "Caixa de alertas" (inbox in-app do que ja disparou). Tudo leitura:
-// o worker le mercado/conta e grava aqui; nada escreve no jogo.
+// Aba Desejos (VIP): a lista de pokemon que voce quer que o piwdex vigie no mercado.
+// Cada "desejo" (watchlist) e um criterio; o worker varre o mercado e, quando bate,
+// o resultado cai na aba Alertas. Aqui so se cria/pausa/exclui desejo — leitura pura.
 
 import { useEffect, useState } from "react";
 import { spriteUrl } from "@/lib/sprites";
-import type { Watchlist, Notification, NotifKind } from "@/lib/alerts";
+import type { Watchlist } from "@/lib/alerts";
 import type { Currency } from "@/lib/game-account";
 import { Sprite } from "./sprite";
 import { LoadingBall } from "./loaders";
 import { PokemonCombobox, type ComboCreature } from "./pokemon-combobox";
 import { ToggleButton } from "./toggle-button";
 import { useT } from "./locale-provider";
-import { Star, Coin, Diamond } from "./icons";
+import { Star, Heart } from "./icons";
 
 const fmt = (n: number) => n.toLocaleString("pt-BR");
-
 const numI = (s: string) => {
   const v = parseInt(s.replace(/\D/g, ""), 10);
   return Number.isFinite(v) ? v : null;
 };
 
-// "ha 3 min" / "ha 2 h" / data curta — sem lib.
-function ago(iso: string): string {
-  const d = new Date(iso).getTime();
-  if (Number.isNaN(d)) return "";
-  const s = Math.max(0, (Date.now() - d) / 1000);
-  if (s < 60) return "agora";
-  if (s < 3600) return `ha ${Math.floor(s / 60)} min`;
-  if (s < 86400) return `ha ${Math.floor(s / 3600)} h`;
-  return new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
-}
+// ---- formulario de novo desejo ----
 
-const KIND_COLOR: Record<NotifKind, string> = {
-  snipe: "text-green",
-  egg: "text-pink",
-  breeding: "text-pink",
-  streak: "text-yellow",
-  vip: "text-yellow",
-};
-
-// ---- formulario de nova busca ----
-
-function NewWatch({ creatures, onCreated }: { creatures: ComboCreature[]; onCreated: (w: Watchlist) => void }) {
+function NewWish({ creatures, onCreated }: { creatures: ComboCreature[]; onCreated: (w: Watchlist) => void }) {
   const t = useT();
   const qualityOpts = [
     { value: "", label: t("alerts.quality.any") },
@@ -119,8 +99,10 @@ function NewWatch({ creatures, onCreated }: { creatures: ComboCreature[]; onCrea
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <h2 className="pixel text-[0.8rem] text-cyan">{t("alerts.new.title")}</h2>
-        <p className="mt-2 max-w-2xl text-sm text-text-dim">{t("alerts.new.help")}</p>
+        <h2 className="pixel flex items-center gap-2 text-[0.8rem] text-cyan">
+          <Heart size={14} className="text-pink" /> {t("wish.new.title")}
+        </h2>
+        <p className="mt-2 max-w-2xl text-sm text-text-dim">{t("wish.new.help")}</p>
       </div>
       <div className="card flex flex-col gap-4 p-5">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -167,7 +149,7 @@ function NewWatch({ creatures, onCreated }: { creatures: ComboCreature[]; onCrea
         <div className="flex items-center justify-between gap-3">
           <span className="text-[0.72rem] font-semibold text-red">{err ?? ""}</span>
           <button type="button" onClick={submit} disabled={busy} className="btn btn-cyan disabled:opacity-40">
-            {busy ? `${t("alerts.new.saving")}...` : `${t("alerts.new.save")} ›`}
+            {busy ? `${t("wish.new.saving")}...` : `${t("wish.new.save")} ›`}
           </button>
         </div>
       </div>
@@ -175,9 +157,9 @@ function NewWatch({ creatures, onCreated }: { creatures: ComboCreature[]; onCrea
   );
 }
 
-// ---- linha de uma busca salva ----
+// ---- linha de um desejo salvo ----
 
-function watchSummary(w: Watchlist, t: (k: string) => string): string {
+function wishSummary(w: Watchlist, t: (k: string) => string): string {
   const parts: string[] = [];
   if (w.maxPrice != null) parts.push(`≤ ${fmt(w.maxPrice)} ${w.currency === "DIAMONDS" ? t("alerts.coin.dia") : t("alerts.coin.gold")}`);
   if (w.minQuality != null) parts.push(`Q ≥ ${w.minQuality}`);
@@ -187,56 +169,23 @@ function watchSummary(w: Watchlist, t: (k: string) => string): string {
   return parts.join(" · ") || t("alerts.any");
 }
 
-function WatchRow({ w, onToggle, onDelete, t }: { w: Watchlist; onToggle: (a: boolean) => void; onDelete: () => void; t: (k: string) => string }) {
+function WishRow({ w, onToggle, onDelete, t }: { w: Watchlist; onToggle: (a: boolean) => void; onDelete: () => void; t: (k: string) => string }) {
   return (
     <div className={`flex items-center gap-3 rounded border border-border bg-[rgba(8,14,28,0.5)] p-2.5 ${w.active ? "" : "opacity-50"}`}>
-      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded bg-[rgba(8,14,28,0.6)]">
+      <div className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded bg-[rgba(8,14,28,0.6)]">
         <Sprite src={w.speciesId ? spriteUrl(w.speciesId, w.shinyOnly) : null} alt={w.label ?? "any"} size={38} />
+        {w.shinyOnly && <span className="absolute right-0.5 top-0.5 text-yellow"><Star size={10} /></span>}
       </div>
       <div className="min-w-0 flex-1">
         <div className="truncate text-sm font-semibold">{w.label ?? (w.speciesId ? `#${w.speciesId}` : t("alerts.anySpecies"))}</div>
-        <div className="truncate text-[0.62rem] text-text-dim">{watchSummary(w, t)}</div>
+        <div className="truncate text-[0.62rem] text-text-dim">{wishSummary(w, t)}</div>
       </div>
       <ToggleButton active={w.active} onClick={() => onToggle(!w.active)} accent="green" title={t(w.active ? "alerts.pause" : "alerts.resume")}>
-        <span
-          className="inline-block h-1.5 w-1.5 rounded-full"
-          style={{ background: w.active ? "var(--green)" : "var(--text-dim)" }}
-        />
+        <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ background: w.active ? "var(--green)" : "var(--text-dim)" }} />
         {t(w.active ? "alerts.on" : "alerts.off")}
       </ToggleButton>
-      <button type="button" onClick={onDelete} title={t("alerts.delete")} className="text-text-dim transition hover:text-red">✕</button>
+      <button type="button" onClick={onDelete} title={t("alerts.delete")} aria-label={t("alerts.delete")} className="text-text-dim transition hover:text-red">✕</button>
     </div>
-  );
-}
-
-// ---- item do inbox ----
-
-function NotifItem({ n, onRead }: { n: Notification; onRead: () => void }) {
-  const t = useT();
-  const speciesId = typeof n.data?.speciesId === "number" ? (n.data.speciesId as number) : null;
-  const shiny = Boolean(n.data?.shiny);
-  const currency = n.data?.currency as Currency | undefined;
-  return (
-    <button
-      type="button"
-      onClick={() => !n.readAt && onRead()}
-      className={`flex w-full items-start gap-3 rounded border p-2.5 text-left transition ${
-        n.readAt ? "border-border bg-transparent" : "border-[color:var(--cyan)]/40 bg-[rgba(57,139,240,0.06)]"
-      }`}
-    >
-      <div className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded bg-[rgba(8,14,28,0.6)]">
-        <Sprite src={speciesId ? spriteUrl(speciesId, shiny) : null} alt={n.title} size={38} />
-        {!n.readAt && <span className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-cyan" />}
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className={`flex items-center gap-1.5 text-sm font-semibold ${KIND_COLOR[n.kind] ?? "text-text"}`}>
-          {currency === "DIAMONDS" ? <Diamond size={11} /> : n.kind === "snipe" ? <Coin size={11} /> : null}
-          <span className="truncate">{n.title}</span>
-        </div>
-        {n.body && <div className="mt-0.5 truncate text-[0.66rem] text-text-dim">{n.body}</div>}
-      </div>
-      <span className="shrink-0 text-[0.55rem] text-text-dim">{ago(n.createdAt)}</span>
-    </button>
   );
 }
 
@@ -244,124 +193,63 @@ function NotifItem({ n, onRead }: { n: Notification; onRead: () => void }) {
 
 type Load<T> = { status: "loading" } | { status: "error" } | { status: "ok"; data: T };
 
-export function AlertsPanel({ creatures, onUnread }: { creatures: ComboCreature[]; onUnread?: (n: number) => void }) {
+export function WishlistPanel({ creatures }: { creatures: ComboCreature[] }) {
   const t = useT();
-  const [watch, setWatch] = useState<Load<Watchlist[]>>({ status: "loading" });
-  const [inbox, setInbox] = useState<Load<Notification[]>>({ status: "loading" });
+  const [wishes, setWishes] = useState<Load<Watchlist[]>>({ status: "loading" });
 
-  const loadWatch = async () => {
+  const load = async () => {
     try {
       const res = await fetch("/api/vip/watchlist", { cache: "no-store" });
       const j = (await res.json()) as { watchlists?: Watchlist[] };
-      setWatch({ status: "ok", data: j.watchlists ?? [] });
+      setWishes({ status: "ok", data: j.watchlists ?? [] });
     } catch {
-      setWatch({ status: "error" });
-    }
-  };
-  const loadInbox = async () => {
-    try {
-      const res = await fetch("/api/vip/alerts", { cache: "no-store" });
-      const j = (await res.json()) as { notifications?: Notification[]; unread?: number };
-      setInbox({ status: "ok", data: j.notifications ?? [] });
-      onUnread?.(j.unread ?? 0);
-    } catch {
-      setInbox({ status: "error" });
+      setWishes({ status: "error" });
     }
   };
   useEffect(() => {
-    loadWatch();
-    loadInbox();
+    load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const removeWatch = async (id: string) => {
-    if (watch.status === "ok") setWatch({ status: "ok", data: watch.data.filter((w) => w.id !== id) });
+  const remove = async (id: string) => {
+    if (wishes.status === "ok") setWishes({ status: "ok", data: wishes.data.filter((w) => w.id !== id) });
     await fetch(`/api/vip/watchlist?id=${id}`, { method: "DELETE" });
   };
-  const toggleWatch = async (id: string, active: boolean) => {
-    if (watch.status === "ok")
-      setWatch({ status: "ok", data: watch.data.map((w) => (w.id === id ? { ...w, active } : w)) });
+  const toggle = async (id: string, active: boolean) => {
+    if (wishes.status === "ok") setWishes({ status: "ok", data: wishes.data.map((w) => (w.id === id ? { ...w, active } : w)) });
     await fetch("/api/vip/watchlist", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id, active }),
     });
   };
-  const markOne = async (id: string) => {
-    if (inbox.status === "ok")
-      setInbox({ status: "ok", data: inbox.data.map((n) => (n.id === id ? { ...n, readAt: new Date().toISOString() } : n)) });
-    const res = await fetch("/api/vip/alerts", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ids: [id] }),
-    });
-    const j = (await res.json().catch(() => ({}))) as { unread?: number };
-    onUnread?.(j.unread ?? 0);
-  };
-  const markAll = async () => {
-    if (inbox.status === "ok")
-      setInbox({ status: "ok", data: inbox.data.map((n) => ({ ...n, readAt: n.readAt ?? new Date().toISOString() })) });
-    await fetch("/api/vip/alerts", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ all: true }),
-    });
-    onUnread?.(0);
-  };
-
-  const unread = inbox.status === "ok" ? inbox.data.filter((n) => !n.readAt).length : 0;
 
   return (
     <div className="flex flex-col gap-5">
-      <NewWatch
+      <NewWish
         creatures={creatures}
-        onCreated={(w) => setWatch((s) => (s.status === "ok" ? { status: "ok", data: [w, ...s.data] } : s))}
+        onCreated={(w) => setWishes((s) => (s.status === "ok" ? { status: "ok", data: [w, ...s.data] } : s))}
       />
 
-      {/* Minhas buscas */}
       <div className="card p-4">
-        <h3 className="pixel text-[0.6rem] text-cyan">{t("alerts.list.title")}</h3>
+        <h3 className="pixel flex items-center gap-2 text-[0.6rem] text-cyan">
+          <Heart size={12} className="text-pink" /> {t("wish.list.title")}
+        </h3>
         <div className="mt-3">
-          {watch.status === "loading" ? (
+          {wishes.status === "loading" ? (
             <LoadingBall label={t("alerts.loading")} />
-          ) : watch.status === "error" ? (
+          ) : wishes.status === "error" ? (
             <p className="text-[0.72rem] text-text-dim">{t("alerts.error")}</p>
-          ) : watch.data.length === 0 ? (
-            <p className="text-[0.72rem] text-text-dim">{t("alerts.list.empty")}</p>
+          ) : wishes.data.length === 0 ? (
+            <p className="text-[0.72rem] text-text-dim">{t("wish.list.empty")}</p>
           ) : (
             <div className="grid gap-2">
-              {watch.data.map((w) => (
-                <WatchRow key={w.id} w={w} t={t} onDelete={() => removeWatch(w.id)} onToggle={(a) => toggleWatch(w.id, a)} />
+              {wishes.data.map((w) => (
+                <WishRow key={w.id} w={w} t={t} onDelete={() => remove(w.id)} onToggle={(a) => toggle(w.id, a)} />
               ))}
             </div>
           )}
         </div>
-      </div>
-
-      {/* Caixa de alertas */}
-      <div className="card p-4">
-        <div className="mb-3 flex items-center justify-between gap-2">
-          <h3 className="pixel text-[0.6rem] text-green">
-            {t("alerts.inbox.title")}
-            {unread > 0 && <span className="ml-2 rounded-full bg-cyan px-1.5 py-0.5 text-[0.5rem] text-[#06131a]">{unread}</span>}
-          </h3>
-          {unread > 0 && (
-            <button type="button" onClick={markAll} className="btn btn-ghost">{t("alerts.markAll")}</button>
-          )}
-        </div>
-        {inbox.status === "loading" ? (
-          <LoadingBall label={t("alerts.loading")} />
-        ) : inbox.status === "error" ? (
-          <p className="text-[0.72rem] text-text-dim">{t("alerts.error")}</p>
-        ) : inbox.data.length === 0 ? (
-          <p className="text-[0.72rem] leading-relaxed text-text-dim">{t("alerts.inbox.empty")}</p>
-        ) : (
-          <div className="grid gap-2">
-            {inbox.data.map((n) => (
-              <NotifItem key={n.id} n={n} onRead={() => markOne(n.id)} />
-            ))}
-          </div>
-        )}
       </div>
     </div>
   );
