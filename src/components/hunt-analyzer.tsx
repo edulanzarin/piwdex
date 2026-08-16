@@ -8,7 +8,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useT } from "./locale-provider";
 import { Coin, Star } from "./icons";
 import { Sprite } from "./sprite";
-import { spriteUrl } from "@/lib/sprites";
+import { spriteUrl, assetIconUrl } from "@/lib/sprites";
 
 // Uma hunt do catalogo do jogo: o `slug` e exatamente o que o enter-hunt come; o resto
 // e detalhe pro seletor (nivel, area, sprite do pokemon daquele ponto).
@@ -20,7 +20,8 @@ interface Analyzer {
   goldPerHour: number; xpPerHour: number; captures: number;
   drops: { itemId: number; name: string; qty: number; gold: number }[];
 }
-interface KillLog { at: number; species: string; shiny: boolean; xp: number; loot: { name: string; qty: number }[] }
+interface KillLog { at: number; species: string; shiny: boolean; xp: number; loot: { itemId: number; name: string; qty: number }[] }
+export interface KillDex { pokeByName: Map<string, number>; itemIcon: (id: number) => string | null }
 type Status = "idle" | "connecting" | "running" | "kicked" | "error";
 interface HuntState { status: Status; slug: string | null; analyzer: Analyzer | null; recentKills: KillLog[] }
 
@@ -37,9 +38,16 @@ function Stat({ label, value, accent }: { label: string; value: string; accent?:
   );
 }
 
-export function HuntAnalyzer({ hunts }: { hunts: HuntOption[] }) {
+export function HuntAnalyzer({ hunts, creatures, itemIcons }: { hunts: HuntOption[]; creatures: { pokeId: number; name: string }[]; itemIcons: Record<number, string> }) {
   const t = useT();
   const [st, setSt] = useState<HuntState | null>(null);
+
+  // resolve o sprite do pokemon do kill (field-kill so traz o nome) e o icone do loot.
+  const pokeByName = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const c of creatures) m.set(c.name.toLowerCase(), c.pokeId);
+    return m;
+  }, [creatures]);
   const [slug, setSlug] = useState("");
   const [busy, setBusy] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -177,19 +185,41 @@ export function HuntAnalyzer({ hunts }: { hunts: HuntOption[] }) {
         </div>
       )}
 
-      {/* ultimos kills ao vivo */}
+      {/* ultimos kills ao vivo — cards com sprite do pokemon + icone de cada loot */}
       {st?.recentKills && st.recentKills.length > 0 && (
         <div className="card p-4">
           <h3 className="pixel mb-2 text-[0.6rem] text-cyan">{t("robo.hunt.recent")}</h3>
-          <div className="flex max-h-56 flex-col gap-1 overflow-auto pr-1">
-            {st.recentKills.map((k, i) => (
-              <div key={k.at + "-" + i} className="flex items-center gap-2 text-[0.72rem]">
-                {k.shiny && <span className="text-yellow"><Star size={9} /></span>}
-                <span className="min-w-0 flex-1 truncate">{k.species}</span>
-                {k.loot.length > 0 && <span className="truncate text-text-dim">{k.loot.map((l) => `${l.name} x${l.qty}`).join(", ")}</span>}
-                <span className="shrink-0 inline-flex items-center gap-1 text-yellow"><Coin size={10} />{fmt(k.xp)} xp</span>
-              </div>
-            ))}
+          <div className="grid max-h-96 gap-1.5 overflow-auto pr-1 sm:grid-cols-2">
+            {st.recentKills.map((k, i) => {
+              const pid = pokeByName.get(k.species.toLowerCase());
+              return (
+                <div key={k.at + "-" + i} className="flex items-center gap-2.5 rounded border border-border bg-[rgba(8,14,28,0.5)] p-2">
+                  <span className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded bg-[rgba(8,14,28,0.6)]">
+                    {pid != null && <Sprite src={spriteUrl(pid, k.shiny)} alt={k.species} size={34} />}
+                    {k.shiny && <span className="absolute right-0 top-0 text-yellow"><Star size={9} /></span>}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="truncate text-[0.75rem] font-semibold">{k.species}</span>
+                      <span className="ml-auto shrink-0 inline-flex items-center gap-1 text-[0.62rem] text-yellow"><Coin size={9} />{fmt(k.xp)}</span>
+                    </div>
+                    {k.loot.length > 0 && (
+                      <div className="mt-1 flex flex-wrap items-center gap-1">
+                        {k.loot.map((l, j) => {
+                          const icon = itemIcons[l.itemId];
+                          return (
+                            <span key={j} className="inline-flex items-center gap-1 rounded bg-[rgba(8,14,28,0.6)] px-1 py-0.5 text-[0.56rem] text-text-dim" title={l.name}>
+                              {icon ? <Sprite src={assetIconUrl(icon)} alt={l.name} size={14} /> : <span className="truncate max-w-[6rem]">{l.name}</span>}
+                              x{l.qty}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

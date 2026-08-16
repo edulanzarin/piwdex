@@ -25,6 +25,8 @@ const UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Geck
 const SWEEP_MS = 60_000; // varre a lista e vende a cada 60s
 
 export type AutoSellStatus = "idle" | "connecting" | "running" | "kicked" | "error";
+// Pokemon que bateu as travas na ultima varredura (mostrado como card na UI).
+export interface SoldPoke { id: string; name: string; speciesId: number; level: number; shiny: boolean; ivTotal: number; quality: number; sellValue: number; rarity: Rarity }
 export interface AutoSellState {
   status: AutoSellStatus;
   since: number | null; // quando ligou
@@ -32,6 +34,7 @@ export interface AutoSellState {
   lastSold: number; // vendidos na ultima varredura
   soldTotal: number; // acumulado desde que ligou
   goldTotal: number; // ouro acumulado desde que ligou
+  lastMatches: SoldPoke[]; // o que bateu as travas na ultima varredura (cards)
   config: PokeSellConfig | null;
   error?: string;
 }
@@ -43,7 +46,7 @@ class AutoSellSession {
   private tokens: Tokens | null = null;
   private cfg: PokeSellConfig | null = null;
   private onTokens: ((t: Tokens) => Promise<void>) | null = null;
-  private state: AutoSellState = { status: "idle", since: null, lastSweepAt: null, lastSold: 0, soldTotal: 0, goldTotal: 0, config: null };
+  private state: AutoSellState = { status: "idle", since: null, lastSweepAt: null, lastSold: 0, soldTotal: 0, goldTotal: 0, lastMatches: [], config: null };
 
   getState(): AutoSellState {
     return { ...this.state };
@@ -54,7 +57,7 @@ class AutoSellSession {
     this.tokens = tokens;
     this.cfg = cfg;
     this.onTokens = onTokens;
-    this.state = { status: "connecting", since: Date.now(), lastSweepAt: null, lastSold: 0, soldTotal: 0, goldTotal: 0, config: cfg };
+    this.state = { status: "connecting", since: Date.now(), lastSweepAt: null, lastSold: 0, soldTotal: 0, goldTotal: 0, lastMatches: [], config: cfg };
 
     const url = `${WS_BASE}/ws${shard}?token=${encodeURIComponent(tokens.access)}&cmid=${crypto.randomBytes(16).toString("hex")}`;
     let ws: WebSocket;
@@ -95,6 +98,11 @@ class AutoSellSession {
       const rarityOf = (sid: number): Rarity => data.getCreature(sid)?.rarity ?? "COMMON";
       const matches = filterSellable(all, this.cfg, rarityOf);
       this.state.lastSweepAt = Date.now();
+      // o que bateu as travas nesta varredura (mostrado como card na UI, mesmo antes de vender)
+      this.state.lastMatches = matches.slice(0, 60).map((p) => ({
+        id: p.id, name: p.name, speciesId: p.speciesId, level: p.level, shiny: p.shiny,
+        ivTotal: p.ivTotal, quality: p.quality, sellValue: p.sellValue, rarity: p.rarity,
+      }));
       if (!matches.length) { this.state.lastSold = 0; return; }
 
       const ids = matches.map((p) => p.id);
@@ -126,7 +134,7 @@ class AutoSellSession {
     this.tokens = null;
     this.cfg = null;
     this.onTokens = null;
-    this.state = { status: "idle", since: null, lastSweepAt: null, lastSold: 0, soldTotal: 0, goldTotal: 0, config: null };
+    this.state = { status: "idle", since: null, lastSweepAt: null, lastSold: 0, soldTotal: 0, goldTotal: 0, lastMatches: [], config: null };
   }
 }
 

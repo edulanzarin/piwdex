@@ -30,7 +30,11 @@ export default async function VipPage({ searchParams }: { searchParams: Promise<
 
   // VIP ativo: consultor de mercado + conta + robo.
   const db = await getData();
-  const { creatures, hunts } = db;
+  const { creatures, hunts, items } = db;
+
+  // itemId -> icone, pros cards de loot dos kills da Hunt (o field-kill so traz itemId+nome).
+  const itemIcons: Record<number, string> = {};
+  for (const it of items) itemIcons[it.id] = it.icon;
   const slim: ComboCreature[] = creatures
     .map((c) => ({ pokeId: c.pokeId, name: c.name, type1: c.type1, type2: c.type2 }))
     .sort((a, b) => a.name.localeCompare(b.name));
@@ -74,7 +78,7 @@ export default async function VipPage({ searchParams }: { searchParams: Promise<
           <p className="mt-3 max-w-2xl text-sm text-text-dim"><T k="vip.active.desc" /></p>
         </div>
 
-        <VipTabs creatures={slim} dex={dex} hunts={huntOptions} />
+        <VipTabs creatures={slim} dex={dex} hunts={huntOptions} itemIcons={itemIcons} />
       </div>
     </ToolFrame>
   );

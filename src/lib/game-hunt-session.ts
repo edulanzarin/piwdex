@@ -27,7 +27,7 @@ export interface Analyzer {
   balance: number; goldPerHour: number; xpPerHour: number; killsPerHour: number;
   drops: { itemId: number; name: string; qty: number; gold: number }[];
 }
-export interface KillLog { at: number; species: string; shiny: boolean; xp: number; loot: { name: string; qty: number }[] }
+export interface KillLog { at: number; species: string; shiny: boolean; xp: number; loot: { itemId: number; name: string; qty: number }[] }
 export type HuntStatus = "idle" | "connecting" | "running" | "kicked" | "error";
 export interface HuntState {
   status: HuntStatus;
@@ -77,7 +77,7 @@ class HuntSession {
         this.state.updatedAt = Date.now();
       } else if (m.type === "field-kill") {
         const k = m as Record<string, unknown>;
-        const loot = Array.isArray(k.loot) ? (k.loot as Record<string, unknown>[]).map((l) => ({ name: String(l.name ?? ""), qty: Number(l.qty ?? 0) })) : [];
+        const loot = Array.isArray(k.loot) ? (k.loot as Record<string, unknown>[]).map((l) => ({ itemId: Number(l.itemId ?? 0), name: String(l.name ?? ""), qty: Number(l.qty ?? 0) })) : [];
         this.state.recentKills.unshift({ at: Date.now(), species: String(k.speciesName ?? "?"), shiny: Boolean(k.shiny), xp: Number(k.xpGained ?? 0), loot });
         if (this.state.recentKills.length > 50) this.state.recentKills.length = 50;
       }
