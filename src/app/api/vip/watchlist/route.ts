@@ -40,8 +40,13 @@ export async function POST(req: Request) {
   const currency: Currency | null =
     body.currency === "GOLD" || body.currency === "DIAMONDS" ? body.currency : null;
 
+  const speciesId = numOrNull(body.speciesId);
+  // tipo e especie sao exclusivos: se veio especie, ignora o tipo.
+  const type = speciesId == null && typeof body.type === "string" && body.type.trim() ? body.type.trim() : null;
+
   const input: WatchInput = {
-    speciesId: numOrNull(body.speciesId),
+    speciesId,
+    type,
     currency,
     maxPrice: numOrNull(body.maxPrice),
     minQuality: numOrNull(body.minQuality),
@@ -54,6 +59,7 @@ export async function POST(req: Request) {
   // Precisa de pelo menos UM criterio — senao alerta em tudo.
   const hasCriterion =
     input.speciesId != null ||
+    input.type != null ||
     input.maxPrice != null ||
     input.minQuality != null ||
     input.minIv != null ||

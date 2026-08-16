@@ -18,6 +18,7 @@ export interface Watchlist {
   id: string;
   userId: string;
   speciesId: number | null;
+  type: string | null; // tipo (exclusivo com speciesId)
   currency: Currency | null;
   maxPrice: number | null;
   minQuality: number | null;
@@ -56,6 +57,7 @@ interface WatchRow {
   id: string;
   user_id: string;
   species_id: number | null;
+  type: string | null;
   currency: string | null;
   max_price: string | null; // bigint volta como string no pg
   min_quality: string | null; // numeric volta como string
@@ -71,6 +73,7 @@ const toWatch = (r: WatchRow): Watchlist => ({
   id: r.id,
   userId: r.user_id,
   speciesId: r.species_id,
+  type: r.type,
   currency: r.currency === "GOLD" || r.currency === "DIAMONDS" ? r.currency : null,
   maxPrice: r.max_price != null ? Number(r.max_price) : null,
   minQuality: r.min_quality != null ? Number(r.min_quality) : null,
@@ -83,7 +86,7 @@ const toWatch = (r: WatchRow): Watchlist => ({
 });
 
 const WATCH_COLS =
-  "id, user_id, species_id, currency, max_price, min_quality, min_iv, shiny_only, below_fair, active, label, criado_em";
+  "id, user_id, species_id, type, currency, max_price, min_quality, min_iv, shiny_only, below_fair, active, label, criado_em";
 
 export async function listWatchlistsByUser(userId: string): Promise<Watchlist[]> {
   const rows = await query<WatchRow>(
@@ -97,7 +100,7 @@ export async function listWatchlistsByUser(userId: string): Promise<Watchlist[]>
 export async function listActiveWatchlists(): Promise<Watchlist[]> {
   const rows = await query<WatchRow>(
     `SELECT w.id, w.user_id, w.species_id, w.currency, w.max_price, w.min_quality,
-            w.min_iv, w.shiny_only, w.below_fair, w.active, w.label, w.criado_em
+            w.type, w.min_iv, w.shiny_only, w.below_fair, w.active, w.label, w.criado_em
        FROM watchlists w
        JOIN users u      ON u.id = w.user_id
        JOIN game_links g ON g.user_id = w.user_id
@@ -108,6 +111,7 @@ export async function listActiveWatchlists(): Promise<Watchlist[]> {
 
 export interface WatchInput {
   speciesId: number | null;
+  type: string | null;
   currency: Currency | null;
   maxPrice: number | null;
   minQuality: number | null;
@@ -120,12 +124,13 @@ export interface WatchInput {
 export async function createWatchlist(userId: string, w: WatchInput): Promise<Watchlist> {
   const row = await queryOne<WatchRow>(
     `INSERT INTO watchlists
-       (user_id, species_id, currency, max_price, min_quality, min_iv, shiny_only, below_fair, label)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+       (user_id, species_id, type, currency, max_price, min_quality, min_iv, shiny_only, below_fair, label)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
      RETURNING ${WATCH_COLS}`,
     [
       userId,
       w.speciesId,
+      w.type,
       w.currency,
       w.maxPrice,
       w.minQuality,
@@ -238,6 +243,7 @@ type ScoredMon = MarketMon;
 // Um anuncio casa a watchlist? (todos os criterios definidos precisam bater)
 function monMatches(w: Watchlist, m: ScoredMon): boolean {
   if (w.speciesId != null && m.speciesId !== w.speciesId) return false;
+  if (w.type != null && m.type1 !== w.type && m.type2 !== w.type) return false;
   if (w.currency != null && m.currency !== w.currency) return false;
   if (w.maxPrice != null && m.price > w.maxPrice) return false;
   if (w.shinyOnly && !m.shiny) return false;
@@ -274,6 +280,7 @@ export function matchSnipes(watchlists: Watchlist[], mons: ScoredMon[]): NewNoti
           level: m.level,
           shiny: m.shiny,
           type1: m.type1,
+          type2: m.type2,
           price: m.price,
           currency: m.currency,
           quality: m.quality,

@@ -327,6 +327,7 @@ export interface MarketMon {
   quality: number | null;
   power: number | null;
   type1: string | null;
+  type2: string | null;
   price: number;
   currency: Currency;
   belowNpc: boolean;
@@ -358,6 +359,7 @@ export function normalizeMarketMons(raw: unknown, creatures: Creature[]): Market
       quality: o.quality != null ? num(o.quality) : null,
       power: o.power != null ? num(o.power) : null,
       type1: (o.type1 as string) ?? species?.type1 ?? null,
+      type2: (o.type2 as string) ?? species?.type2 ?? null,
       price: num(o.price),
       currency,
       belowNpc: Boolean(o.belowNpc),

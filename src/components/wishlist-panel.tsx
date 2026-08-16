@@ -16,8 +16,11 @@ import { LoadingBall } from "./loaders";
 import { Pagination } from "./pagination";
 import { PokemonCombobox, type ComboCreature } from "./pokemon-combobox";
 import { ToggleButton } from "./toggle-button";
+import { TypeFilter } from "./type-filter";
+import { TypeIcon } from "./type-icon";
+import { TYPE_COLOR } from "@/lib/typing";
 import { MarketMonModal, MarketMonCard, type MarketDex } from "./market-advisor";
-import { useT } from "./locale-provider";
+import { useT, useTypeLabel } from "./locale-provider";
 import { Star, Heart } from "./icons";
 
 const fmt = (n: number) => n.toLocaleString("pt-BR");
@@ -40,6 +43,7 @@ function monFromNotif(n: Notification, name: string): MarketMon {
     quality: nn(d.quality),
     power: nn(d.power),
     type1: (d.type1 as PokeType) ?? null,
+    type2: (d.type2 as PokeType) ?? null,
     price: Number(d.price ?? 0),
     currency: d.currency === "DIAMONDS" ? "DIAMONDS" : "GOLD",
     belowNpc: Boolean(d.belowNpc),
@@ -52,6 +56,7 @@ function monFromNotif(n: Notification, name: string): MarketMon {
 
 function NewWish({ creatures, onCreated }: { creatures: ComboCreature[]; onCreated: (w: Watchlist) => void }) {
   const t = useT();
+  const typeLabel = useTypeLabel();
   const qualityOpts = [
     { value: "", label: t("alerts.quality.any") },
     { value: "1.2", label: "≥ 1.2" },
@@ -61,6 +66,7 @@ function NewWish({ creatures, onCreated }: { creatures: ComboCreature[]; onCreat
     { value: "2.0", label: "≥ 2.0" },
   ];
   const [species, setSpecies] = useState<ComboCreature | null>(null);
+  const [type, setType] = useState<PokeType | "">("");
   const [maxGold, setMaxGold] = useState("");
   const [maxDia, setMaxDia] = useState("");
   const [minQ, setMinQ] = useState("");
@@ -85,13 +91,14 @@ function NewWish({ creatures, onCreated }: { creatures: ComboCreature[]; onCreat
     }
     const body = {
       speciesId: species?.pokeId ?? null,
+      type: species ? null : type || null,
       currency,
       maxPrice,
       minQuality: minQ ? Number(minQ) : null,
       minIv: numI(minIv),
       shinyOnly: shiny,
       belowFair,
-      label: species?.name ?? null,
+      label: species?.name ?? (type ? typeLabel(type) : null),
     };
     setBusy(true);
     try {
@@ -104,6 +111,7 @@ function NewWish({ creatures, onCreated }: { creatures: ComboCreature[]; onCreat
       if (res.ok && j.watchlist) {
         onCreated(j.watchlist);
         setSpecies(null);
+        setType("");
         setMaxGold("");
         setMaxDia("");
         setMinQ("");
@@ -130,12 +138,17 @@ function NewWish({ creatures, onCreated }: { creatures: ComboCreature[]; onCreat
         </h2>
         <p className="mt-2 max-w-2xl text-sm text-text-dim">{t("wish.new.help")}</p>
       </div>
-      <div className="card flex flex-col gap-4 p-5">
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="card z-20 flex flex-col gap-4 p-5">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {/* Especie e Tipo sao exclusivos: uma especie ja e de um tipo so. */}
           <label className="flex flex-col gap-1 sm:col-span-2 lg:col-span-1">
             <span className={lblCls}>{t("alerts.f.species")}</span>
-            <PokemonCombobox creatures={creatures} value={species} onSelect={setSpecies} placeholder={t("alerts.f.anySpecies")} />
+            <PokemonCombobox creatures={creatures} value={species} onSelect={(c) => { setSpecies(c); if (c) setType(""); }} placeholder={t("alerts.f.anySpecies")} />
           </label>
+          <div className="flex flex-col gap-1">
+            <span className={lblCls}>{t("account.market.type")}</span>
+            <TypeFilter value={type} onChange={(tp) => { setType(tp); if (tp) setSpecies(null); }} className="" />
+          </div>
           <label className="flex flex-col gap-1">
             <span className={lblCls}>{t("alerts.f.maxGold")}</span>
             <input className="input" inputMode="numeric" placeholder="—" value={maxGold} onChange={(e) => setMaxGold(e.target.value)} />
@@ -236,7 +249,13 @@ function WishBlock({
         <button type="button" onClick={onToggleExpand} className="flex min-w-0 flex-1 items-center gap-3 text-left" aria-expanded={expanded}>
           <span className="text-[0.7rem] text-cyan" style={{ transform: expanded ? "rotate(90deg)" : "none", transition: "transform .15s" }}>›</span>
           <div className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded bg-[rgba(8,14,28,0.6)]">
-            <Sprite src={w.speciesId ? spriteUrl(w.speciesId, w.shinyOnly) : null} alt={w.label ?? "any"} size={38} />
+            {!w.speciesId && w.type ? (
+              <span className="flex h-7 w-7 items-center justify-center rounded" style={{ background: TYPE_COLOR[w.type as PokeType], color: "#fff" }}>
+                <TypeIcon type={w.type as PokeType} size={16} />
+              </span>
+            ) : (
+              <Sprite src={w.speciesId ? spriteUrl(w.speciesId, w.shinyOnly) : null} alt={w.label ?? "any"} size={38} />
+            )}
             {w.shinyOnly && <span className="absolute right-0.5 top-0.5 text-yellow"><Star size={10} /></span>}
           </div>
           <div className="min-w-0 flex-1">

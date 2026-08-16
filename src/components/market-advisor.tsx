@@ -300,7 +300,7 @@ export function MarketAdvisor({
         <h2 className="pixel text-[0.8rem] text-purple">{t("account.market.title")}</h2>
         <p className="mt-2 max-w-2xl text-sm text-text-dim">{t("account.market.desc")}</p>
       </div>
-      <div className="card flex flex-col gap-4 p-5">
+      <div className="card z-20 flex flex-col gap-4 p-5">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {/* Especie e Tipo sao mutuamente exclusivos: uma especie ja e de um tipo so.
               Escolher um zera o outro. */}
@@ -355,9 +355,11 @@ export function MarketAdvisor({
           </label>
           <div className="flex flex-col gap-1">
             <span className="text-[0.55rem] uppercase tracking-wide text-text-dim">{t("alerts.f.filters")}</span>
-            <ToggleButton active={shiny} onClick={() => setShiny((s) => !s)} accent="yellow">
-              <Star size={13} /> {t("account.market.shiny")}
-            </ToggleButton>
+            <div className="flex flex-wrap items-center gap-2">
+              <ToggleButton active={shiny} onClick={() => setShiny((s) => !s)} accent="yellow">
+                <Star size={13} /> {t("account.market.shiny")}
+              </ToggleButton>
+            </div>
           </div>
         </div>
         <div className="flex items-center justify-end gap-3">
