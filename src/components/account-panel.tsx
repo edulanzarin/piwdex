@@ -303,39 +303,59 @@ function TeamMon({ p }: { p: ActivePoke }) {
   );
 }
 
-// Time ativo (WebSocket): busca separada da conta REST (conecta no shard e espera o
-// evento "pokes"), por isso tem loading proprio.
+// Time ativo (WebSocket): OPT-IN. Ler o time exige conectar no WS do jogo, que E a
+// sessao de jogo — se o jogo estiver aberto em outra aba, o jogo desconecta ela ("conta
+// em uso"). Por isso NAO busca sozinho: o usuario clica ciente disso (idealmente com o
+// jogo fechado; como e idle, o normal e a aba estar fechada e nao chutar ninguem).
+type TeamState =
+  | { status: "idle" }
+  | { status: "loading" }
+  | { status: "error" }
+  | { status: "ok"; team: ActivePoke[]; total: number };
+
 function ActiveTeamCard() {
   const t = useT();
-  const [state, setState] = useState<
-    { status: "loading" } | { status: "error" } | { status: "ok"; team: ActivePoke[]; total: number }
-  >({ status: "loading" });
+  const [state, setState] = useState<TeamState>({ status: "idle" });
 
-  useEffect(() => {
-    let alive = true;
-    (async () => {
-      try {
-        const res = await fetch("/api/active-pokes", { cache: "no-store" });
-        if (!res.ok) { if (alive) setState({ status: "error" }); return; }
-        const j = (await res.json()) as { team?: ActivePoke[]; total?: number };
-        if (alive) setState({ status: "ok", team: j.team ?? [], total: j.total ?? 0 });
-      } catch {
-        if (alive) setState({ status: "error" });
-      }
-    })();
-    return () => { alive = false; };
-  }, []);
+  const load = async () => {
+    setState({ status: "loading" });
+    try {
+      const res = await fetch("/api/active-pokes", { cache: "no-store" });
+      if (!res.ok) return setState({ status: "error" });
+      const j = (await res.json()) as { team?: ActivePoke[]; total?: number };
+      setState({ status: "ok", team: j.team ?? [], total: j.total ?? 0 });
+    } catch {
+      setState({ status: "error" });
+    }
+  };
 
   return (
     <Section
       title={t("account.sec.team")}
       color="text-green"
-      extra={state.status === "ok" ? <span className="text-[0.55rem] text-text-dim">{t("account.team.total").replace("{n}", fmt(state.total))}</span> : null}
+      extra={
+        state.status === "ok" ? (
+          <div className="flex items-center gap-3">
+            <span className="text-[0.55rem] text-text-dim">{t("account.team.total").replace("{n}", fmt(state.total))}</span>
+            <button type="button" onClick={load} className="btn btn-ghost">{t("account.team.reload")}</button>
+          </div>
+        ) : null
+      }
     >
-      {state.status === "loading" ? (
+      {state.status === "idle" ? (
+        <div className="flex flex-col items-start gap-3">
+          <p className="rounded border border-[color:var(--yellow)]/40 bg-[rgba(240,200,60,0.06)] px-3 py-2 text-[0.68rem] leading-relaxed text-text-dim">
+            {t("account.team.warn")}
+          </p>
+          <button type="button" onClick={load} className="btn btn-cyan">{t("account.team.load")} ›</button>
+        </div>
+      ) : state.status === "loading" ? (
         <div className="py-3"><LoadingBall label={t("account.team.loading")} /></div>
       ) : state.status === "error" ? (
-        <p className="text-[0.72rem] text-text-dim">{t("account.team.error")}</p>
+        <div className="flex flex-col items-start gap-2">
+          <p className="text-[0.72rem] text-text-dim">{t("account.team.error")}</p>
+          <button type="button" onClick={load} className="btn btn-ghost">{t("account.team.load")}</button>
+        </div>
       ) : state.team.length === 0 ? (
         <p className="text-[0.72rem] text-text-dim">{t("account.team.empty")}</p>
       ) : (
