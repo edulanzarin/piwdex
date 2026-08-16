@@ -30,6 +30,7 @@ const IV_MAX_TOTAL = 192;
 export const Q_GREAT = 1.8; // topo do selvagem / minimo recomendado — daqui pra cima e verde
 export const Q_OK = 1.4; // meio do caminho entre a base (1.0) e o recomendado
 export const Q_FODDER = 1.2; // perto da captura crua: so vale de reprodutor
+export const QUALITY_CEIL = 2.6; // teto normal (confere com breeding.ts QUALITY_MAX_NORMAL)
 
 /** Nota da Quality (Q): verde >=1.8, amarelo >=1.4, vermelho abaixo. */
 export function qualityGrade(q: number | null): Grade | null {
@@ -70,6 +71,19 @@ export function monGrade(ivTotal: number | null, quality: number | null): Grade 
   const iv = ivGrade(ivTotal);
   if (q === "great" && iv === "bad") return "ok"; // Quality otima mas genes fracos: tempera
   return q;
+}
+
+const Q_BASE = 1.0; // captura selvagem
+const Q_CEIL = QUALITY_CEIL; // teto normal (2.6)
+
+/** Potencial permanente do bicho (0..1), INDEPENDENTE de nivel: combina Quality e IV,
+ *  com a Quality pesando mais (ela pesa mais no jogo). Serve pra ordenar por "quao bom
+ *  o bicho PODE ser" em vez de pelo Power atual — que so reflete o quanto ja upou, e por
+ *  isso um lixo upado passa a frente de um perfeito de nivel baixo. */
+export function potentialScore(m: Pick<MarketMon, "ivTotal" | "quality">): number {
+  const ivn = m.ivTotal != null ? Math.min(1, Math.max(0, m.ivTotal / IV_MAX_TOTAL)) : 0;
+  const qn = m.quality != null ? Math.min(1, Math.max(0, (m.quality - Q_BASE) / (Q_CEIL - Q_BASE))) : 0;
+  return 0.6 * qn + 0.4 * ivn;
 }
 
 /** Custo-beneficio bruto: Power por unidade de preco. Null quando falta dado. */

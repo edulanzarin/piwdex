@@ -4,6 +4,7 @@ import { gameFetch, type Tokens } from "@/lib/game-auth";
 import { getGameLink, updateGameTokens, markGameLinkExpired } from "@/lib/game-link";
 import { getData } from "@/lib/data";
 import { normalizeMarketMons, type MarketMon } from "@/lib/game-account";
+import { potentialScore } from "@/lib/market-value";
 
 export const runtime = "nodejs";
 
@@ -38,7 +39,9 @@ export async function GET(req: Request) {
   const maxGold = q.get("maxGold") ? Number(q.get("maxGold")) : null;
   const maxDiamonds = q.get("maxDiamonds") ? Number(q.get("maxDiamonds")) : null;
   const shinyOnly = q.get("shiny") === "1";
-  const sort = q.get("sort") ?? "power"; // power | price | value
+  const minQ = q.get("minQ") ? Number(q.get("minQ")) : null; // Quality minima
+  const minIv = q.get("minIv") ? Number(q.get("minIv")) : null; // IV total minimo
+  const sort = q.get("sort") ?? "potential"; // potential | quality | iv | power | value | price
 
   let loaded;
   try {
@@ -61,8 +64,21 @@ export async function GET(req: Request) {
       m.currency === "GOLD" ? maxGold != null && m.price <= maxGold : maxDiamonds != null && m.price <= maxDiamonds,
     );
   }
-  const rank = (m: MarketMon) =>
-    sort === "price" ? -m.price : sort === "value" ? (m.power ?? 0) / Math.max(1, m.price) : m.power ?? 0;
+  if (minQ != null) mons = mons.filter((m) => m.quality != null && m.quality >= minQ);
+  if (minIv != null) mons = mons.filter((m) => m.ivTotal != null && m.ivTotal >= minIv);
+
+  // Ordenacao: potencial (Q+IV, o padrao) evita o vies do Power, que so reflete o quanto
+  // ja upou — um lixo upado tem Power maior que um perfeito de nivel baixo.
+  const rank = (m: MarketMon): number => {
+    switch (sort) {
+      case "price": return -m.price;
+      case "value": return (m.power ?? 0) / Math.max(1, m.price);
+      case "quality": return m.quality ?? 0;
+      case "iv": return m.ivTotal ?? 0;
+      case "power": return m.power ?? 0;
+      default: return potentialScore(m); // potential
+    }
+  };
   mons = [...mons].sort((a, b) => rank(b) - rank(a) || a.price - b.price).slice(0, 60);
 
   if (loaded.changed) await updateGameTokens(session.user.id, loaded.tokens);

@@ -186,8 +186,10 @@ export function MarketAdvisor({ creatures, dex }: { creatures: ComboCreature[]; 
   const [species, setSpecies] = useState<ComboCreature | null>(null);
   const [maxGold, setMaxGold] = useState("");
   const [maxDiamonds, setMaxDiamonds] = useState("");
+  const [minQ, setMinQ] = useState("");
+  const [minIv, setMinIv] = useState("");
   const [shiny, setShiny] = useState(false);
-  const [sort, setSort] = useState("power");
+  const [sort, setSort] = useState("potential");
   const [busy, setBusy] = useState(false);
   const [mons, setMons] = useState<MarketMon[] | null>(null);
   const [selected, setSelected] = useState<MarketMon | null>(null);
@@ -204,6 +206,8 @@ export function MarketAdvisor({ creatures, dex }: { creatures: ComboCreature[]; 
       const d = numI(maxDiamonds);
       if (g != null) p.set("maxGold", String(g));
       if (d != null) p.set("maxDiamonds", String(d));
+      if (minQ) p.set("minQ", minQ);
+      if (minIv) p.set("minIv", minIv);
       if (shiny) p.set("shiny", "1");
       p.set("sort", sort);
       const res = await fetch(`/api/market?${p.toString()}`, { cache: "no-store" });
@@ -237,8 +241,28 @@ export function MarketAdvisor({ creatures, dex }: { creatures: ComboCreature[]; 
             <input className="input" inputMode="numeric" placeholder="—" value={maxDiamonds} onChange={(e) => setMaxDiamonds(e.target.value)} />
           </label>
           <label className="flex flex-col gap-1">
+            <span className="text-[0.55rem] uppercase tracking-wide text-text-dim">{t("account.market.minQuality")}</span>
+            <select className="input" value={minQ} onChange={(e) => setMinQ(e.target.value)}>
+              <option value="">{t("account.market.any")}</option>
+              <option value="1.4">≥ 1.4</option>
+              <option value="1.8">≥ 1.8</option>
+              <option value="2.0">≥ 2.0</option>
+            </select>
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-[0.55rem] uppercase tracking-wide text-text-dim">{t("account.market.minIv")}</span>
+            <select className="input" value={minIv} onChange={(e) => setMinIv(e.target.value)}>
+              <option value="">{t("account.market.any")}</option>
+              <option value="100">≥ 100</option>
+              <option value="150">≥ 150</option>
+            </select>
+          </label>
+          <label className="flex flex-col gap-1">
             <span className="text-[0.55rem] uppercase tracking-wide text-text-dim">{t("account.market.sort")}</span>
             <select className="input" value={sort} onChange={(e) => setSort(e.target.value)}>
+              <option value="potential">{t("account.market.sort.potential")}</option>
+              <option value="quality">{t("account.market.sort.quality")}</option>
+              <option value="iv">{t("account.market.sort.iv")}</option>
               <option value="power">{t("account.market.sort.power")}</option>
               <option value="value">{t("account.market.sort.value")}</option>
               <option value="price">{t("account.market.sort.price")}</option>
