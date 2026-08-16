@@ -234,25 +234,29 @@ function ItemsCard({ title, color, items }: { title: string; color: string; item
 
 function BallsCard({ account }: { account: Account }) {
   const t = useT();
-  const balls = account.balls.filter((b) => b.count > 0 || b.selected || b.infinite);
+  // Mostra TODAS as bolas do catalogo do jogo; quem nao tem fica x0 (esmaecido).
+  const balls = account.balls;
   if (!balls.length) return null;
   return (
     <Section title={t("account.sec.balls")} color="text-cyan">
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
-        {balls.map((b) => (
-          <div
-            key={b.id}
-            className={`flex items-center gap-2 rounded border px-2 py-1.5 ${b.selected ? "border-[color:var(--cyan)] bg-[rgba(57,211,230,0.08)]" : "border-border bg-[rgba(8,14,28,0.5)]"}`}
-          >
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center">
-              <Sprite src={b.iconUrl ? assetIconUrl(b.iconUrl) : null} alt={b.name} size={22} />
-            </span>
-            <div className="min-w-0 text-[0.6rem] leading-tight">
-              <div className={`truncate ${b.selected ? "text-cyan" : "text-text"}`}>{b.name}</div>
-              <div className="tabular-nums text-text-dim">{b.infinite ? "∞" : `x${fmt(b.count)}`}</div>
+        {balls.map((b) => {
+          const owned = b.infinite || b.count > 0;
+          return (
+            <div
+              key={b.id}
+              className={`flex items-center gap-2 rounded border border-border bg-[rgba(8,14,28,0.5)] px-2 py-1.5 ${owned ? "" : "opacity-45"}`}
+            >
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center">
+                <Sprite src={b.iconUrl ? assetIconUrl(b.iconUrl) : null} alt={b.name} size={22} />
+              </span>
+              <div className="min-w-0 text-[0.6rem] leading-tight">
+                <div className="truncate text-text">{b.name}</div>
+                <div className="tabular-nums text-text-dim">{b.infinite ? "∞" : `x${fmt(b.count)}`}</div>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </Section>
   );

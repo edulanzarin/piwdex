@@ -88,7 +88,6 @@ export interface BallCount {
   count: number;
   iconUrl: string;
   infinite: boolean;
-  selected: boolean;
 }
 
 export interface AccountEgg {
@@ -261,7 +260,6 @@ export function normalizeAccount(parts: AccountParts): Account {
         count: num(ballCounts[String(id)]),
         iconUrl: str(b.iconUrl),
         infinite: Boolean(b.infinite),
-        selected: id === selectedBall,
       };
     }),
     inventory: normItems(depot.inventory),
