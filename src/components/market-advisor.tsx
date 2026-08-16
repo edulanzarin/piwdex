@@ -86,6 +86,49 @@ function Tile({ label, children }: { label: string; children: React.ReactNode })
   );
 }
 
+// Card de um anuncio do mercado — reusado no consultor E dentro de cada Desejo (aba
+// Desejos), pra o achado mostrar a MESMA leitura: borda por nota (Q pesa mais que IV),
+// etiqueta de preco (BARATO/JUSTO/CARO vs justo) e abaixo do NPC. `right` injeta um
+// canto (ex.: o ✕ de recusar) sem quebrar o layout.
+export function MarketMonCard({ mon, onClick, right }: { mon: MarketMon; onClick: () => void; right?: React.ReactNode }) {
+  const t = useT();
+  const monG = monGrade(mon.ivTotal, mon.quality);
+  const qualG = qualityGrade(mon.quality);
+  const dGrade = priceGrade(mon.price, mon.fairPrice ?? null);
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={onClick}
+        className="card flex w-full items-center gap-3 p-3 text-left transition hover:border-[color:var(--border-strong)] hover:bg-surface-2"
+        style={monG ? { borderLeftColor: GRADE_VAR[monG], borderLeftWidth: 3 } : undefined}
+      >
+        <div className="relative flex h-14 w-14 shrink-0 items-center justify-center rounded bg-[rgba(8,14,28,0.6)]">
+          <Sprite src={spriteUrl(mon.speciesId, mon.shiny)} alt={mon.name} size={48} />
+          {mon.shiny && <span className="absolute right-0.5 top-0.5 text-yellow"><Star size={11} /></span>}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5">
+            <span className="truncate text-sm font-semibold">{mon.name}</span>
+            <span className="text-[0.58rem] text-text-dim">Lv.{mon.level}</span>
+          </div>
+          <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[0.62rem] text-text-dim">
+            {mon.power != null && <span>{t("account.col.power")} <span className="text-yellow">{fmt(mon.power)}</span></span>}
+            {mon.ivTotal != null && <span>{t("account.col.iv")} <span className={ivColor(mon.ivTotal)}>{mon.ivTotal}</span>/192</span>}
+            {mon.quality != null && <span>{t("account.col.quality")} <span className={qualG ? GRADE_TEXT[qualG] : "text-cyan"}>{mon.quality.toFixed(3)}</span></span>}
+          </div>
+          <div className="mt-1.5 flex flex-wrap items-center gap-1.5 pixel text-[0.7rem] text-text">
+            <Price currency={mon.currency} value={mon.price} />
+            {dGrade && <GradeChip grade={dGrade} label={t(`account.market.deal.${dGrade}`)} />}
+            {mon.belowNpc && <span className="chip" style={{ background: "var(--green)", color: "#052012" }}>{t("account.market.belowNpc")}</span>}
+          </div>
+        </div>
+      </button>
+      {right && <div className="absolute right-2 top-2 z-10">{right}</div>}
+    </div>
+  );
+}
+
 export function MarketMonModal({ mon, dex, onClose }: { mon: MarketMon; dex?: MarketDex; onClose: () => void }) {
   const t = useT();
   const total = dex
@@ -313,41 +356,9 @@ export function MarketAdvisor({
         <div className="card p-6 text-center text-sm text-text-dim">{t("account.market.empty")}</div>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {paged.map((m) => {
-            const monG = monGrade(m.ivTotal, m.quality);
-            const qualG = qualityGrade(m.quality);
-            const dGrade = priceGrade(m.price, m.fairPrice ?? null);
-            return (
-            <button
-              key={m.listingId}
-              type="button"
-              onClick={() => setSelected(m)}
-              className="card flex items-center gap-3 p-3 text-left transition hover:border-[color:var(--border-strong)] hover:bg-surface-2"
-              style={monG ? { borderLeftColor: GRADE_VAR[monG], borderLeftWidth: 3 } : undefined}
-            >
-              <div className="relative flex h-14 w-14 shrink-0 items-center justify-center rounded bg-[rgba(8,14,28,0.6)]">
-                <Sprite src={spriteUrl(m.speciesId, m.shiny)} alt={m.name} size={48} />
-                {m.shiny && <span className="absolute right-0.5 top-0.5 text-yellow"><Star size={11} /></span>}
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-1.5">
-                  <span className="truncate text-sm font-semibold">{m.name}</span>
-                  <span className="text-[0.58rem] text-text-dim">Lv.{m.level}</span>
-                </div>
-                <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[0.62rem] text-text-dim">
-                  {m.power != null && <span>{t("account.col.power")} <span className="text-yellow">{fmt(m.power)}</span></span>}
-                  {m.ivTotal != null && <span>{t("account.col.iv")} <span className={ivColor(m.ivTotal)}>{m.ivTotal}</span>/192</span>}
-                  {m.quality != null && <span>{t("account.col.quality")} <span className={qualG ? GRADE_TEXT[qualG] : "text-cyan"}>{m.quality.toFixed(3)}</span></span>}
-                </div>
-                <div className="mt-1.5 flex flex-wrap items-center gap-1.5 pixel text-[0.7rem] text-text">
-                  <Price currency={m.currency} value={m.price} />
-                  {dGrade && <GradeChip grade={dGrade} label={t(`account.market.deal.${dGrade}`)} />}
-                  {m.belowNpc && <span className="chip" style={{ background: "var(--green)", color: "#052012" }}>{t("account.market.belowNpc")}</span>}
-                </div>
-              </div>
-            </button>
-            );
-          })}
+          {paged.map((m) => (
+            <MarketMonCard key={m.listingId} mon={m} onClick={() => setSelected(m)} />
+          ))}
         </div>
       )}
       {mons && mons.length > PAGE_SIZE && <Pagination page={page} pageCount={pageCount} onPage={setPage} />}
