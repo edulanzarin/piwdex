@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { getData } from "@/lib/data";
 import { ToolFrame } from "@/components/tool-frame";
-import { MarketAdvisor } from "@/components/market-advisor";
+import { MarketAdvisor, type MarketDex } from "@/components/market-advisor";
 import { VipPaywall } from "@/components/vip-paywall";
 import type { ComboCreature } from "@/components/pokemon-combobox";
 import { Star } from "@/components/icons";
@@ -33,6 +33,17 @@ export default async function VipPage({ searchParams }: { searchParams: Promise<
     .map((c) => ({ pokeId: c.pokeId, name: c.name, type1: c.type1, type2: c.type2 }))
     .sort((a, b) => a.name.localeCompare(b.name));
 
+  // Stats base por especie, pro modal de detalhe de cada anuncio do mercado.
+  const dex: Record<number, MarketDex> = {};
+  for (const c of creatures) {
+    dex[c.pokeId] = {
+      type1: c.type1, type2: c.type2, rarity: c.rarity,
+      baseHp: c.baseHp, baseAtk: c.baseAtk, baseDef: c.baseDef,
+      baseSpAtk: c.baseSpAtk, baseSpDef: c.baseSpDef, baseSpeed: c.baseSpeed,
+      huntLevel: c.huntLevel,
+    };
+  }
+
   return (
     <ToolFrame accent={ACCENT} label="VIP" icon={<Star size={13} />}>
       <div className="flex flex-col gap-6">
@@ -42,7 +53,7 @@ export default async function VipPage({ searchParams }: { searchParams: Promise<
           <p className="mt-3 max-w-2xl text-sm text-text-dim"><T k="vip.active.desc" /></p>
         </div>
 
-        <MarketAdvisor creatures={slim} />
+        <MarketAdvisor creatures={slim} dex={dex} />
 
         <div className="card p-5">
           <h2 className="pixel text-[0.72rem]" style={{ color: ACCENT }}><T k="vip.robot.title" /></h2>
