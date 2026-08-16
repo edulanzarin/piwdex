@@ -4,7 +4,7 @@ import { gameFetch, type Tokens } from "@/lib/game-auth";
 import { getGameLink, updateGameTokens, markGameLinkExpired } from "@/lib/game-link";
 import { getData } from "@/lib/data";
 import { normalizeMarketMons, type MarketMon } from "@/lib/game-account";
-import { potentialScore } from "@/lib/market-value";
+import { potentialScore, monCeiling, buildPriceModel, fairPriceOf, type PriceItem } from "@/lib/market-value";
 
 export const runtime = "nodejs";
 
@@ -55,6 +55,16 @@ export async function GET(req: Request) {
   }
   if (!loaded.mons) return NextResponse.json({ connected: true, error: "game_unreachable" }, { status: 502 });
 
+  // Motor de preco justo: teto de Power por bicho (independe do nivel) + regua do mercado
+  // INTEIRO (todas as especies), pra "ta caro?" nao depender do punhado filtrado.
+  const { creatures } = await getData();
+  const basesById = new Map<number, number[]>();
+  for (const c of creatures) basesById.set(c.pokeId, [c.baseHp, c.baseAtk, c.baseDef, c.baseSpAtk, c.baseSpDef, c.baseSpeed]);
+  const ceilOf = (m: MarketMon) => monCeiling(basesById.get(m.speciesId), m.ivTotal, m.quality);
+  const priceModel = buildPriceModel(
+    loaded.mons.map<PriceItem>((m) => ({ speciesId: m.speciesId, currency: m.currency, price: m.price, ceil: ceilOf(m) })),
+  );
+
   let mons = loaded.mons;
   if (sp != null) mons = mons.filter((m) => m.speciesId === sp);
   if (shinyOnly) mons = mons.filter((m) => m.shiny);
@@ -79,7 +89,9 @@ export async function GET(req: Request) {
       default: return potentialScore(m); // potential
     }
   };
-  mons = [...mons].sort((a, b) => rank(b) - rank(a) || a.price - b.price).slice(0, 60);
+  mons = [...mons].sort((a, b) => rank(b) - rank(a) || a.price - b.price).slice(0, 120);
+  // Anexa o preco justo estimado (motor acima) em cada anuncio retornado.
+  mons = mons.map((m) => ({ ...m, fairPrice: fairPriceOf({ speciesId: m.speciesId, currency: m.currency, price: m.price, ceil: ceilOf(m) }, priceModel) }));
 
   if (loaded.changed) await updateGameTokens(session.user.id, loaded.tokens);
   return NextResponse.json({ connected: true, mons, total: loaded.mons.length });

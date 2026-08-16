@@ -12,15 +12,19 @@
 //     Fontes: pokepedia/systems/quality do jogo e pokeidletools.com; constantes de
 //     breeding conferem com src/lib/breeding.ts (WILD ~1.0, max normal 2.6).
 //
-//  3. Preco (deal): se VALE A PENA pelo que se paga. Custo-beneficio = Power por
-//     unidade de preco, comparado com a MEDIANA dos anuncios listados (por moeda).
-//     Mediana em vez de media pra um anuncio absurdo (golpe/typo) nao mover a regua.
+//  3. Preco (deal): se VALE A PENA pelo que se paga. NAO sai do Power atual (o nivel
+//     infla: um lixo upado tem Power alto), e sim do TETO do bicho — o Power que ele
+//     teria num nivel de referencia com a Quality e o IV que tem. O mercado INTEIRO
+//     (todas as especies) vira a regua: mediana de preco-por-teto por especie+moeda,
+//     com fallback global. Preco justo = taxa x teto do bicho; caro/barato = quanto o
+//     anuncio foge disso. Ver o motor mais abaixo (buildPriceModel/fairPriceOf).
 //
 // A NOTA do bicho (borda do card) e comandada pela Quality (pois pesa mais), com os
 // genes so temperando. Genes e Quality tambem aparecem separados no veredito, porque
 // um bicho de genes otimos mas Quality baixa ainda vale — como reprodutor.
 
-import type { MarketMon } from "./game-account";
+import type { MarketMon, Currency } from "./game-account";
+import { projectAll } from "./stats";
 
 export type Grade = "great" | "ok" | "bad";
 
@@ -45,12 +49,8 @@ export function isBreedingStock(q: number | null): boolean {
   return q != null && q <= Q_FODDER;
 }
 
-// Amostra minima por moeda pra a mediana significar algo. Abaixo disso nao cravamos
-// veredito de preco (retorna null) — melhor calar que enganar.
-export const MIN_SAMPLE = 4;
-
-// Custo-beneficio precisa estar ao menos 25% acima da mediana pra ser "otimo", e nao
-// pode cair abaixo de 80% dela pra ainda ser "justo".
+// O preco justo precisa estar ao menos 25% acima do pago pra o negocio ser "otimo", e
+// o pago nao pode passar de 125% do justo pra ainda ser "justo".
 export const DEAL_GREAT = 1.25;
 export const DEAL_FAIR = 0.8;
 
@@ -86,12 +86,6 @@ export function potentialScore(m: Pick<MarketMon, "ivTotal" | "quality">): numbe
   return 0.6 * qn + 0.4 * ivn;
 }
 
-/** Custo-beneficio bruto: Power por unidade de preco. Null quando falta dado. */
-export function valuePerCoin(m: Pick<MarketMon, "power" | "price">): number | null {
-  if (m.power == null || m.power <= 0 || m.price <= 0) return null;
-  return m.power / m.price;
-}
-
 export function median(xs: number[]): number | null {
   if (!xs.length) return null;
   const s = [...xs].sort((a, b) => a - b);
@@ -99,45 +93,98 @@ export function median(xs: number[]): number | null {
   return s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
 }
 
-// Baseline de custo-beneficio, separado por moeda (nao da pra comparar ouro com diamante).
-export interface DealBench {
-  GOLD: number | null;
-  DIAMONDS: number | null;
-  count: { GOLD: number; DIAMONDS: number };
+// ---------------------------------------------------------------------------
+// Motor de preco justo (valor). Roda no servidor sobre o MERCADO INTEIRO.
+//
+// A pergunta "ta caro?" nao pode sair do Power ATUAL (nivel infla). Sai do TETO do
+// bicho: o Power que ele teria no nivel de referencia com a Quality e o IV reais —
+// captura especie + Quality + genes e ignora o quanto ja upou. Para cada especie+moeda
+// pegamos a mediana de preco-por-teto; com poucos anuncios da especie, cai pra global.
+// Preco justo do anuncio = taxa x teto dele.
+// ---------------------------------------------------------------------------
+
+const CEIL_LEVEL = 100; // nivel de referencia constante — o valor absoluto some na razao
+export const MIN_SPECIES_SAMPLE = 5; // abaixo disso a taxa da especie e fraca -> usa a global
+
+/** Teto de Power do bicho, independente do nivel atual: projeta no nivel de referencia
+ *  com a Quality real e o IV distribuido igual entre os stats. Precisa dos bases da especie. */
+export function monCeiling(bases: number[] | undefined, ivTotal: number | null, quality: number | null): number | null {
+  if (!bases || bases.length !== 6) return null;
+  const q = quality ?? 1;
+  const ivEach = ivTotal != null ? ivTotal / 6 : 0;
+  const ivs = [ivEach, ivEach, ivEach, ivEach, ivEach, ivEach];
+  return projectAll(bases, ivs, CEIL_LEVEL, q).power;
 }
 
-/** Constroi o baseline (mediana de Power/preco por moeda) sobre um conjunto de anuncios. */
-export function buildBench(mons: MarketMon[]): DealBench {
+// O minimo que o motor precisa de cada anuncio pra montar a regua.
+export interface PriceItem {
+  speciesId: number;
+  currency: Currency;
+  price: number;
+  ceil: number | null;
+}
+
+export interface PriceModel {
+  globalRate: { GOLD: number | null; DIAMONDS: number | null };
+  speciesRate: Map<string, number>; // `${speciesId}:${currency}` -> mediana de preco/teto
+  speciesCount: Map<string, number>;
+}
+
+const keyOf = (speciesId: number, currency: Currency) => `${speciesId}:${currency}`;
+
+/** Monta a regua (mediana de preco-por-teto por especie+moeda, e global) sobre TODO o mercado. */
+export function buildPriceModel(items: PriceItem[]): PriceModel {
   const g: number[] = [];
   const d: number[] = [];
-  for (const m of mons) {
-    const v = valuePerCoin(m);
-    if (v == null) continue;
-    (m.currency === "DIAMONDS" ? d : g).push(v);
+  const bySp = new Map<string, number[]>();
+  for (const it of items) {
+    if (it.ceil == null || it.ceil <= 0 || it.price <= 0) continue;
+    const ppc = it.price / it.ceil;
+    (it.currency === "DIAMONDS" ? d : g).push(ppc);
+    const k = keyOf(it.speciesId, it.currency);
+    const arr = bySp.get(k);
+    if (arr) arr.push(ppc);
+    else bySp.set(k, [ppc]);
   }
-  return { GOLD: median(g), DIAMONDS: median(d), count: { GOLD: g.length, DIAMONDS: d.length } };
+  const speciesRate = new Map<string, number>();
+  const speciesCount = new Map<string, number>();
+  for (const [k, arr] of bySp) {
+    speciesCount.set(k, arr.length);
+    const md = median(arr);
+    if (md != null) speciesRate.set(k, md);
+  }
+  return { globalRate: { GOLD: median(g), DIAMONDS: median(d) }, speciesRate, speciesCount };
 }
 
-function benchFor(m: MarketMon, bench: DealBench): { base: number | null; n: number } {
-  return m.currency === "DIAMONDS"
-    ? { base: bench.DIAMONDS, n: bench.count.DIAMONDS }
-    : { base: bench.GOLD, n: bench.count.GOLD };
+/** Preco justo estimado do anuncio: taxa da especie (se amostra >= MIN) senao a global,
+ *  vezes o teto do bicho. Null quando falta teto ou regua. */
+export function fairPriceOf(it: PriceItem, model: PriceModel): number | null {
+  if (it.ceil == null || it.ceil <= 0) return null;
+  const k = keyOf(it.speciesId, it.currency);
+  const n = model.speciesCount.get(k) ?? 0;
+  const sp = model.speciesRate.get(k);
+  const rate = n >= MIN_SPECIES_SAMPLE && sp != null
+    ? sp
+    : it.currency === "DIAMONDS"
+      ? model.globalRate.DIAMONDS
+      : model.globalRate.GOLD;
+  if (rate == null || rate <= 0) return null;
+  return Math.round(rate * it.ceil);
 }
 
-/** Quanto o custo-beneficio do anuncio esta acima/abaixo da mediana da moeda (1 = na media).
- *  Null quando falta dado ou a amostra e pequena demais. */
-export function dealRatio(m: MarketMon, bench: DealBench): number | null {
-  const v = valuePerCoin(m);
-  const { base, n } = benchFor(m, bench);
-  if (v == null || base == null || base <= 0 || n < MIN_SAMPLE) return null;
-  return v / base;
-}
+// ---- Veredito de preco a partir do preco justo (usado no client) ----
 
-/** Veredito de preco a partir do ratio de custo-beneficio. */
-export function priceGrade(m: MarketMon, bench: DealBench): Grade | null {
-  const r = dealRatio(m, bench);
-  if (r == null) return null;
+/** Nota de preco: compara o que se paga com o preco justo. Barato (paga bem menos) = otimo. */
+export function priceGrade(price: number, fairPrice: number | null): Grade | null {
+  if (fairPrice == null || fairPrice <= 0 || price <= 0) return null;
+  const r = fairPrice / price; // >1 => paga menos que o justo
   if (r >= DEAL_GREAT) return "great";
   if (r >= DEAL_FAIR) return "ok";
   return "bad";
+}
+
+/** Quanto o preco esta acima(+) / abaixo(-) do justo, em %. Negativo = barato. */
+export function dealPct(price: number, fairPrice: number | null): number | null {
+  if (fairPrice == null || fairPrice <= 0 || price <= 0) return null;
+  return Math.round((price / fairPrice - 1) * 100);
 }

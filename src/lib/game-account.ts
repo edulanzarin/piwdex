@@ -331,6 +331,7 @@ export interface MarketMon {
   currency: Currency;
   belowNpc: boolean;
   sellers: number;
+  fairPrice?: number | null; // preco justo estimado (motor de valor, preenchido pela API)
 }
 
 // Extrai os anuncios de POKEMON do /api/game/market, com os stats que o jogo ja fornece.

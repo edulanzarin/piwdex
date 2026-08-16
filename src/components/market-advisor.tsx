@@ -4,17 +4,18 @@
 // ao vivo do jogo via /api/market e ranqueia por Power/IV/Quality reais dos anuncios.
 // Cada card abre um modal com os stats base da especie (vindos do catalogo via `dex`).
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { spriteUrl } from "@/lib/sprites";
 import type { MarketMon, Currency } from "@/lib/game-account";
 import type { PokeType, Rarity } from "@/lib/types";
-import { buildBench, ivGrade, qualityGrade, monGrade, isBreedingStock, priceGrade, dealRatio, type Grade, type DealBench } from "@/lib/market-value";
+import { ivGrade, qualityGrade, monGrade, isBreedingStock, priceGrade, dealPct, type Grade } from "@/lib/market-value";
 import { Sprite } from "./sprite";
 import { LoadingBall } from "./loaders";
 import { PokemonCombobox, type ComboCreature } from "./pokemon-combobox";
 import { TypeBadges } from "./badges";
 import { StatBar } from "./stat-bar";
 import { Modal } from "./modal";
+import { Pagination } from "./pagination";
 import { ToggleButton } from "./toggle-button";
 import { useT } from "./locale-provider";
 import { Star, Coin, Diamond } from "./icons";
@@ -36,9 +37,8 @@ function GradeChip({ grade, label }: { grade: Grade; label: string }) {
   );
 }
 
-// "+35%" / "-18%" de custo-beneficio vs a mediana da moeda.
-function dealPct(ratio: number): string {
-  const p = Math.round((ratio - 1) * 100);
+// "+35%" / "-18%": o quanto o preco foge do justo (negativo = mais barato).
+function fmtPct(p: number): string {
   return `${p >= 0 ? "+" : ""}${p}%`;
 }
 
@@ -86,7 +86,7 @@ function Tile({ label, children }: { label: string; children: React.ReactNode })
   );
 }
 
-function MarketMonModal({ mon, dex, bench, onClose }: { mon: MarketMon; dex?: MarketDex; bench: DealBench; onClose: () => void }) {
+function MarketMonModal({ mon, dex, onClose }: { mon: MarketMon; dex?: MarketDex; onClose: () => void }) {
   const t = useT();
   const total = dex
     ? dex.baseHp + dex.baseAtk + dex.baseDef + dex.baseSpAtk + dex.baseSpDef + dex.baseSpeed
@@ -94,8 +94,9 @@ function MarketMonModal({ mon, dex, bench, onClose }: { mon: MarketMon; dex?: Ma
   const best = dex ? Math.max(dex.baseHp, dex.baseAtk, dex.baseDef, dex.baseSpAtk, dex.baseSpDef, dex.baseSpeed) : 0;
   const genes = ivGrade(mon.ivTotal);
   const qual = qualityGrade(mon.quality);
-  const deal = priceGrade(mon, bench);
-  const ratio = dealRatio(mon, bench);
+  const fair = mon.fairPrice ?? null;
+  const deal = priceGrade(mon.price, fair);
+  const pct = dealPct(mon.price, fair);
   const breeding = isBreedingStock(mon.quality) && genes === "great";
 
   return (
@@ -151,9 +152,15 @@ function MarketMonModal({ mon, dex, bench, onClose }: { mon: MarketMon; dex?: Ma
               <div className="flex items-center justify-between gap-2 text-[0.72rem]">
                 <span className="text-text-dim">{t("account.market.dealLabel")}</span>
                 <span className="flex items-center gap-2">
-                  {ratio != null && <span className="tabular-nums text-text-dim">{t("account.market.dealVs", { p: dealPct(ratio) })}</span>}
+                  {pct != null && <span className="tabular-nums text-text-dim">{t("account.market.dealVs", { p: fmtPct(pct) })}</span>}
                   <GradeChip grade={deal} label={t(`account.market.deal.${deal}`)} />
                 </span>
+              </div>
+            )}
+            {fair != null && (
+              <div className="flex items-center justify-between gap-2 text-[0.62rem] text-text-dim">
+                <span>{t("account.market.fairPrice")}</span>
+                <span className="inline-flex items-center gap-1"><span className="opacity-70">~</span><Price currency={mon.currency} value={fair} /></span>
               </div>
             )}
             {breeding && (
@@ -193,9 +200,11 @@ export function MarketAdvisor({ creatures, dex }: { creatures: ComboCreature[]; 
   const [busy, setBusy] = useState(false);
   const [mons, setMons] = useState<MarketMon[] | null>(null);
   const [selected, setSelected] = useState<MarketMon | null>(null);
+  const [page, setPage] = useState(0);
 
-  // Baseline de custo-beneficio (mediana Power/preco por moeda) sobre os anuncios listados.
-  const bench = useMemo(() => buildBench(mons ?? []), [mons]);
+  const PAGE_SIZE = 12;
+  const pageCount = mons ? Math.max(1, Math.ceil(mons.length / PAGE_SIZE)) : 1;
+  const paged = mons ? mons.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE) : [];
 
   const search = async () => {
     setBusy(true);
@@ -213,8 +222,10 @@ export function MarketAdvisor({ creatures, dex }: { creatures: ComboCreature[]; 
       const res = await fetch(`/api/market?${p.toString()}`, { cache: "no-store" });
       const j = (await res.json().catch(() => ({}))) as { mons?: MarketMon[] };
       setMons(j.mons ?? []);
+      setPage(0);
     } catch {
       setMons([]);
+      setPage(0);
     } finally {
       setBusy(false);
     }
@@ -285,10 +296,10 @@ export function MarketAdvisor({ creatures, dex }: { creatures: ComboCreature[]; 
         <div className="card p-6 text-center text-sm text-text-dim">{t("account.market.empty")}</div>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {mons.map((m) => {
+          {paged.map((m) => {
             const monG = monGrade(m.ivTotal, m.quality);
             const qualG = qualityGrade(m.quality);
-            const dGrade = priceGrade(m, bench);
+            const dGrade = priceGrade(m.price, m.fairPrice ?? null);
             return (
             <button
               key={m.listingId}
@@ -322,10 +333,11 @@ export function MarketAdvisor({ creatures, dex }: { creatures: ComboCreature[]; 
           })}
         </div>
       )}
+      {mons && mons.length > PAGE_SIZE && <Pagination page={page} pageCount={pageCount} onPage={setPage} />}
       <p className="text-[0.6rem] italic text-text-dim">{t("account.market.legend")}</p>
       <p className="text-[0.6rem] italic text-text-dim">{t("account.market.hint")}</p>
 
-      {selected && <MarketMonModal mon={selected} dex={dex?.[selected.speciesId]} bench={bench} onClose={() => setSelected(null)} />}
+      {selected && <MarketMonModal mon={selected} dex={dex?.[selected.speciesId]} onClose={() => setSelected(null)} />}
     </div>
   );
 }
