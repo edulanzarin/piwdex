@@ -9,7 +9,7 @@
 // As derivacoes (indice reverso de drop, localizacoes, evolucao) NAO entram aqui:
 // vivem no codigo (src/lib/data.ts), pra o snapshot ser diffavel contra o jogo.
 
-import { writeFile, mkdir } from "node:fs/promises";
+import { writeFile, readFile, mkdir } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
@@ -116,6 +116,43 @@ async function main() {
   console.log(
     `OK ${stamp}: ${creatures.length} criaturas, ${items.length} itens, ${hunts.length} hunts -> src/data/piwdex.json`,
   );
+
+  // Sync autenticado OPCIONAL: as pokebolas reais (Poke/Great/Ultra/Idle/Master) nao
+  // vem no JSON publico — o catchRate e o preco so existem em /api/game/balls (logado).
+  // Se PIW_TOKEN estiver no ambiente, puxamos e preenchemos precos em src/data/balls.json
+  // (o catchRate ja e dado-verdade fixo; aqui so completamos preco/id reais).
+  const token = process.env.PIW_TOKEN;
+  if (token) {
+    try {
+      const res = await fetch(`${HOST}/api/game/balls`, {
+        headers: { "User-Agent": UA, Accept: "application/json", Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      const catalog = Array.isArray(data.catalog) ? data.catalog : [];
+      const ballsPath = join(ROOT, "src/data/balls.json");
+      const balls = JSON.parse(await readFile(ballsPath, "utf8"));
+      const byName = new Map(catalog.map((c) => [String(c.name ?? "").toLowerCase(), c]));
+      for (const b of balls.balls) {
+        const hit = byName.get(b.name.toLowerCase()) ?? catalog.find((c) => Number(c.catchRate) === b.catchRate);
+        if (hit) {
+          b.id = hit.id ?? b.id;
+          b.catchRate = typeof hit.catchRate === "number" ? hit.catchRate : b.catchRate;
+          b.priceGold = typeof hit.priceGold === "number" ? hit.priceGold : b.priceGold;
+          b.infinite = Boolean(hit.infinite);
+        }
+      }
+      balls.syncedAt = generatedAt;
+      balls.source = "synced:/api/game/balls";
+      await writeFile(ballsPath, JSON.stringify(balls, null, 2) + "\n", "utf8");
+      await writeFile(join(rawDir, "balls.json"), JSON.stringify(data), "utf8");
+      console.log(`OK sync autenticado: ${catalog.length} bolas -> src/data/balls.json (precos reais)`);
+    } catch (err) {
+      console.warn(`AVISO: sync autenticado de bolas falhou (${err.message}); balls.json mantido.`);
+    }
+  } else {
+    console.log("(sem PIW_TOKEN: pulei o sync de precos das bolas; catchRate ja e dado-verdade)");
+  }
 }
 
 main().catch((err) => {

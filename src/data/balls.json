@@ -1,0 +1,13 @@
+{
+  "note": "Dado-verdade das pokebolas do Poke Idle World. catchRate e FIXO (igual pra todo jogador) e verificado contra a API logada /api/game/balls. priceGold so vem da API logada (as bolas reais NAO estao no items.json publico) -> rode `PIW_TOKEN=... npm run ingest` pra preencher precos reais; ate la ficam null.",
+  "source": "verified:/api/game/balls",
+  "syncedAt": null,
+  "balls": [
+    { "key": "poke",   "name": "Poke Ball",   "catchRate": 1,   "priceGold": null, "infinite": false },
+    { "key": "great",  "name": "Great Ball",  "catchRate": 2,   "priceGold": null, "infinite": false },
+    { "key": "super",  "name": "Super Ball",  "catchRate": 3,   "priceGold": null, "infinite": false },
+    { "key": "ultra",  "name": "Ultra Ball",  "catchRate": 4,   "priceGold": null, "infinite": false },
+    { "key": "idle",   "name": "Idle Ball",   "catchRate": 5,   "priceGold": null, "infinite": false },
+    { "key": "master", "name": "Master Ball", "catchRate": 255, "priceGold": null, "infinite": false }
+  ]
+}
