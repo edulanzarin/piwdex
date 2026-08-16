@@ -234,8 +234,10 @@ function ItemsCard({ title, color, items }: { title: string; color: string; item
 
 function BallsCard({ account }: { account: Account }) {
   const t = useT();
-  // Mostra TODAS as bolas do catalogo do jogo; quem nao tem fica x0 (esmaecido).
-  const balls = account.balls;
+  // Mostra as bolas reais do catalogo (x0 esmaecido). Esconde entradas ocultas do
+  // jogo — sem icone e que voce nao tem (ex.: Master Ball, id 5, iconUrl null,
+  // captura garantida mas nao compravel). Se voce tiver uma, ela aparece.
+  const balls = account.balls.filter((b) => b.iconUrl || b.infinite || b.count > 0);
   if (!balls.length) return null;
   return (
     <Section title={t("account.sec.balls")} color="text-cyan">
