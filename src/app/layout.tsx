@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { JetBrains_Mono, Press_Start_2P } from "next/font/google";
 import { LocaleProvider, T } from "@/components/locale-provider";
 import { SiteNav } from "@/components/site-nav";
+import { VipCta } from "@/components/vip-cta";
 import { auth } from "@/lib/auth";
 import "./globals.css";
 
@@ -18,7 +19,12 @@ const mono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: { default: "PIWdex — ferramentas Poke Idle World", template: "%s · PIWdex" },
+  // Titulo fixo em toda aba (sem prefixo da pagina): template sem %s ignora o titulo do
+  // segmento filho e usa este texto literal em todas as rotas.
+  title: {
+    default: "PIWdex - A dex completa do Poke Idle World",
+    template: "PIWdex - A dex completa do Poke Idle World",
+  },
   description:
     "Dex e ferramentas completas para Poke Idle World: stats, drops com chance real, onde farmar cada item, localizacoes e evolucoes.",
 };
@@ -34,6 +40,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <LocaleProvider>
           <SiteNav user={user} />
           <main className="container-page py-10">{children}</main>
+          <VipCta vip={user?.vip ?? false} />
           <footer className="border-t border-border">
             <div className="container-page py-8 text-[0.68rem] text-text-dim">
               <T k="footer" />

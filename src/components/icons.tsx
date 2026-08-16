@@ -97,6 +97,36 @@ export function Heart({ size = 12, className = "" }: { size?: number; className?
   );
 }
 
+// glyph pixel generico (mesmo dialeto do Star/Bell): linhas de "#", herda currentColor.
+function Glyph({ rows, size = 12, dx = 0, dy = 0, className = "" }: { rows: string[]; size?: number; dx?: number; dy?: number; className?: string }) {
+  const cells: React.ReactNode[] = [];
+  rows.forEach((r, y) =>
+    [...r].forEach((ch, x) => {
+      if (ch === "#") cells.push(<rect key={`${x}-${y}`} x={x + dx} y={y + dy} width={1} height={1} fill="currentColor" />);
+    }),
+  );
+  return (
+    <svg width={size} height={size} viewBox="0 0 12 12" shapeRendering="crispEdges" className={className} style={{ imageRendering: "pixelated" }} aria-hidden>
+      {cells}
+    </svg>
+  );
+}
+
+/** Raio (XP). Herda currentColor. */
+export function Xp({ size = 12, className = "" }: { size?: number; className?: string }) {
+  return <Glyph size={size} dx={2} dy={2} className={className} rows={["....##..", "...###..", "..###...", ".######.", "...###..", "..###...", ".##....."]} />;
+}
+
+/** Caveira (derrotados). */
+export function Skull({ size = 12, className = "" }: { size?: number; className?: string }) {
+  return <Glyph size={size} dx={3} dy={3} className={className} rows={[".#####.", "#######", "#.###.#", "#######", ".#####.", "..#.#.."]} />;
+}
+
+/** Relogio (tempo). */
+export function Clock({ size = 12, className = "" }: { size?: number; className?: string }) {
+  return <Glyph size={size} dx={2} dy={2} className={className} rows={["..####..", ".#....#.", "#..#...#", "#..##..#", "#......#", ".#....#.", "..####.."]} />;
+}
+
 /** Preco em dolares do jogo: moeda + valor. */
 export function Gold({ value, className = "" }: { value: number; className?: string }) {
   return (

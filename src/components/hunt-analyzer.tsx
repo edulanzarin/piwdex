@@ -6,7 +6,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useT } from "./locale-provider";
-import { Coin, Star } from "./icons";
+import { Coin, Star, Xp, Skull, Clock } from "./icons";
 import { Sprite } from "./sprite";
 import { Pokeball } from "./pokeball";
 import { spriteUrl, assetIconUrl } from "@/lib/sprites";
@@ -30,10 +30,13 @@ const hm = (s: number) => `${Math.floor(s / 3600)}h ${Math.floor((s % 3600) / 60
 const hms = (ms: number) => new Date(ms).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 const STATUS_COLOR: Record<Status, string> = { idle: "var(--text-dim)", connecting: "var(--yellow)", running: "var(--green)", kicked: "var(--yellow)", error: "var(--pink)" };
 
-function Stat({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
+function Stat({ label, value, accent, icon }: { label: string; value: string; accent?: boolean; icon?: React.ReactNode }) {
   return (
     <div className="rounded border border-border p-3">
-      <div className="text-[0.6rem] uppercase tracking-wide text-text-dim">{label}</div>
+      <div className="flex items-center gap-1.5 text-[0.6rem] uppercase tracking-wide text-text-dim">
+        {icon}
+        {label}
+      </div>
       <div className={`mt-1 pixel text-[0.7rem] ${accent ? "text-yellow" : "text-text"}`}>{value}</div>
     </div>
   );
@@ -179,14 +182,14 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons }: { hunts: HuntOptio
       {/* stats */}
       {a && (
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          <Stat label={t("robo.hunt.kills")} value={fmt(a.kills)} />
-          <Stat label={t("robo.hunt.time")} value={hm(a.seconds)} />
-          <Stat label={t("robo.hunt.xph")} value={fmt(a.xpPerHour)} />
-          <Stat label={t("robo.hunt.goldph")} value={fmt(a.goldPerHour)} accent />
-          <Stat label={t("robo.hunt.loot")} value={fmt(a.lootGold)} />
-          <Stat label={t("robo.hunt.supply")} value={`-${fmt(a.supplyGold)}`} />
-          <Stat label={t("robo.hunt.captures")} value={fmt(a.captures)} />
-          <Stat label={t("robo.hunt.balance")} value={fmt(a.balance)} accent />
+          <Stat label={t("robo.hunt.kills")} value={fmt(a.kills)} icon={<Skull size={11} className="text-text-dim" />} />
+          <Stat label={t("robo.hunt.time")} value={hm(a.seconds)} icon={<Clock size={11} className="text-text-dim" />} />
+          <Stat label={t("robo.hunt.xph")} value={fmt(a.xpPerHour)} icon={<Xp size={11} className="text-cyan" />} />
+          <Stat label={t("robo.hunt.goldph")} value={fmt(a.goldPerHour)} accent icon={<Coin size={11} />} />
+          <Stat label={t("robo.hunt.loot")} value={fmt(a.lootGold)} icon={<Coin size={11} />} />
+          <Stat label={t("robo.hunt.supply")} value={`-${fmt(a.supplyGold)}`} icon={<Coin size={11} />} />
+          <Stat label={t("robo.hunt.captures")} value={fmt(a.captures)} icon={<Pokeball size={11} />} />
+          <Stat label={t("robo.hunt.balance")} value={fmt(a.balance)} accent icon={<Coin size={11} />} />
         </div>
       )}
 
@@ -216,7 +219,7 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons }: { hunts: HuntOptio
                       {isCatch ? (
                         <span className="ml-auto shrink-0 text-[0.6rem] text-green">{t("robo.hunt.caught")}</span>
                       ) : (
-                        <span className="ml-auto shrink-0 inline-flex items-center gap-1 text-[0.62rem] text-yellow"><Coin size={9} />{fmt(k.xp)}</span>
+                        <span className="ml-auto shrink-0 inline-flex items-center gap-1 text-[0.62rem] text-cyan"><Xp size={10} />{fmt(k.xp)}</span>
                       )}
                     </div>
                     <div className="mt-0.5 flex flex-wrap items-center gap-1">
@@ -274,7 +277,7 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons }: { hunts: HuntOptio
                   <>
                     <div className="flex items-center justify-between text-[0.72rem]">
                       <span className="text-text-dim">XP</span>
-                      <span className="inline-flex items-center gap-1 text-yellow"><Coin size={11} />{fmt(k.xp)}</span>
+                      <span className="inline-flex items-center gap-1 text-cyan"><Xp size={11} />{fmt(k.xp)}</span>
                     </div>
                     <div className="mt-1 text-[0.55rem] uppercase tracking-wide text-text-dim">{t("robo.hunt.drops")}</div>
                     {k.loot.length === 0 ? (

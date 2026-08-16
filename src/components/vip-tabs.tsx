@@ -15,7 +15,7 @@ import type { HuntOption } from "./hunt-analyzer";
 import type { ComboCreature } from "./pokemon-combobox";
 import { useT } from "./locale-provider";
 import { Coin, Heart, Bell } from "./icons";
-import { NavAccount } from "./nav-icons";
+import { NavAccount, NavRobo } from "./nav-icons";
 
 type Tab = "conta" | "mercado" | "desejos" | "alertas" | "robo";
 const TABS: { key: Tab; Icon?: (p: { size?: number; className?: string }) => React.ReactNode; iconClass?: string }[] = [
@@ -23,7 +23,7 @@ const TABS: { key: Tab; Icon?: (p: { size?: number; className?: string }) => Rea
   { key: "mercado", Icon: Coin },
   { key: "desejos", Icon: Heart, iconClass: "text-pink" },
   { key: "alertas", Icon: Bell },
-  { key: "robo" },
+  { key: "robo", Icon: NavRobo },
 ];
 const isTab = (v: string): v is Tab => TABS.some((tb) => tb.key === v);
 

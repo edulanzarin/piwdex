@@ -84,6 +84,17 @@ export const NavLab = ({ size }: { size?: number }) => (
   </Base>
 );
 
+// Cabeca de robo (Robo).
+export const NavRobo = ({ size }: { size?: number }) => (
+  <Base size={size}>
+    <rect x="5" y="8" width="14" height="10" rx="2" />
+    <path d="M12 4v4" />
+    <circle cx="12" cy="3.2" r="1.1" />
+    <path d="M9.5 12.5h.01M14.5 12.5h.01" />
+    <path d="M10 15.5h4" />
+  </Base>
+);
+
 // Estrela (VIP). `filled` pinta o miolo (VIP ativo); sem ele fica so o contorno (apagada).
 export const NavVip = ({ size, filled }: { size?: number; filled?: boolean }) => (
   <Base size={size}>
