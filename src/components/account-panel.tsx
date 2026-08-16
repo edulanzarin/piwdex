@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { spriteUrl, assetIconUrl } from "@/lib/sprites";
 import type { Account, AccountItem, MarketMon } from "@/lib/game-account";
 import { Sprite } from "./sprite";
@@ -19,6 +19,30 @@ type State =
   | { status: "loading" }
   | { status: "disconnected" }
   | { status: "connected"; account: Account };
+
+// Bookmarklet: le sessionStorage["pokeweb:tokens"] na aba do jogo e abre /conectar com o
+// token no hash. Gerado com a origem atual (dev/prod). href setado via ref pra o React nao
+// sanitizar o javascript:. O usuario arrasta pra barra de favoritos uma vez.
+function Bookmarklet() {
+  const t = useT();
+  const ref = useRef<HTMLAnchorElement>(null);
+  useEffect(() => {
+    const origin = window.location.origin;
+    const alertMsg = t("account.bm.alert").replace(/['\\]/g, " ");
+    const code =
+      "javascript:(function(){try{var r=sessionStorage.getItem('pokeweb:tokens')||localStorage.getItem('pokeweb:tokens');if(!r){alert('" +
+      alertMsg +
+      "');return}window.open('" +
+      origin +
+      "/conectar#'+encodeURIComponent(r),'_blank')}catch(e){alert('piwdex: '+e.message)}})()";
+    ref.current?.setAttribute("href", code);
+  }, [t]);
+  return (
+    <a ref={ref} href="/conta" onClick={(e) => e.preventDefault()} draggable className="btn btn-cyan inline-flex cursor-grab select-none" title={t("account.bm.drag")}>
+      ↧ {t("account.bm.btn")}
+    </a>
+  );
+}
 
 function ConnectForm({ onConnected }: { onConnected: () => void }) {
   const t = useT();
@@ -43,18 +67,35 @@ function ConnectForm({ onConnected }: { onConnected: () => void }) {
     <div className="card p-5">
       <h2 className="pixel text-[0.72rem] text-cyan">{t("account.connect.title")}</h2>
       <p className="mt-3 text-sm text-text-dim">{t("account.connect.help")}</p>
-      <ol className="mt-3 flex flex-col gap-1.5 text-[0.72rem] leading-relaxed text-text-dim">
-        {["step1", "step2", "step3"].map((s) => (
-          <li key={s} className="flex gap-2"><span className="text-cyan">›</span><span>{t(`account.connect.${s}`)}</span></li>
-        ))}
-      </ol>
-      <textarea className="input mt-4 h-24 w-full font-mono text-[0.72rem]" placeholder={t("account.connect.placeholder")} value={raw} onChange={(e) => setRaw(e.target.value)} spellCheck={false} />
-      {err && <p className="mt-2 text-[0.72rem] font-semibold text-red">{err}</p>}
-      <div className="mt-3 flex items-center justify-between gap-3">
-        <p className="text-[0.6rem] leading-relaxed text-text-dim">{t("account.privacy")}</p>
-        <button type="button" onClick={submit} disabled={busy || raw.trim().length < 10} className="btn btn-cyan shrink-0 disabled:opacity-40">
-          {busy ? `${t("account.connect.connecting")}...` : `${t("account.connect.btn")} ›`}
-        </button>
+
+      {/* Jeito facil: bookmarklet (1 clique na aba do jogo) */}
+      <div className="mt-4 rounded border border-[color:var(--cyan)]/40 bg-[rgba(57,139,240,0.06)] p-4">
+        <div className="pixel text-[0.6rem] text-cyan">{t("account.bm.title")}</div>
+        <ol className="mt-2 flex flex-col gap-1 text-[0.7rem] leading-relaxed text-text-dim">
+          {["s1", "s2", "s3"].map((s) => (
+            <li key={s} className="flex gap-2"><span className="text-cyan">›</span><span>{t(`account.bm.${s}`)}</span></li>
+          ))}
+        </ol>
+        <div className="mt-3"><Bookmarklet /></div>
+        <p className="mt-2 text-[0.58rem] leading-relaxed text-text-dim">{t("account.bm.note")}</p>
+      </div>
+
+      {/* Fallback: colar manual */}
+      <div className="mt-4 border-t border-border pt-4">
+        <div className="text-[0.58rem] uppercase tracking-wide text-text-dim">{t("account.connect.manual")}</div>
+        <ol className="mt-2 flex flex-col gap-1.5 text-[0.72rem] leading-relaxed text-text-dim">
+          {["step1", "step2", "step3"].map((s) => (
+            <li key={s} className="flex gap-2"><span className="text-cyan">›</span><span>{t(`account.connect.${s}`)}</span></li>
+          ))}
+        </ol>
+        <textarea className="input mt-3 h-20 w-full font-mono text-[0.72rem]" placeholder={t("account.connect.placeholder")} value={raw} onChange={(e) => setRaw(e.target.value)} spellCheck={false} />
+        {err && <p className="mt-2 text-[0.72rem] font-semibold text-red">{err}</p>}
+        <div className="mt-3 flex items-center justify-between gap-3">
+          <p className="text-[0.6rem] leading-relaxed text-text-dim">{t("account.privacy")}</p>
+          <button type="button" onClick={submit} disabled={busy || raw.trim().length < 10} className="btn btn-cyan shrink-0 disabled:opacity-40">
+            {busy ? `${t("account.connect.connecting")}...` : `${t("account.connect.btn")} ›`}
+          </button>
+        </div>
       </div>
     </div>
   );
