@@ -1,31 +1,41 @@
 "use client";
 
-// Vender pokemon (manual, por regra) — 2a capacidade de venda do Robo. As 4 travas
-// que o Eduardo pediu, TODAS configuraveis: (1) nunca raro/lendario/epico, (2) nunca
-// shiny, (3) so abaixo de X de IV e (4) de qualidade; a simulacao lista o que casaria
-// ANTES de confirmar. A config fica salva em localStorage (piw:poke-sell-config) e ja
-// e o contrato que o worker/venda vao ler.
+// Vender pokemon (manual, por regra) — 2a capacidade de venda do Robo. As travas que
+// o Eduardo pediu, TODAS configuraveis e granulares:
+//   (1) um box por raridade (COMMON..MYTHIC) — marca so o que topa vender;
+//   (2) nunca shiny;
+//   (3) IV maximo ABSOLUTO (0..192, nao %) — so vende ate esse IV total;
+//   (4) qualidade maxima (decimal) — so vende ate essa qualidade.
+// A config fica salva em localStorage (piw:poke-sell-config:v2) e ja e o contrato que
+// o worker/venda vao ler. A simulacao lista o que casaria ANTES de confirmar.
 //
 // TRAVA ATUAL: a lista dos pokemon individuais (com IV/quality/shiny) nao existe na
-// REST do jogo (todos os endpoints candidatos deram 404) — so no WebSocket (evento
-// `pokes`). Enquanto essa fonte nao entra, as travas salvam mas a simulacao/venda
-// ficam desligadas com aviso. O backend (POST /api/vip/shop action sell-pokes) ja
-// existe e vende por pokeId; falta so a fonte da lista.
+// REST do jogo (endpoints candidatos deram 404) — so no WebSocket (evento `pokes`).
+// Enquanto essa fonte nao entra, as travas salvam mas a simulacao/venda ficam
+// desligadas com aviso. O backend (POST /api/vip/shop action sell-pokes) ja vende por
+// pokeId; falta so a fonte da lista.
 
 import { useEffect, useState } from "react";
 import { ToggleButton } from "./toggle-button";
 import { useT } from "./locale-provider";
 import { Coin, Star } from "./icons";
+import { RARITY_COLOR, RARITY_ORDER } from "@/lib/typing";
+import type { Rarity } from "@/lib/types";
 
 export interface PokeSellConfig {
-  keepRarity: boolean; // nunca vender raro/lendario/epico
+  sellRarities: Rarity[]; // raridades que PODEM ser vendidas (o resto nunca vende)
   keepShiny: boolean; // nunca vender shiny
-  maxIv: number; // so vende IV total <= maxIv (%)
-  maxQuality: number; // so vende quality <= maxQuality
+  maxIv: number; // 0..192, so vende IV total <= maxIv
+  maxQuality: number; // decimal, so vende quality <= maxQuality
 }
 
-const KEY = "piw:poke-sell-config";
-const DEFAULTS: PokeSellConfig = { keepRarity: true, keepShiny: true, maxIv: 50, maxQuality: 50 };
+// escala absoluta do jogo (nao %): IV total = soma dos 6 IVs (0..32 cada).
+const IV_MAX = 192;
+const QUALITY_MAX = 3; // teto do slider; qualidade real e decimal (~1.0..2.x) — ajustavel quando o WS trouxer os valores
+const QUALITY_STEP = 0.05;
+
+const KEY = "piw:poke-sell-config:v2";
+const DEFAULTS: PokeSellConfig = { sellRarities: ["COMMON", "UNCOMMON"], keepShiny: true, maxIv: 100, maxQuality: 1.8 };
 
 function load(): PokeSellConfig {
   if (typeof window === "undefined") return DEFAULTS;
@@ -33,11 +43,13 @@ function load(): PokeSellConfig {
     const raw = window.localStorage.getItem(KEY);
     if (!raw) return DEFAULTS;
     const p = JSON.parse(raw) as Partial<PokeSellConfig>;
+    const rar = Array.isArray(p.sellRarities) ? p.sellRarities.filter((r): r is Rarity => RARITY_ORDER.includes(r as Rarity)) : null;
+    const clamp = (n: unknown, max: number, d: number) => (typeof n === "number" && n >= 0 && n <= max ? n : d);
     return {
-      keepRarity: typeof p.keepRarity === "boolean" ? p.keepRarity : DEFAULTS.keepRarity,
+      sellRarities: rar ?? DEFAULTS.sellRarities,
       keepShiny: typeof p.keepShiny === "boolean" ? p.keepShiny : DEFAULTS.keepShiny,
-      maxIv: typeof p.maxIv === "number" ? p.maxIv : DEFAULTS.maxIv,
-      maxQuality: typeof p.maxQuality === "number" ? p.maxQuality : DEFAULTS.maxQuality,
+      maxIv: clamp(p.maxIv, IV_MAX, DEFAULTS.maxIv),
+      maxQuality: clamp(p.maxQuality, QUALITY_MAX, DEFAULTS.maxQuality),
     };
   } catch {
     return DEFAULTS;
@@ -47,7 +59,7 @@ function load(): PokeSellConfig {
 // linha de config: titulo + descricao + controle (mesmo padrao do RoboPanel)
 function Row({ title, desc, children }: { title: string; desc?: string; children: React.ReactNode }) {
   return (
-    <div className="flex flex-col gap-2 border-t border-border py-3 first:border-t-0 first:pt-0 sm:flex-row sm:items-center sm:justify-between">
+    <div className="flex flex-col gap-2 border-t border-border py-3 sm:flex-row sm:items-center sm:justify-between">
       <div className="min-w-0">
         <div className="text-sm font-semibold text-text">{title}</div>
         {desc && <div className="mt-0.5 text-[0.68rem] text-text-dim">{desc}</div>}
@@ -57,19 +69,44 @@ function Row({ title, desc, children }: { title: string; desc?: string; children
   );
 }
 
-function Slider({ value, onChange }: { value: number; onChange: (n: number) => void }) {
+function Slider({ value, min, max, step, fmt, onChange }: { value: number; min: number; max: number; step: number; fmt: (n: number) => string; onChange: (n: number) => void }) {
   return (
     <div className="flex items-center gap-3">
       <input
         type="range"
-        min={0}
-        max={100}
-        step={5}
+        min={min}
+        max={max}
+        step={step}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
         className="w-40 accent-[color:var(--yellow)]"
       />
-      <span className="w-9 text-right text-sm font-semibold tabular-nums text-yellow">{value}</span>
+      <span className="w-12 text-right text-sm font-semibold tabular-nums text-yellow">{fmt(value)}</span>
+    </div>
+  );
+}
+
+// um box por raridade, na cor oficial — marcado = vende essa raridade
+function RarityBoxes({ selected, onToggle }: { selected: Rarity[]; onToggle: (r: Rarity) => void }) {
+  return (
+    <div className="mt-2 flex flex-wrap gap-1.5">
+      {RARITY_ORDER.map((r) => {
+        const on = selected.includes(r);
+        const color = RARITY_COLOR[r];
+        return (
+          <button
+            key={r}
+            type="button"
+            onClick={() => onToggle(r)}
+            aria-pressed={on}
+            className="chip inline-flex items-center gap-1.5 border transition"
+            style={{ background: on ? color : "transparent", borderColor: color, color: on ? "#06111a" : color, opacity: on ? 1 : 0.5 }}
+          >
+            <span className="w-2 text-center text-[0.6rem]">{on ? "✓" : "·"}</span>
+            {r}
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -94,12 +131,8 @@ export function PokeSeller() {
     window.setTimeout(() => setSaved(false), 1200);
   };
 
-  const sw = (on: boolean, onClick: () => void) => (
-    <ToggleButton active={on} accent="green" onClick={onClick}>
-      <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ background: on ? "var(--green)" : "var(--text-dim)" }} />
-      {on ? t("robo.on") : t("robo.off")}
-    </ToggleButton>
-  );
+  const toggleRarity = (r: Rarity) =>
+    patch({ sellRarities: cfg.sellRarities.includes(r) ? cfg.sellRarities.filter((x) => x !== r) : [...cfg.sellRarities, r] });
 
   return (
     <div className="flex flex-col gap-4">
@@ -115,17 +148,24 @@ export function PokeSeller() {
           {saved && <span className="text-[0.66rem] font-semibold text-green">{t("robo.pokes.saved")}</span>}
         </div>
 
-        <Row title={t("robo.pokes.keepRarity")} desc={t("robo.pokes.keepRarity.desc")}>
-          {sw(cfg.keepRarity, () => patch({ keepRarity: !cfg.keepRarity }))}
-        </Row>
+        {/* raridade: bloco de largura cheia (6 boxes nao cabem alinhados a direita) */}
+        <div className="py-3">
+          <div className="text-sm font-semibold text-text">{t("robo.pokes.sellRarities")}</div>
+          <div className="mt-0.5 text-[0.68rem] text-text-dim">{t("robo.pokes.sellRarities.desc")}</div>
+          <RarityBoxes selected={cfg.sellRarities} onToggle={toggleRarity} />
+        </div>
+
         <Row title={t("robo.pokes.keepShiny")} desc={t("robo.pokes.keepShiny.desc")}>
-          {sw(cfg.keepShiny, () => patch({ keepShiny: !cfg.keepShiny }))}
+          <ToggleButton active={cfg.keepShiny} accent="green" onClick={() => patch({ keepShiny: !cfg.keepShiny })}>
+            <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ background: cfg.keepShiny ? "var(--green)" : "var(--text-dim)" }} />
+            {cfg.keepShiny ? t("robo.on") : t("robo.off")}
+          </ToggleButton>
         </Row>
         <Row title={t("robo.pokes.maxIv")} desc={t("robo.pokes.maxIv.desc", { n: cfg.maxIv })}>
-          <Slider value={cfg.maxIv} onChange={(n) => patch({ maxIv: n })} />
+          <Slider value={cfg.maxIv} min={0} max={IV_MAX} step={1} fmt={(n) => String(n)} onChange={(n) => patch({ maxIv: n })} />
         </Row>
-        <Row title={t("robo.pokes.maxQuality")} desc={t("robo.pokes.maxQuality.desc", { n: cfg.maxQuality })}>
-          <Slider value={cfg.maxQuality} onChange={(n) => patch({ maxQuality: n })} />
+        <Row title={t("robo.pokes.maxQuality")} desc={t("robo.pokes.maxQuality.desc", { n: cfg.maxQuality.toFixed(2) })}>
+          <Slider value={cfg.maxQuality} min={0} max={QUALITY_MAX} step={QUALITY_STEP} fmt={(n) => n.toFixed(2)} onChange={(n) => patch({ maxQuality: n })} />
         </Row>
       </div>
 
