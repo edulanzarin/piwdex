@@ -1,13 +1,12 @@
 "use client";
 
 // Formulario unico de login/cadastro. Usa server actions (authenticate/register)
-// via useActionState; o Google entra como <form action={signInGoogle}> so quando
-// as credenciais OAuth existem no ambiente.
+// via useActionState. So email/senha (sem OAuth).
 
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import Link from "next/link";
-import { authenticate, register, signInGoogle, type AuthResult } from "@/lib/actions/auth";
+import { authenticate, register, type AuthResult } from "@/lib/actions/auth";
 import { useT } from "./locale-provider";
 
 function SubmitBtn({ label, loading }: { label: string; loading: string }) {
@@ -19,26 +18,13 @@ function SubmitBtn({ label, loading }: { label: string; loading: string }) {
   );
 }
 
-export function AuthForm({ mode, googleEnabled }: { mode: "login" | "register"; googleEnabled: boolean }) {
+export function AuthForm({ mode }: { mode: "login" | "register" }) {
   const t = useT();
   const action = mode === "login" ? authenticate : register;
   const [state, formAction] = useActionState<AuthResult | undefined, FormData>(action, undefined);
 
   return (
     <div className="card flex flex-col gap-4 p-6">
-      {googleEnabled && (
-        <>
-          <form action={signInGoogle}>
-            <button type="submit" className="btn btn-ghost w-full">{t("auth.google")}</button>
-          </form>
-          <div className="flex items-center gap-3 text-[0.55rem] uppercase tracking-wide text-text-dim">
-            <span className="h-px flex-1 bg-border" />
-            {t("auth.or")}
-            <span className="h-px flex-1 bg-border" />
-          </div>
-        </>
-      )}
-
       <form action={formAction} className="flex flex-col gap-3">
         {mode === "register" && (
           <label className="flex flex-col gap-1">

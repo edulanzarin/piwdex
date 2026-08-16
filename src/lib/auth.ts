@@ -1,31 +1,40 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
-import Google from "next-auth/providers/google";
 import bcrypt from "bcryptjs";
-import { findUserByEmail, findOrCreateGoogleUser, getUserById } from "@/lib/users";
+import { findUserByEmail, getUserById } from "@/lib/users";
 
 // Login do piwdex: Auth.js v5 com sessao JWT (sem tabela de sessao) por cima do
-// nosso Postgres em SQL puro. Google so entra se as credenciais existirem no
-// ambiente — assim o app sobe mesmo sem OAuth configurado (email/senha funciona).
-const googleEnabled = !!process.env.AUTH_GOOGLE_ID && !!process.env.AUTH_GOOGLE_SECRET;
-
+// nosso Postgres em SQL puro. So email/senha (bcryptjs) — sem OAuth.
 const vipActive = (vip: boolean, ate: string | null) =>
   vip && (!ate || new Date(ate).getTime() > Date.now());
+
+// Cookies namespaced ("piwdex.*"): no localhost o cookie ignora a porta, entao a
+// sessao de outro app next-auth (prospects, navedesk...) chegaria como
+// "authjs.session-token" e o piwdex tentaria descriptografar com o segredo errado
+// ("no matching decryption secret"). Nome proprio isola de vez.
+const secureCookies = process.env.NODE_ENV === "production";
+const cookiePrefix = secureCookies ? "__Secure-" : "";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,
   secret: process.env.AUTH_SECRET,
   session: { strategy: "jwt" },
   pages: { signIn: "/entrar" },
+  cookies: {
+    sessionToken: {
+      name: `${cookiePrefix}piwdex.session-token`,
+      options: { httpOnly: true, sameSite: "lax", path: "/", secure: secureCookies },
+    },
+    callbackUrl: {
+      name: `${cookiePrefix}piwdex.callback-url`,
+      options: { sameSite: "lax", path: "/", secure: secureCookies },
+    },
+    csrfToken: {
+      name: `${secureCookies ? "__Host-" : ""}piwdex.csrf-token`,
+      options: { httpOnly: true, sameSite: "lax", path: "/", secure: secureCookies },
+    },
+  },
   providers: [
-    ...(googleEnabled
-      ? [
-          Google({
-            clientId: process.env.AUTH_GOOGLE_ID,
-            clientSecret: process.env.AUTH_GOOGLE_SECRET,
-          }),
-        ]
-      : []),
     Credentials({
       credentials: {
         email: { label: "E-mail", type: "email" },
@@ -37,7 +46,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (!email || !senha) return null;
 
         const user = await findUserByEmail(email);
-        if (!user || !user.senha_hash) return null; // usuario so-Google nao loga por senha
+        if (!user || !user.senha_hash) return null;
         const ok = await bcrypt.compare(senha, user.senha_hash);
         if (!ok) return null;
 
@@ -51,24 +60,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
   callbacks: {
-    async signIn({ account, profile }) {
-      if (account?.provider === "google") return !!profile?.email; // sem email, rejeita
-      return true;
-    },
-    async jwt({ token, user, account, profile }) {
+    async jwt({ token, user }) {
       // Login por credentials: o id do banco ja vem em user.id.
-      if (user?.id && account?.provider !== "google") token.uid = user.id;
-
-      // Login Google: resolve/cria o usuario no banco e guarda o id.
-      if (account?.provider === "google" && profile?.email) {
-        const u = await findOrCreateGoogleUser({
-          sub: account.providerAccountId,
-          email: profile.email,
-          nome: (profile.name as string) ?? null,
-          avatar: (profile.picture as string) ?? null,
-        });
-        token.uid = u.id;
-      }
+      if (user?.id) token.uid = user.id;
 
       // Revalida a cada request: se o usuario sumiu (removido/banco recriado)
       // derruba a sessao; e mantem nome/avatar/vip frescos.

@@ -55,10 +55,6 @@ export async function register(
   }
 }
 
-export async function signInGoogle() {
-  await signIn("google", { redirectTo: "/conta" });
-}
-
 export async function logout() {
   await signOut({ redirectTo: "/" });
 }
