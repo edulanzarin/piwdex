@@ -7,33 +7,13 @@ import { Sprite } from "./sprite";
 import { LoadingBall } from "./loaders";
 import { PokemonCombobox, type ComboCreature } from "./pokemon-combobox";
 import { useT } from "./locale-provider";
+import { Coin, Diamond, Star } from "./icons";
 
 const fmt = (n: number) => n.toLocaleString("pt-BR");
 const numI = (s: string) => { const v = parseInt(s.replace(/\D/g, ""), 10); return Number.isFinite(v) ? v : null; };
 const ivColor = (v: number | null) => (v == null ? "text-text-dim" : v >= 150 ? "text-green" : v >= 100 ? "text-yellow" : "text-text");
 
-function Diamond({ size = 11 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 12 12" fill="currentColor" shapeRendering="crispEdges" style={{ imageRendering: "pixelated" }} aria-hidden="true">
-      {[".....##.....", "...######...", ".##########.", "############", ".##########.", "..########..", "...######...", "....####....", ".....##....."].map((r, y) =>
-        [...r].map((c, x) => (c === "#" ? <rect key={`${x}-${y}`} x={x} y={y + 1} width={1} height={1} /> : null)),
-      )}
-    </svg>
-  );
-}
-function Coin({ size = 11 }: { size?: number }) {
-  return <span className="inline-block rounded-full" style={{ width: size, height: size, background: "radial-gradient(circle at 35% 30%, #ffe89a, #f4d24a 55%, #c99a30)" }} aria-hidden="true" />;
-}
-function Star({ size = 10 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 12 12" fill="currentColor" shapeRendering="crispEdges" style={{ imageRendering: "pixelated" }} aria-hidden="true">
-      {["....##....", "....##....", "...####...", ".########.", "..######..", ".########.", "..##..##..", ".##....##."].map((r, y) =>
-        [...r].map((c, x) => (c === "#" ? <rect key={`${x}-${y}`} x={x} y={y + 1} width={1} height={1} /> : null)),
-      )}
-    </svg>
-  );
-}
-const Money = ({ currency, size = 11 }: { currency: string; size?: number }) =>
+const Money = ({ currency, size = 12 }: { currency: string; size?: number }) =>
   currency === "DIAMONDS" ? <span className="text-cyan"><Diamond size={size} /></span> : <Coin size={size} />;
 
 type State =

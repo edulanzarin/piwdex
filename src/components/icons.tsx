@@ -27,6 +27,44 @@ export function Coin({ size = 14, className = "" }: { size?: number; className?:
   );
 }
 
+/** Diamante pixel (moeda premium). Corpo herda a cor (currentColor) — envolver em
+ *  text-cyan pra moeda, ou outra cor pra VIP/etc. Brilho branco fixo. */
+export function Diamond({ size = 12, className = "" }: { size?: number; className?: string }) {
+  const rows = [
+    ".....CC.....", "....CwwC....", "...CwwCCC...", "..CCCCCCCC..",
+    ".CCCCCCCCCC.", "CCCCCCCCCCCC", ".CCCCCCCCCC.", "..CCCCCCCC..",
+    "...CCCCCC...", "....CCCC....", ".....CC.....",
+  ];
+  const cells: React.ReactNode[] = [];
+  rows.forEach((r, y) =>
+    [...r].forEach((ch, x) => {
+      if (ch === "C") cells.push(<rect key={`${x}-${y}`} x={x} y={y} width={1} height={1} fill="currentColor" />);
+      else if (ch === "w") cells.push(<rect key={`${x}-${y}`} x={x} y={y} width={1} height={1} fill="#ffffff" />);
+    }),
+  );
+  return (
+    <svg width={size} height={size} viewBox="0 0 12 12" shapeRendering="crispEdges" className={className} style={{ imageRendering: "pixelated" }} aria-hidden>
+      {cells}
+    </svg>
+  );
+}
+
+/** Estrela pixel (shiny/destaque). Herda a cor (currentColor). */
+export function Star({ size = 12, className = "" }: { size?: number; className?: string }) {
+  const rows = ["....##....", "....##....", "...####...", ".########.", "..######..", ".########.", "..##..##..", ".##....##."];
+  const cells: React.ReactNode[] = [];
+  rows.forEach((r, y) =>
+    [...r].forEach((ch, x) => {
+      if (ch === "#") cells.push(<rect key={`${x}-${y}`} x={x} y={y + 1} width={1} height={1} fill="currentColor" />);
+    }),
+  );
+  return (
+    <svg width={size} height={size} viewBox="0 0 12 12" shapeRendering="crispEdges" className={className} style={{ imageRendering: "pixelated" }} aria-hidden>
+      {cells}
+    </svg>
+  );
+}
+
 /** Preco em dolares do jogo: moeda + valor. */
 export function Gold({ value, className = "" }: { value: number; className?: string }) {
   return (

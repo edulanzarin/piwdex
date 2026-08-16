@@ -7,7 +7,7 @@ import { LoadingBall } from "./loaders";
 import { PokemonCombobox, type ComboCreature } from "./pokemon-combobox";
 import { TypeBadges } from "./badges";
 import { TypeIcon } from "./type-icon";
-import { Coin } from "./icons";
+import { Coin, Diamond } from "./icons";
 import { useT, useTypeLabel } from "./locale-provider";
 import { TYPE_COLOR } from "@/lib/typing";
 import { STAT_LABELS, estimateIvs, powerOf } from "@/lib/stats";
@@ -35,32 +35,6 @@ function StatIn({ label, value, onChange, iconIndex }: { label: string; value: s
       <input className="input !py-1.5 text-sm" inputMode="decimal" value={value} onChange={(e) => onChange(e.target.value)} />
     </label>
   );
-}
-
-// Diamante pixel (VIP). Corpo herda a cor (currentColor), com brilho branco.
-const DIAMOND_ROWS = [
-  ".....CC.....",
-  "....CwwC....",
-  "...CwwCCC...",
-  "..CCCCCCCC..",
-  ".CCCCCCCCCC.",
-  "CCCCCCCCCCCC",
-  ".CCCCCCCCCC.",
-  "..CCCCCCCC..",
-  "...CCCCCC...",
-  "....CCCC....",
-  ".....CC.....",
-  "............",
-];
-function Diamond({ size = 14 }: { size?: number }) {
-  const rects: React.ReactNode[] = [];
-  DIAMOND_ROWS.forEach((r, y) => {
-    for (let x = 0; x < r.length; x++) {
-      if (r[x] === "C") rects.push(<rect key={`${x}-${y}`} x={x} y={y} width={1} height={1} fill="currentColor" />);
-      else if (r[x] === "w") rects.push(<rect key={`${x}-${y}`} x={x} y={y} width={1} height={1} fill="#ffffff" />);
-    }
-  });
-  return <svg width={size} height={size} viewBox="0 0 12 12" shapeRendering="crispEdges" style={{ imageRendering: "pixelated" }} aria-hidden="true">{rects}</svg>;
 }
 
 // Seta pra cima (upar/XP), herda a cor.
