@@ -4,7 +4,7 @@
 // ao vivo do jogo via /api/market e ranqueia por Power/IV/Quality reais dos anuncios.
 // Cada card abre um modal com os stats base da especie (vindos do catalogo via `dex`).
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { spriteUrl } from "@/lib/sprites";
 import type { MarketMon, Currency } from "@/lib/game-account";
 import type { PokeType, Rarity } from "@/lib/types";
@@ -12,7 +12,8 @@ import { Sprite } from "./sprite";
 import { LoadingBall } from "./loaders";
 import { PokemonCombobox, type ComboCreature } from "./pokemon-combobox";
 import { TypeBadges } from "./badges";
-import { StatIcon } from "./stat-icons";
+import { StatBar } from "./stat-bar";
+import { Modal } from "./modal";
 import { useT } from "./locale-provider";
 import { Star, Coin, Diamond } from "./icons";
 
@@ -50,23 +51,6 @@ const STATS: readonly [string, keyof MarketDex][] = [
   ["HP", "baseHp"], ["ATK", "baseAtk"], ["DEF", "baseDef"],
   ["SP.ATK", "baseSpAtk"], ["SP.DEF", "baseSpDef"], ["SPEED", "baseSpeed"],
 ] as const;
-const MAX_STAT = 200;
-
-function StatBar({ label, value, best, iconIndex }: { label: string; value: number; best: boolean; iconIndex: number }) {
-  const pct = Math.min(100, (value / MAX_STAT) * 100);
-  const hue = Math.round((Math.min(value, MAX_STAT) / MAX_STAT) * 130);
-  return (
-    <div className="flex items-center gap-3">
-      <div className="flex w-16 shrink-0 items-center gap-1.5 text-[0.58rem] uppercase tracking-wide text-text-dim">
-        <StatIcon index={iconIndex} size={12} />{label}
-      </div>
-      <div className={`w-8 shrink-0 text-right text-sm font-bold tabular-nums ${best ? "text-yellow" : ""}`}>{value}</div>
-      <div className="statbar flex-1">
-        <div className="statbar-fill" style={{ width: `${pct}%`, background: `hsl(${hue} 68% 48%)` }} />
-      </div>
-    </div>
-  );
-}
 
 function Tile({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -79,25 +63,13 @@ function Tile({ label, children }: { label: string; children: React.ReactNode })
 
 function MarketMonModal({ mon, dex, onClose }: { mon: MarketMon; dex?: MarketDex; onClose: () => void }) {
   const t = useT();
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
-
   const total = dex
     ? dex.baseHp + dex.baseAtk + dex.baseDef + dex.baseSpAtk + dex.baseSpDef + dex.baseSpeed
     : null;
   const best = dex ? Math.max(dex.baseHp, dex.baseAtk, dex.baseDef, dex.baseSpAtk, dex.baseSpDef, dex.baseSpeed) : 0;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onClose}>
-      <div
-        role="dialog"
-        aria-modal="true"
-        className="card flex max-h-[88vh] w-full max-w-md flex-col gap-5 overflow-y-auto p-5"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <Modal onClose={onClose} className="w-full max-w-md gap-5 p-5">
         {/* Cabecalho */}
         <div className="flex items-center gap-4">
           <div className="relative flex h-20 w-20 shrink-0 items-center justify-center rounded bg-[rgba(8,14,28,0.6)]">
@@ -144,8 +116,7 @@ function MarketMonModal({ mon, dex, onClose }: { mon: MarketMon; dex?: MarketDex
         )}
 
         <a href={`/dex/${mon.speciesId}`} className="btn btn-cyan self-start">{t("account.market.viewDex")} ›</a>
-      </div>
-    </div>
+    </Modal>
   );
 }
 

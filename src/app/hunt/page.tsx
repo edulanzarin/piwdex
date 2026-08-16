@@ -70,6 +70,7 @@ export default async function HuntPage() {
       areas: rowAreas,
       spotCount: locs.length,
       topDrop: top ? { name: top.name, icon: top.icon } : null,
+      bases,
     });
 
     const hl = Math.max(1, c.huntLevel);

@@ -9,6 +9,7 @@ import { Sprite } from "./sprite";
 import { TypeBadges } from "./badges";
 import { LoadingBall } from "./loaders";
 import { StatIcon } from "./stat-icons";
+import { StatCompareRow } from "./stat-bar";
 import { useT } from "./locale-provider";
 
 export interface EvoNode {
@@ -291,13 +292,7 @@ export function EeveeLab({ eevee, evos }: { eevee: { pokeId: number; name: strin
                   </div>
                   <div className="flex flex-col gap-1.5">
                     {STAT_LABELS.map((lb, i) => (
-                      <div key={lb} className="flex items-center justify-between text-[0.72rem]">
-                        <span className="inline-flex items-center gap-1 text-text-dim"><StatIcon index={i} size={11} />{lb}</span>
-                        <span className="flex items-center gap-3 tabular-nums">
-                          <span className="w-12 text-right text-text">{cmp.seu.stats[i]}</span>
-                          <span className={`w-12 text-right ${ivColor(result.ivs[i])}`}>{result.ivs[i].toFixed(0)}/{IV_MAX}</span>
-                        </span>
-                      </div>
+                      <StatCompareRow key={lb} label={lb} iconIndex={i} value={cmp.seu.stats[i]} max={cmp.perf.stats[i]} iv={result.ivs[i]} ivClass={ivColor(result.ivs[i])} />
                     ))}
                   </div>
                   <div className="mt-3 border-t border-border pt-2 text-[0.6rem] uppercase tracking-wide text-text-dim">{t("calc.power")} <span className="pixel ml-1 text-[0.7rem] text-yellow">{cmp.seu.power.toLocaleString("pt-BR")}</span></div>
@@ -310,13 +305,7 @@ export function EeveeLab({ eevee, evos }: { eevee: { pokeId: number; name: strin
                   </div>
                   <div className="flex flex-col gap-1.5">
                     {STAT_LABELS.map((lb, i) => (
-                      <div key={lb} className="flex items-center justify-between text-[0.72rem]">
-                        <span className="inline-flex items-center gap-1 text-text-dim"><StatIcon index={i} size={11} />{lb}</span>
-                        <span className="flex items-center gap-3 tabular-nums">
-                          <span className="w-12 text-right text-green">{cmp.perf.stats[i]}</span>
-                          <span className="w-12 text-right text-green">{IV_MAX}/{IV_MAX}</span>
-                        </span>
-                      </div>
+                      <StatCompareRow key={lb} label={lb} iconIndex={i} value={cmp.perf.stats[i]} max={cmp.perf.stats[i]} iv={IV_MAX} ivClass="text-green" />
                     ))}
                   </div>
                   <div className="mt-3 border-t border-border pt-2 text-[0.6rem] uppercase tracking-wide text-text-dim">{t("calc.power")} <span className="pixel ml-1 text-[0.7rem] text-yellow">{cmp.perf.power.toLocaleString("pt-BR")}</span></div>

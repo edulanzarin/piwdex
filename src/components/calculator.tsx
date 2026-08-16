@@ -8,6 +8,7 @@ import { estimateIvs, powerOf, projectAll, STAT_LABELS } from "@/lib/stats";
 import { Sprite } from "./sprite";
 import { TypeBadges } from "./badges";
 import { StatIcon } from "./stat-icons";
+import { StatCompareRow } from "./stat-bar";
 import { LoadingBall } from "./loaders";
 import { Coin } from "./icons";
 import { PokemonCombobox } from "./pokemon-combobox";
@@ -319,13 +320,7 @@ export function Calculator({ creatures }: { creatures: CalcCreature[] }) {
               </div>
               <div className="flex flex-col gap-1.5">
                 {STAT_LABELS.map((lb, i) => (
-                  <div key={lb} className="flex items-center justify-between text-[0.72rem]">
-                    <span className="inline-flex items-center gap-1 text-text-dim"><StatIcon index={i} size={11} />{lb}</span>
-                    <span className="flex items-center gap-3 tabular-nums">
-                      <span className="w-10 text-right text-text">{statVals[i]}</span>
-                      <span className={`w-12 text-right ${ivColor(res.ivs[i])}`}>{res.ivs[i].toFixed(0)}/{IV_MAX}</span>
-                    </span>
-                  </div>
+                  <StatCompareRow key={lb} label={lb} iconIndex={i} value={statVals[i]} max={perfect.stats[i]} iv={res.ivs[i]} ivClass={ivColor(res.ivs[i])} />
                 ))}
               </div>
               <div className="mt-3 border-t border-border pt-2 text-[0.6rem] uppercase tracking-wide text-text-dim">{t("calc.power")} <span className="pixel ml-1 text-[0.7rem] text-yellow">{currentPower?.toLocaleString("pt-BR")}</span></div>
@@ -338,13 +333,7 @@ export function Calculator({ creatures }: { creatures: CalcCreature[] }) {
               </div>
               <div className="flex flex-col gap-1.5">
                 {STAT_LABELS.map((lb, i) => (
-                  <div key={lb} className="flex items-center justify-between text-[0.72rem]">
-                    <span className="inline-flex items-center gap-1 text-text-dim"><StatIcon index={i} size={11} />{lb}</span>
-                    <span className="flex items-center gap-3 tabular-nums">
-                      <span className="w-10 text-right text-green">{perfect.stats[i]}</span>
-                      <span className="w-12 text-right text-green">{IV_MAX}/{IV_MAX}</span>
-                    </span>
-                  </div>
+                  <StatCompareRow key={lb} label={lb} iconIndex={i} value={perfect.stats[i]} max={perfect.stats[i]} iv={IV_MAX} ivClass="text-green" />
                 ))}
               </div>
               <div className="mt-3 border-t border-border pt-2 text-[0.6rem] uppercase tracking-wide text-text-dim">{t("calc.power")} <span className="pixel ml-1 text-[0.7rem] text-yellow">{perfect.power.toLocaleString("pt-BR")}</span></div>
@@ -376,13 +365,7 @@ export function Calculator({ creatures }: { creatures: CalcCreature[] }) {
                 </div>
                 <div className="flex flex-col gap-1.5">
                   {STAT_LABELS.map((lb, i) => (
-                    <div key={lb} className="flex items-center justify-between text-[0.72rem]">
-                      <span className="inline-flex items-center gap-1 text-text-dim"><StatIcon index={i} size={11} />{lb}</span>
-                      <span className="flex items-center gap-3 tabular-nums">
-                        <span className="w-12 text-right text-cyan">{projection.stats[i]}</span>
-                        <span className={`w-12 text-right ${ivColor(res.ivs[i])}`}>{res.ivs[i].toFixed(0)}/{IV_MAX}</span>
-                      </span>
-                    </div>
+                    <StatCompareRow key={lb} label={lb} iconIndex={i} value={projection.stats[i]} max={perfectProjection.stats[i]} iv={res.ivs[i]} ivClass={ivColor(res.ivs[i])} />
                   ))}
                 </div>
                 <div className="mt-3 border-t border-border pt-2 text-[0.6rem] uppercase tracking-wide text-text-dim">{t("calc.powerAt", { n: tgt })} <span className="pixel ml-1 text-[0.7rem] text-yellow">{projection.power.toLocaleString("pt-BR")}</span></div>
@@ -395,13 +378,7 @@ export function Calculator({ creatures }: { creatures: CalcCreature[] }) {
                 </div>
                 <div className="flex flex-col gap-1.5">
                   {STAT_LABELS.map((lb, i) => (
-                    <div key={lb} className="flex items-center justify-between text-[0.72rem]">
-                      <span className="inline-flex items-center gap-1 text-text-dim"><StatIcon index={i} size={11} />{lb}</span>
-                      <span className="flex items-center gap-3 tabular-nums">
-                        <span className="w-12 text-right text-green">{perfectProjection.stats[i]}</span>
-                        <span className="w-12 text-right text-green">{IV_MAX}/{IV_MAX}</span>
-                      </span>
-                    </div>
+                    <StatCompareRow key={lb} label={lb} iconIndex={i} value={perfectProjection.stats[i]} max={perfectProjection.stats[i]} iv={IV_MAX} ivClass="text-green" />
                   ))}
                 </div>
                 <div className="mt-3 border-t border-border pt-2 text-[0.6rem] uppercase tracking-wide text-text-dim">{t("calc.powerAt", { n: tgt })} <span className="pixel ml-1 text-[0.7rem] text-yellow">{perfectProjection.power.toLocaleString("pt-BR")}</span></div>

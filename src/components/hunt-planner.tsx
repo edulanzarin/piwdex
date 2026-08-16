@@ -1,13 +1,15 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { spriteUrl } from "@/lib/sprites";
 import type { PokeType } from "@/lib/types";
+import { STAT_LABELS } from "@/lib/stats";
 import { Sprite } from "./sprite";
 import { TypeBadges } from "./badges";
 import { TypeFilter } from "./type-filter";
 import { SelectMenu } from "./select-menu";
+import { StatBar } from "./stat-bar";
+import { Modal } from "./modal";
 import { Coin, Gold } from "./icons";
 import { useT } from "./locale-provider";
 
@@ -24,6 +26,7 @@ export interface HuntRow {
   areas: string[];
   spotCount: number;
   topDrop: { name: string; icon: string } | null;
+  bases: number[]; // hp, atk, def, spAtk, spDef, speed — pro peek de stats
 }
 
 type Sort = "gold" | "xp" | "lvl" | "name";
@@ -35,6 +38,82 @@ const num = (s: string): number => {
 };
 const PAGE_SIZE = 25;
 
+// Peek de um alvo de hunt: sprite, tipos, stats base (mesmas barras da dex/mercado)
+// e a economia por kill — sem sair da lista filtrada.
+function HuntRowModal({ row, onClose }: { row: HuntRow; onClose: () => void }) {
+  const t = useT();
+  const total = row.bases.reduce((a, b) => a + b, 0);
+  const best = Math.max(...row.bases);
+  return (
+    <Modal onClose={onClose} className="w-full max-w-md gap-5 p-5">
+      <div className="flex items-center gap-4">
+        <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded bg-[rgba(8,14,28,0.6)]">
+          <Sprite src={spriteUrl(row.pokeId)} alt={row.name} size={72} />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="text-[0.55rem] text-text-dim">#{String(row.pokeId).padStart(3, "0")}</div>
+          <h3 className="truncate pixel text-[0.9rem] text-text">{row.name}</h3>
+          <div className="mt-2 flex flex-wrap items-center gap-1.5">
+            <TypeBadges t1={row.type1} t2={row.type2} />
+            <span className="chip" style={{ background: "var(--surface-2)", color: "var(--text)" }}>lvl {row.huntLevel}</span>
+          </div>
+        </div>
+        <button type="button" onClick={onClose} aria-label="fechar" className="shrink-0 self-start rounded p-1 text-text-dim hover:bg-surface-2 hover:text-text">✕</button>
+      </div>
+
+      {/* Economia por kill */}
+      <div className="grid grid-cols-3 gap-2">
+        <div className="rounded border border-border bg-[rgba(8,14,28,0.5)] px-3 py-2">
+          <div className="text-[0.55rem] uppercase tracking-wide text-text-dim">{t("hunt.col.xp")}</div>
+          <div className="mt-0.5 text-sm font-bold tabular-nums text-text">{row.xp.toLocaleString("pt-BR")}</div>
+        </div>
+        <div className="rounded border border-border bg-[rgba(8,14,28,0.5)] px-3 py-2">
+          <div className="text-[0.55rem] uppercase tracking-wide text-text-dim">{t("hunt.col.gold")}</div>
+          <div className="mt-0.5 flex items-center gap-1 text-sm font-bold tabular-nums text-yellow"><Gold value={row.gold} /></div>
+        </div>
+        <div className="rounded border border-border bg-[rgba(8,14,28,0.5)] px-3 py-2">
+          <div className="text-[0.55rem] uppercase tracking-wide text-text-dim">{t("hunt.col.sell")}</div>
+          <div className="mt-0.5 flex items-center gap-1 text-sm font-bold tabular-nums text-text-dim">
+            {row.sell > 0 ? <><Coin />{row.sell.toLocaleString("pt-BR")}</> : "—"}
+          </div>
+        </div>
+      </div>
+
+      {/* Stats base */}
+      <div className="flex flex-col gap-2.5">
+        <div className="pixel text-[0.62rem] text-cyan">{t("cr.statsBase")}</div>
+        {STAT_LABELS.map((lb, i) => (
+          <StatBar key={lb} iconIndex={i} label={lb} value={row.bases[i]} best={row.bases[i] === best} />
+        ))}
+        <div className="mt-1 flex items-center justify-between border-t border-border pt-2 text-sm">
+          <span className="text-[0.62rem] uppercase tracking-wide text-text-dim">{t("cr.total")}</span>
+          <strong className="tabular-nums text-cyan">{total}</strong>
+        </div>
+      </div>
+
+      {/* Onde cacar + melhor drop */}
+      <div className="flex flex-col gap-2 text-[0.72rem]">
+        <div className="flex items-start gap-2">
+          <span className="w-14 shrink-0 pt-0.5 text-[0.55rem] uppercase tracking-wide text-text-dim">{t("hunt.col.where")}</span>
+          <span className="text-text">{row.areas.map(area).join(", ")} · {t("hunt.spots", { n: row.spotCount })}</span>
+        </div>
+        {row.topDrop && (
+          <div className="flex items-center gap-2">
+            <span className="w-14 shrink-0 text-[0.55rem] uppercase tracking-wide text-text-dim">{t("hunt.col.drop")}</span>
+            <span className="inline-flex items-center gap-2 text-text">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={row.topDrop.icon} alt="" width={18} height={18} className="[image-rendering:pixelated]" />
+              {row.topDrop.name}
+            </span>
+          </div>
+        )}
+      </div>
+
+      <a href={`/dex/${row.pokeId}`} className="btn btn-cyan self-start">{t("hunt.viewDex")} ›</a>
+    </Modal>
+  );
+}
+
 export function EconomyTable({ rows, areas }: { rows: HuntRow[]; areas: string[] }) {
   const t = useT();
   const [q, setQ] = useState("");
@@ -43,6 +122,7 @@ export function EconomyTable({ rows, areas }: { rows: HuntRow[]; areas: string[]
   const [maxLvl, setMaxLvl] = useState("");
   const [sort, setSort] = useState<Sort>("gold");
   const [page, setPage] = useState(0);
+  const [sel, setSel] = useState<HuntRow | null>(null);
 
   const lvlCap = num(maxLvl);
 
@@ -137,9 +217,15 @@ export function EconomyTable({ rows, areas }: { rows: HuntRow[]; areas: string[]
             </thead>
             <tbody>
               {paged.map((r) => (
-                <tr key={r.pokeId} className="border-b border-border/60 last:border-0 hover:bg-surface-2">
+                <tr
+                  key={r.pokeId}
+                  onClick={() => setSel(r)}
+                  tabIndex={0}
+                  onKeyDown={(e) => { if (e.key === "Enter") setSel(r); }}
+                  className="group cursor-pointer border-b border-border/60 last:border-0 hover:bg-surface-2 focus:bg-surface-2 focus:outline-none"
+                >
                   <td className="px-4 py-2.5">
-                    <Link href={`/dex/${r.pokeId}`} className="group flex items-center gap-3">
+                    <span className="flex items-center gap-3">
                       <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded bg-[rgba(8,14,28,0.5)]">
                         <Sprite src={spriteUrl(r.pokeId)} alt={r.name} size={34} />
                       </span>
@@ -147,7 +233,7 @@ export function EconomyTable({ rows, areas }: { rows: HuntRow[]; areas: string[]
                         <span className="text-text group-hover:text-cyan">{r.name}</span>
                         <TypeBadges t1={r.type1} t2={r.type2} />
                       </span>
-                    </Link>
+                    </span>
                   </td>
                   <td className="px-4 py-2.5">
                     <div className="flex flex-col gap-0.5">
@@ -217,6 +303,8 @@ export function EconomyTable({ rows, areas }: { rows: HuntRow[]; areas: string[]
       )}
 
       <p className="text-[0.66rem] leading-relaxed text-text-dim">{t("hunt.note")}</p>
+
+      {sel && <HuntRowModal row={sel} onClose={() => setSel(null)} />}
     </div>
   );
 }

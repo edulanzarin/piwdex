@@ -7,7 +7,7 @@ import { defensiveDetailed, offensiveDetailed } from "@/lib/typing";
 import type { TypeMult } from "@/lib/typing";
 import { TypeBadge, TypeBadges, TypePill } from "@/components/badges";
 import { AcqBadge } from "@/components/acq-badge";
-import { StatIcon } from "@/components/stat-icons";
+import { StatBar } from "@/components/stat-bar";
 import { CASINO_PRICE } from "@/lib/casino-prices";
 import { Sprite } from "@/components/sprite";
 import { HeroSprite } from "@/components/hero-sprite";
@@ -36,24 +36,6 @@ const STATS = [
   ["HP", "baseHp"], ["ATK", "baseAtk"], ["DEF", "baseDef"],
   ["SP.ATK", "baseSpAtk"], ["SP.DEF", "baseSpDef"], ["SPEED", "baseSpeed"],
 ] as const;
-
-const MAX_STAT = 200;
-
-function StatBar({ label, value, best, iconIndex }: { label: string; value: number; best: boolean; iconIndex: number }) {
-  const pct = Math.min(100, (value / MAX_STAT) * 100);
-  const hue = Math.round((Math.min(value, MAX_STAT) / MAX_STAT) * 130);
-  return (
-    <div className="flex items-center gap-3">
-      <div className="flex w-16 shrink-0 items-center gap-1.5 text-[0.6rem] text-text-dim uppercase tracking-wide">
-        <StatIcon index={iconIndex} size={12} />{label}
-      </div>
-      <div className={`w-9 shrink-0 text-right text-sm font-bold tabular-nums ${best ? "text-yellow" : ""}`}>{value}</div>
-      <div className="statbar flex-1">
-        <div className="statbar-fill" style={{ width: `${pct}%`, background: `hsl(${hue} 68% 48%)` }} />
-      </div>
-    </div>
-  );
-}
 
 // Pin pixel simples pra "onde cacar".
 function MapPin({ size = 16 }: { size?: number }) {
