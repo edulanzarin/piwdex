@@ -61,42 +61,43 @@ export interface HuntPick {
   safe: "safe" | "risky"; // pela comparacao de Power
 }
 
-/** Golpe principal do pokemon: o de MAIOR nivel de aprendizado disponivel (desempate
- *  por poder). E o que o jogo/PIW usa — pro Electrode da Electric Storm (raio). */
-export function mainMove(stage: Species, level: number): Move | null {
-  let best: Move | null = null;
+/** Golpe do pokemon com maior DANO EFETIVO contra um alvo especifico:
+ *  poder * STAB (1.5 se o tipo do golpe e o do pokemon) * efetividade amplificada.
+ *  E o que o jogo faz — usa o soco de Luta no Tyranitar (super efetivo), nao um golpe
+ *  Normal so por ter nivel de aprendizado maior. Ignora golpes imunes (eff 0). */
+export function bestMoveVs(stage: Species, level: number, e: EnemyCombat): { move: Move; eff: number } | null {
+  let best: { move: Move; eff: number; dmg: number } | null = null;
   for (const mv of stage.moves) {
     if (mv.power <= 0 || mv.learn > level) continue;
-    if (!best || mv.learn > best.learn || (mv.learn === best.learn && mv.power > best.power)) best = mv;
+    const eff = huntEffectiveness(mv.type, e.t1, e.t2);
+    if (eff <= 0) continue; // golpe sem efeito nesse alvo (imune)
+    const stab = mv.type === stage.t1 || mv.type === stage.t2 ? 1.5 : 1;
+    const dmg = mv.power * stab * eff;
+    if (!best || dmg > best.dmg) best = { move: mv, eff, dmg };
   }
-  return best;
+  return best ? { move: best.move, eff: best.eff } : null;
 }
 
-/** Melhor hunt pro nivel: entre os alvos que voce ENCARA (Power) e na janela de nivel,
- *  a de maior XP x efetividade. Empate desempata por OURO x efetividade (prioriza upar,
- *  mas entre iguais pega a que da mais dinheiro). */
+/** Melhor hunt pro nivel: entre TODOS os alvos que voce encara (Power <= o seu * teto),
+ *  a de maior XP x efetividade, usando o melhor golpe seu contra cada alvo. Sem janela de
+ *  nivel — um alvo de nivel mais baixo em que voce e super efetivo (mata rapido) vale mais
+ *  que um da sua faixa em que voce bate 1x. O Power ja limita o que e forte demais.
+ *  Empate desempata por OURO x efetividade (prioriza upar, mas entre iguais pega mais $). */
 function pickHunt(stage: Species, level: number, yourPower: number, enemies: EnemyCombat[], mode: "xp" | "gold" = "xp"): HuntPick | null {
-  const move = mainMove(stage, level);
-  if (!move) return null;
-  const windows: [number, number][] = [
-    [level - 40, level + 20],
-    [level - 80, level + 40],
-    [0, level + 80],
-    [0, Infinity],
-  ];
-  for (const [lo, hi] of windows) {
+  // Prefere alvos SEGUROS (Power <= o seu * SAFE); so cai pro arriscado (ate o teto) se
+  // nao houver nenhum seguro — assim nao recomenda risco quando ha uma opcao tranquila.
+  for (const cap of [yourPower * SAFE, yourPower * POWER_CEIL]) {
     let best: { primary: number; secondary: number; pick: HuntPick } | null = null;
     for (const e of enemies) {
-      if (e.huntLevel < lo || e.huntLevel > hi) continue;
-      if (e.power > yourPower * POWER_CEIL) continue;
-      const eff = huntEffectiveness(move.type, e.t1, e.t2);
-      if (eff <= 0) continue;
+      if (e.power > cap) continue;
+      const bm = bestMoveVs(stage, level, e);
+      if (!bm) continue;
       // mode "xp": rankeia por XP (desempata por ouro); "gold": o inverso.
-      const primary = (mode === "gold" ? e.goldEV : e.xp) * eff;
-      const secondary = (mode === "gold" ? e.xp : e.goldEV) * eff;
+      const primary = (mode === "gold" ? e.goldEV : e.xp) * bm.eff;
+      const secondary = (mode === "gold" ? e.xp : e.goldEV) * bm.eff;
       const better = !best || primary > best.primary * 1.0001 || (Math.abs(primary - best.primary) <= best.primary * 1e-4 && secondary > best.secondary);
       if (better) {
-        best = { primary, secondary, pick: { enemy: e, moveName: move.type, eff, safe: e.power <= yourPower * SAFE ? "safe" : "risky" } };
+        best = { primary, secondary, pick: { enemy: e, moveName: bm.move.type, eff: bm.eff, safe: e.power <= yourPower * SAFE ? "safe" : "risky" } };
       }
     }
     if (best) return best.pick;
