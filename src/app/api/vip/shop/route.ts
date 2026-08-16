@@ -34,9 +34,10 @@ export async function GET() {
   const tokens = invR?.tokens ?? shopR?.tokens ?? c.tokens;
   if (shopR?.changed || invR?.changed) await updateGameTokens(c.userId, tokens);
 
-  // So drops vendaveis (npcPrice > 0), com a flag `rare` do catalogo do piwdex pra avisar.
+  // So DROPS de hunt (categoria 'loot') sao vendaveis no NPC — pocao/revive/pedra sao
+  // compra-only. (Itens bloqueados o jogo recusa; ver /api/game/item/lock — TODO.)
   const inventory = (invR?.items ?? [])
-    .filter((i) => i.npcPrice > 0 && i.quantity > 0)
+    .filter((i) => i.category === "loot" && i.npcPrice > 0 && i.quantity > 0)
     .map((i) => ({ ...i, rare: data.getItem(i.id)?.rare ?? false }))
     .sort((a, b) => b.npcPrice * b.quantity - a.npcPrice * a.quantity);
 

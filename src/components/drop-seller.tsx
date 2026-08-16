@@ -61,7 +61,8 @@ export function DropSeller() {
         setSel(new Set());
         await load();
       } else {
-        setFlash(t("robo.error"));
+        setFlash(t("robo.sell.failed"));
+        await load();
       }
     } finally {
       setBusy(false);
