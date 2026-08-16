@@ -9,12 +9,14 @@ import { useEffect, useState } from "react";
 import { RoboPanel } from "./robo-panel";
 import { DropSeller } from "./drop-seller";
 import { PokeSeller } from "./poke-seller";
+import { HuntAnalyzer } from "./hunt-analyzer";
 import { useT } from "./locale-provider";
 import { Star } from "./icons";
 
-type Section = "automacao" | "vender-drops" | "vender-pokes" | "auto-compra";
+type Section = "automacao" | "hunt" | "vender-drops" | "vender-pokes" | "auto-compra";
 const SECTIONS: { key: Section; label: string }[] = [
   { key: "automacao", label: "robo.nav.automacao" },
+  { key: "hunt", label: "robo.nav.hunt" },
   { key: "vender-drops", label: "robo.nav.venderDrops" },
   { key: "vender-pokes", label: "robo.nav.venderPokes" },
   { key: "auto-compra", label: "robo.nav.autoCompra" },
@@ -70,6 +72,7 @@ export function RoboModule() {
       </div>
 
       {sec === "automacao" && <RoboPanel />}
+      {sec === "hunt" && <HuntAnalyzer />}
       {sec === "vender-drops" && <DropSeller />}
       {sec === "vender-pokes" && <PokeSeller />}
       {sec === "auto-compra" && <AutoBuySoon />}
