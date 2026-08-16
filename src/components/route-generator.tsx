@@ -7,6 +7,7 @@ import { LoadingBall } from "./loaders";
 import { PokemonCombobox, type ComboCreature } from "./pokemon-combobox";
 import { TypeBadges } from "./badges";
 import { TypeIcon } from "./type-icon";
+import { ToggleButton } from "./toggle-button";
 import { Coin, Diamond } from "./icons";
 import { useT, useTypeLabel } from "./locale-provider";
 import { TYPE_COLOR } from "@/lib/typing";
@@ -157,20 +158,20 @@ export function RouteGenerator({ species, enemies }: { species: Species[]; enemi
             <div className="flex flex-col gap-1">
               <span className="text-[0.6rem] uppercase tracking-wide text-text-dim">{t("hunt.route.priority")}</span>
               <div className="flex gap-1.5">
-                <button type="button" onClick={() => setMode("xp")} className={`inline-flex items-center gap-1.5 rounded border px-3 py-1.5 text-[0.7rem] transition ${mode === "xp" ? "border-[color:var(--green)] bg-surface-2 text-green" : "border-border text-text-dim hover:text-text"}`}>
+                <ToggleButton active={mode === "xp"} onClick={() => setMode("xp")} accent="green">
                   <XpIcon size={12} /> {t("hunt.route.priorityXp")}
-                </button>
-                <button type="button" onClick={() => setMode("gold")} className={`inline-flex items-center gap-1.5 rounded border px-3 py-1.5 text-[0.7rem] transition ${mode === "gold" ? "border-[color:var(--yellow)] bg-surface-2 text-yellow" : "border-border text-text-dim hover:text-text"}`}>
+                </ToggleButton>
+                <ToggleButton active={mode === "gold"} onClick={() => setMode("gold")} accent="yellow">
                   <Coin /> {t("hunt.route.priorityGold")}
-                </button>
+                </ToggleButton>
               </div>
             </div>
 
             <div className="flex flex-col gap-1">
               <span className="text-[0.6rem] uppercase tracking-wide text-text-dim">VIP</span>
-              <button type="button" onClick={() => setVip((v) => !v)} className={`inline-flex items-center gap-2 rounded border px-3 py-1.5 text-[0.7rem] transition ${vip ? "border-[color:var(--cyan)] bg-surface-2 text-cyan" : "border-border text-text-dim hover:text-text"}`}>
+              <ToggleButton active={vip} onClick={() => setVip((v) => !v)} accent="cyan">
                 <Diamond size={14} /> {t("hunt.vip")}
-              </button>
+              </ToggleButton>
             </div>
           </div>
 

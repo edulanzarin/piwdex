@@ -1,20 +1,48 @@
-// Avaliacao de anuncio do mercado em DOIS eixos independentes:
+// Avaliacao de anuncio do mercado. Um bicho e bom por DUAS coisas permanentes, e
+// separado disso vem o preco:
 //
-//  1. Qualidade "genetica" (genes): o quanto o bicho e bom em si, pelo IV total
-//     sobre o maximo (192). Independe de nivel e de preco — e o teto permanente.
+//  1. Genes (IV total / 192): a "genetica" de stats. Fixa na captura, evoluir nao
+//     re-rola.
 //
-//  2. Preco (deal): se VALE A PENA pelo que se paga. Custo-beneficio = Power por
+//  2. Quality (Q): multiplicador permanente que, no jogo, PESA MAIS que o IV — entra
+//     na conta duas vezes (em cada stat via Q^exp e de novo no Power = soma*Q). So
+//     sobe com breeding. Captura selvagem vai de ~1.0 ate ~1.8; 2.0+ (Mythic/Ancient/
+//     Divine) so vem de breeding/shiny; teto normal 2.600. Logo Q perto de 1.0 e bicho
+//     cru (so serve de reprodutor) e 1.8 e o minimo que a comunidade recomenda.
+//     Fontes: pokepedia/systems/quality do jogo e pokeidletools.com; constantes de
+//     breeding conferem com src/lib/breeding.ts (WILD ~1.0, max normal 2.6).
+//
+//  3. Preco (deal): se VALE A PENA pelo que se paga. Custo-beneficio = Power por
 //     unidade de preco, comparado com a MEDIANA dos anuncios listados (por moeda).
 //     Mediana em vez de media pra um anuncio absurdo (golpe/typo) nao mover a regua.
 //
-// Os dois sao separados de proposito: um bicho de genes medianos (amarelo) mas
-// barato (deal verde) pode valer mais a pena que um perfeito supervalorizado.
+// A NOTA do bicho (borda do card) e comandada pela Quality (pois pesa mais), com os
+// genes so temperando. Genes e Quality tambem aparecem separados no veredito, porque
+// um bicho de genes otimos mas Quality baixa ainda vale — como reprodutor.
 
 import type { MarketMon } from "./game-account";
 
 export type Grade = "great" | "ok" | "bad";
 
 const IV_MAX_TOTAL = 192;
+
+// Escala de Quality (ver cabecalho). Constantes pra ficar facil de calibrar.
+export const Q_GREAT = 1.8; // topo do selvagem / minimo recomendado — daqui pra cima e verde
+export const Q_OK = 1.4; // meio do caminho entre a base (1.0) e o recomendado
+export const Q_FODDER = 1.2; // perto da captura crua: so vale de reprodutor
+
+/** Nota da Quality (Q): verde >=1.8, amarelo >=1.4, vermelho abaixo. */
+export function qualityGrade(q: number | null): Grade | null {
+  if (q == null) return null;
+  if (q >= Q_GREAT) return "great";
+  if (q >= Q_OK) return "ok";
+  return "bad";
+}
+
+/** Quality perto da base (<=1.2): o bicho so compensa como reprodutor de breeding. */
+export function isBreedingStock(q: number | null): boolean {
+  return q != null && q <= Q_FODDER;
+}
 
 // Amostra minima por moeda pra a mediana significar algo. Abaixo disso nao cravamos
 // veredito de preco (retorna null) — melhor calar que enganar.
@@ -25,12 +53,23 @@ export const MIN_SAMPLE = 4;
 export const DEAL_GREAT = 1.25;
 export const DEAL_FAIR = 0.8;
 
-/** Qualidade dos genes pelo IV total (0..192). Verde >=150, amarelo >=100, vermelho abaixo. */
+/** Nota dos genes pelo IV total (0..192). Verde >=150, amarelo >=100, vermelho abaixo. */
 export function ivGrade(ivTotal: number | null): Grade | null {
   if (ivTotal == null) return null;
   if (ivTotal >= 150) return "great";
   if (ivTotal >= 100) return "ok";
   return "bad";
+}
+
+/** Nota geral do bicho pra a borda do card. A Quality manda (pesa mais que o IV): a
+ *  nota parte da Quality e genes fracos so rebaixam um "otimo" pra "bom" — genes de
+ *  elite NAO salvam uma Quality baixa (Q baixa = bicho cru, no maximo reprodutor). */
+export function monGrade(ivTotal: number | null, quality: number | null): Grade | null {
+  const q = qualityGrade(quality);
+  if (q == null) return ivGrade(ivTotal); // sem Quality: cai pro que da (genes)
+  const iv = ivGrade(ivTotal);
+  if (q === "great" && iv === "bad") return "ok"; // Quality otima mas genes fracos: tempera
+  return q;
 }
 
 /** Custo-beneficio bruto: Power por unidade de preco. Null quando falta dado. */
