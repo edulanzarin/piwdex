@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { getData } from "@/lib/data";
 import { Calculator, type CalcCreature } from "@/components/calculator";
+import { ToolFrame } from "@/components/tool-frame";
+import { NavCalc } from "@/components/nav-icons";
 import { T } from "@/components/locale-provider";
 
 export const metadata: Metadata = { title: "Analise de Status" };
@@ -29,15 +31,17 @@ export default async function CalcPage() {
     })
     .sort((a, b) => a.name.localeCompare(b.name));
   return (
-    <div className="flex flex-col gap-6">
-      <div>
-        <div className="eyebrow mb-2"><T k="calc.eyebrow" /></div>
-        <h1 className="pixel text-xl text-text"><T k="calc.title" /></h1>
-        <p className="mt-3 max-w-2xl text-sm text-text-dim">
-          <T k="calc.desc" />
-        </p>
+    <ToolFrame accent="#b98cff" label="CALCULADORA" icon={<NavCalc size={13} />}>
+      <div className="flex flex-col gap-6">
+        <div>
+          <div className="eyebrow mb-2"><T k="calc.eyebrow" /></div>
+          <h1 className="pixel text-xl" style={{ color: "#b98cff" }}><T k="calc.title" /></h1>
+          <p className="mt-3 max-w-2xl text-sm text-text-dim">
+            <T k="calc.desc" />
+          </p>
+        </div>
+        <Calculator creatures={slim} />
       </div>
-      <Calculator creatures={slim} />
-    </div>
+    </ToolFrame>
   );
 }

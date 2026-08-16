@@ -6,6 +6,8 @@ import { SIM_IV, type EnemyCombat, type Species, type Move } from "@/lib/combat"
 import { HuntTool } from "@/components/hunt-tool";
 import type { HuntRow } from "@/components/hunt-planner";
 import type { PokeType } from "@/lib/types";
+import { ToolFrame } from "@/components/tool-frame";
+import { NavHunt } from "@/components/nav-icons";
 import { T } from "@/components/locale-provider";
 
 export const metadata: Metadata = { title: "Hunt Planner" };
@@ -90,15 +92,17 @@ export default async function HuntPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <div>
-        <div className="eyebrow mb-2"><T k="hunt.eyebrow" /></div>
-        <h1 className="pixel text-xl text-text"><T k="hunt.title" /></h1>
-        <p className="mt-3 max-w-2xl text-sm text-text-dim">
-          <T k="hunt.route.desc" />
-        </p>
+    <ToolFrame accent="#f4d24a" label="HUNT" icon={<NavHunt size={13} />}>
+      <div className="flex flex-col gap-6">
+        <div>
+          <div className="eyebrow mb-2"><T k="hunt.eyebrow" /></div>
+          <h1 className="pixel text-xl" style={{ color: "#f4d24a" }}><T k="hunt.title" /></h1>
+          <p className="mt-3 max-w-2xl text-sm text-text-dim">
+            <T k="hunt.route.desc" />
+          </p>
+        </div>
+        <HuntTool rows={rows} areas={areas} species={species} enemies={enemies} />
       </div>
-      <HuntTool rows={rows} areas={areas} species={species} enemies={enemies} />
-    </div>
+    </ToolFrame>
   );
 }
