@@ -13,6 +13,8 @@ export interface Ball {
   name: string;
   catchRate: number;
   priceGold: number | null;
+  iconUrl?: string | null;
+  buyable?: boolean;
   infinite: boolean;
 }
 

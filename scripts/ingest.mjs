@@ -139,6 +139,8 @@ async function main() {
           b.id = hit.id ?? b.id;
           b.catchRate = typeof hit.catchRate === "number" ? hit.catchRate : b.catchRate;
           b.priceGold = typeof hit.priceGold === "number" ? hit.priceGold : b.priceGold;
+          b.iconUrl = hit.iconUrl ?? b.iconUrl ?? null;
+          b.buyable = Boolean(hit.buyable);
           b.infinite = Boolean(hit.infinite);
         }
       }
