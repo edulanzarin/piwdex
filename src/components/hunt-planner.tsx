@@ -7,6 +7,7 @@ import { STAT_LABELS } from "@/lib/stats";
 import { Sprite } from "./sprite";
 import { TypeBadges } from "./badges";
 import { TypeFilter } from "./type-filter";
+import { PokemonCombobox, type ComboCreature } from "./pokemon-combobox";
 import { SelectMenu } from "./select-menu";
 import { StatBar } from "./stat-bar";
 import { Modal } from "./modal";
@@ -116,7 +117,7 @@ function HuntRowModal({ row, onClose }: { row: HuntRow; onClose: () => void }) {
 
 export function EconomyTable({ rows, areas }: { rows: HuntRow[]; areas: string[] }) {
   const t = useT();
-  const [q, setQ] = useState("");
+  const [species, setSpecies] = useState<ComboCreature | null>(null);
   const [type, setType] = useState<PokeType | "">("");
   const [areaSel, setAreaSel] = useState("");
   const [maxLvl, setMaxLvl] = useState("");
@@ -126,10 +127,18 @@ export function EconomyTable({ rows, areas }: { rows: HuntRow[]; areas: string[]
 
   const lvlCap = num(maxLvl);
 
+  // Lista pro combobox rico (sprite + badges de tipo), como no /calc e no Mercado.
+  const comboList = useMemo<ComboCreature[]>(
+    () =>
+      rows
+        .map((r) => ({ pokeId: r.pokeId, name: r.name, type1: r.type1, type2: r.type2 }))
+        .sort((a, b) => a.name.localeCompare(b.name)),
+    [rows],
+  );
+
   const filtered = useMemo(() => {
-    const needle = q.trim().toLowerCase();
     const list = rows.filter((r) => {
-      if (needle && !r.name.toLowerCase().includes(needle) && String(r.pokeId) !== needle) return false;
+      if (species && r.pokeId !== species.pokeId) return false;
       if (type && r.type1 !== type && r.type2 !== type) return false;
       if (areaSel && !r.areas.includes(areaSel)) return false;
       if (Number.isFinite(lvlCap) && r.huntLevel > lvlCap) return false;
@@ -142,9 +151,9 @@ export function EconomyTable({ rows, areas }: { rows: HuntRow[]; areas: string[]
       name: (a, b) => a.name.localeCompare(b.name),
     };
     return [...list].sort(by[sort]);
-  }, [rows, q, type, areaSel, lvlCap, sort]);
+  }, [rows, species, type, areaSel, lvlCap, sort]);
 
-  useEffect(() => { setPage(0); }, [q, type, areaSel, maxLvl, sort]);
+  useEffect(() => { setPage(0); }, [species, type, areaSel, maxLvl, sort]);
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const safePage = Math.min(page, pageCount - 1);
   const paged = filtered.slice(safePage * PAGE_SIZE, safePage * PAGE_SIZE + PAGE_SIZE);
@@ -153,39 +162,38 @@ export function EconomyTable({ rows, areas }: { rows: HuntRow[]; areas: string[]
     <div className="flex flex-col gap-4">
       {/* Controles */}
       <div className="flex flex-col gap-3">
-        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
-          <input
-            className="input sm:max-w-[16rem]"
-            placeholder={t("hunt.search")}
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-          />
-          <TypeFilter value={type} onChange={setType} />
-          <div className="flex flex-col gap-1">
+        <div className="grid grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:items-end">
+          <label className="col-span-2 flex flex-col gap-1 sm:w-64">
+            <span className="text-[0.55rem] uppercase tracking-wide text-text-dim">{t("hunt.col.pokemon")}</span>
+            <PokemonCombobox creatures={comboList} value={species} onSelect={setSpecies} placeholder={t("hunt.search")} />
+          </label>
+          <div className="flex flex-col gap-1 sm:w-52">
+            <span className="text-[0.55rem] uppercase tracking-wide text-text-dim">{t("hunt.type")}</span>
+            <TypeFilter value={type} onChange={setType} />
+          </div>
+          <div className="flex flex-col gap-1 sm:w-48">
             <span className="text-[0.55rem] uppercase tracking-wide text-text-dim">{t("hunt.allAreas")}</span>
             <SelectMenu
               value={areaSel}
               onChange={setAreaSel}
-              className="sm:max-w-[12rem]"
               options={[{ value: "", label: t("hunt.allAreas") }, ...areas.map((a) => ({ value: a, label: area(a) }))]}
             />
           </div>
-          <label className="flex flex-col gap-1">
+          <label className="flex flex-col gap-1 sm:w-28">
             <span className="text-[0.55rem] uppercase tracking-wide text-text-dim">{t("hunt.maxLvl")}</span>
             <input
-              className="input w-24"
+              className="input w-full"
               inputMode="numeric"
               placeholder="—"
               value={maxLvl}
               onChange={(e) => setMaxLvl(e.target.value)}
             />
           </label>
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-1 sm:w-52">
             <span className="text-[0.55rem] uppercase tracking-wide text-text-dim">{t("hunt.sortBy")}</span>
             <SelectMenu
               value={sort}
               onChange={(v) => setSort(v as Sort)}
-              className="sm:max-w-[13rem]"
               options={[
                 { value: "gold", label: t("hunt.sort.gold") },
                 { value: "xp", label: t("hunt.sort.xp") },
