@@ -53,6 +53,7 @@ services:
       GAME_HOST: ${GAME_HOST:-https://poke.idleworld.online}
       APP_URL: ${APP_URL:-}
       MP_ACCESS_TOKEN: ${MP_ACCESS_TOKEN:-}
+      CRON_SECRET: ${CRON_SECRET:-}
     ports:
       - "${APP_PORT:-4070}:3000"
     depends_on:
@@ -60,6 +61,29 @@ services:
         condition: service_healthy
       piwdex-migrate:
         condition: service_completed_successfully
+    networks: [piwdex-net]
+
+  # Worker do sniper: bate /api/cron/scan a cada SCAN_INTERVAL (s), autenticado por
+  # CRON_SECRET. E o que faz o alerta pegar o anuncio com o site fechado. So leitura
+  # do jogo (mercado/conta) -> grava notificacoes; nao escreve na conta do jogador.
+  piwdex-worker:
+    image: curlimages/curl:8.11.1
+    container_name: piwdex-worker
+    restart: unless-stopped
+    environment:
+      CRON_SECRET: ${CRON_SECRET:-}
+      SCAN_INTERVAL: ${SCAN_INTERVAL:-60}
+    entrypoint: ["sh", "-c"]
+    command:
+      - >
+        while true; do
+          curl -fsS -X POST -H "x-cron-secret: $$CRON_SECRET"
+            http://piwdex-app:3000/api/cron/scan >/dev/null 2>&1 || true;
+          sleep "$$SCAN_INTERVAL";
+        done
+    depends_on:
+      piwdex-app:
+        condition: service_started
     networks: [piwdex-net]
 
 volumes:
