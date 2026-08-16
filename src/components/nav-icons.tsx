@@ -83,3 +83,28 @@ export const NavLab = ({ size }: { size?: number }) => (
     <path d="M7.7 15h8.6" />
   </Base>
 );
+
+// Estrela (VIP).
+export const NavVip = ({ size }: { size?: number }) => (
+  <Base size={size}>
+    <path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.8-5.2 2.8 1-5.8L3.5 9.7l5.9-.9L12 3.5Z" />
+  </Base>
+);
+
+// Porta com seta saindo (Sair / logout).
+export const NavLogout = ({ size }: { size?: number }) => (
+  <Base size={size}>
+    <path d="M9 21H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3" />
+    <path d="M16 17l5-5-5-5" />
+    <path d="M21 12H9" />
+  </Base>
+);
+
+// Porta com seta entrando (Entrar / login).
+export const NavLogin = ({ size }: { size?: number }) => (
+  <Base size={size}>
+    <path d="M15 3h3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-3" />
+    <path d="M10 8l4 4-4 4" />
+    <path d="M14 12H3" />
+  </Base>
+);

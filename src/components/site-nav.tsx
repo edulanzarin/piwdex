@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { Pokeball } from "./pokeball";
-import { NavDex, NavItems, NavHunt, NavCalc, NavLab, NavBreed } from "./nav-icons";
+import { NavDex, NavItems, NavHunt, NavCalc, NavLab, NavBreed, NavVip, NavLogout, NavLogin } from "./nav-icons";
 import { useT } from "./locale-provider";
 import { LangSwitcher } from "./lang-switcher";
 import { logout } from "@/lib/actions/auth";
@@ -25,6 +25,17 @@ const TABS: { key: string; href: string; Icon: (p: { size?: number }) => React.R
   // Conta saiu do topo: virou aba do /vip (depende da sessao de jogo, que e VIP).
   // Entra pelo botao VIP.
 ];
+
+// Botao-icone do header (mesmo grid 40x40 da nav) + tooltip no hover. VIP, Entrar e
+// Sair usam o mesmo chrome que os icones de navegacao, so mudando a cor.
+const ICON_BTN = "group relative flex h-10 w-10 items-center justify-center rounded transition hover:bg-surface-2";
+function Tip({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="pointer-events-none absolute left-1/2 top-full z-40 mt-1.5 -translate-x-1/2 whitespace-nowrap rounded border border-border bg-[color:var(--surface-solid)] px-2 py-1 text-[0.55rem] uppercase tracking-wide text-text-dim opacity-0 transition group-hover:opacity-100">
+      {children}
+    </span>
+  );
+}
 
 export function SiteNav({ user }: { user: NavUser | null }) {
   const t = useT();
@@ -58,36 +69,52 @@ export function SiteNav({ user }: { user: NavUser | null }) {
                   href={href}
                   title={t(key)}
                   aria-label={t(key)}
-                  className={`group relative flex h-10 w-10 items-center justify-center rounded transition hover:bg-surface-2 ${active ? "bg-surface-2 text-cyan ring-1 ring-[color:var(--border-strong)]" : "text-text-dim hover:text-text"}`}
+                  className={`${ICON_BTN} ${active ? "bg-surface-2 text-cyan ring-1 ring-[color:var(--border-strong)]" : "text-text-dim hover:text-text"}`}
                 >
                   <Icon size={22} />
-                  <span className="pointer-events-none absolute left-1/2 top-full z-40 mt-1.5 -translate-x-1/2 whitespace-nowrap rounded border border-border bg-[color:var(--surface-solid)] px-2 py-1 text-[0.55rem] uppercase tracking-wide text-text-dim opacity-0 transition group-hover:opacity-100">
-                    {t(key)}
-                  </span>
+                  <Tip>{t(key)}</Tip>
                 </Link>
               );
             })}
           </nav>
           <span className="hidden h-5 w-px bg-border sm:block" />
 
-          {/* VIP + login/logout (desktop) */}
-          <div className="hidden items-center gap-2 sm:flex">
+          {/* VIP + login/logout (desktop) — icones no mesmo padrao da nav */}
+          <div className="hidden items-center gap-1 sm:flex">
             <Link
               href="/vip"
-              className={`btn ${user?.vip ? "btn-ghost" : ""}`}
-              style={user?.vip ? undefined : { background: "var(--yellow)", color: "#3a2c00" }}
+              title="VIP"
+              aria-label="VIP"
+              className={`${ICON_BTN} text-yellow ${user?.vip ? "bg-surface-2 ring-1 ring-[color:var(--yellow)]/45" : "hover:bg-[rgba(240,200,60,0.12)]"}`}
             >
-              VIP
+              <NavVip size={22} />
+              <Tip>VIP{user?.vip ? " · ativo" : ""}</Tip>
             </Link>
             {user ? (
               <>
                 <span className="max-w-[8rem] truncate pixel text-[0.58rem] text-text">{user.name ?? "conta"}</span>
-                <form action={logout}>
-                  <button type="submit" className="btn btn-ghost">{t("auth.logout")}</button>
+                <form action={logout} className="flex">
+                  <button
+                    type="submit"
+                    title={t("auth.logout")}
+                    aria-label={t("auth.logout")}
+                    className={`${ICON_BTN} text-text-dim hover:text-red`}
+                  >
+                    <NavLogout size={20} />
+                    <Tip>{t("auth.logout")}</Tip>
+                  </button>
                 </form>
               </>
             ) : (
-              <Link href="/entrar" className="btn btn-ghost">{t("nav.login")}</Link>
+              <Link
+                href="/entrar"
+                title={t("nav.login")}
+                aria-label={t("nav.login")}
+                className={`${ICON_BTN} text-text-dim hover:text-cyan`}
+              >
+                <NavLogin size={20} />
+                <Tip>{t("nav.login")}</Tip>
+              </Link>
             )}
           </div>
 
@@ -124,9 +151,10 @@ export function SiteNav({ user }: { user: NavUser | null }) {
             {/* VIP (mobile) */}
             <Link
               href="/vip"
-              className="flex items-center gap-2 border-b border-border/40 py-3 pixel text-[0.7rem] text-yellow"
+              className="flex items-center gap-3 border-b border-border/40 py-3 pixel text-[0.7rem] text-yellow"
               onClick={() => setOpen(false)}
             >
+              <NavVip size={20} />
               VIP {user?.vip && <span className="text-[0.55rem] text-text-dim">ativo</span>}
             </Link>
 
@@ -137,7 +165,9 @@ export function SiteNav({ user }: { user: NavUser | null }) {
                   {user.name ?? "conta"} <VipChip />
                 </span>
                 <form action={logout}>
-                  <button type="submit" className="btn btn-ghost" onClick={() => setOpen(false)}>{t("auth.logout")}</button>
+                  <button type="submit" className="flex items-center gap-2 pixel text-[0.7rem] text-text-dim hover:text-red" onClick={() => setOpen(false)}>
+                    <NavLogout size={18} /> {t("auth.logout")}
+                  </button>
                 </form>
               </div>
             ) : (
@@ -146,7 +176,7 @@ export function SiteNav({ user }: { user: NavUser | null }) {
                 className="flex items-center gap-3 py-3 pixel text-[0.7rem] text-cyan"
                 onClick={() => setOpen(false)}
               >
-                {t("nav.login")}
+                <NavLogin size={18} /> {t("nav.login")}
               </Link>
             )}
           </div>
