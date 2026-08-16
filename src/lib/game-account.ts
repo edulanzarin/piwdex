@@ -86,6 +86,7 @@ export interface BallCount {
   id: number;
   name: string;
   count: number;
+  iconUrl: string;
   infinite: boolean;
   selected: boolean;
 }
@@ -258,6 +259,7 @@ export function normalizeAccount(parts: AccountParts): Account {
         id,
         name: str(b.name, "?"),
         count: num(ballCounts[String(id)]),
+        iconUrl: str(b.iconUrl),
         infinite: Boolean(b.infinite),
         selected: id === selectedBall,
       };

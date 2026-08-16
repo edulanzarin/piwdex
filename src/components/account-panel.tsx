@@ -233,11 +233,20 @@ function BallsCard({ account }: { account: Account }) {
   if (!balls.length) return null;
   return (
     <Section title={t("account.sec.balls")} color="text-cyan">
-      <div className="flex flex-wrap gap-2">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
         {balls.map((b) => (
-          <span key={b.id} className={`chip inline-flex items-center gap-1 ${b.selected ? "border border-[color:var(--cyan)] text-cyan" : ""}`}>
-            {b.name} · <span className="tabular-nums">{b.infinite ? "∞" : fmt(b.count)}</span>
-          </span>
+          <div
+            key={b.id}
+            className={`flex items-center gap-2 rounded border px-2 py-1.5 ${b.selected ? "border-[color:var(--cyan)] bg-[rgba(57,211,230,0.08)]" : "border-border bg-[rgba(8,14,28,0.5)]"}`}
+          >
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center">
+              <Sprite src={b.iconUrl ? assetIconUrl(b.iconUrl) : null} alt={b.name} size={22} />
+            </span>
+            <div className="min-w-0 text-[0.6rem] leading-tight">
+              <div className={`truncate ${b.selected ? "text-cyan" : "text-text"}`}>{b.name}</div>
+              <div className="tabular-nums text-text-dim">{b.infinite ? "∞" : `x${fmt(b.count)}`}</div>
+            </div>
+          </div>
         ))}
       </div>
     </Section>
