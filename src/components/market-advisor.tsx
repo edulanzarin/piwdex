@@ -227,7 +227,7 @@ export function MarketAdvisor({ creatures, dex }: { creatures: ComboCreature[]; 
         <p className="mt-2 max-w-2xl text-sm text-text-dim">{t("account.market.desc")}</p>
       </div>
       <div className="card flex flex-col gap-4 p-5">
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <label className="flex flex-col gap-1 sm:col-span-2 lg:col-span-1">
             <span className="text-[0.55rem] uppercase tracking-wide text-text-dim">{t("account.market.species")}</span>
             <PokemonCombobox creatures={creatures} value={species} onSelect={setSpecies} placeholder={t("account.market.anySpecies")} />
