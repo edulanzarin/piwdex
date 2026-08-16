@@ -17,6 +17,11 @@ Conexao: `wss://poke.idleworld.online/ws<shard>?token=<accessJWT>&cmid=<hex>`
 - **`{"type":"analyzer-get"}`** -> responde `analyzer` (stats da sessao). Numa conexao
   que nao entrou no campo, volta tudo 0. O slug (ex. "ledian") vem do `hunt-config`
   REST / do `field-init`.
+- **`{"type":"poke-summon","pokeId":"<id>"}`** -> define o pokemon ATIVO/LIDER (o que
+  caca). MUTA a conta. Verificado: apos summon do Primeape, o `pokes` voltou com ele
+  leader:true slot:0 e o lider anterior (Golem) leader:false slot:1. Responde com
+  `poke-summon` (echo) + `pokes` atualizado. E o comando de trocar o ativo / do modal
+  de cacar. So mandar sabendo o id certo (comando que muta a conta).
 
 ## Fluxo do Hunt Analyzer (pixwdex-como-sessao)
 1. conecta -> 2. `enter-hunt {slug}` -> 3. poll `analyzer-get` a cada ~5s -> mostra.
