@@ -74,19 +74,14 @@ function Row({ title, desc, children }: { title: string; desc?: string; children
   );
 }
 
-function Slider({ value, min, max, step, fmt, onChange }: { value: number; min: number; max: number; step: number; fmt: (n: number) => string; onChange: (n: number) => void }) {
+// slider pra ajuste grosso + campo de numero pra valor EXATO (os dois sincronizados)
+function Slider({ value, min, max, step, decimals, onChange }: { value: number; min: number; max: number; step: number; decimals: number; onChange: (n: number) => void }) {
+  const round = (n: number) => { const p = Math.pow(10, decimals); return Math.round(n * p) / p; };
+  const set = (n: number) => { if (Number.isNaN(n)) return; onChange(round(Math.min(max, Math.max(min, n)))); };
   return (
-    <div className="flex items-center gap-3">
-      <input
-        type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={value}
-        onChange={(e) => onChange(Number(e.target.value))}
-        className="w-40 accent-[color:var(--yellow)]"
-      />
-      <span className="w-12 text-right text-sm font-semibold tabular-nums text-yellow">{fmt(value)}</span>
+    <div className="flex items-center gap-2">
+      <input type="range" min={min} max={max} step={step} value={value} onChange={(e) => set(Number(e.target.value))} className="w-32 accent-[color:var(--yellow)]" />
+      <input type="number" min={min} max={max} step={step} value={value} onChange={(e) => set(Number(e.target.value))} className="input w-20 text-right font-semibold tabular-nums text-yellow" />
     </div>
   );
 }
@@ -226,10 +221,10 @@ export function PokeSeller() {
           </ToggleButton>
         </Row>
         <Row title={t("robo.pokes.maxIv")} desc={t("robo.pokes.maxIv.desc", { n: cfg.maxIv })}>
-          <Slider value={cfg.maxIv} min={0} max={IV_MAX} step={1} fmt={(n) => String(n)} onChange={(n) => patch({ maxIv: n })} />
+          <Slider value={cfg.maxIv} min={0} max={IV_MAX} step={1} decimals={0} onChange={(n) => patch({ maxIv: n })} />
         </Row>
         <Row title={t("robo.pokes.maxQuality")} desc={t("robo.pokes.maxQuality.desc", { n: cfg.maxQuality.toFixed(2) })}>
-          <Slider value={cfg.maxQuality} min={0} max={QUALITY_MAX} step={QUALITY_STEP} fmt={(n) => n.toFixed(2)} onChange={(n) => patch({ maxQuality: n })} />
+          <Slider value={cfg.maxQuality} min={0} max={QUALITY_MAX} step={QUALITY_STEP} decimals={2} onChange={(n) => patch({ maxQuality: n })} />
         </Row>
       </div>
 

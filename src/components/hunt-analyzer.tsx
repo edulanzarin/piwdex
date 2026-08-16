@@ -48,13 +48,11 @@ export function HuntAnalyzer() {
 
   useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
 
-  // poll enquanto ao vivo/conectando
+  // poll continuo (2s) — reflete o analyzer ao vivo sem depender de estado intermediario
   useEffect(() => {
-    const live = st?.status === "running" || st?.status === "connecting";
-    if (live && !timer.current) timer.current = setInterval(load, 5000);
-    if (!live && timer.current) { clearInterval(timer.current); timer.current = null; }
+    timer.current = setInterval(load, 2000);
     return () => { if (timer.current) { clearInterval(timer.current); timer.current = null; } };
-  }, [st?.status, load]);
+  }, [load]);
 
   const send = async (body: Record<string, unknown>) => {
     setBusy(true);

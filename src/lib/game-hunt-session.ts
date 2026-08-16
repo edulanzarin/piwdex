@@ -17,7 +17,7 @@ import type { Tokens } from "./game-auth";
 
 const WS_BASE = (process.env.GAME_HOST || "https://poke.idleworld.online").replace(/^http/, "ws");
 const UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36";
-const POLL_MS = 5000;
+const POLL_MS = 2000;
 
 export interface Analyzer {
   kills: number; seconds: number; xpGained: number;
