@@ -305,97 +305,39 @@ function TeamMon({ p }: { p: ActivePoke }) {
   );
 }
 
-// Time ativo: mostra o SNAPSHOT capturado no connect (sem tocar o jogo). "Atualizar"
-// repuxa ao vivo pelo WS — isso toma a sessao de jogo (pode cair a aba do jogo se
-// estiver aberta), por isso e explicito. hint curto, sem alarme.
+// Time ativo (READ-ONLY): mostra o SNAPSHOT capturado no connect, sem nunca tocar o
+// jogo. A atualizacao ao vivo do time e territorio do Robo (que ja segura a sessao de
+// jogo) — a Conta jamais rouba a sessao. Pra refrescar o snapshot: reconectar. hhmm
+// marca a hora do snapshot.
 const hhmm = (iso: string) => {
   if (!iso) return "";
   const d = new Date(iso);
   return Number.isNaN(d.getTime()) ? "" : d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
 };
 
-type TeamState =
-  | { status: "idle" }
-  | { status: "loading" }
-  | { status: "error" }
-  | { status: "ok"; team: ActivePoke[]; total: number; at: string };
-
 function ActiveTeamCard({ initial }: { initial: TeamSnapshot | null }) {
   const t = useT();
-  const [state, setState] = useState<TeamState>(
-    initial ? { status: "ok", team: initial.list, total: initial.total, at: initial.at } : { status: "idle" },
-  );
-  const [confirming, setConfirming] = useState(false);
-
-  const load = async () => {
-    setConfirming(false);
-    setState({ status: "loading" });
-    try {
-      const res = await fetch("/api/active-pokes", { cache: "no-store" });
-      if (!res.ok) return setState({ status: "error" });
-      const j = (await res.json()) as { team?: ActivePoke[]; total?: number; at?: string };
-      setState({ status: "ok", team: j.team ?? [], total: j.total ?? 0, at: j.at ?? "" });
-    } catch {
-      setState({ status: "error" });
-    }
-  };
-
-  // Puxar ao vivo toma a sessao do jogo -> confirma antes.
-  const ask = () => setConfirming(true);
-  const reload = (
-    <button type="button" onClick={ask} className="btn btn-ghost" disabled={state.status === "loading"}>
-      {t("account.team.reload")}
-    </button>
-  );
-
+  if (!initial || initial.list.length === 0) {
+    return (
+      <Section title={t("account.sec.team")} color="text-green">
+        <p className="text-[0.72rem] leading-relaxed text-text-dim">{t("account.team.snapshotEmpty")}</p>
+      </Section>
+    );
+  }
   return (
     <Section
       title={t("account.sec.team")}
       color="text-green"
       extra={
-        state.status === "ok" ? (
-          <div className="flex items-center gap-3">
-            <span className="text-[0.55rem] text-text-dim">
-              {t("account.team.total").replace("{n}", fmt(state.total))}
-              {hhmm(state.at) && ` · ${hhmm(state.at)}`}
-            </span>
-            {reload}
-          </div>
-        ) : null
+        <span className="text-[0.55rem] text-text-dim">
+          {t("account.team.total").replace("{n}", fmt(initial.total))}
+          {hhmm(initial.at) && ` · ${hhmm(initial.at)}`}
+        </span>
       }
     >
-      {state.status === "idle" ? (
-        <button type="button" onClick={ask} className="btn btn-cyan">{t("account.team.load")} ›</button>
-      ) : state.status === "loading" ? (
-        <div className="py-3"><LoadingBall label={t("account.team.loading")} /></div>
-      ) : state.status === "error" ? (
-        <div className="flex flex-wrap items-center gap-3">
-          <span className="text-[0.72rem] text-text-dim">{t("account.team.error")}</span>
-          <button type="button" onClick={ask} className="btn btn-ghost">{t("account.team.load")}</button>
-        </div>
-      ) : state.team.length === 0 ? (
-        <div className="flex flex-wrap items-center gap-3">
-          <span className="text-[0.72rem] text-text-dim">{t("account.team.empty")}</span>
-          {reload}
-        </div>
-      ) : (
-        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-          {state.team.map((p) => <TeamMon key={p.id} p={p} />)}
-        </div>
-      )}
-
-      {confirming && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setConfirming(false)}>
-          <div className="card w-full max-w-sm p-5" onClick={(e) => e.stopPropagation()}>
-            <h3 className="pixel text-[0.7rem] text-cyan">{t("account.team.confirmTitle")}</h3>
-            <p className="mt-3 text-[0.75rem] leading-relaxed text-text-dim">{t("account.team.confirmBody")}</p>
-            <div className="mt-4 flex justify-end gap-2">
-              <button type="button" onClick={() => setConfirming(false)} className="btn btn-ghost">{t("account.team.cancel")}</button>
-              <button type="button" onClick={load} className="btn btn-cyan">{t("account.team.reload")}</button>
-            </div>
-          </div>
-        </div>
-      )}
+      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+        {initial.list.map((p) => <TeamMon key={p.id} p={p} />)}
+      </div>
     </Section>
   );
 }

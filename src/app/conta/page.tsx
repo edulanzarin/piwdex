@@ -1,33 +1,8 @@
-import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { getData } from "@/lib/data";
-import { auth } from "@/lib/auth";
-import { ToolFrame } from "@/components/tool-frame";
-import { NavAccount } from "@/components/nav-icons";
-import { AccountPanel } from "@/components/account-panel";
-import type { ComboCreature } from "@/components/pokemon-combobox";
-import { T } from "@/components/locale-provider";
 
-export const metadata: Metadata = { title: "Minha conta" };
-
-export default async function ContaPage() {
-  const session = await auth();
-  if (!session?.user) redirect("/entrar");
-  const { creatures } = await getData();
-  const slim: ComboCreature[] = creatures
-    .map((c) => ({ pokeId: c.pokeId, name: c.name, type1: c.type1, type2: c.type2 }))
-    .sort((a, b) => a.name.localeCompare(b.name));
-
-  return (
-    <ToolFrame accent="#4f8bf0" label="CONTA" icon={<NavAccount size={13} />}>
-      <div className="flex flex-col gap-6">
-        <div>
-          <div className="eyebrow mb-2"><T k="account.eyebrow" /></div>
-          <h1 className="pixel text-xl" style={{ color: "#4f8bf0" }}><T k="account.title" /></h1>
-          <p className="mt-3 max-w-2xl text-sm text-text-dim"><T k="account.desc" /></p>
-        </div>
-        <AccountPanel creatures={slim} />
-      </div>
-    </ToolFrame>
-  );
+// A Conta virou uma ABA do /vip (a visao da conta do jogo depende da sessao de jogo,
+// que e VIP). A rota /conta continua viva so como atalho: manda pra aba Conta do VIP.
+// Deslogado/sem-VIP cai no gate/paywall do proprio /vip.
+export default function ContaPage() {
+  redirect("/vip#conta");
 }

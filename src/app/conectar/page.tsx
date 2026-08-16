@@ -33,7 +33,7 @@ export default function ConectarPage() {
         const j = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string };
         if (res.ok && j.ok) {
           setStatus("ok");
-          setTimeout(() => router.replace("/conta"), 700);
+          setTimeout(() => router.replace("/vip#conta"), 700);
         } else {
           setStatus("error");
           setErr(t(`account.err.${j.error ?? "unauthorized"}`));
@@ -59,7 +59,7 @@ export default function ConectarPage() {
           <>
             <div className="pixel text-[0.9rem] text-red">{t("connect.failed")}</div>
             <p className="mt-2 text-sm text-text-dim">{err}</p>
-            <a href="/conta" className="btn btn-cyan mt-4 inline-block">{t("connect.back")}</a>
+            <a href="/vip#conta" className="btn btn-cyan mt-4 inline-block">{t("connect.back")}</a>
           </>
         )}
       </div>

@@ -1,20 +1,24 @@
 "use client";
 
-// Shell de abas da area VIP: Mercado (consultor ao vivo) · Desejos (o que voce quer
-// que o piwdex vigie no mercado) · Alertas (central de notificacoes do que bateu) ·
-// Robo (em breve). A aba mora no hash da URL. Cada aba tem seu icone pixel.
+// Shell de abas da area VIP: Conta (visao read-only da conta do jogo + conectar) ·
+// Mercado (consultor ao vivo) · Desejos (o que voce quer que o piwdex vigie no mercado) ·
+// Alertas (central de notificacoes do que bateu) · Robo. Tudo que depende da sessao de
+// jogo mora aqui (sessao unificada). A aba mora no hash da URL; cada aba tem seu icone.
 
 import { useEffect, useState } from "react";
 import { MarketAdvisor, type MarketDex } from "./market-advisor";
 import { WishlistPanel } from "./wishlist-panel";
 import { AlertsInbox } from "./alerts-inbox";
 import { RoboModule } from "./robo-module";
+import { AccountPanel } from "./account-panel";
 import type { ComboCreature } from "./pokemon-combobox";
 import { useT } from "./locale-provider";
 import { Coin, Heart, Bell } from "./icons";
+import { NavAccount } from "./nav-icons";
 
-type Tab = "mercado" | "desejos" | "alertas" | "robo";
+type Tab = "conta" | "mercado" | "desejos" | "alertas" | "robo";
 const TABS: { key: Tab; Icon?: (p: { size?: number; className?: string }) => React.ReactNode; iconClass?: string }[] = [
+  { key: "conta", Icon: NavAccount },
   { key: "mercado", Icon: Coin },
   { key: "desejos", Icon: Heart, iconClass: "text-pink" },
   { key: "alertas", Icon: Bell },
@@ -24,7 +28,7 @@ const isTab = (v: string): v is Tab => TABS.some((tb) => tb.key === v);
 
 export function VipTabs({ creatures, dex }: { creatures: ComboCreature[]; dex: Record<number, MarketDex> }) {
   const t = useT();
-  const [tab, setTab] = useState<Tab>("mercado");
+  const [tab, setTab] = useState<Tab>("conta");
   const [unread, setUnread] = useState(0);
   const [focusWish, setFocusWish] = useState<string | null>(null);
 
@@ -64,6 +68,7 @@ export function VipTabs({ creatures, dex }: { creatures: ComboCreature[]; dex: R
         ))}
       </div>
 
+      {tab === "conta" && <AccountPanel creatures={creatures} />}
       {tab === "mercado" && <MarketAdvisor creatures={creatures} dex={dex} />}
       {tab === "desejos" && <WishlistPanel creatures={creatures} dex={dex} focusWishId={focusWish} />}
       {tab === "alertas" && <AlertsInbox onUnread={setUnread} onJumpToWish={jumpToWish} />}
