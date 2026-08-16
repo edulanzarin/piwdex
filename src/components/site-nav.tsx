@@ -7,6 +7,13 @@ import { Pokeball } from "./pokeball";
 import { NavDex, NavItems, NavHunt, NavCalc, NavLab, NavBreed, NavAccount } from "./nav-icons";
 import { useT } from "./locale-provider";
 import { LangSwitcher } from "./lang-switcher";
+import { logout } from "@/lib/actions/auth";
+
+export interface NavUser {
+  name: string | null;
+  image: string | null;
+  vip: boolean;
+}
 
 const TABS: { key: string; href: string; Icon: (p: { size?: number }) => React.ReactNode }[] = [
   { key: "nav.dex", href: "/dex", Icon: NavDex },
@@ -18,11 +25,15 @@ const TABS: { key: string; href: string; Icon: (p: { size?: number }) => React.R
   { key: "nav.account", href: "/conta", Icon: NavAccount },
 ];
 
-export function SiteNav() {
+export function SiteNav({ user }: { user: NavUser | null }) {
   const t = useT();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
+  const VipChip = () =>
+    user?.vip ? (
+      <span className="chip" style={{ background: "var(--yellow)", color: "#3a2c00" }}>VIP</span>
+    ) : null;
 
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-[rgba(7,11,22,0.82)] backdrop-blur">
@@ -57,6 +68,22 @@ export function SiteNav() {
             })}
           </nav>
           <span className="hidden h-5 w-px bg-border sm:block" />
+
+          {/* Login/logout (desktop) */}
+          <div className="hidden items-center gap-2 sm:flex">
+            {user ? (
+              <>
+                <span className="max-w-[8rem] truncate pixel text-[0.58rem] text-text">{user.name ?? "conta"}</span>
+                <VipChip />
+                <form action={logout}>
+                  <button type="submit" className="btn btn-ghost">{t("auth.logout")}</button>
+                </form>
+              </>
+            ) : (
+              <Link href="/entrar" className="btn btn-ghost">{t("nav.login")}</Link>
+            )}
+          </div>
+
           <LangSwitcher />
           <button
             type="button"
@@ -86,6 +113,26 @@ export function SiteNav() {
                 {t(key)}
               </Link>
             ))}
+
+            {/* Login/logout (mobile) */}
+            {user ? (
+              <div className="flex items-center justify-between gap-2 py-3">
+                <span className="flex items-center gap-2 pixel text-[0.7rem] text-text">
+                  {user.name ?? "conta"} <VipChip />
+                </span>
+                <form action={logout}>
+                  <button type="submit" className="btn btn-ghost" onClick={() => setOpen(false)}>{t("auth.logout")}</button>
+                </form>
+              </div>
+            ) : (
+              <Link
+                href="/entrar"
+                className="flex items-center gap-3 py-3 pixel text-[0.7rem] text-cyan"
+                onClick={() => setOpen(false)}
+              >
+                {t("nav.login")}
+              </Link>
+            )}
           </div>
         </nav>
       )}

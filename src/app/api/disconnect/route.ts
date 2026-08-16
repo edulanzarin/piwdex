@@ -1,12 +1,14 @@
 import { NextResponse } from "next/server";
-import { SESSION_COOKIE } from "@/lib/game-auth";
+import { auth } from "@/lib/auth";
+import { deleteGameLink } from "@/lib/game-link";
 
 export const runtime = "nodejs";
 
-// Desconecta: apaga o cookie de sessao. Nao invalida o token no jogo (o jogador segue
-// logado la); so esquece a sessao aqui.
+// Desvincula a conta do jogo do usuario logado: apaga o vinculo do banco. Nao
+// invalida o token no jogo (o jogador segue logado la); so esquece aqui.
 export async function POST() {
-  const res = NextResponse.json({ ok: true });
-  res.cookies.set(SESSION_COOKIE, "", { httpOnly: true, path: "/", maxAge: 0 });
-  return res;
+  const session = await auth();
+  if (!session?.user?.id) return NextResponse.json({ ok: false, error: "not_logged" }, { status: 401 });
+  await deleteGameLink(session.user.id);
+  return NextResponse.json({ ok: true });
 }

@@ -1,0 +1,91 @@
+"use client";
+
+// Formulario unico de login/cadastro. Usa server actions (authenticate/register)
+// via useActionState; o Google entra como <form action={signInGoogle}> so quando
+// as credenciais OAuth existem no ambiente.
+
+import { useActionState } from "react";
+import { useFormStatus } from "react-dom";
+import Link from "next/link";
+import { authenticate, register, signInGoogle, type AuthResult } from "@/lib/actions/auth";
+import { useT } from "./locale-provider";
+
+function SubmitBtn({ label, loading }: { label: string; loading: string }) {
+  const { pending } = useFormStatus();
+  return (
+    <button type="submit" disabled={pending} className="btn btn-cyan w-full disabled:opacity-50">
+      {pending ? `${loading}...` : label}
+    </button>
+  );
+}
+
+export function AuthForm({ mode, googleEnabled }: { mode: "login" | "register"; googleEnabled: boolean }) {
+  const t = useT();
+  const action = mode === "login" ? authenticate : register;
+  const [state, formAction] = useActionState<AuthResult | undefined, FormData>(action, undefined);
+
+  return (
+    <div className="card flex flex-col gap-4 p-6">
+      {googleEnabled && (
+        <>
+          <form action={signInGoogle}>
+            <button type="submit" className="btn btn-ghost w-full">{t("auth.google")}</button>
+          </form>
+          <div className="flex items-center gap-3 text-[0.55rem] uppercase tracking-wide text-text-dim">
+            <span className="h-px flex-1 bg-border" />
+            {t("auth.or")}
+            <span className="h-px flex-1 bg-border" />
+          </div>
+        </>
+      )}
+
+      <form action={formAction} className="flex flex-col gap-3">
+        {mode === "register" && (
+          <label className="flex flex-col gap-1">
+            <span className="text-[0.55rem] uppercase tracking-wide text-text-dim">{t("auth.f.name")}</span>
+            <input name="nome" type="text" autoComplete="name" className="input" />
+          </label>
+        )}
+        <label className="flex flex-col gap-1">
+          <span className="text-[0.55rem] uppercase tracking-wide text-text-dim">{t("auth.f.email")}</span>
+          <input name="email" type="email" required autoComplete="email" className="input" />
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className="text-[0.55rem] uppercase tracking-wide text-text-dim">{t("auth.f.senha")}</span>
+          <input
+            name="senha"
+            type="password"
+            required
+            minLength={6}
+            autoComplete={mode === "login" ? "current-password" : "new-password"}
+            className="input"
+          />
+        </label>
+
+        {state?.error && <p className="text-[0.72rem] font-semibold text-red">{state.error}</p>}
+
+        <div className="mt-1">
+          {mode === "login" ? (
+            <SubmitBtn label={t("auth.login.btn")} loading={t("auth.login.loading")} />
+          ) : (
+            <SubmitBtn label={t("auth.register.btn")} loading={t("auth.register.loading")} />
+          )}
+        </div>
+      </form>
+
+      <p className="text-center text-[0.72rem] text-text-dim">
+        {mode === "login" ? (
+          <>
+            {t("auth.toRegister")}{" "}
+            <Link href="/criar-conta" className="text-cyan hover:underline">{t("auth.toRegisterLink")}</Link>
+          </>
+        ) : (
+          <>
+            {t("auth.toLogin")}{" "}
+            <Link href="/entrar" className="text-cyan hover:underline">{t("auth.toLoginLink")}</Link>
+          </>
+        )}
+      </p>
+    </div>
+  );
+}

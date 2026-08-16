@@ -1,11 +1,17 @@
 import { NextResponse } from "next/server";
-import { encryptSession, gameFetch, parseTokens, SESSION_COOKIE } from "@/lib/game-auth";
+import { auth } from "@/lib/auth";
+import { gameFetch, parseTokens } from "@/lib/game-auth";
+import { saveGameLink } from "@/lib/game-link";
 
 export const runtime = "nodejs";
 
-// Conecta a conta: recebe o token colado (valor do pokeweb:tokens ou dois JWTs),
-// valida chamando /api/characters/me e grava a sessao criptografada no cookie httpOnly.
+// Vincula a conta do jogo AO USUARIO LOGADO no piwdex. Recebe o token colado
+// (valor do pokeweb:tokens ou dois JWTs), valida em /api/characters/me e grava o
+// vinculo cifrado no banco (tabela game_links). Exige estar logado no site.
 export async function POST(req: Request) {
+  const session = await auth();
+  if (!session?.user?.id) return NextResponse.json({ ok: false, error: "not_logged" }, { status: 401 });
+
   let raw = "";
   try {
     const body = (await req.json()) as { raw?: string; token?: string };
@@ -25,13 +31,11 @@ export async function POST(req: Request) {
   }
   if (!result.res.ok) return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
 
-  const res = NextResponse.json({ ok: true });
-  res.cookies.set(SESSION_COOKIE, encryptSession(result.tokens), {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: 60 * 60 * 24 * 30,
-  });
-  return res;
+  const data = (await result.res.json().catch(() => null)) as
+    | { character?: { name?: string }; name?: string }
+    | null;
+  const playerName = data?.character?.name ?? data?.name ?? null;
+
+  await saveGameLink(session.user.id, result.tokens, { playerName });
+  return NextResponse.json({ ok: true });
 }

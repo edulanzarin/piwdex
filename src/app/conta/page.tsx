@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { getData } from "@/lib/data";
+import { auth } from "@/lib/auth";
 import { ToolFrame } from "@/components/tool-frame";
 import { NavAccount } from "@/components/nav-icons";
 import { AccountPanel } from "@/components/account-panel";
@@ -9,6 +11,8 @@ import { T } from "@/components/locale-provider";
 export const metadata: Metadata = { title: "Minha conta" };
 
 export default async function ContaPage() {
+  const session = await auth();
+  if (!session?.user) redirect("/entrar");
   const { creatures } = await getData();
   const slim: ComboCreature[] = creatures
     .map((c) => ({ pokeId: c.pokeId, name: c.name, type1: c.type1, type2: c.type2 }))

@@ -15,7 +15,7 @@ const pct = (n: number) => `${n > 0 ? "+" : ""}${+n.toFixed(1)}%`;
 
 type State =
   | { status: "loading" }
-  | { status: "disconnected" }
+  | { status: "disconnected"; expired?: boolean }
   | { status: "connected"; account: Account };
 
 // Bookmarklet: le sessionStorage["pokeweb:tokens"] na aba do jogo e abre /conectar com o
@@ -42,7 +42,7 @@ function Bookmarklet() {
   );
 }
 
-function ConnectForm({ onConnected }: { onConnected: () => void }) {
+function ConnectForm({ onConnected, expired }: { onConnected: () => void; expired?: boolean }) {
   const t = useT();
   const [raw, setRaw] = useState("");
   const [busy, setBusy] = useState(false);
@@ -64,6 +64,11 @@ function ConnectForm({ onConnected }: { onConnected: () => void }) {
   return (
     <div className="card p-5">
       <h2 className="pixel text-[0.72rem] text-cyan">{t("account.connect.title")}</h2>
+      {expired && (
+        <div className="mt-3 rounded border border-[color:var(--yellow)]/50 bg-[rgba(240,200,60,0.08)] px-3 py-2 text-[0.72rem] text-yellow">
+          {t("account.expired")}
+        </div>
+      )}
       <p className="mt-3 text-sm text-text-dim">{t("account.connect.help")}</p>
 
       {/* Jeito facil: bookmarklet (1 clique na aba do jogo) */}
@@ -299,9 +304,9 @@ export function AccountPanel({ creatures }: { creatures: ComboCreature[] }) {
     try {
       const res = await fetch("/api/collection", { cache: "no-store" });
       if (res.status === 401) return setState({ status: "disconnected" });
-      const j = (await res.json()) as { connected?: boolean; account?: Account };
+      const j = (await res.json()) as { connected?: boolean; account?: Account; reason?: string };
       if (j.connected && j.account) setState({ status: "connected", account: j.account });
-      else setState({ status: "disconnected" });
+      else setState({ status: "disconnected", expired: j.reason === "expired" });
     } catch {
       setState({ status: "disconnected" });
     }
@@ -314,7 +319,7 @@ export function AccountPanel({ creatures }: { creatures: ComboCreature[] }) {
   };
 
   if (state.status === "loading") return <div className="card p-8"><LoadingBall label={t("account.loading")} /></div>;
-  if (state.status === "disconnected") return <ConnectForm onConnected={load} />;
+  if (state.status === "disconnected") return <ConnectForm onConnected={load} expired={state.expired} />;
 
   const account = state.account;
   return (

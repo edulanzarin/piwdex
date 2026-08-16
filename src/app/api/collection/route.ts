@@ -1,23 +1,15 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { decryptSession, encryptSession, gameFetch, SESSION_COOKIE, type Tokens } from "@/lib/game-auth";
+import { auth } from "@/lib/auth";
+import { gameFetch, type Tokens } from "@/lib/game-auth";
+import { getGameLink, updateGameTokens, markGameLinkExpired } from "@/lib/game-link";
 import { normalizeAccount } from "@/lib/game-account";
 
 export const runtime = "nodejs";
 
-const clearCookie = (res: NextResponse) => res.cookies.set(SESSION_COOKIE, "", { httpOnly: true, path: "/", maxAge: 0 });
-const setCookie = (res: NextResponse, tokens: Tokens) =>
-  res.cookies.set(SESSION_COOKIE, encryptSession(tokens), {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: 60 * 60 * 24 * 30,
-  });
-
-// Conta COMPLETA: perfil + treinador (skin/vip/clã) + automação + streak + breeding +
-// inventário/depósito + bolas. Busca todos os endpoints logados em paralelo. Os pokemons
-// individuais ativos (com IV) NAO existem na REST — so no WS do cliente do jogo.
+// Conta COMPLETA do jogador logado no piwdex: perfil + treinador (skin/vip/clã) +
+// automação + streak + breeding + inventário/depósito + bolas. Le o vinculo do
+// banco (game_links), busca os endpoints do jogo em paralelo e persiste o token
+// se o refresh rodar. Os pokemons ativos (com IV) so existem no WS do cliente.
 const PATHS = {
   profile: "/api/game/profile",
   character: "/api/characters/me",
@@ -29,13 +21,15 @@ const PATHS = {
 } as const;
 
 export async function GET() {
-  const store = await cookies();
-  const initial = decryptSession(store.get(SESSION_COOKIE)?.value);
-  if (!initial) return NextResponse.json({ connected: false }, { status: 401 });
+  const session = await auth();
+  if (!session?.user?.id) return NextResponse.json({ connected: false, error: "not_logged" }, { status: 401 });
 
-  // O access token e o mesmo pra todas; o refresh (se rolar) muda os tokens uma vez.
-  // Fazemos a 1a chamada (profile) sozinha pra capturar refresh, depois o resto em paralelo.
-  let tokens: Tokens = initial;
+  const userId = session.user.id;
+  const link = await getGameLink(userId);
+  if (!link) return NextResponse.json({ connected: false }); // logado, mas sem conta vinculada
+  if (link.status === "expired") return NextResponse.json({ connected: false, reason: "expired" });
+
+  let tokens: Tokens = link.tokens;
   let changed = false;
   const json = async (path: string) => {
     const r = await gameFetch(path, tokens);
@@ -54,9 +48,8 @@ export async function GET() {
     return NextResponse.json({ connected: true, error: "game_unreachable" }, { status: 502 });
   }
   if ("unauth" in profileRes) {
-    const res = NextResponse.json({ connected: false, error: "expired" }, { status: 401 });
-    clearCookie(res);
-    return res;
+    await markGameLinkExpired(userId);
+    return NextResponse.json({ connected: false, reason: "expired" });
   }
 
   // resto em paralelo (ja com o token possivelmente renovado). Falha individual vira null.
@@ -80,7 +73,6 @@ export async function GET() {
     professions,
   });
 
-  const res = NextResponse.json({ connected: true, account });
-  if (changed) setCookie(res, tokens);
-  return res;
+  if (changed) await updateGameTokens(userId, tokens);
+  return NextResponse.json({ connected: true, account });
 }

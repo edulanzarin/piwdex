@@ -32,15 +32,17 @@ function key(): Buffer {
   return crypto.createHash("sha256").update(secret).digest();
 }
 
-export function encryptSession(tokens: Tokens): string {
+// Cifra/decifra uma string qualquer (usado tanto pelo cookie quanto pelas colunas
+// do banco, que guardam access/refresh cifrados separadamente).
+export function encryptStr(plain: string): string {
   const iv = crypto.randomBytes(12);
   const cipher = crypto.createCipheriv("aes-256-gcm", key(), iv);
-  const enc = Buffer.concat([cipher.update(JSON.stringify(tokens), "utf8"), cipher.final()]);
+  const enc = Buffer.concat([cipher.update(plain, "utf8"), cipher.final()]);
   const tag = cipher.getAuthTag();
   return Buffer.concat([iv, tag, enc]).toString("base64url");
 }
 
-export function decryptSession(value: string | undefined): Tokens | null {
+export function decryptStr(value: string | undefined | null): string | null {
   if (!value) return null;
   try {
     const buf = Buffer.from(value, "base64url");
@@ -49,7 +51,20 @@ export function decryptSession(value: string | undefined): Tokens | null {
     const enc = buf.subarray(28);
     const d = crypto.createDecipheriv("aes-256-gcm", key(), iv);
     d.setAuthTag(tag);
-    const plain = Buffer.concat([d.update(enc), d.final()]).toString("utf8");
+    return Buffer.concat([d.update(enc), d.final()]).toString("utf8");
+  } catch {
+    return null;
+  }
+}
+
+export function encryptSession(tokens: Tokens): string {
+  return encryptStr(JSON.stringify(tokens));
+}
+
+export function decryptSession(value: string | undefined): Tokens | null {
+  const plain = decryptStr(value);
+  if (!plain) return null;
+  try {
     const t = JSON.parse(plain) as Tokens;
     return t.access ? t : null;
   } catch {

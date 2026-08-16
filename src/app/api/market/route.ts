@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { decryptSession, encryptSession, gameFetch, SESSION_COOKIE, type Tokens } from "@/lib/game-auth";
+import { auth } from "@/lib/auth";
+import { gameFetch, type Tokens } from "@/lib/game-auth";
+import { getGameLink, updateGameTokens, markGameLinkExpired } from "@/lib/game-link";
 import { getData } from "@/lib/data";
 import { normalizeMarketMons, type MarketMon } from "@/lib/game-account";
 
@@ -25,9 +26,11 @@ async function loadMarket(tokens: Tokens): Promise<{ mons?: MarketMon[]; status:
 // Consultor de mercado: "melhor <especie> ate X ouro / Y diamantes". Filtra os anuncios de
 // pokemon por especie e orcamento (por moeda) e ordena (por Power, preco ou custo-beneficio).
 export async function GET(req: Request) {
-  const store = await cookies();
-  const tokens = decryptSession(store.get(SESSION_COOKIE)?.value);
-  if (!tokens) return NextResponse.json({ connected: false }, { status: 401 });
+  const session = await auth();
+  if (!session?.user?.id) return NextResponse.json({ connected: false, error: "not_logged" }, { status: 401 });
+  const link = await getGameLink(session.user.id);
+  if (!link || link.status === "expired") return NextResponse.json({ connected: false, reason: "expired" }, { status: 401 });
+  const tokens = link.tokens;
 
   const q = new URL(req.url).searchParams;
   const sp = q.get("sp") ? Number(q.get("sp")) : null; // speciesId
@@ -43,9 +46,8 @@ export async function GET(req: Request) {
     return NextResponse.json({ connected: true, error: "game_unreachable" }, { status: 502 });
   }
   if (loaded.status === 401) {
-    const res = NextResponse.json({ connected: false, error: "expired" }, { status: 401 });
-    res.cookies.set(SESSION_COOKIE, "", { httpOnly: true, path: "/", maxAge: 0 });
-    return res;
+    await markGameLinkExpired(session.user.id);
+    return NextResponse.json({ connected: false, reason: "expired" }, { status: 401 });
   }
   if (!loaded.mons) return NextResponse.json({ connected: true, error: "game_unreachable" }, { status: 502 });
 
@@ -62,15 +64,6 @@ export async function GET(req: Request) {
     sort === "price" ? -m.price : sort === "value" ? (m.power ?? 0) / Math.max(1, m.price) : m.power ?? 0;
   mons = [...mons].sort((a, b) => rank(b) - rank(a) || a.price - b.price).slice(0, 60);
 
-  const res = NextResponse.json({ connected: true, mons, total: loaded.mons.length });
-  if (loaded.changed) {
-    res.cookies.set(SESSION_COOKIE, encryptSession(loaded.tokens), {
-      httpOnly: true,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
-      path: "/",
-      maxAge: 60 * 60 * 24 * 30,
-    });
-  }
-  return res;
+  if (loaded.changed) await updateGameTokens(session.user.id, loaded.tokens);
+  return NextResponse.json({ connected: true, mons, total: loaded.mons.length });
 }

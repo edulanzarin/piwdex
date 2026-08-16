@@ -1,0 +1,71 @@
+# Compose igual em dev e producao (app + db + migrations).
+# Slug `piwdex` governa o nome de tudo. Ver [[Infra]]. Par de portas: app 4070 / banco 5070.
+name: ${COMPOSE_PROJECT_NAME:-piwdex}
+
+services:
+  piwdex-db:
+    image: postgres:17-alpine
+    container_name: piwdex-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-piwdex}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-piwdex}
+      POSTGRES_DB: ${POSTGRES_DB:-piwdex}
+    ports:
+      - "${DB_PORT:-5070}:5432"
+    volumes:
+      - piwdex-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-piwdex} -d ${POSTGRES_DB:-piwdex}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    networks: [piwdex-net]
+
+  # Migrations rodam em container proprio, no boot, e saem.
+  # Ver [[Migrations em container proprio no Docker Compose]].
+  piwdex-migrate:
+    build:
+      context: .
+      target: migrate
+    image: piwdex-migrate
+    container_name: piwdex-migrate
+    restart: "no"
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-piwdex}:${POSTGRES_PASSWORD:-piwdex}@piwdex-db:5432/${POSTGRES_DB:-piwdex}
+    command: ["node", "db/setup.mjs"]
+    depends_on:
+      piwdex-db:
+        condition: service_healthy
+    networks: [piwdex-net]
+
+  piwdex-app:
+    build:
+      context: .
+      target: runner
+    image: piwdex-app
+    container_name: piwdex-app
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-piwdex}:${POSTGRES_PASSWORD:-piwdex}@piwdex-db:5432/${POSTGRES_DB:-piwdex}
+      AUTH_SECRET: ${AUTH_SECRET:-}
+      AUTH_GOOGLE_ID: ${AUTH_GOOGLE_ID:-}
+      AUTH_GOOGLE_SECRET: ${AUTH_GOOGLE_SECRET:-}
+      SESSION_SECRET: ${SESSION_SECRET:-}
+      GAME_HOST: ${GAME_HOST:-https://poke.idleworld.online}
+    ports:
+      - "${APP_PORT:-4070}:3000"
+    depends_on:
+      piwdex-db:
+        condition: service_healthy
+      piwdex-migrate:
+        condition: service_completed_successfully
+    networks: [piwdex-net]
+
+volumes:
+  piwdex-db-data:
+    name: piwdex-db-data
+
+networks:
+  piwdex-net:
+    name: piwdex-net
