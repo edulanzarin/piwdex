@@ -53,7 +53,7 @@ export function SiteNav({ user }: { user: NavUser | null }) {
         <Link href="/" className="flex items-center gap-2.5" onClick={() => setOpen(false)}>
           <Pokeball size={28} />
           <div className="leading-tight">
-            <div className="pixel text-[0.72rem] text-text sm:text-[0.8rem]">piwdex</div>
+            <div className="pixel text-[0.72rem] text-text sm:text-[0.8rem]">PIWdex</div>
             <div className="hidden text-[0.6rem] text-text-dim sm:block">Poke Idle World</div>
           </div>
         </Link>

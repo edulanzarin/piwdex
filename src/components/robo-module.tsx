@@ -39,7 +39,7 @@ function AutoBuySoon() {
   );
 }
 
-export function RoboModule({ hunts, creatures, itemIcons }: { hunts: HuntOption[]; creatures: ComboCreature[]; itemIcons: Record<number, string> }) {
+export function RoboModule({ hunts, creatures, itemIcons }: { hunts: HuntOption[]; creatures: ComboCreature[]; itemIcons: Record<string, string> }) {
   const t = useT();
   const [sec, setSec] = useState<Section>("automacao");
 

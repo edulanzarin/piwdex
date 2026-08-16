@@ -32,9 +32,10 @@ export default async function VipPage({ searchParams }: { searchParams: Promise<
   const db = await getData();
   const { creatures, hunts, items } = db;
 
-  // itemId -> icone, pros cards de loot dos kills da Hunt (o field-kill so traz itemId+nome).
-  const itemIcons: Record<number, string> = {};
-  for (const it of items) itemIcons[it.id] = it.icon;
+  // nome -> icone, pros cards de loot dos kills da Hunt. Por NOME (minusculo) porque o
+  // itemId do field-kill nao bate com o id dos dados, mas o nome do drop bate.
+  const itemIcons: Record<string, string> = {};
+  for (const it of items) itemIcons[it.name.toLowerCase()] = it.icon;
   const slim: ComboCreature[] = creatures
     .map((c) => ({ pokeId: c.pokeId, name: c.name, type1: c.type1, type2: c.type2 }))
     .sort((a, b) => a.name.localeCompare(b.name));

@@ -27,7 +27,17 @@ export interface Analyzer {
   balance: number; goldPerHour: number; xpPerHour: number; killsPerHour: number;
   drops: { itemId: number; name: string; qty: number; gold: number }[];
 }
-export interface KillLog { at: number; species: string; shiny: boolean; xp: number; loot: { itemId: number; name: string; qty: number }[] }
+// Um evento da hunt ao vivo: um KILL (derrotou -> xp + loot) ou um CATCH (capturou com
+// uma bola). Feed unico, ordenado por tempo. `at` e o horario (ms) de quando chegou.
+export interface KillLog {
+  at: number;
+  kind: "kill" | "catch";
+  species: string;
+  shiny: boolean;
+  xp: number; // kill
+  loot: { itemId: number; name: string; qty: number }[]; // kill
+  ball?: string; // catch: nome da bola usada
+}
 export type HuntStatus = "idle" | "connecting" | "running" | "kicked" | "error";
 export interface HuntState {
   status: HuntStatus;
@@ -46,6 +56,12 @@ class HuntSession {
 
   getState(): HuntState {
     return { ...this.state, recentKills: this.state.recentKills.slice(0, 50) };
+  }
+
+  // adiciona um evento (kill/catch) no topo do feed e limita a 50
+  private push(ev: KillLog) {
+    this.state.recentKills.unshift(ev);
+    if (this.state.recentKills.length > 50) this.state.recentKills.length = 50;
   }
 
   start(tokens: Tokens, shard: number, slug: string) {
@@ -78,8 +94,12 @@ class HuntSession {
       } else if (m.type === "field-kill") {
         const k = m as Record<string, unknown>;
         const loot = Array.isArray(k.loot) ? (k.loot as Record<string, unknown>[]).map((l) => ({ itemId: Number(l.itemId ?? 0), name: String(l.name ?? ""), qty: Number(l.qty ?? 0) })) : [];
-        this.state.recentKills.unshift({ at: Date.now(), species: String(k.speciesName ?? "?"), shiny: Boolean(k.shiny), xp: Number(k.xpGained ?? 0), loot });
-        if (this.state.recentKills.length > 50) this.state.recentKills.length = 50;
+        this.push({ at: Date.now(), kind: "kill", species: String(k.speciesName ?? "?"), shiny: Boolean(k.shiny), xp: Number(k.xpGained ?? 0), loot });
+      } else if (m.type === "catch-result") {
+        const k = m as Record<string, unknown>;
+        if (k.success) {
+          this.push({ at: Date.now(), kind: "catch", species: String(k.speciesName ?? "?"), shiny: Boolean(k.shiny), xp: 0, loot: [], ball: String(k.ballName ?? "") });
+        }
       }
     });
 

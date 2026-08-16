@@ -27,7 +27,7 @@ const TABS: { key: Tab; Icon?: (p: { size?: number; className?: string }) => Rea
 ];
 const isTab = (v: string): v is Tab => TABS.some((tb) => tb.key === v);
 
-export function VipTabs({ creatures, dex, hunts, itemIcons }: { creatures: ComboCreature[]; dex: Record<number, MarketDex>; hunts: HuntOption[]; itemIcons: Record<number, string> }) {
+export function VipTabs({ creatures, dex, hunts, itemIcons }: { creatures: ComboCreature[]; dex: Record<number, MarketDex>; hunts: HuntOption[]; itemIcons: Record<string, string> }) {
   const t = useT();
   const [tab, setTab] = useState<Tab>("conta");
   const [unread, setUnread] = useState(0);

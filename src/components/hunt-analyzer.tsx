@@ -8,6 +8,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useT } from "./locale-provider";
 import { Coin, Star } from "./icons";
 import { Sprite } from "./sprite";
+import { Pokeball } from "./pokeball";
 import { spriteUrl, assetIconUrl } from "@/lib/sprites";
 
 // Uma hunt do catalogo do jogo: o `slug` e exatamente o que o enter-hunt come; o resto
@@ -20,13 +21,13 @@ interface Analyzer {
   goldPerHour: number; xpPerHour: number; captures: number;
   drops: { itemId: number; name: string; qty: number; gold: number }[];
 }
-interface KillLog { at: number; species: string; shiny: boolean; xp: number; loot: { itemId: number; name: string; qty: number }[] }
-export interface KillDex { pokeByName: Map<string, number>; itemIcon: (id: number) => string | null }
+interface KillLog { at: number; kind: "kill" | "catch"; species: string; shiny: boolean; xp: number; loot: { itemId: number; name: string; qty: number }[]; ball?: string }
 type Status = "idle" | "connecting" | "running" | "kicked" | "error";
 interface HuntState { status: Status; slug: string | null; analyzer: Analyzer | null; recentKills: KillLog[] }
 
 const fmt = (n: number) => Math.round(n).toLocaleString("pt-BR");
 const hm = (s: number) => `${Math.floor(s / 3600)}h ${Math.floor((s % 3600) / 60)}m`;
+const hms = (ms: number) => new Date(ms).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 const STATUS_COLOR: Record<Status, string> = { idle: "var(--text-dim)", connecting: "var(--yellow)", running: "var(--green)", kicked: "var(--yellow)", error: "var(--pink)" };
 
 function Stat({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
@@ -38,16 +39,20 @@ function Stat({ label, value, accent }: { label: string; value: string; accent?:
   );
 }
 
-export function HuntAnalyzer({ hunts, creatures, itemIcons }: { hunts: HuntOption[]; creatures: { pokeId: number; name: string }[]; itemIcons: Record<number, string> }) {
+export function HuntAnalyzer({ hunts, creatures, itemIcons }: { hunts: HuntOption[]; creatures: { pokeId: number; name: string }[]; itemIcons: Record<string, string> }) {
   const t = useT();
   const [st, setSt] = useState<HuntState | null>(null);
+  const [detail, setDetail] = useState<KillLog | null>(null); // evento aberto no modal
 
-  // resolve o sprite do pokemon do kill (field-kill so traz o nome) e o icone do loot.
+  // resolve o sprite do pokemon (kill/catch so traz o nome) e o icone do loot (por nome:
+  // o itemId do field-kill nao bate com o id dos dados, mas o nome sim).
   const pokeByName = useMemo(() => {
     const m = new Map<string, number>();
     for (const c of creatures) m.set(c.name.toLowerCase(), c.pokeId);
     return m;
   }, [creatures]);
+  const itemIcon = (name: string) => itemIcons[name.toLowerCase()] ?? null;
+  const pokeIdOf = (species: string) => pokeByName.get(species.toLowerCase());
   const [slug, setSlug] = useState("");
   const [busy, setBusy] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -185,44 +190,119 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons }: { hunts: HuntOptio
         </div>
       )}
 
-      {/* ultimos kills ao vivo — cards com sprite do pokemon + icone de cada loot */}
+      {/* feed ao vivo — kills e capturas, cada um clicavel (abre modal com detalhe) */}
       {st?.recentKills && st.recentKills.length > 0 && (
         <div className="card p-4">
           <h3 className="pixel mb-2 text-[0.6rem] text-cyan">{t("robo.hunt.recent")}</h3>
           <div className="grid max-h-96 gap-1.5 overflow-auto pr-1 sm:grid-cols-2">
             {st.recentKills.map((k, i) => {
-              const pid = pokeByName.get(k.species.toLowerCase());
+              const pid = pokeIdOf(k.species);
+              const isCatch = k.kind === "catch";
               return (
-                <div key={k.at + "-" + i} className="flex items-center gap-2.5 rounded border border-border bg-[rgba(8,14,28,0.5)] p-2">
+                <button
+                  key={k.at + "-" + i}
+                  type="button"
+                  onClick={() => setDetail(k)}
+                  className="flex items-center gap-2.5 rounded border border-border bg-[rgba(8,14,28,0.5)] p-2 text-left transition hover:border-[color:var(--border-strong)] hover:bg-surface-2"
+                >
                   <span className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded bg-[rgba(8,14,28,0.6)]">
                     {pid != null && <Sprite src={spriteUrl(pid, k.shiny)} alt={k.species} size={34} />}
                     {k.shiny && <span className="absolute right-0 top-0 text-yellow"><Star size={9} /></span>}
+                    {isCatch && <span className="absolute -bottom-1 -left-1"><Pokeball size={14} /></span>}
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <span className="truncate text-[0.75rem] font-semibold">{k.species}</span>
-                      <span className="ml-auto shrink-0 inline-flex items-center gap-1 text-[0.62rem] text-yellow"><Coin size={9} />{fmt(k.xp)}</span>
+                      {isCatch ? (
+                        <span className="ml-auto shrink-0 text-[0.6rem] text-green">{t("robo.hunt.caught")}</span>
+                      ) : (
+                        <span className="ml-auto shrink-0 inline-flex items-center gap-1 text-[0.62rem] text-yellow"><Coin size={9} />{fmt(k.xp)}</span>
+                      )}
                     </div>
-                    {k.loot.length > 0 && (
-                      <div className="mt-1 flex flex-wrap items-center gap-1">
-                        {k.loot.map((l, j) => {
-                          const icon = itemIcons[l.itemId];
-                          return (
-                            <span key={j} className="inline-flex items-center gap-1 rounded bg-[rgba(8,14,28,0.6)] px-1 py-0.5 text-[0.56rem] text-text-dim" title={l.name}>
-                              {icon ? <Sprite src={assetIconUrl(icon)} alt={l.name} size={14} /> : <span className="truncate max-w-[6rem]">{l.name}</span>}
-                              x{l.qty}
-                            </span>
-                          );
-                        })}
-                      </div>
-                    )}
+                    <div className="mt-0.5 flex flex-wrap items-center gap-1">
+                      <span className="tabular-nums text-[0.55rem] text-text-dim">{hms(k.at)}</span>
+                      {isCatch && k.ball && <span className="text-[0.56rem] text-text-dim">· {k.ball}</span>}
+                      {!isCatch && k.loot.map((l, j) => {
+                        const icon = itemIcon(l.name);
+                        return (
+                          <span key={j} className="inline-flex items-center gap-1 rounded bg-[rgba(8,14,28,0.6)] px-1 py-0.5 text-[0.56rem] text-text-dim" title={l.name}>
+                            {icon ? <Sprite src={assetIconUrl(icon)} alt={l.name} size={14} /> : <span className="max-w-[6rem] truncate">{l.name}</span>}
+                            x{l.qty}
+                          </span>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
+                </button>
               );
             })}
           </div>
         </div>
       )}
+
+      {/* modal de detalhe de um evento (kill ou captura) */}
+      {detail && (() => {
+        const k = detail;
+        const pid = pokeIdOf(k.species);
+        const isCatch = k.kind === "catch";
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setDetail(null)}>
+            <div className="card w-full max-w-sm p-5" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-start gap-3">
+                <span className="relative flex h-16 w-16 shrink-0 items-center justify-center rounded bg-[rgba(8,14,28,0.6)]">
+                  {pid != null && <Sprite src={spriteUrl(pid, k.shiny)} alt={k.species} size={56} />}
+                  {k.shiny && <span className="absolute right-0.5 top-0.5 text-yellow"><Star size={12} /></span>}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <h3 className="pixel text-[0.75rem] text-text">{k.species}</h3>
+                    {k.shiny && <span className="chip" style={{ background: "var(--yellow)", color: "#3a2c00" }}>shiny</span>}
+                  </div>
+                  <div className="mt-1 flex items-center gap-1.5 text-[0.62rem] text-text-dim">
+                    {isCatch && <Pokeball size={12} />}
+                    {isCatch ? t("robo.hunt.caught") : t("robo.hunt.killed")} · {hms(k.at)}
+                  </div>
+                </div>
+              </div>
+              <div className="mt-4 flex flex-col gap-2">
+                {isCatch ? (
+                  <div className="flex items-center gap-2 text-[0.72rem]">
+                    <span className="text-text-dim">{t("robo.hunt.withBall")}:</span>
+                    <span className="text-text">{k.ball || "—"}</span>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex items-center justify-between text-[0.72rem]">
+                      <span className="text-text-dim">XP</span>
+                      <span className="inline-flex items-center gap-1 text-yellow"><Coin size={11} />{fmt(k.xp)}</span>
+                    </div>
+                    <div className="mt-1 text-[0.55rem] uppercase tracking-wide text-text-dim">{t("robo.hunt.drops")}</div>
+                    {k.loot.length === 0 ? (
+                      <span className="text-[0.72rem] text-text-dim">{t("robo.hunt.noDrops")}</span>
+                    ) : (
+                      <div className="flex flex-col gap-1">
+                        {k.loot.map((l, j) => {
+                          const icon = itemIcon(l.name);
+                          return (
+                            <div key={j} className="flex items-center gap-2 rounded border border-border p-1.5 text-[0.72rem]">
+                              <span className="flex h-6 w-6 shrink-0 items-center justify-center">{icon ? <Sprite src={assetIconUrl(icon)} alt={l.name} size={20} /> : null}</span>
+                              <span className="min-w-0 flex-1 truncate">{l.name}</span>
+                              <span className="shrink-0 text-text-dim">x{l.qty}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+              <div className="mt-4 flex justify-end">
+                <button type="button" onClick={() => setDetail(null)} className="btn btn-ghost">{t("robo.hunt.close")}</button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

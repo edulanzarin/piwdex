@@ -18,7 +18,7 @@ const mono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: { default: "piwdex — ferramentas Poke Idle World", template: "%s · piwdex" },
+  title: { default: "PIWdex — ferramentas Poke Idle World", template: "%s · PIWdex" },
   description:
     "Dex e ferramentas completas para Poke Idle World: stats, drops com chance real, onde farmar cada item, localizacoes e evolucoes.",
 };
