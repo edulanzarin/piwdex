@@ -144,3 +144,32 @@ export async function gameFetch(path: string, tokens: Tokens): Promise<GameResul
   }
   return { res, tokens: t, changed };
 }
+
+/** ESCRITA autenticada (POST/PATCH/PUT) na API do jogo. Mesmo refresh em 401. Manda
+ *  Origin/Referer (o jogo usa Bearer, sem CSRF por cookie — verificado no probe do
+ *  auto-helper). So use em endpoints de ACAO confirmados. */
+export async function gameSend(
+  path: string,
+  tokens: Tokens,
+  method: "POST" | "PATCH" | "PUT",
+  body?: unknown,
+): Promise<GameResult> {
+  let t = tokens;
+  let changed = false;
+  const opts = (): RequestInit => ({
+    method,
+    headers: { ...authHeaders(t), "Content-Type": "application/json", Origin: GAME, Referer: `${GAME}/play` },
+    body: body != null ? JSON.stringify(body) : undefined,
+    cache: "no-store",
+  });
+  let res = await fetch(`${GAME}${path}`, opts());
+  if (res.status === 401 && t.refresh) {
+    const nt = await refreshTokens(t);
+    if (nt) {
+      t = nt;
+      changed = true;
+      res = await fetch(`${GAME}${path}`, opts());
+    }
+  }
+  return { res, tokens: t, changed };
+}
