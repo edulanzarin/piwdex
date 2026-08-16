@@ -23,6 +23,7 @@ const PATHS = {
 export async function GET() {
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ connected: false, error: "not_logged" }, { status: 401 });
+  if (!session.user.vip) return NextResponse.json({ connected: false, error: "vip_only" }, { status: 403 }); // Conta e VIP
 
   const userId = session.user.id;
   const link = await getGameLink(userId);

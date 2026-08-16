@@ -13,6 +13,9 @@ export const runtime = "nodejs";
 export async function POST(req: Request) {
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ ok: false, error: "not_logged" }, { status: 401 });
+  // Conectar a conta do jogo e beneficio VIP: vincular = tomar a sessao de jogo, que
+  // so faz sentido pra quem usa Conta/Mercado/Robo (tudo VIP). Gate no servidor.
+  if (!session.user.vip) return NextResponse.json({ ok: false, error: "vip_only" }, { status: 403 });
 
   let raw = "";
   try {

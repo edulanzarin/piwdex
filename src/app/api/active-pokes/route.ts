@@ -12,6 +12,7 @@ export const runtime = "nodejs";
 export async function GET() {
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: "not_logged" }, { status: 401 });
+  if (!session.user.vip) return NextResponse.json({ error: "vip_only" }, { status: 403 }); // toma a sessao de jogo: VIP
 
   const userId = session.user.id;
   const link = await getGameLink(userId);
