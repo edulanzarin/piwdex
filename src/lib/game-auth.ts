@@ -20,7 +20,7 @@ export const SESSION_COOKIE = "piw_sess";
 
 export interface Tokens {
   access: string;
-  refresh: string;
+  refresh?: string; // opcional: com so o access da pra conectar (sem auto-refresh)
 }
 
 // ---- cripto de sessao (AES-256-GCM com chave derivada do SESSION_SECRET) ----
@@ -51,7 +51,7 @@ export function decryptSession(value: string | undefined): Tokens | null {
     d.setAuthTag(tag);
     const plain = Buffer.concat([d.update(enc), d.final()]).toString("utf8");
     const t = JSON.parse(plain) as Tokens;
-    return t.access && t.refresh ? t : null;
+    return t.access ? t : null;
   } catch {
     return null;
   }
@@ -75,13 +75,13 @@ export function parseTokens(raw: string): Tokens | null {
     for (const v of Object.values(j)) if (v && typeof v === "object") Object.assign(flat, v);
     const access = pick(flat, ["accessToken", "access", "token", "access_token", "jwt"]);
     const refresh = pick(flat, ["refreshToken", "refresh", "refresh_token"]);
-    if (access && refresh) return { access, refresh };
+    if (access) return { access, refresh: refresh ?? undefined };
   } catch {
     /* nao era JSON */
   }
-  // 2) fallback: dois JWTs no texto (access primeiro, refresh depois)
+  // 2) fallback: JWTs no texto (access primeiro, refresh depois se houver)
   const jwts = text.match(JWT_RE);
-  if (jwts && jwts.length >= 2) return { access: jwts[0], refresh: jwts[1] };
+  if (jwts && jwts.length >= 1) return { access: jwts[0], refresh: jwts[1] };
   return null;
 }
 
@@ -119,7 +119,7 @@ export async function gameFetch(path: string, tokens: Tokens): Promise<GameResul
   let t = tokens;
   let changed = false;
   let res = await fetch(`${GAME}${path}`, { headers: authHeaders(t), cache: "no-store" });
-  if (res.status === 401) {
+  if (res.status === 401 && t.refresh) {
     const nt = await refreshTokens(t);
     if (nt) {
       t = nt;
