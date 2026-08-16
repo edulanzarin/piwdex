@@ -72,6 +72,9 @@ const num = (s: string): number => {
 
 const IV_MAX_TOTAL = 192; // 32 por stat x 6
 const IV_MAX = 32; // por stat
+// Abaixo deste nivel os stats do jogo sao pequenos e muito arredondados: inverter a
+// formula pra achar o IV fica impreciso (um mesmo stat cabe varios IVs). ~20 estabiliza.
+const LOW_LEVEL = 20;
 
 // Cor do IV por stat (0..32): verde ja bom, amarelo mediano, vermelho ruim.
 const ivColor = (v: number) => (v >= 26 ? "text-green" : v >= 14 ? "text-yellow" : "text-red");
@@ -184,6 +187,12 @@ export function Calculator({ creatures }: { creatures: CalcCreature[] }) {
           </div>
         </div>
       </div>
+
+      {Number.isFinite(lvl) && lvl > 0 && lvl < LOW_LEVEL && (
+        <div className="rounded border-l-2 border-yellow bg-[rgba(244,210,74,0.06)] px-4 py-3 text-[0.72rem] leading-relaxed text-text-dim">
+          <span className="pixel mr-1 text-[0.6rem] text-yellow">!</span>{t("calc.lowLevel")}
+        </div>
+      )}
 
       {isEevee ? (
         <div className="card flex flex-col items-center gap-3 p-8 text-center">

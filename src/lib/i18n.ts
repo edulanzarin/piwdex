@@ -280,6 +280,7 @@ const pt: Dict = {
   "calc.projectHint": "Usa os IVs estimados acima pra projetar os stats e o poder em outro nivel.",
   "calc.targetLevel": "Nivel alvo",
   "calc.powerAt": "Poder no nivel {n}",
+  "calc.lowLevel": "Nivel baixo: abaixo do 20 os stats que o jogo mostra sao numeros pequenos e muito arredondados, entao a estimativa de IV fica imprecisa (um mesmo stat cabe varios IVs, e o total pode nao bater com o do jogo). Suba o pokemon pra ~20+ pra conferir com precisao.",
 
   "nav.breed": "Breeding",
   "home.card6.title": "Planejador de Breeding",
@@ -626,6 +627,7 @@ const en: Dict = {
   "calc.projectHint": "Uses the estimated IVs above to project stats and power at another level.",
   "calc.targetLevel": "Target level",
   "calc.powerAt": "Power at level {n}",
+  "calc.lowLevel": "Low level: below 20 the stats the game shows are small, heavily rounded numbers, so the IV estimate is imprecise (one stat fits many IVs, and the total may not match the game's). Level the pokemon to ~20+ to check accurately.",
 
   "nav.breed": "Breeding",
   "home.card6.title": "Breeding Planner",
@@ -972,6 +974,7 @@ const es: Dict = {
   "calc.projectHint": "Usa los IVs estimados arriba para proyectar los stats y el poder en otro nivel.",
   "calc.targetLevel": "Nivel objetivo",
   "calc.powerAt": "Poder en el nivel {n}",
+  "calc.lowLevel": "Nivel bajo: por debajo de 20 los stats que muestra el juego son numeros pequenos y muy redondeados, asi que la estimacion de IV es imprecisa (un mismo stat admite varios IVs, y el total puede no coincidir con el del juego). Sube el pokemon a ~20+ para verificar con precision.",
 
   "nav.breed": "Breeding",
   "home.card6.title": "Planificador de Breeding",

@@ -253,6 +253,9 @@ export function EeveeLab({ eevee, evos }: { eevee: { pokeId: number; name: strin
           {result && result.ivs.some((v) => v > 32) && (
             <p className="mt-2 text-[0.62rem] font-semibold leading-relaxed text-red">{t("eevee.ivOver")}</p>
           )}
+          {Number.isFinite(lvl) && lvl > 0 && lvl < 20 && (
+            <p className="mt-2 text-[0.62rem] leading-relaxed text-yellow">{t("calc.lowLevel")}</p>
+          )}
           <p className="mt-3 text-[0.62rem] leading-relaxed text-text-dim">{t("eevee.ivNote")}</p>
         </div>
       </div>
