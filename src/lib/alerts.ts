@@ -1,19 +1,18 @@
-// Alertas VIP — modelo, acesso ao banco e motor de match. Tudo LEITURA do jogo:
-// o worker le mercado + conta (ja normalizados) e casa contra as watchlists; nada
-// escreve na conta do jogador (por isso roda sem a extensao).
+// Alertas VIP — modelo, acesso ao banco e motor de match do SNIPER DE MERCADO. Tudo
+// LEITURA do jogo: o worker le o mercado e casa contra as watchlists; nada escreve na
+// conta do jogador (por isso roda sem a extensao).
 //
-// Duas fontes de alerta:
+// Ciclo de vida do alerta:
 //  - snipe: anuncio do mercado que bate os criterios de uma watchlist.
-//  - conta: evento idle (ovo pronto, slot de breeding livre, streak pra resgatar,
-//           VIP expirando) — vem do /api/game/* ja normalizado em Account.
-//
-// dedup_key da idempotencia: o worker roda a cada ~60s e o UNIQUE(user_id, dedup_key)
-// impede duplicar. Snipe casa por anuncio; evento de conta casa por entidade ou por dia.
+//  - dedup_key (UNIQUE por user) impede re-alertar o mesmo anuncio a cada scan de 60s.
+//  - dispensar = marca dismissed_at (some da caixa, mas a linha fica de tombstone pro
+//    dedup nao re-inserir). Pausar a busca esconde os alertas dela; excluir a busca
+//    apaga por cascade (watchlist_id ON DELETE CASCADE).
 
 import { query, queryOne } from "./db";
-import type { MarketMon, Currency, Account } from "./game-account";
+import type { MarketMon, Currency } from "./game-account";
 
-export type NotifKind = "snipe" | "egg" | "breeding" | "streak" | "vip";
+export type NotifKind = "snipe";
 
 export interface Watchlist {
   id: string;
@@ -45,6 +44,7 @@ export interface NewNotif {
   userId: string;
   kind: NotifKind;
   dedupKey: string;
+  watchlistId: string; // a busca que gerou (pausar esconde / excluir apaga por cascade)
   title: string;
   body?: string | null;
   data?: Record<string, unknown> | null;
@@ -91,18 +91,6 @@ export async function listWatchlistsByUser(userId: string): Promise<Watchlist[]>
     [userId],
   );
   return rows.map(toWatch);
-}
-
-// Usuarios VIP com vinculo de jogo ativo — recebem os alertas de conta (ovo, streak,
-// breeding, VIP expirando) mesmo sem watchlist. O snipe so vale pra quem tem watchlist.
-export async function listAlertableUsers(): Promise<string[]> {
-  const rows = await query<{ user_id: string }>(
-    `SELECT u.id AS user_id
-       FROM users u
-       JOIN game_links g ON g.user_id = u.id
-      WHERE u.vip AND g.status = 'active'`,
-  );
-  return rows.map((r) => r.user_id);
 }
 
 // Todas as watchlists ativas de usuarios VIP com vinculo de jogo ativo (o que o worker varre).
@@ -170,10 +158,17 @@ interface NotifRow {
   criado_em: string;
 }
 
+// So mostra alertas nao-dispensados de buscas ativas (pausar esconde; a linha
+// dispensada fica no banco de tombstone pro dedup, mas nunca aparece).
+const VISIBLE = `n.dismissed_at IS NULL AND w.active`;
+
 export async function listNotifications(userId: string, limit = 50): Promise<Notification[]> {
   const rows = await query<NotifRow>(
-    `SELECT id, kind, title, body, data, read_at, criado_em
-       FROM notifications WHERE user_id = $1 ORDER BY criado_em DESC LIMIT $2`,
+    `SELECT n.id, n.kind, n.title, n.body, n.data, n.read_at, n.criado_em
+       FROM notifications n
+       JOIN watchlists w ON w.id = n.watchlist_id
+      WHERE n.user_id = $1 AND ${VISIBLE}
+      ORDER BY n.criado_em DESC LIMIT $2`,
     [userId, limit],
   );
   return rows.map((r) => ({
@@ -189,7 +184,10 @@ export async function listNotifications(userId: string, limit = 50): Promise<Not
 
 export async function unreadCount(userId: string): Promise<number> {
   const row = await queryOne<{ n: string }>(
-    `SELECT count(*)::text AS n FROM notifications WHERE user_id = $1 AND read_at IS NULL`,
+    `SELECT count(*)::text AS n
+       FROM notifications n
+       JOIN watchlists w ON w.id = n.watchlist_id
+      WHERE n.user_id = $1 AND n.read_at IS NULL AND ${VISIBLE}`,
     [userId],
   );
   return row ? Number(row.n) : 0;
@@ -206,16 +204,26 @@ export async function markRead(userId: string, ids: string[] | "all"): Promise<v
   }
 }
 
+// "Negar a oferta": esconde da caixa mas mantem a linha (tombstone do dedup).
+export async function dismissNotifications(userId: string, ids: string[]): Promise<void> {
+  if (!ids.length) return;
+  await query(
+    `UPDATE notifications SET dismissed_at = now()
+      WHERE user_id = $1 AND dismissed_at IS NULL AND id = ANY($2::uuid[])`,
+    [userId, ids],
+  );
+}
+
 // Grava em lote, ignorando os que ja existem (dedup). Retorna quantas foram novas.
 export async function insertNotifications(notifs: NewNotif[]): Promise<number> {
   let inserted = 0;
   for (const n of notifs) {
     const row = await queryOne<{ id: string }>(
-      `INSERT INTO notifications (user_id, kind, dedup_key, title, body, data)
-       VALUES ($1, $2, $3, $4, $5, $6)
+      `INSERT INTO notifications (user_id, kind, dedup_key, watchlist_id, title, body, data)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
        ON CONFLICT (user_id, dedup_key) DO NOTHING
        RETURNING id`,
-      [n.userId, n.kind, n.dedupKey, n.title, n.body ?? null, n.data ? JSON.stringify(n.data) : null],
+      [n.userId, n.kind, n.dedupKey, n.watchlistId, n.title, n.body ?? null, n.data ? JSON.stringify(n.data) : null],
     );
     if (row) inserted++;
   }
@@ -252,6 +260,7 @@ export function matchSnipes(watchlists: Watchlist[], mons: ScoredMon[]): NewNoti
         userId: w.userId,
         kind: "snipe",
         dedupKey: `snipe:${w.id}:${m.listingId}`,
+        watchlistId: w.id,
         title: `${m.shiny ? "shiny " : ""}${m.name} por ${m.price.toLocaleString("pt-BR")} ${coin}${deal}`,
         body:
           m.quality != null || m.ivTotal != null || m.power != null
@@ -272,65 +281,5 @@ export function matchSnipes(watchlists: Watchlist[], mons: ScoredMon[]): NewNoti
       });
     }
   }
-  return out;
-}
-
-// Alertas idle da conta de um usuario. dayBucket permite re-lembrar eventos recorrentes
-// (streak, slot livre) uma vez por dia sem spammar a cada scan.
-export function accountAlerts(userId: string, account: Account, dayBucket: string): NewNotif[] {
-  const out: NewNotif[] = [];
-  const b = account.breeding;
-
-  for (const egg of b.eggs) {
-    if (egg.ready) {
-      out.push({
-        userId,
-        kind: "egg",
-        dedupKey: `egg:${egg.id}`,
-        title: `Ovo pronto pra chocar${egg.shiny ? " (shiny!)" : ""}`,
-        body: egg.name,
-        data: { eggId: egg.id, dexId: egg.dexId, shiny: egg.shiny },
-      });
-    }
-  }
-
-  if (b.unlocked && b.maxSlots > 0 && b.usedSlots < b.maxSlots) {
-    const free = b.maxSlots - b.usedSlots;
-    out.push({
-      userId,
-      kind: "breeding",
-      dedupKey: `breeding-free:${dayBucket}`,
-      title: `${free} slot(s) de breeding livre(s)`,
-      body: `${b.usedSlots}/${b.maxSlots} em uso`,
-      data: { free, used: b.usedSlots, max: b.maxSlots },
-    });
-  }
-
-  if (account.streak.available > 0) {
-    out.push({
-      userId,
-      kind: "streak",
-      dedupKey: `streak:${dayBucket}`,
-      title: `${account.streak.available} ponto(s) de streak pra resgatar`,
-      body: null,
-      data: { available: account.streak.available },
-    });
-  }
-
-  const vipUntil = account.trainer.vipUntil ? new Date(account.trainer.vipUntil) : null;
-  if (vipUntil && !Number.isNaN(vipUntil.getTime())) {
-    const days = Math.ceil((vipUntil.getTime() - Date.now()) / 86_400_000);
-    if (days >= 0 && days <= 3) {
-      out.push({
-        userId,
-        kind: "vip",
-        dedupKey: `vip-expiring:${vipUntil.toISOString().slice(0, 10)}`,
-        title: `VIP do jogo expira em ${days} dia(s)`,
-        body: null,
-        data: { days, vipUntil: account.trainer.vipUntil },
-      });
-    }
-  }
-
   return out;
 }

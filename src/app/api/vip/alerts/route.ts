@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { listNotifications, unreadCount, markRead } from "@/lib/alerts";
+import { listNotifications, unreadCount, markRead, dismissNotifications } from "@/lib/alerts";
 
 export const runtime = "nodejs";
 
@@ -27,7 +27,12 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const g = await guard();
   if (g.error) return g.error;
-  const body = (await req.json().catch(() => ({}))) as { ids?: string[]; all?: boolean };
-  await markRead(g.userId, body.all ? "all" : Array.isArray(body.ids) ? body.ids : []);
+  const body = (await req.json().catch(() => ({}))) as { ids?: string[]; all?: boolean; dismiss?: string[] };
+  // dispensar (negar a oferta) tem prioridade; senao, marca lido.
+  if (Array.isArray(body.dismiss)) {
+    await dismissNotifications(g.userId, body.dismiss);
+  } else {
+    await markRead(g.userId, body.all ? "all" : Array.isArray(body.ids) ? body.ids : []);
+  }
   return NextResponse.json({ unread: await unreadCount(g.userId) });
 }
