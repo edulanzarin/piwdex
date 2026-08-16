@@ -25,7 +25,6 @@ export function VipTabs({ creatures, dex }: { creatures: ComboCreature[]; dex: R
   const t = useT();
   const [tab, setTab] = useState<Tab>("mercado");
   const [unread, setUnread] = useState(0);
-  const [focus, setFocus] = useState<{ speciesId: number; nonce: number } | null>(null);
 
   // aba inicial do hash + contador de alertas nao-lidos (badge da aba).
   useEffect(() => {
@@ -42,10 +41,10 @@ export function VipTabs({ creatures, dex }: { creatures: ComboCreature[]; dex: R
     history.replaceState(null, "", `#${v}`);
   };
 
-  // Alerta clicado: pula pro Mercado com a especie ja buscada (nonce força re-disparo).
-  const jumpToMarket = (speciesId: number) => {
-    setFocus({ speciesId, nonce: (focus?.nonce ?? 0) + 1 });
-    go("mercado");
+  // Resumo de alerta clicado: vai pra aba Desejos e rola ate o desejo (os achados moram la).
+  const jumpToWish = (watchlistId: string) => {
+    go("desejos");
+    setTimeout(() => document.getElementById(`wish-${watchlistId}`)?.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
   };
 
   return (
@@ -62,9 +61,9 @@ export function VipTabs({ creatures, dex }: { creatures: ComboCreature[]; dex: R
         ))}
       </div>
 
-      {tab === "mercado" && <MarketAdvisor creatures={creatures} dex={dex} focus={focus} />}
-      {tab === "desejos" && <WishlistPanel creatures={creatures} />}
-      {tab === "alertas" && <AlertsInbox onUnread={setUnread} onJumpToMarket={jumpToMarket} />}
+      {tab === "mercado" && <MarketAdvisor creatures={creatures} dex={dex} />}
+      {tab === "desejos" && <WishlistPanel creatures={creatures} dex={dex} />}
+      {tab === "alertas" && <AlertsInbox onUnread={setUnread} onJumpToWish={jumpToWish} />}
       {tab === "robo" && (
         <div className="card p-5">
           <h2 className="pixel text-[0.72rem] text-yellow">{t("vip.robot.title")}</h2>

@@ -1,25 +1,53 @@
 "use client";
 
-// Aba Desejos (VIP): a lista de pokemon que voce quer que o piwdex vigie no mercado.
-// Cada "desejo" (watchlist) e um criterio; o worker varre o mercado e, quando bate,
-// o resultado cai na aba Alertas. Aqui so se cria/pausa/exclui desejo — leitura pura.
+// Aba Desejos (VIP): a lista de pokemon que voce quer que o piwdex vigie no mercado, e —
+// dentro de cada desejo — os pokemon ACHADOS por ele. Cada achado abre o modal do
+// Mercado (mesmo do consultor) e pode ser recusado ali. O resumo "N achados" fica na
+// aba Alertas; aqui e o detalhe. Tudo leitura: o worker le o mercado e grava; nada
+// escreve no jogo.
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { spriteUrl } from "@/lib/sprites";
-import type { Watchlist } from "@/lib/alerts";
-import type { Currency } from "@/lib/game-account";
+import type { Watchlist, Notification } from "@/lib/alerts";
+import type { Currency, MarketMon } from "@/lib/game-account";
+import type { PokeType } from "@/lib/types";
 import { Sprite } from "./sprite";
 import { LoadingBall } from "./loaders";
+import { Pagination } from "./pagination";
 import { PokemonCombobox, type ComboCreature } from "./pokemon-combobox";
 import { ToggleButton } from "./toggle-button";
+import { MarketMonModal, type MarketDex } from "./market-advisor";
 import { useT } from "./locale-provider";
-import { Star, Heart } from "./icons";
+import { Star, Heart, Coin, Diamond } from "./icons";
 
 const fmt = (n: number) => n.toLocaleString("pt-BR");
 const numI = (s: string) => {
   const v = parseInt(s.replace(/\D/g, ""), 10);
   return Number.isFinite(v) ? v : null;
 };
+const ivColor = (v: number | null) => (v == null ? "text-text-dim" : v >= 150 ? "text-green" : v >= 100 ? "text-yellow" : "text-text");
+
+// Remonta o MarketMon a partir do que o worker gravou no alerta (pra abrir o modal).
+function monFromNotif(n: Notification, name: string): MarketMon {
+  const d = (n.data ?? {}) as Record<string, unknown>;
+  const nn = (v: unknown) => (v == null ? null : Number(v));
+  return {
+    listingId: String(d.listingId ?? n.id),
+    speciesId: Number(d.speciesId ?? 0),
+    name: String(d.name ?? name),
+    level: Number(d.level ?? 0),
+    shiny: Boolean(d.shiny),
+    ivTotal: nn(d.ivTotal),
+    quality: nn(d.quality),
+    power: nn(d.power),
+    type1: (d.type1 as PokeType) ?? null,
+    price: Number(d.price ?? 0),
+    currency: d.currency === "DIAMONDS" ? "DIAMONDS" : "GOLD",
+    belowNpc: Boolean(d.belowNpc),
+    sellers: Number(d.sellers ?? 1),
+    fairPrice: nn(d.fairPrice),
+  };
+}
 
 // ---- formulario de novo desejo ----
 
@@ -45,7 +73,6 @@ function NewWish({ creatures, onCreated }: { creatures: ComboCreature[]; onCreat
 
   const submit = async () => {
     setErr(null);
-    // moeda + teto derivam de qual campo foi preenchido.
     let currency: Currency | null = null;
     let maxPrice: number | null = null;
     const g = numI(maxGold);
@@ -157,7 +184,7 @@ function NewWish({ creatures, onCreated }: { creatures: ComboCreature[]; onCreat
   );
 }
 
-// ---- linha de um desejo salvo ----
+// ---- resumo dos criterios de um desejo ----
 
 function wishSummary(w: Watchlist, t: (k: string) => string): string {
   const parts: string[] = [];
@@ -169,22 +196,113 @@ function wishSummary(w: Watchlist, t: (k: string) => string): string {
   return parts.join(" · ") || t("alerts.any");
 }
 
-function WishRow({ w, onToggle, onDelete, t }: { w: Watchlist; onToggle: (a: boolean) => void; onDelete: () => void; t: (k: string) => string }) {
+// ---- card de um pokemon achado ----
+
+function MatchCard({ n, name, onOpen, onDismiss, t }: { n: Notification; name: string; onOpen: () => void; onDismiss: () => void; t: (k: string) => string }) {
+  const d = (n.data ?? {}) as Record<string, unknown>;
+  const speciesId = Number(d.speciesId ?? 0);
+  const shiny = Boolean(d.shiny);
+  const currency = d.currency === "DIAMONDS" ? "DIAMONDS" : "GOLD";
+  const price = Number(d.price ?? 0);
+  const quality = d.quality == null ? null : Number(d.quality);
+  const iv = d.ivTotal == null ? null : Number(d.ivTotal);
+  const power = d.power == null ? null : Number(d.power);
+  const level = Number(d.level ?? 0);
+  const belowFair = d.fairPrice != null && price < Number(d.fairPrice);
   return (
-    <div className={`flex items-center gap-3 rounded border border-border bg-[rgba(8,14,28,0.5)] p-2.5 ${w.active ? "" : "opacity-50"}`}>
-      <div className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded bg-[rgba(8,14,28,0.6)]">
-        <Sprite src={w.speciesId ? spriteUrl(w.speciesId, w.shinyOnly) : null} alt={w.label ?? "any"} size={38} />
-        {w.shinyOnly && <span className="absolute right-0.5 top-0.5 text-yellow"><Star size={10} /></span>}
+    <div className="flex items-stretch gap-2 rounded border border-border bg-[rgba(8,14,28,0.5)] p-2 transition hover:border-[color:var(--border-strong)]">
+      <button type="button" onClick={onOpen} title={t("alerts.open")} className="flex min-w-0 flex-1 items-center gap-2.5 text-left">
+        <div className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded bg-[rgba(8,14,28,0.6)]">
+          <Sprite src={spriteUrl(speciesId, shiny)} alt={name} size={40} />
+          {shiny && <span className="absolute right-0.5 top-0.5 text-yellow"><Star size={10} /></span>}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5 text-sm font-semibold">
+            <span className="truncate">{name}</span>
+            <span className="text-[0.56rem] text-text-dim">Lv.{level}</span>
+          </div>
+          <div className="mt-0.5 flex flex-wrap gap-x-2.5 gap-y-0.5 text-[0.6rem] text-text-dim">
+            {power != null && <span>{t("account.col.power")} <span className="text-yellow">{fmt(power)}</span></span>}
+            {iv != null && <span>{t("account.col.iv")} <span className={ivColor(iv)}>{iv}</span></span>}
+            {quality != null && <span>{t("account.col.quality")} <span className="text-cyan">{quality.toFixed(3)}</span></span>}
+          </div>
+          <div className="mt-1 flex items-center gap-1.5 pixel text-[0.68rem]">
+            <span className="inline-flex items-center gap-1 tabular-nums">
+              {currency === "DIAMONDS" ? <span className="text-cyan"><Diamond size={11} /></span> : <span className="text-yellow"><Coin size={11} /></span>}
+              {fmt(price)}
+            </span>
+            {belowFair && <span className="rounded px-1 text-[0.5rem] font-bold uppercase text-green" style={{ border: "1px solid var(--green)" }}>{t("wish.belowFair")}</span>}
+          </div>
+        </div>
+      </button>
+      <button type="button" onClick={onDismiss} title={t("alerts.dismiss")} aria-label={t("alerts.dismiss")} className="shrink-0 self-start text-text-dim transition hover:text-red">✕</button>
+    </div>
+  );
+}
+
+// ---- bloco de um desejo (criterios + achados paginados) ----
+
+const MATCH_PAGE = 6;
+
+function WishBlock({
+  w,
+  matches,
+  onToggle,
+  onDelete,
+  onOpen,
+  onDismiss,
+  nameOf,
+  t,
+}: {
+  w: Watchlist;
+  matches: Notification[];
+  onToggle: (a: boolean) => void;
+  onDelete: () => void;
+  onOpen: (n: Notification) => void;
+  onDismiss: (id: string) => void;
+  nameOf: (speciesId: number) => string;
+  t: (k: string) => string;
+}) {
+  const [page, setPage] = useState(0);
+  const pageCount = Math.max(1, Math.ceil(matches.length / MATCH_PAGE));
+  const safePage = Math.min(page, pageCount - 1);
+  const paged = matches.slice(safePage * MATCH_PAGE, safePage * MATCH_PAGE + MATCH_PAGE);
+
+  return (
+    <div id={`wish-${w.id}`} className={`card p-4 ${w.active ? "" : "opacity-60"}`}>
+      <div className="flex items-center gap-3">
+        <div className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded bg-[rgba(8,14,28,0.6)]">
+          <Sprite src={w.speciesId ? spriteUrl(w.speciesId, w.shinyOnly) : null} alt={w.label ?? "any"} size={38} />
+          {w.shinyOnly && <span className="absolute right-0.5 top-0.5 text-yellow"><Star size={10} /></span>}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <span className="truncate text-sm font-semibold">{w.label ?? (w.speciesId ? `#${w.speciesId}` : t("alerts.anySpecies"))}</span>
+            {matches.length > 0 && (
+              <span className="rounded-full bg-green px-1.5 py-0.5 text-[0.5rem] font-bold text-[#052012]">{matches.length}</span>
+            )}
+          </div>
+          <div className="truncate text-[0.62rem] text-text-dim">{wishSummary(w, t)}</div>
+        </div>
+        <ToggleButton active={w.active} onClick={() => onToggle(!w.active)} accent="green" title={t(w.active ? "alerts.pause" : "alerts.resume")}>
+          <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ background: w.active ? "var(--green)" : "var(--text-dim)" }} />
+          {t(w.active ? "alerts.on" : "alerts.off")}
+        </ToggleButton>
+        <button type="button" onClick={onDelete} title={t("alerts.delete")} aria-label={t("alerts.delete")} className="text-text-dim transition hover:text-red">✕</button>
       </div>
-      <div className="min-w-0 flex-1">
-        <div className="truncate text-sm font-semibold">{w.label ?? (w.speciesId ? `#${w.speciesId}` : t("alerts.anySpecies"))}</div>
-        <div className="truncate text-[0.62rem] text-text-dim">{wishSummary(w, t)}</div>
-      </div>
-      <ToggleButton active={w.active} onClick={() => onToggle(!w.active)} accent="green" title={t(w.active ? "alerts.pause" : "alerts.resume")}>
-        <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ background: w.active ? "var(--green)" : "var(--text-dim)" }} />
-        {t(w.active ? "alerts.on" : "alerts.off")}
-      </ToggleButton>
-      <button type="button" onClick={onDelete} title={t("alerts.delete")} aria-label={t("alerts.delete")} className="text-text-dim transition hover:text-red">✕</button>
+
+      {matches.length > 0 ? (
+        <div className="mt-3 flex flex-col gap-2">
+          <div className="grid gap-2 sm:grid-cols-2">
+            {paged.map((n) => (
+              <MatchCard key={n.id} n={n} name={nameOf(Number((n.data ?? {}).speciesId ?? 0))} onOpen={() => onOpen(n)} onDismiss={() => onDismiss(n.id)} t={t} />
+            ))}
+          </div>
+          {matches.length > MATCH_PAGE && <Pagination page={safePage} pageCount={pageCount} onPage={setPage} />}
+        </div>
+      ) : (
+        <p className="mt-3 text-[0.66rem] text-text-dim">{w.active ? t("wish.noMatches") : t("wish.paused")}</p>
+      )}
     </div>
   );
 }
@@ -193,15 +311,24 @@ function WishRow({ w, onToggle, onDelete, t }: { w: Watchlist; onToggle: (a: boo
 
 type Load<T> = { status: "loading" } | { status: "error" } | { status: "ok"; data: T };
 
-export function WishlistPanel({ creatures }: { creatures: ComboCreature[] }) {
+export function WishlistPanel({ creatures, dex }: { creatures: ComboCreature[]; dex: Record<number, MarketDex> }) {
   const t = useT();
   const [wishes, setWishes] = useState<Load<Watchlist[]>>({ status: "loading" });
+  const [matches, setMatches] = useState<Notification[]>([]);
+  const [selected, setSelected] = useState<MarketMon | null>(null);
+
+  const nameOf = (speciesId: number) => creatures.find((c) => c.pokeId === speciesId)?.name ?? `#${speciesId}`;
 
   const load = async () => {
     try {
-      const res = await fetch("/api/vip/watchlist", { cache: "no-store" });
-      const j = (await res.json()) as { watchlists?: Watchlist[] };
-      setWishes({ status: "ok", data: j.watchlists ?? [] });
+      const [wRes, aRes] = await Promise.all([
+        fetch("/api/vip/watchlist", { cache: "no-store" }),
+        fetch("/api/vip/alerts", { cache: "no-store" }),
+      ]);
+      const wj = (await wRes.json()) as { watchlists?: Watchlist[] };
+      const aj = (await aRes.json()) as { notifications?: Notification[] };
+      setWishes({ status: "ok", data: wj.watchlists ?? [] });
+      setMatches(aj.notifications ?? []);
     } catch {
       setWishes({ status: "error" });
     }
@@ -211,8 +338,22 @@ export function WishlistPanel({ creatures }: { creatures: ComboCreature[] }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // achados agrupados por desejo.
+  const byWish = useMemo(() => {
+    const m = new Map<string, Notification[]>();
+    for (const n of matches) {
+      const wid = String((n.data ?? {}).watchlistId ?? "");
+      if (!wid) continue;
+      const arr = m.get(wid) ?? [];
+      arr.push(n);
+      m.set(wid, arr);
+    }
+    return m;
+  }, [matches]);
+
   const remove = async (id: string) => {
     if (wishes.status === "ok") setWishes({ status: "ok", data: wishes.data.filter((w) => w.id !== id) });
+    setMatches((ms) => ms.filter((n) => String((n.data ?? {}).watchlistId ?? "") !== id));
     await fetch(`/api/vip/watchlist?id=${id}`, { method: "DELETE" });
   };
   const toggle = async (id: string, active: boolean) => {
@@ -222,7 +363,18 @@ export function WishlistPanel({ creatures }: { creatures: ComboCreature[] }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id, active }),
     });
+    load(); // resync: pausar esconde os achados; retomar traz de volta
   };
+  const dismiss = async (id: string) => {
+    setMatches((ms) => ms.filter((n) => n.id !== id));
+    setSelected(null);
+    await fetch("/api/vip/alerts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ dismiss: [id] }),
+    });
+  };
+  const open = (n: Notification) => setSelected(monFromNotif(n, nameOf(Number((n.data ?? {}).speciesId ?? 0))));
 
   return (
     <div className="flex flex-col gap-5">
@@ -231,26 +383,40 @@ export function WishlistPanel({ creatures }: { creatures: ComboCreature[] }) {
         onCreated={(w) => setWishes((s) => (s.status === "ok" ? { status: "ok", data: [w, ...s.data] } : s))}
       />
 
-      <div className="card p-4">
+      <div className="flex flex-col gap-3">
         <h3 className="pixel flex items-center gap-2 text-[0.6rem] text-cyan">
           <Heart size={12} className="text-pink" /> {t("wish.list.title")}
         </h3>
-        <div className="mt-3">
-          {wishes.status === "loading" ? (
-            <LoadingBall label={t("alerts.loading")} />
-          ) : wishes.status === "error" ? (
-            <p className="text-[0.72rem] text-text-dim">{t("alerts.error")}</p>
-          ) : wishes.data.length === 0 ? (
-            <p className="text-[0.72rem] text-text-dim">{t("wish.list.empty")}</p>
-          ) : (
-            <div className="grid gap-2">
-              {wishes.data.map((w) => (
-                <WishRow key={w.id} w={w} t={t} onDelete={() => remove(w.id)} onToggle={(a) => toggle(w.id, a)} />
-              ))}
-            </div>
-          )}
-        </div>
+        {wishes.status === "loading" ? (
+          <div className="card p-4"><LoadingBall label={t("alerts.loading")} /></div>
+        ) : wishes.status === "error" ? (
+          <div className="card p-4"><p className="text-[0.72rem] text-text-dim">{t("alerts.error")}</p></div>
+        ) : wishes.data.length === 0 ? (
+          <div className="card p-4"><p className="text-[0.72rem] text-text-dim">{t("wish.list.empty")}</p></div>
+        ) : (
+          wishes.data.map((w) => (
+            <WishBlock
+              key={w.id}
+              w={w}
+              matches={byWish.get(w.id) ?? []}
+              nameOf={nameOf}
+              t={t}
+              onToggle={(a) => toggle(w.id, a)}
+              onDelete={() => remove(w.id)}
+              onOpen={open}
+              onDismiss={dismiss}
+            />
+          ))
+        )}
       </div>
+
+      {selected && (
+        <MarketMonModal
+          mon={selected}
+          dex={dex[selected.speciesId]}
+          onClose={() => setSelected(null)}
+        />
+      )}
     </div>
   );
 }

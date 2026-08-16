@@ -86,7 +86,7 @@ function Tile({ label, children }: { label: string; children: React.ReactNode })
   );
 }
 
-function MarketMonModal({ mon, dex, onClose }: { mon: MarketMon; dex?: MarketDex; onClose: () => void }) {
+export function MarketMonModal({ mon, dex, onClose }: { mon: MarketMon; dex?: MarketDex; onClose: () => void }) {
   const t = useT();
   const total = dex
     ? dex.baseHp + dex.baseAtk + dex.baseDef + dex.baseSpAtk + dex.baseSpDef + dex.baseSpeed

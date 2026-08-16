@@ -267,16 +267,24 @@ export function matchSnipes(watchlists: Watchlist[], mons: ScoredMon[]): NewNoti
             ? `Q ${m.quality?.toFixed(3) ?? "?"} · IV ${m.ivTotal ?? "?"} · Power ${m.power ?? "?"} · Lv.${m.level}`
             : `Lv.${m.level}`,
         data: {
+          // tudo que o modal do Mercado precisa pra remontar o anuncio (MarketMon):
           listingId: m.listingId,
           speciesId: m.speciesId,
+          name: m.name,
+          level: m.level,
           shiny: m.shiny,
+          type1: m.type1,
           price: m.price,
           currency: m.currency,
           quality: m.quality,
           ivTotal: m.ivTotal,
           power: m.power,
+          belowNpc: m.belowNpc,
+          sellers: m.sellers,
           fairPrice: m.fairPrice ?? null,
+          // vinculo com o desejo (agrupar/rotular na aba Alertas e Desejos):
           watchlistId: w.id,
+          wishLabel: w.label,
         },
       });
     }
