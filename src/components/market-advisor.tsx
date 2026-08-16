@@ -302,13 +302,20 @@ export function MarketAdvisor({
       </div>
       <div className="card flex flex-col gap-4 p-5">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {/* Especie e Tipo sao mutuamente exclusivos: uma especie ja e de um tipo so.
+              Escolher um zera o outro. */}
           <label className="flex flex-col gap-1 sm:col-span-2 lg:col-span-1">
             <span className="text-[0.55rem] uppercase tracking-wide text-text-dim">{t("account.market.species")}</span>
-            <PokemonCombobox creatures={creatures} value={species} onSelect={setSpecies} placeholder={t("account.market.anySpecies")} />
+            <PokemonCombobox
+              creatures={creatures}
+              value={species}
+              onSelect={(c) => { setSpecies(c); if (c) setType(""); }}
+              placeholder={t("account.market.anySpecies")}
+            />
           </label>
           <div className="flex flex-col gap-1">
             <span className="text-[0.55rem] uppercase tracking-wide text-text-dim">{t("account.market.type")}</span>
-            <TypeFilter value={type} onChange={setType} />
+            <TypeFilter value={type} onChange={(tp) => { setType(tp); if (tp) setSpecies(null); }} className="" />
           </div>
           <label className="flex flex-col gap-1">
             <span className="text-[0.55rem] uppercase tracking-wide text-text-dim">{t("account.market.maxGold")}</span>

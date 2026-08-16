@@ -6,13 +6,17 @@ import { ALL_TYPES, TYPE_COLOR } from "@/lib/typing";
 import { TypeIcon } from "./type-icon";
 import { useT, useTypeLabel } from "./locale-provider";
 
-/** Dropdown de tipo totalmente estilizado (sem <select> nativo): icone pixel + cor. */
+/** Dropdown de tipo totalmente estilizado (sem <select> nativo): icone pixel + cor.
+ *  `className` controla a largura (mesmo padrao do SelectMenu): sem ela, cap de 13rem;
+ *  passe "" pra preencher a celula do container (ex.: numa grade). */
 export function TypeFilter({
   value,
   onChange,
+  className,
 }: {
   value: PokeType | "";
   onChange: (t: PokeType | "") => void;
+  className?: string;
 }) {
   const t = useT();
   const typeLabel = useTypeLabel();
@@ -39,7 +43,7 @@ export function TypeFilter({
   };
 
   return (
-    <div ref={box} className="relative w-full sm:max-w-[13rem]">
+    <div ref={box} className={`relative w-full ${className ?? "sm:max-w-[13rem]"}`}>
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
