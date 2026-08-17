@@ -119,6 +119,8 @@ export interface AutoSellView { status: SessStatus; error?: string; soldBySpecie
 // trade:[...], help:[...]} (um array POR CANAL, itens no mesmo shape do msg).
 export interface ChatMsg {
   at: number; from: string; text: string; channel: string;
+  id?: string;      // id do jogo (dedupe primario)
+  mine?: boolean;   // mensagem SUA (append otimista no envio — o jogo nao ecoa pro remetente)
   level?: number; vip?: boolean; admin?: boolean;
 }
 export interface ChatView {
@@ -190,10 +192,12 @@ class GameSession {
 
   // chat do jogo (ring) + anuncio automatico + frames desconhecidos (modo descoberta)
   private chatLog: ChatMsg[] = [];
-  private chatSeen = new Set<string>();          // dedupe (history repete no reconnect)
+  private chatSeenIds = new Set<string>();       // dedupe primario: id do jogo
+  private chatSeenText = new Map<string, number>(); // dedupe secundario: from|text -> at (echo do envio otimista)
   private announce: AnnounceCfg | null = null;
   private announceTimer: ReturnType<typeof setInterval> | null = null;
   private lastSentAt: number | null = null;
+  private selfName: string | null = null; // nome do jogador (rotula o envio otimista)
   private debugFrames: { at: number; type: string; raw: string }[] = [];
 
   private jobsActive() { return this.slug != null || this.pokeCfg != null || this.holdOpen; }
@@ -262,15 +266,19 @@ class GameSession {
   /** Manda mensagem no chat do jogo pela sessao viva. O frame de envio nao e documentado:
    *  usamos o palpite mais provavel (type "chat") com o texto duplicado em message/text —
    *  campo extra e inofensivo. A confirmacao e o ECO voltando no stream de chat. */
-  sendChat(text: string, channel: string): boolean {
+  sendChat(text: string, channel: string, fromName?: string | null): boolean {
     if (!this.ws || this.status !== "running") return false;
     const t = text.trim();
     if (!t) return false;
     // o frame de ENTRADA e {type:"chat", msg:{channel, body}} — o de saida provavelmente
     // espelha (body no top-level ou no msg). Mandamos os dois shapes + aliases; campo
-    // extra e inofensivo e o eco no feed confirma qual pegou.
+    // extra e inofensivo.
     this.send({ type: "chat", channel, body: t, message: t, text: t, msg: { channel, body: t } });
     this.lastSentAt = Date.now();
+    if (fromName) this.selfName = fromName;
+    // append OTIMISTA: o jogo nao ecoa a mensagem pro proprio remetente — sem isso a sua
+    // mensagem nunca aparecia no feed. Se um eco vier, o dedupe por conteudo absorve.
+    this.pushChat({ at: Date.now(), from: fromName ?? this.selfName ?? "Voce", text: t, channel, mine: true });
     this.emit("chat");
     return true;
   }
@@ -310,15 +318,26 @@ class GameSession {
     const level = typeof o.level === "number" && Number.isFinite(o.level) ? o.level : undefined;
     return {
       at, from, text, channel, level,
+      id: GameSession.str(o, ["id"]) ?? undefined,
       vip: o.isVip === true || undefined, admin: o.isAdmin === true || undefined,
     };
   }
 
   private pushChat(msg: ChatMsg) {
-    const key = `${msg.from}|${msg.text}|${Math.round(msg.at / 1000)}`;
-    if (this.chatSeen.has(key)) return false;
-    this.chatSeen.add(key);
-    if (this.chatSeen.size > CHAT_MAX * 3) this.chatSeen.clear(); // ring do dedupe tambem
+    // dedupe primario pelo id do jogo (history repete no reconnect)
+    if (msg.id) {
+      if (this.chatSeenIds.has(msg.id)) return false;
+      this.chatSeenIds.add(msg.id);
+      if (this.chatSeenIds.size > CHAT_MAX * 3) this.chatSeenIds.clear();
+    }
+    // dedupe secundario por conteudo numa janela de 60s: absorve o eco do envio otimista
+    // (a mesma mensagem SUA entra local na hora e pode voltar do servidor com id)
+    const key = `${msg.from}|${msg.text}`;
+    const prev = this.chatSeenText.get(key);
+    if (prev != null && Math.abs(msg.at - prev) < 60_000) return false;
+    this.chatSeenText.set(key, msg.at);
+    if (this.chatSeenText.size > CHAT_MAX * 3) this.chatSeenText.clear();
+
     this.chatLog.push(msg);
     this.chatLog.sort((a, b) => a.at - b.at);
     if (this.chatLog.length > CHAT_MAX) this.chatLog.splice(0, this.chatLog.length - CHAT_MAX);
@@ -998,7 +1017,7 @@ class GameSession {
 // SESSION_REV: bump SEMPRE que a classe ganhar/mudar metodo — no dev, o hot-reload
 // re-avalia o modulo mas a instancia antiga (prototype velho) fica presa no globalThis;
 // sem o rev, chamar um metodo novo dava "is not a function" ate reiniciar o server.
-const SESSION_REV = 5;
+const SESSION_REV = 6;
 const g = globalThis as unknown as { __piwSession?: GameSession; __piwSessionRev?: number };
 if (!g.__piwSession || g.__piwSessionRev !== SESSION_REV) {
   // silencia a instancia velha SEM persistir nada (stop() gravaria enabled=false no banco

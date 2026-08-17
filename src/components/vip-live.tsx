@@ -96,6 +96,7 @@ export interface LiveNotification {
 
 export interface LiveChatMsg {
   at: number; from: string; text: string; channel: string;
+  id?: string; mine?: boolean;
   level?: number; vip?: boolean; admin?: boolean;
 }
 export interface LiveAnnounce { on: boolean; text: string; everyMin: number; channel: "world" | "trade" | "help" }

@@ -8,34 +8,110 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useVipLive, type LiveChat } from "./vip-live";
-import { Bubble, Check, ChevronRight, Clock, Signal, Star } from "./icons";
+import { Bubble, Check, ChevronRight, Clock, Signal, Star, Xp } from "./icons";
+import { Modal } from "./modal";
+import { CloseButton } from "./icon-button";
+import { Sprite } from "./sprite";
+import { StatTile } from "./stat-tile";
+import { TypeBadges } from "./badges";
+import { spriteUrl } from "@/lib/sprites";
+import type { PokeType } from "@/lib/types";
 import { useT } from "./locale-provider";
 
-// links de pokemon no chat: [poke!<base64 de {n,lv,sh,q,iv,pw,...}>] viram um chip
-// legivel (nome + nivel + IV + Q) em vez do blob
-function renderBody(text: string): React.ReactNode {
+// pokemon linkado no chat: [poke!<base64>] carrega o bicho INTEIRO — nome, nivel, shiny,
+// Q, IV, poder e os STATS REAIS naquele nivel. O chip e clicavel e abre um modal no
+// mesmo dialeto do mercado (igual o hover do jogo, so que melhor: com os stats).
+interface PokeLink {
+  n: string; lv?: number; sh?: number; q?: number; iv?: number; pw?: number;
+  t1?: string; t2?: string;
+  st?: { hp?: number; atk?: number; def?: number; spAtk?: number; spDef?: number; speed?: number };
+}
+
+const decodePoke = (b64: string): PokeLink | null => {
+  try {
+    const j = JSON.parse(atob(b64)) as PokeLink;
+    return j && typeof j.n === "string" && j.n ? j : null;
+  } catch { return null; }
+};
+
+// texto do chat com os links viram chips clicaveis (abre o modal de detalhe)
+function renderBody(text: string, onPoke: (p: PokeLink) => void): React.ReactNode {
   const re = /\[poke!([A-Za-z0-9+/=]+)\]/g;
   const parts: React.ReactNode[] = [];
   let last = 0, k = 0, mt: RegExpExecArray | null;
   while ((mt = re.exec(text))) {
     if (mt.index > last) parts.push(text.slice(last, mt.index));
-    let chip: React.ReactNode = mt[0];
-    try {
-      const j = JSON.parse(atob(mt[1])) as { n?: string; lv?: number; iv?: number; q?: number; sh?: number };
-      if (j.n) {
-        chip = (
-          <span key={k++} className="mx-0.5 inline-flex items-center gap-1 rounded border border-[color:var(--cyan)]/40 bg-[color:var(--cyan)]/10 px-1.5 py-0.5 text-[0.6rem] text-cyan">
-            {j.sh ? <Star size={8} className="text-yellow" /> : null}
-            {j.n} <span className="text-text-dim">Lv{j.lv ?? "?"} · IV {j.iv ?? "?"} · Q{typeof j.q === "number" ? j.q.toFixed(2) : "?"}</span>
-          </span>
-        );
-      }
-    } catch { /* base64 invalido: mostra cru */ }
-    parts.push(chip);
+    const j = decodePoke(mt[1]);
+    parts.push(
+      j ? (
+        <button key={k++} type="button" onClick={() => onPoke(j)}
+          className="mx-0.5 inline-flex items-center gap-1 rounded border border-[color:var(--cyan)]/40 bg-[color:var(--cyan)]/10 px-1.5 py-0.5 text-[0.6rem] text-cyan transition hover:border-cyan hover:bg-[color:var(--cyan)]/20">
+          {j.sh ? <Star size={8} className="text-yellow" /> : null}
+          {j.n} <span className="text-text-dim">Lv{j.lv ?? "?"} · IV {j.iv ?? "?"} · Q{typeof j.q === "number" ? j.q.toFixed(2) : "?"}</span>
+        </button>
+      ) : (
+        mt[0]
+      ),
+    );
     last = mt.index + mt[0].length;
   }
   if (last < text.length) parts.push(text.slice(last));
   return parts.length === 1 ? parts[0] : parts;
+}
+
+const fmtN = (n: number) => Math.round(n).toLocaleString("pt-BR");
+const ivColor = (v?: number) => (v == null ? "text-text-dim" : v >= 150 ? "text-green" : v >= 100 ? "text-yellow" : "text-text");
+
+// modal do pokemon linkado — mesmo dialeto do modal do mercado (sprite + tiles + stats)
+function PokeLinkModal({ poke, speciesId, onClose }: { poke: PokeLink; speciesId: number | null; onClose: () => void }) {
+  const t = useT();
+  const st = poke.st ?? {};
+  const STATS: [string, number | undefined][] = [
+    ["HP", st.hp], ["ATK", st.atk], ["DEF", st.def],
+    ["SP.ATK", st.spAtk], ["SP.DEF", st.spDef], ["SPEED", st.speed],
+  ];
+  const max = Math.max(1, ...STATS.map(([, v]) => v ?? 0));
+  return (
+    <Modal onClose={onClose} className="w-full max-w-md gap-5 p-5">
+      <div className="flex items-center gap-4">
+        <div className="relative flex h-20 w-20 shrink-0 items-center justify-center rounded bg-[var(--well-bg)]">
+          {speciesId != null && <Sprite src={spriteUrl(speciesId, !!poke.sh)} alt={poke.n} size={72} />}
+          {!!poke.sh && <span className="absolute right-1 top-1 text-yellow"><Star size={13} /></span>}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <h3 className="truncate pixel text-[0.9rem] text-text">{poke.n}</h3>
+            <span className="text-[0.62rem] text-text-dim">Lv.{poke.lv ?? "?"}</span>
+          </div>
+          <div className="mt-2 flex flex-wrap items-center gap-1.5">
+            {poke.t1 && <TypeBadges t1={poke.t1 as PokeType} t2={(poke.t2 as PokeType) ?? null} />}
+            {!!poke.sh && <span className="chip" style={{ background: "var(--yellow)", color: "#3a2c00" }}>shiny</span>}
+          </div>
+        </div>
+        <CloseButton onClick={onClose} className="shrink-0 self-start" />
+      </div>
+
+      <div className="grid grid-cols-3 gap-2">
+        <StatTile label={t("account.col.power")} value={<span className="text-yellow">{poke.pw != null ? fmtN(poke.pw) : "—"}</span>} icon={<Xp size={10} className="text-yellow" />} />
+        <StatTile label={t("account.col.iv")} value={poke.iv != null ? <span className={ivColor(poke.iv)}>{poke.iv}<span className="text-[0.62rem] text-text-dim">/192</span></span> : "—"} />
+        <StatTile label={t("account.col.quality")} value={<span className="text-cyan">{poke.q != null ? poke.q.toFixed(3) : "—"}</span>} />
+      </div>
+
+      {/* stats REAIS no nivel do anuncio (vem no proprio link) */}
+      <div className="flex flex-col gap-1.5 rounded border border-border bg-[var(--well-bg)] p-3">
+        <div className="field-label mb-1">{t("vip.chat.statsAt", { lv: poke.lv ?? "?" })}</div>
+        {STATS.map(([label, v]) => (
+          <div key={label} className="flex items-center gap-2.5">
+            <span className="w-14 shrink-0 text-[0.58rem] uppercase text-text-dim">{label}</span>
+            <div className="h-2 flex-1 overflow-hidden rounded-sm bg-[rgba(8,14,28,0.8)]">
+              <div className="h-full rounded-sm bg-cyan" style={{ width: `${((v ?? 0) / max) * 100}%` }} />
+            </div>
+            <span className="w-12 shrink-0 text-right text-[0.66rem] tabular-nums text-text">{v != null ? fmtN(v) : "—"}</span>
+          </div>
+        ))}
+      </div>
+    </Modal>
+  );
 }
 
 const CHANNELS = ["world", "trade", "help"] as const;
@@ -44,14 +120,14 @@ const CH_COLOR: Record<Channel, string> = { world: "var(--cyan)", trade: "var(--
 
 const hhmm = (ms: number) => new Date(ms).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 
-export function ChatPanel() {
+export function ChatPanel({ creatures }: { creatures: { pokeId: number; name: string }[] }) {
   const t = useT();
   const { chat, hunt, account, applyChat } = useVipLive();
   const [text, setText] = useState("");
   const [channel, setChannel] = useState<Channel>("world");
   const [busy, setBusy] = useState(false);
   const [sendErr, setSendErr] = useState(false);
-  const [debugOpen, setDebugOpen] = useState(false);
+  const [pokeModal, setPokeModal] = useState<PokeLink | null>(null);
   // anuncio automatico (draft local; o efetivo vem do stream)
   const [annText, setAnnText] = useState("");
   const [annEvery, setAnnEvery] = useState("10");
@@ -63,6 +139,12 @@ export function ChatPanel() {
   const connected = !!hunt?.wsOpen;
   const selfName = account?.account?.profile?.name ?? null;
   const ann = chat?.announce ?? null;
+  // nome -> speciesId, pro sprite do modal do pokemon linkado
+  const pokeByName = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const c of creatures) m.set(c.name.toLowerCase(), c.pokeId);
+    return m;
+  }, [creatures]);
 
   // 1a carga do draft do anuncio a partir do persistido
   useEffect(() => {
@@ -140,7 +222,7 @@ export function ChatPanel() {
               </p>
             ) : (
               msgs.map((m, i) => {
-                const self = selfName != null && m.from.toLowerCase() === selfName.toLowerCase();
+                const self = m.mine || (selfName != null && m.from.toLowerCase() === selfName.toLowerCase());
                 return (
                   <div key={`${m.at}-${i}`} className={`rounded px-2 py-1 text-[0.7rem] leading-relaxed ${self ? "bg-[color:var(--cyan)]/10" : ""} ${i === msgs.length - 1 ? "flash-in" : ""}`}
                     style={{ "--accent": "var(--cyan)" } as React.CSSProperties}>
@@ -148,7 +230,7 @@ export function ChatPanel() {
                     <span className="mr-1 rounded px-1 text-[0.5rem] uppercase" style={{ color: CH_COLOR[(m.channel as Channel)] ?? "var(--text-dim)" }}>{m.channel}</span>
                     <span className={`mr-1 font-semibold ${m.admin ? "text-red" : self ? "text-cyan" : m.vip ? "text-yellow" : "text-text"}`}>{m.from}</span>
                     {m.level != null && <span className="mr-1.5 text-[0.52rem] tabular-nums text-text-dim">Lv{m.level}</span>}
-                    <span className="break-words text-text-dim">{renderBody(m.text)}</span>
+                    <span className="break-words text-text-dim">{renderBody(m.text, setPokeModal)}</span>
                   </div>
                 );
               })
@@ -232,25 +314,13 @@ export function ChatPanel() {
         </div>
       </div>
 
-      {/* modo descoberta: frames desconhecidos (calibragem do parser de chat) */}
-      {(chat?.debugFrames?.length ?? 0) > 0 && (
-        <div className="card p-4">
-          <button type="button" onClick={() => setDebugOpen((v) => !v)} className="flex w-full items-center gap-2 text-left">
-            <ChevronRight size={10} className={`transition-transform ${debugOpen ? "rotate-90" : ""}`} />
-            <span className="section-title flex-1 text-text-dim">{t("vip.chat.debug", { n: chat!.debugFrames.length })}</span>
-          </button>
-          {debugOpen && (
-            <div className="mt-3 flex max-h-64 flex-col gap-1 overflow-y-auto">
-              {chat!.debugFrames.slice().reverse().map((f, i) => (
-                <div key={i} className="rounded border border-border bg-[var(--well-bg)] p-2 font-mono text-[0.58rem] text-text-dim">
-                  <span className="mr-2 text-cyan">{f.type}</span>
-                  <span className="mr-2 text-[0.5rem]">{hhmm(f.at)}</span>
-                  <span className="break-all">{f.raw}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+      {/* modal do pokemon linkado (clique no chip) — mesmo dialeto do modal do mercado */}
+      {pokeModal && (
+        <PokeLinkModal
+          poke={pokeModal}
+          speciesId={pokeByName.get(pokeModal.n.toLowerCase()) ?? null}
+          onClose={() => setPokeModal(null)}
+        />
       )}
     </div>
   );

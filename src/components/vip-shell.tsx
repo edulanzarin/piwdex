@@ -140,7 +140,7 @@ function VipShellInner({ creatures, dex, hunts, itemIcons, lootByPoke }: VipShel
               <PokeSold />
             </div>
           )}
-          {sec === "chat" && <ChatPanel />}
+          {sec === "chat" && <ChatPanel creatures={creatures} />}
           {sec === "config" && (
             <div className="flex flex-col gap-8">
               <RoboPanel />

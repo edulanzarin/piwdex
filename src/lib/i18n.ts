@@ -655,7 +655,7 @@ const pt: Dict = {
   "vip.chat.annStart": "Ligar anuncio",
   "vip.chat.annStop": "Parar anuncio",
   "vip.chat.annRunning": "Mandando a cada {n}min no canal {c}.",
-  "vip.chat.debug": "Modo descoberta — {n} frames desconhecidos (ajudam a calibrar o chat)",
+  "vip.chat.statsAt": "Stats no nivel {lv}",
 
   // conexao-primeiro (o robo toma a sessao e segura)
   "vip.conn.connect": "Ligar o robo",

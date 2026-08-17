@@ -19,7 +19,7 @@ async function guard() {
   if (!s.user.vip) return { error: NextResponse.json({ error: "vip_only" }, { status: 403 }) };
   const link = await getGameLink(s.user.id);
   if (!link || link.status === "expired") return { error: NextResponse.json({ error: "not_connected" }, { status: 409 }) };
-  return { userId: s.user.id };
+  return { userId: s.user.id, playerName: link.playerName };
 }
 
 export async function GET() {
@@ -37,7 +37,7 @@ export async function POST(req: Request) {
     const text = typeof b.text === "string" ? b.text.trim().slice(0, 300) : "";
     const channel = typeof b.channel === "string" && CHANNELS.has(b.channel) ? b.channel : "world";
     if (!text) return NextResponse.json({ error: "no_text" }, { status: 400 });
-    const ok = gameSession.sendChat(text, channel);
+    const ok = gameSession.sendChat(text, channel, g.playerName);
     if (!ok) return NextResponse.json({ error: "not_live" }, { status: 409 }); // liga o robo antes
     return NextResponse.json(gameSession.getChatView());
   }
