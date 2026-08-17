@@ -148,8 +148,10 @@ class GameSession {
     this.logSummary();
     this.slug = null; this.sellIds.clear(); this.inv.clear();
     this.analyzer = null; this.recentKills = []; this.soldItems = []; this.poke.soldBySpecies = {};
-    // se a venda 24/7 segue, RECONECTA (sem slug o char sai do campo). Senao, encerra tudo.
-    if (!this.jobsActive()) this.teardown(); else this.reconnect();
+    // a venda de pokemon roda ATRELADA a hunt (o toggle 24/7 standalone saiu): parar a hunt
+    // para a venda tambem. Sem jobs, encerra a sessao.
+    this.pokeCfg = null; this.poke.on = false;
+    this.teardown();
   }
 
   // liga/atualiza o job de VENDA DE POKEMON (cfg null = desliga). NAO zera o vendido por
@@ -214,17 +216,6 @@ class GameSession {
     ws.addEventListener("message", (ev: MessageEvent) => { if (myGen === this.gen) this.onMessage(ev); });
     ws.addEventListener("close", (ev: unknown) => { if (myGen === this.gen) this.onGone("kicked", (ev as { code?: number } | undefined)?.code); });
     ws.addEventListener("error", () => { if (myGen === this.gen) this.onGone("error"); });
-  }
-
-  // Reconecta "limpo": fecha o socket atual (sem tratar como queda, via geracao) e reabre.
-  // Sem slug, o open NAO re-entra no campo -> o char SAI da hunt. O protocolo do jogo nao tem
-  // comando de leave/teleport; reconectar sem enter-hunt e a unica forma de parar de cacar.
-  private reconnect() {
-    const old = this.ws;
-    this.ws = null;
-    this.clearTimers();
-    if (old) { try { old.close(); } catch {} } // o close do socket antigo cai por gen != this.gen
-    this.connect();
   }
 
   private send(obj: unknown) { try { this.ws?.send(JSON.stringify(obj)); } catch {} }
@@ -426,9 +417,22 @@ class GameSession {
     if (!a || a.kills <= 0) return;
     this.summaryLogged = true;
     const slug = this.slug ?? "";
-    void logRobotEvent(this.userId, { kind: "hunt-summary", title: `Hunt ${slug} — resumo`, body: `${a.kills} kills · ${a.captures} capturas · +$${Math.round(a.balance)}`, data: { slug, kills: a.kills, captures: a.captures, xp: a.xpGained, balance: a.balance } });
-    // totalizador cumulativo (pra sempre) do que a hunt rendeu — alimenta o dashboard de Estatisticas
-    void addRobotSales(this.userId, { hunts: 1, kills: a.kills, captures: a.captures, xpGained: a.xpGained, lootItems: a.lootItems, lootGold: a.lootGold, supplyGold: a.supplyGold });
+    const userId = this.userId;
+    void logRobotEvent(userId, { kind: "hunt-summary", title: `Hunt ${slug} — resumo`, body: `${a.kills} kills · ${a.captures} capturas · +$${Math.round(a.balance)}`, data: { slug, kills: a.kills, captures: a.captures, xp: a.xpGained, balance: a.balance } });
+    // totalizador cumulativo (pra sempre) do que a hunt rendeu — alimenta o dashboard de
+    // Estatisticas. Itens raros = soma da qtd dos drops marcados `rare` nos dados (resolve
+    // pelo nome; cai pro itemId se o nome nao bater).
+    void (async () => {
+      let rareItems = 0;
+      try {
+        const data = await getData();
+        for (const d of a.drops ?? []) {
+          const it = data.getItemByName(d.name) ?? data.getItem(d.itemId);
+          if (it?.rare) rareItems += d.qty;
+        }
+      } catch { /* raridade e best-effort; o resto do total nao depende dela */ }
+      await addRobotSales(userId, { hunts: 1, kills: a.kills, captures: a.captures, xpGained: a.xpGained, lootItems: a.lootItems, lootGold: a.lootGold, supplyGold: a.supplyGold, rareItems });
+    })();
   }
 
   private clearTimers() {

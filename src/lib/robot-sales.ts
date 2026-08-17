@@ -8,7 +8,7 @@ import { query, queryOne } from "@/lib/db";
 export interface SalesTotals {
   itemsCount: number; itemsGold: number; pokesCount: number; pokesGold: number;
   hunts: number; kills: number; captures: number; xpGained: number;
-  lootItems: number; lootGold: number; supplyGold: number;
+  lootItems: number; lootGold: number; supplyGold: number; rareItems: number;
 }
 
 // colunas do totalizador e o campo do delta que soma em cada uma (uma fonte de verdade
@@ -18,6 +18,7 @@ const COLS = [
   ["pokes_count", "pokesCount"], ["pokes_gold", "pokesGold"],
   ["hunts", "hunts"], ["kills", "kills"], ["captures", "captures"], ["xp_gained", "xpGained"],
   ["loot_items", "lootItems"], ["loot_gold", "lootGold"], ["supply_gold", "supplyGold"],
+  ["rare_items", "rareItems"],
 ] as const;
 type Delta = Partial<Record<(typeof COLS)[number][1], number>>;
 

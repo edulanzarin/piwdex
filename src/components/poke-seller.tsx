@@ -15,18 +15,12 @@
 // desligadas com aviso. O backend (POST /api/vip/shop action sell-pokes) ja vende por
 // pokeId; falta so a fonte da lista.
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { ToggleButton } from "./toggle-button";
 import { useT } from "./locale-provider";
-import { Coin, Check, ChevronRight } from "./icons";
+import { Coin, Check } from "./icons";
 import { RARITY_COLOR, RARITY_ORDER } from "@/lib/typing";
 import type { Rarity } from "@/lib/types";
-
-// estado do robo de venda automatica 24/7 (GET /api/vip/autosell). Os totais vendidos
-// ficam nas abas Pokemon/Itens vendidos (totalizador cumulativo), nao aqui.
-type AutoStatus = "idle" | "connecting" | "running" | "kicked" | "error";
-interface AutoState { status: AutoStatus; error?: string }
-const AUTO_COLOR: Record<AutoStatus, string> = { idle: "var(--text-dim)", connecting: "var(--yellow)", running: "var(--green)", kicked: "var(--yellow)", error: "var(--pink)" };
 
 export interface PokeSellConfig {
   sellRarities: Rarity[]; // raridades que PODEM ser vendidas (o resto nunca vende)
@@ -121,29 +115,6 @@ export function PokeSeller() {
   // hidrata do localStorage so no cliente (evita mismatch de SSR)
   useEffect(() => { const c = load(); setCfg(c); setSavedCfg(c); }, []);
 
-  // robo de venda automatica 24/7: poll do estado a cada 4s
-  const [auto, setAuto] = useState<AutoState | null>(null);
-  const [autoBusy, setAutoBusy] = useState(false);
-  const loadAuto = useCallback(async () => {
-    try {
-      const r = await fetch("/api/vip/autosell", { cache: "no-store" });
-      const j = (await r.json().catch(() => null)) as AutoState | null;
-      if (j && "status" in j) setAuto(j);
-    } catch {}
-  }, []);
-  useEffect(() => { loadAuto(); const id = setInterval(loadAuto, 4000); return () => clearInterval(id); }, [loadAuto]);
-
-  const toggleAuto = async (on: boolean) => {
-    setAutoBusy(true);
-    try {
-      if (on) { try { window.localStorage.setItem(KEY, JSON.stringify(cfg)); } catch {} setSavedCfg(cfg); } // ligar comita as travas atuais
-      const body = on ? { action: "start", config: cfg } : { action: "stop" };
-      const r = await fetch("/api/vip/autosell", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-      const j = (await r.json().catch(() => null)) as AutoState | null;
-      if (j && "status" in j) setAuto(j);
-    } finally { setAutoBusy(false); }
-  };
-
   // edita SO em memoria (nunca salva a cada tecla) — o botao Confirmar e que comita.
   const edit = (p: Partial<PokeSellConfig>) => setCfg((c) => ({ ...c, ...p }));
   const dirty = JSON.stringify(cfg) !== JSON.stringify(savedCfg);
@@ -193,39 +164,10 @@ export function PokeSeller() {
         <Row title={t("robo.pokes.maxQuality")} desc={t("robo.pokes.maxQuality.desc", { n: cfg.maxQuality.toFixed(2) })}>
           <Slider value={cfg.maxQuality} min={0} max={QUALITY_MAX} step={QUALITY_STEP} decimals={2} onChange={(n) => edit({ maxQuality: n })} />
         </Row>
-      </div>
 
-      {/* venda automatica 24/7: o piwdex segura a sessao e vende sozinho pelas travas acima */}
-      {(() => {
-        const status: AutoStatus = auto?.status ?? "idle";
-        const on = status === "running" || status === "connecting";
-        return (
-          <div className="card flex flex-col gap-3 p-5">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="min-w-0">
-                <h3 className="section-title text-green">{t("robo.auto.title")}</h3>
-                <p className="mt-1 text-[0.62rem] text-text-dim">{t("robo.auto.desc")}</p>
-              </div>
-              {on ? (
-                <button type="button" onClick={() => toggleAuto(false)} disabled={autoBusy} className="btn btn-ghost">{t("robo.auto.stop")}</button>
-              ) : (
-                <button type="button" onClick={() => toggleAuto(true)} disabled={autoBusy || cfg.sellRarities.length === 0} className="btn btn-cyan disabled:opacity-40">{t("robo.auto.start")} <ChevronRight size={10} /></button>
-              )}
-            </div>
-            <div className="flex items-center gap-2 text-[0.72rem] font-semibold">
-              <span className={`inline-block h-2 w-2 rounded-full ${on ? "pulse-soft" : ""}`} style={{ background: AUTO_COLOR[status] }} />
-              {t(`robo.auto.status.${status}`)}
-            </div>
-            {(status === "kicked" || status === "error") && (
-              <p className="rounded border border-[color:var(--yellow)]/40 bg-[rgba(240,200,60,0.06)] px-3 py-2 text-[0.62rem] leading-relaxed text-yellow">
-                {t("robo.auto.kickedHint")}{auto?.error ? ` (${auto.error})` : ""}
-              </p>
-            )}
-            <p className="rounded border border-border bg-[var(--well-bg)] px-3 py-2 text-[0.62rem] leading-relaxed text-text-dim">{t("robo.auto.interval")}</p>
-            <p className="text-[0.58rem] leading-relaxed text-text-dim">{t("robo.auto.warn")}</p>
-          </div>
-        );
-      })()}
+        {/* estas travas valem quando voce liga "Vender pokemon junto" ao iniciar a Hunt */}
+        <p className="mt-3 rounded border border-border bg-[var(--well-bg)] px-3 py-2 text-[0.62rem] leading-relaxed text-text-dim">{t("robo.pokes.usedByHunt")}</p>
+      </div>
     </div>
   );
 }

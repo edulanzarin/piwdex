@@ -15,7 +15,7 @@ interface Acervo { total: number; shiny: number; byRarity: Record<string, number
 interface Totals {
   itemsCount: number; itemsGold: number; pokesCount: number; pokesGold: number;
   hunts: number; kills: number; captures: number; xpGained: number;
-  lootItems: number; lootGold: number; supplyGold: number;
+  lootItems: number; lootGold: number; supplyGold: number; rareItems: number;
   acervo: Acervo;
 }
 const fmt = (n: number) => Math.round(n).toLocaleString("pt-BR");
@@ -72,11 +72,12 @@ export function RoboStats() {
 
       {/* Caçada — o que o robo acumulou cacando (todas as hunts) */}
       <Card title={t("robo.stats.huntTitle")} color="text-cyan" icon={<Skull size={13} className="text-text-dim" />}>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
           <StatTile label={t("robo.stats.hunts")} value={fmt(d?.hunts ?? 0)} icon={<Robot size={11} className="text-cyan" />} />
           <StatTile label={t("robo.stats.kills")} value={fmt(d?.kills ?? 0)} icon={<Skull size={11} className="text-text-dim" />} />
           <StatTile label={t("robo.stats.captures")} value={fmt(d?.captures ?? 0)} icon={<Pokeball size={11} />} />
           <StatTile label={t("robo.stats.lootItems")} value={fmt(d?.lootItems ?? 0)} icon={<Coin size={11} className="text-text-dim" />} />
+          <StatTile label={t("robo.stats.rareItems")} value={fmt(d?.rareItems ?? 0)} accent="var(--yellow)" icon={<Star size={11} className="text-yellow" />} />
           <StatTile label={t("robo.stats.xp")} value={fmt(d?.xpGained ?? 0)} accent="var(--cyan)" icon={<Xp size={11} className="text-cyan" />} />
         </div>
       </Card>
