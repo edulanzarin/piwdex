@@ -236,6 +236,18 @@ export function Bubble({ size = 12, className = "" }: { size?: number; className
   return <Glyph size={size} dx={2} dy={2} className={className} rows={[".######.", "########", "########", "########", ".######.", "..##....", ".##....."]} />;
 }
 
+/** Cifrao pixel (dinheiro, monocromatico). Herda currentColor — pra nav e pra onde o
+ *  icone precisa seguir a cor do texto (a Coin tem verde FIXO, so serve pra valores). */
+export function Dollar({ size = 12, className = "" }: { size?: number; className?: string }) {
+  return <Glyph size={size} dx={2} dy={2} className={className} rows={["...##...", ".######.", "##.##...", ".######.", "...##.##", ".######.", "...##..."]} />;
+}
+
+/** Saco de loot pixel (ITENS: coletados, vendidos, comprados). Herda currentColor.
+ *  Dinheiro usa Coin/Dollar; item usa Loot — nao misturar os dois conceitos. */
+export function Loot({ size = 12, className = "" }: { size?: number; className?: string }) {
+  return <Glyph size={size} dx={2} dy={1} className={className} rows={["...##...", "..####..", "...##...", ".######.", "########", "########", "########", ".######."]} />;
+}
+
 /** Preco em dolares do jogo: moeda + valor. */
 export function Gold({ value, className = "" }: { value: number; className?: string }) {
   return (

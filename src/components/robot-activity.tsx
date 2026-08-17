@@ -6,7 +6,7 @@
 
 import { useCallback, useEffect, useRef } from "react";
 import { useT } from "./locale-provider";
-import { Star, Coin, Skull, Brain, Signal, Flag } from "./icons";
+import { Star, Coin, Loot, Skull, Brain, Signal, Flag } from "./icons";
 import { useVipLive, type LiveEvent } from "./vip-live";
 
 const num = (v: unknown) => Math.round(Number(v ?? 0)).toLocaleString("pt-BR");
@@ -45,9 +45,9 @@ export function RobotActivity() {
       case "poke-sold":
         return { icon: <Coin size={12} />, text: t("evt.pokeSold").replace("{count}", num(d.count)).replace("{gold}", num(d.gold)) };
       case "item-sold":
-        return { icon: <Coin size={12} />, text: t("evt.itemSold").replace("{count}", num(d.count)).replace("{gold}", num(d.gold)) };
+        return { icon: <Loot size={12} />, text: t("evt.itemSold").replace("{count}", num(d.count)).replace("{gold}", num(d.gold)) };
       case "item-bought":
-        return { icon: <Coin size={12} />, text: e.title, tone: "text-text-dim" };
+        return { icon: <Loot size={12} />, text: e.title, tone: "text-text-dim" };
       case "brain":
         return { icon: <Brain size={13} className="text-cyan" />, text: e.title, tone: "text-cyan" };
       case "reconnect":

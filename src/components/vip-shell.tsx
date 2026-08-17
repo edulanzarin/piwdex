@@ -27,7 +27,7 @@ import { ChatPanel } from "./chat-panel";
 import { ToastProvider } from "./toast";
 import type { ComboCreature } from "./pokemon-combobox";
 import { useT } from "./locale-provider";
-import { Star, Coin, Heart, Bell, Trainer, Target, Chart, Backpack, ChevronRight, Gear, Bubble } from "./icons";
+import { Star, Dollar, Heart, Bell, Trainer, Target, Chart, Backpack, ChevronRight, Gear, Bubble } from "./icons";
 
 type Section =
   | "painel" | "hunt" | "chat" | "config" | "capturados" | "estatisticas"
@@ -40,7 +40,7 @@ const SECTIONS: { key: Section; accent: string; Icon: (p: { size?: number; class
   { key: "config", accent: "var(--blue)", Icon: Gear },
   { key: "capturados", accent: "var(--blue)", Icon: Backpack },
   { key: "estatisticas", accent: "var(--purple)", Icon: Chart },
-  { key: "mercado", accent: "var(--green)", Icon: Coin },
+  { key: "mercado", accent: "var(--green)", Icon: Dollar },
   { key: "desejos", accent: "var(--pink)", Icon: Heart },
   { key: "alertas", accent: "var(--yellow)", Icon: Bell },
   { key: "conta", accent: "var(--cyan)", Icon: Trainer },

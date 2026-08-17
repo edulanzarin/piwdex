@@ -8,7 +8,7 @@
 import { StatTile } from "./stat-tile";
 import { useT } from "./locale-provider";
 import { useVipLive } from "./vip-live";
-import { Coin, Xp, Skull, Star, Robot } from "./icons";
+import { Coin, Dollar, Loot, Xp, Skull, Star, Robot } from "./icons";
 import { Pokeball } from "./pokeball";
 import { RARITY_COLOR, RARITY_ORDER } from "@/lib/typing";
 
@@ -61,7 +61,7 @@ export function RoboStats() {
           <StatTile label={t("robo.stats.hunts")} value={fmt(d?.hunts ?? 0)} icon={<Robot size={11} className="text-cyan" />} />
           <StatTile label={t("robo.stats.kills")} value={fmt(d?.kills ?? 0)} icon={<Skull size={11} className="text-text-dim" />} />
           <StatTile label={t("robo.stats.captures")} value={fmt(d?.captures ?? 0)} icon={<Pokeball size={11} />} />
-          <StatTile label={t("robo.stats.lootItems")} value={fmt(d?.lootItems ?? 0)} icon={<Coin size={11} className="text-text-dim" />} />
+          <StatTile label={t("robo.stats.lootItems")} value={fmt(d?.lootItems ?? 0)} icon={<Loot size={11} className="text-text-dim" />} />
           <StatTile label={t("robo.stats.rareItems")} value={fmt(d?.rareItems ?? 0)} accent="var(--yellow)" icon={<Star size={11} className="text-yellow" />} />
           <StatTile label={t("robo.stats.xp")} value={fmt(d?.xpGained ?? 0)} accent="var(--cyan)" icon={<Xp size={11} className="text-cyan" />} />
         </div>
@@ -82,7 +82,7 @@ export function RoboStats() {
         </div>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
           <StatTile label={t("robo.stats.received")} value={fmt(received)} accent="var(--green)" icon={<Coin size={11} />} />
-          <StatTile label={t("robo.stats.supply")} value={`-${fmt(d?.supplyGold ?? 0)}`} accent="var(--pink)" icon={<Coin size={11} className="text-pink" />} />
+          <StatTile label={t("robo.stats.supply")} value={`-${fmt(d?.supplyGold ?? 0)}`} accent="var(--pink)" icon={<Dollar size={11} className="text-pink" />} />
           <StatTile label={t("robo.stats.net")} value={fmt(received - (d?.supplyGold ?? 0))} accent={received - (d?.supplyGold ?? 0) >= 0 ? "var(--green)" : "var(--pink)"} icon={<Coin size={11} />} />
         </div>
       </Card>
@@ -90,7 +90,7 @@ export function RoboStats() {
       {/* Vendas — itens e pokemon vendidos pelo robo (contagem + dolar) */}
       <Card title={t("robo.stats.sellTitle")} color="text-green" icon={<Coin size={13} />}>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          <StatTile label={t("robo.stats.itemsSold")} value={fmt(d?.itemsCount ?? 0)} icon={<Coin size={11} className="text-text-dim" />} />
+          <StatTile label={t("robo.stats.itemsSold")} value={fmt(d?.itemsCount ?? 0)} icon={<Loot size={11} className="text-text-dim" />} />
           <StatTile label={t("robo.stats.itemsSoldGold")} value={fmt(d?.itemsGold ?? 0)} accent="var(--green)" icon={<Coin size={11} />} />
           <StatTile label={t("robo.stats.pokesSold")} value={fmt(d?.pokesCount ?? 0)} icon={<Pokeball size={11} />} />
           <StatTile label={t("robo.stats.pokesSoldGold")} value={fmt(d?.pokesGold ?? 0)} accent="var(--green)" icon={<Coin size={11} />} />

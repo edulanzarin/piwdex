@@ -14,7 +14,7 @@ import { StatTile } from "./stat-tile";
 import { Sprite } from "./sprite";
 import { Pokeball } from "./pokeball";
 import {
-  Coin, Diamond, Star, Xp, Skull, Clock, Signal, Brain, Flag, Target, Chart, Backpack,
+  Coin, Loot, Diamond, Star, Xp, Skull, Clock, Signal, Brain, Flag, Target, Chart, Backpack,
   ChevronRight, Robot,
 } from "./icons";
 import { spriteUrl, assetIconUrl } from "@/lib/sprites";
@@ -42,7 +42,7 @@ const EVENT_ICON: Record<string, React.ReactNode> = {
   "brain": <Brain size={11} className="text-cyan" />,
   "reconnect": <Signal size={11} className="text-green" />,
   "goal": <Flag size={11} className="text-purple" />,
-  "item-bought": <Coin size={11} className="text-green" />,
+  "item-bought": <Loot size={11} className="text-green" />,
 };
 
 function useCountdown(untilMs: number | null): number | null {
