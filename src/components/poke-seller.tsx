@@ -18,6 +18,7 @@
 import { useEffect, useState } from "react";
 import { ToggleButton } from "./toggle-button";
 import { useT } from "./locale-provider";
+import { useToast } from "./toast";
 import { Coin, Check } from "./icons";
 import { RARITY_COLOR, RARITY_ORDER } from "@/lib/typing";
 import type { Rarity } from "@/lib/types";
@@ -35,6 +36,9 @@ const QUALITY_MAX = 3; // teto do slider; qualidade real e decimal (~1.0..2.x) �
 const QUALITY_STEP = 0.05;
 
 const KEY = "piw:poke-sell-config:v2";
+// MESMA chave do checkbox "Vender pokemon junto" do modal de iniciar hunt — o switch
+// daqui e o checkbox de la sao a mesma verdade (marcou num, valeu no outro).
+const ON_KEY = "piw:sell-pokes-too";
 const DEFAULTS: PokeSellConfig = { sellRarities: ["COMMON", "UNCOMMON"], keepShiny: true, maxIv: 100, maxQuality: 1.8 };
 
 function load(): PokeSellConfig {
@@ -108,21 +112,57 @@ function RarityBoxes({ selected, onToggle }: { selected: Rarity[]; onToggle: (r:
 
 export function PokeSeller() {
   const t = useT();
+  const toast = useToast();
   const [cfg, setCfg] = useState<PokeSellConfig>(DEFAULTS);
   const [savedCfg, setSavedCfg] = useState<PokeSellConfig>(DEFAULTS);
   const [saved, setSaved] = useState(false);
+  const [sellOn, setSellOn] = useState(false);
+  const [busy, setBusy] = useState(false);
 
   // hidrata do localStorage so no cliente (evita mismatch de SSR)
-  useEffect(() => { const c = load(); setCfg(c); setSavedCfg(c); }, []);
+  useEffect(() => {
+    const c = load(); setCfg(c); setSavedCfg(c);
+    try { setSellOn(window.localStorage.getItem(ON_KEY) === "1"); } catch { /* fica off */ }
+  }, []);
 
   // edita SO em memoria (nunca salva a cada tecla) — o botao Confirmar e que comita.
   const edit = (p: Partial<PokeSellConfig>) => setCfg((c) => ({ ...c, ...p }));
   const dirty = JSON.stringify(cfg) !== JSON.stringify(savedCfg);
+
+  // liga a venda NA SESSAO VIVA agora (se o robo estiver conectado). 409 = sem vinculo:
+  // fica so o estado local, que ja vale no proximo inicio de hunt.
+  const pushLive = async (on: boolean, config: PokeSellConfig) => {
+    setBusy(true);
+    try {
+      const r = await fetch("/api/vip/autosell", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(on ? { action: "start", config } : { action: "stop" }),
+      });
+      if (r.ok) toast.success(t(on ? "robo.pokes.liveOn" : "robo.pokes.liveOff"));
+      else if (r.status === 409) toast.info(t("robo.pokes.liveLater"));
+      else toast.error(t("toast.err"));
+    } catch { toast.error(t("toast.err")); } finally { setBusy(false); }
+  };
+
   const confirm = () => {
     try { window.localStorage.setItem(KEY, JSON.stringify(cfg)); } catch {}
     setSavedCfg(cfg);
     setSaved(true);
     window.setTimeout(() => setSaved(false), 1500);
+    // venda ligada: reaplica a config nova na sessao viva na hora
+    if (sellOn && cfg.sellRarities.length) void pushLive(true, cfg);
+  };
+
+  // switch mestre: persiste (mesma chave do checkbox da hunt) e aplica na sessao viva.
+  // Ligar tambem COMITA as travas atuais — ligar com edicao pendente sem salvar seria pegadinha.
+  const toggleSell = () => {
+    if (busy) return;
+    const next = !sellOn;
+    if (next && !cfg.sellRarities.length) { toast.error(t("robo.pokes.needRarity")); return; }
+    setSellOn(next);
+    try { window.localStorage.setItem(ON_KEY, next ? "1" : "0"); } catch { /* best-effort */ }
+    if (next) { try { window.localStorage.setItem(KEY, JSON.stringify(cfg)); } catch {} setSavedCfg(cfg); }
+    void pushLive(next, cfg);
   };
 
   const toggleRarity = (r: Rarity) =>
@@ -144,6 +184,15 @@ export function PokeSeller() {
             <button type="button" onClick={confirm} disabled={!dirty} className="btn btn-cyan disabled:opacity-40"><Check size={11} /> {t("robo.pokes.commit")}</button>
           </div>
         </div>
+
+        {/* switch MESTRE: liga a venda de verdade — na sessao viva agora (se conectado) e
+            em todo inicio de hunt (mesma chave do checkbox "Vender pokemon junto") */}
+        <Row title={t("robo.pokes.sellOn")} desc={t("robo.pokes.sellOn.desc")}>
+          <ToggleButton active={sellOn} accent="green" onClick={toggleSell}>
+            <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ background: sellOn ? "var(--green)" : "var(--text-dim)" }} />
+            {sellOn ? t("robo.on") : t("robo.off")}
+          </ToggleButton>
+        </Row>
 
         {/* raridade: bloco de largura cheia (6 boxes nao cabem alinhados a direita) */}
         <div className="py-3">

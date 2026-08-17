@@ -119,8 +119,11 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
   const lv = st?.leveling ?? null;
   const plan = st?.plan ?? null;
 
+  // a verdade e a CHAVE persistida na hora do start (nao o state do checkbox): o switch
+  // "Venda automatica" das Configuracoes escreve na mesma chave, e o state daqui pode
+  // estar desatualizado se o usuario ligou la com as duas abas montadas.
   const withSellCfg = (body: Record<string, unknown>) => {
-    if (sellPokesToo) { const cfg = readSellCfg(); if (cfg) body.pokeSellConfig = cfg; }
+    if (readSellPokesToo()) { const cfg = readSellCfg(); if (cfg) body.pokeSellConfig = cfg; }
     return body;
   };
 
