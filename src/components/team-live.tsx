@@ -200,37 +200,46 @@ export function TeamLive() {
 
       {/* modal do box: busca + melhores primeiro; clique pede confirmacao */}
       {boxOpen && (
-        <Modal onClose={() => setBoxOpen(false)} className="w-full max-w-lg p-4">
+        <Modal onClose={() => setBoxOpen(false)} className="h-[82vh] w-full max-w-3xl p-5">
           <div className="mb-3 flex items-center justify-between">
-            <h3 className="section-title flex items-center gap-2 text-cyan"><Backpack size={12} /> {t("vip.team.boxTitle")}</h3>
+            <h3 className="section-title flex items-center gap-2 text-cyan">
+              <Backpack size={13} /> {t("vip.team.boxTitle")}
+              {boxList && <span className="pixel text-[0.6rem] text-text-dim">{boxList.length}</span>}
+            </h3>
             <CloseButton onClick={() => setBoxOpen(false)} />
           </div>
-          {teamFull && <p className="mb-2 text-[0.62rem] text-yellow">{t("vip.team.teamFull")}</p>}
+          {teamFull && <p className="mb-2 text-[0.66rem] text-yellow">{t("vip.team.teamFull")}</p>}
           <input value={boxQ} onChange={(e) => setBoxQ(e.target.value)} placeholder={t("vip.team.boxSearch")} className="input mb-3" autoFocus />
-          <div className="max-h-80 flex-1 overflow-auto pr-1">
+          <div className="min-h-0 flex-1 overflow-auto pr-1">
             {boxErr ? (
-              <p className="py-6 text-center text-[0.72rem] text-red">{t("toast.err")}</p>
+              <p className="py-10 text-center text-[0.75rem] text-red">{t("toast.err")}</p>
             ) : boxList === null ? (
-              <p className="py-6 text-center text-[0.72rem] text-text-dim">…</p>
+              <p className="py-10 text-center text-[0.75rem] text-text-dim">…</p>
             ) : !boxShown || boxShown.length === 0 ? (
-              <p className="py-6 text-center text-[0.72rem] text-text-dim">{t("vip.team.boxEmpty")}</p>
+              <p className="py-10 text-center text-[0.75rem] text-text-dim">{t("vip.team.boxEmpty")}</p>
             ) : (
-              <div className="grid gap-1 sm:grid-cols-2">
+              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                 {boxShown.map((p) => (
                   <button
                     key={p.id}
                     type="button"
                     onClick={() => setConfirm({ action: "withdraw", poke: p })}
                     disabled={moveBusy || teamFull}
-                    className="flex items-center gap-2 rounded border border-border p-1.5 text-left transition hover:border-[color:var(--cyan)]/60 hover:bg-surface-2 disabled:opacity-40"
+                    className="flex items-center gap-3 rounded border border-border bg-[var(--well-bg)] p-2.5 text-left transition hover:border-[color:var(--cyan)]/60 hover:bg-surface-2 disabled:opacity-40"
                   >
-                    <span className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded bg-[var(--well-bg)]">
-                      <Sprite src={spriteUrl(p.speciesId, p.shiny)} alt={p.name} size={30} />
-                      {p.shiny && <span className="absolute -right-1 -top-1 text-yellow"><Star size={8} /></span>}
+                    <span className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded bg-surface-2">
+                      <Sprite src={spriteUrl(p.speciesId, p.shiny)} alt={p.name} size={40} />
+                      {p.shiny && <span className="absolute -right-1 -top-1 text-yellow"><Star size={10} /></span>}
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-[0.66rem] text-text">{p.name}</span>
-                      <span className="block text-[0.55rem] tabular-nums text-text-dim">Lv{p.level} · IV {p.ivTotal} · Q {p.quality.toFixed(2)}</span>
+                      <span className="flex items-baseline gap-1.5">
+                        <span className="truncate text-[0.75rem] font-semibold text-text">{p.name}</span>
+                        <span className="pixel shrink-0 text-[0.55rem] text-text-dim">Lv{p.level}</span>
+                      </span>
+                      <span className="mt-0.5 flex gap-2.5 text-[0.62rem] tabular-nums text-text-dim">
+                        <span>IV <span className="text-text">{p.ivTotal}</span></span>
+                        <span>Q <span className="text-cyan">{p.quality.toFixed(2)}</span></span>
+                      </span>
                     </span>
                   </button>
                 ))}
