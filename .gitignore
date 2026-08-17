@@ -19,3 +19,6 @@ next-env.d.ts
 
 # os
 .DS_Store
+
+# capturas HAR (contem token de acesso na URL do WS — NUNCA commitar)
+/docs/*.har

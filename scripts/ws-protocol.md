@@ -10,6 +10,9 @@ Conexao: `wss://poke.idleworld.online/ws<shard>?token=<accessJWT>&cmid=<hex>`
 ## Cliente -> servidor (↑ enviados)
 - `{"type":"pokes-get"}` -> responde `pokes`
 - `{"type":"boosts-refresh"}`, `{"type":"badge-refresh"}`, `{"type":"trade-get"}`
+- **`{"type":"send","channel":"world|trade|help","body":"<texto>"}`** -> manda mensagem
+  no CHAT (confirmado por captura HAR ago/2026). O servidor ecoa de volta como frame
+  `chat` normal (com id/fromName/at) — inclusive pro proprio remetente.
 - **`{"type":"enter-hunt","slug":"<huntSlug>"}`** -> ENTRA NO CAMPO: dispara `field-init`
   (mapa) e inicia o stream `field`/`field-kill`/`catch-result` + a acumulacao do
   analyzer. SEM isso, uma conexao recebe so o snapshot; o analyzer fica ZERADO
@@ -51,6 +54,11 @@ o piwdex segura, o navegador do jogo fica em "conta em uso".
 - `catch-result` `{auto, success, speciesName, ballName, ballId, row, col}`
 - `balls`/`inventory` reenviados a cada mudanca (bola gasta, loot dropado)
 - `shiny-global` — broadcast mundial quando alguem pega shiny (nao e teu)
+- **`chat`** `{msg:{id, channel:"world|trade|help", fromName, level, isAdmin, isTutor,
+  isVip, body, at:ISO}}` — mensagem de chat ao vivo (formato confirmado por HAR).
+  `body` pode conter links `[poke!<base64 de {n,lv,sh,q,iv,pw,t1,t2,st}>]`.
+- **`history`** `{world:[...], trade:[...], help:[...]}` — backlog do chat no snapshot,
+  um array POR CANAL, itens no mesmo shape do `chat.msg`.
 
 ## Mapa pro Hunt Analyzer (igual ao do jogo)
 - Derrotados = contagem de `field-kill`

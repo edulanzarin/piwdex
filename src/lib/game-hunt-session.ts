@@ -265,18 +265,16 @@ class GameSession {
   }
 
   /** Manda mensagem no chat do jogo pela sessao viva, com COOLDOWN anti-flood (o jogo
-   *  limita ~1 msg/min; barrar aqui evita ate punicao). O frame de envio nao e
-   *  documentado: palpite mais provavel (type "chat") com o texto em body/message/text. */
+   *  limita ~1 msg/min; barrar aqui evita ate punicao). Frame de envio CONFIRMADO por
+   *  captura HAR (ago/2026): {"type":"send","channel","body"} — o servidor ecoa a
+   *  mensagem de volta como frame `chat` normal (o dedupe absorve o append otimista). */
   sendChat(text: string, channel: string, fromName?: string | null): { ok: boolean; reason?: "not_live" | "cooldown" | "empty"; waitMs?: number } {
     if (!this.ws || this.status !== "running") return { ok: false, reason: "not_live" };
     const t = text.trim();
     if (!t) return { ok: false, reason: "empty" };
     const since = this.lastSentAt != null ? Date.now() - this.lastSentAt : Infinity;
     if (since < CHAT_COOLDOWN_MS) return { ok: false, reason: "cooldown", waitMs: CHAT_COOLDOWN_MS - since };
-    // o frame de ENTRADA e {type:"chat", msg:{channel, body}} — o de saida provavelmente
-    // espelha (body no top-level ou no msg). Mandamos os dois shapes + aliases; campo
-    // extra e inofensivo.
-    this.send({ type: "chat", channel, body: t, message: t, text: t, msg: { channel, body: t } });
+    this.send({ type: "send", channel, body: t });
     this.lastSentAt = Date.now();
     if (fromName) this.selfName = fromName;
     // append OTIMISTA: o jogo nao ecoa a mensagem pro proprio remetente — sem isso a sua
@@ -1020,7 +1018,7 @@ class GameSession {
 // SESSION_REV: bump SEMPRE que a classe ganhar/mudar metodo — no dev, o hot-reload
 // re-avalia o modulo mas a instancia antiga (prototype velho) fica presa no globalThis;
 // sem o rev, chamar um metodo novo dava "is not a function" ate reiniciar o server.
-const SESSION_REV = 7;
+const SESSION_REV = 8;
 const g = globalThis as unknown as { __piwSession?: GameSession; __piwSessionRev?: number };
 if (!g.__piwSession || g.__piwSessionRev !== SESSION_REV) {
   // silencia a instancia velha SEM persistir nada (stop() gravaria enabled=false no banco
