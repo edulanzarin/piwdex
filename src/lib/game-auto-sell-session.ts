@@ -23,7 +23,7 @@ import type { Rarity } from "./types";
 
 const WS_BASE = (process.env.GAME_HOST || "https://poke.idleworld.online").replace(/^http/, "ws");
 const UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36";
-const SWEEP_MS = 60_000; // varre a lista e vende a cada 60s
+const SWEEP_MS = 20_000; // varre/vende E mantem a conexao viva (keepalive) a cada 20s
 
 export type AutoSellStatus = "idle" | "connecting" | "running" | "kicked" | "error";
 // Pokemon que bateu as travas na ultima varredura (mostrado como card na UI).
@@ -75,7 +75,8 @@ class AutoSellSession {
     ws.addEventListener("open", () => {
       this.state.status = "running";
       const ask = () => { try { ws.send(JSON.stringify({ type: "pokes-get" })); } catch {} };
-      setTimeout(ask, 1500); // primeira varredura logo apos conectar
+      // pede a lista logo (keepalive tambem: mantem a conexao ativa, como o analyzer-get da Hunt)
+      setTimeout(ask, 600);
       this.poll = setInterval(ask, SWEEP_MS);
     });
 
@@ -85,7 +86,9 @@ class AutoSellSession {
       if (m.type === "pokes" && Array.isArray(m.list)) void this.sweep(m.list);
     });
 
-    ws.addEventListener("close", () => this.onGone("kicked"));
+    // captura o codigo do close pra diagnostico (4003 = shard errado; 1000/1006 = outra
+    // conexao tomou a sessao, tipico do jogo reconectando no navegador).
+    ws.addEventListener("close", (ev: unknown) => this.onGone("kicked", (ev as { code?: number } | undefined)?.code));
     ws.addEventListener("error", () => this.onGone("error"));
     return this.getState();
   }
@@ -128,11 +131,12 @@ class AutoSellSession {
     }
   }
 
-  private onGone(status: AutoSellStatus) {
+  private onGone(status: AutoSellStatus, code?: number) {
     if (this.poll) { clearInterval(this.poll); this.poll = null; }
     this.ws = null;
     if (this.state.status === "running" || this.state.status === "connecting") {
-      this.state = { ...this.state, status }; // mantem os totais pra mostrar "caiu, vendeu X ate aqui"
+      // guarda o codigo do close pra UI/diagnostico (ex.: 4003 shard errado)
+      this.state = { ...this.state, status, error: code != null ? `close ${code}` : undefined };
     }
   }
 

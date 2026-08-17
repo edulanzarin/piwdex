@@ -29,7 +29,7 @@ const fmt = (n: number) => n.toLocaleString("pt-BR");
 // estado do robo de venda automatica 24/7 (GET /api/vip/autosell)
 type AutoStatus = "idle" | "connecting" | "running" | "kicked" | "error";
 interface SoldPoke { id: string; name: string; speciesId: number; level: number; shiny: boolean; ivTotal: number; quality: number; sellValue: number; rarity: Rarity }
-interface AutoState { status: AutoStatus; since: number | null; lastSweepAt: number | null; lastSold: number; soldTotal: number; goldTotal: number; lastMatches: SoldPoke[] }
+interface AutoState { status: AutoStatus; since: number | null; lastSweepAt: number | null; lastSold: number; soldTotal: number; goldTotal: number; lastMatches: SoldPoke[]; error?: string }
 const AUTO_COLOR: Record<AutoStatus, string> = { idle: "var(--text-dim)", connecting: "var(--yellow)", running: "var(--green)", kicked: "var(--yellow)", error: "var(--pink)" };
 const hhmm = (ms: number | null) => (ms ? new Date(ms).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" }) : "—");
 
@@ -218,6 +218,11 @@ export function PokeSeller() {
               <span className="inline-block h-2 w-2 rounded-full" style={{ background: AUTO_COLOR[status] }} />
               {t(`robo.auto.status.${status}`)}
             </div>
+            {(status === "kicked" || status === "error") && (
+              <p className="rounded border border-[color:var(--yellow)]/40 bg-[rgba(240,200,60,0.06)] px-3 py-2 text-[0.62rem] leading-relaxed text-yellow">
+                {t("robo.auto.kickedHint")}{auto?.error ? ` (${auto.error})` : ""}
+              </p>
+            )}
             {auto && (auto.soldTotal > 0 || auto.lastSweepAt) && (
               <div className="grid grid-cols-3 gap-2">
                 <div className="rounded border border-border p-2.5">
