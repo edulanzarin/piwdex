@@ -23,6 +23,11 @@ export interface LiveKill {
   xp: number; loot: { itemId: number; name: string; qty: number }[]; ball?: string;
 }
 export interface LiveSoldItem { itemId: number; name: string; qty: number; gold: number; at: number }
+// um corpo na fila de captura (frame pending da sessao — cresce no kill, drena na captura)
+export interface LivePending {
+  id: number; speciesId: number; name: string; level: number; shiny: boolean;
+  at: number; row: number; col: number;
+}
 export type LiveStatus = "idle" | "connecting" | "running" | "kicked" | "error";
 export type LiveMode = "manual" | "auto" | "leveling";
 
@@ -39,6 +44,7 @@ export interface LiveHunt {
   status: LiveStatus; error?: string;
   slug: string | null; since: number | null; updatedAt: number | null;
   analyzer: LiveAnalyzer | null; recentKills: LiveKill[]; soldItems: LiveSoldItem[];
+  pending: LivePending[];
   autoSellCount: number; pokeSellOn: boolean;
   mode: LiveMode; leveling: LiveLeveling | null; plan: LivePlanStep[] | null;
   desiredOn: boolean; reconnecting: boolean; nextRetryAt: number | null;

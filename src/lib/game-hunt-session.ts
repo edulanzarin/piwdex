@@ -8,8 +8,8 @@
 // eventos no banco (robot_events) — sobrevive a fechar o navegador.
 //
 // Protocolo (ver scripts/ws-protocol.md):
-//   -> enter-hunt {slug} · analyzer-get · pokes-get
-//   <- analyzer · field-kill · catch-result · inventory {items} · pokes {list}
+//   -> enter-hunt {slug} · leave-hunt · analyzer-get · pokes-get · pending-get
+//   <- analyzer · field-kill · catch-result · inventory {items} · pokes {list} · pending {list}
 //
 // Singleton por processo (1 container long-lived). Uma conta por vez. Server-only.
 
@@ -64,7 +64,7 @@ const CHAT_COOLDOWN_MS = 60_000; // anti-flood do chat do jogo (~1 msg/min) — 
 const KNOWN_FRAMES = new Set([
   "analyzer", "field", "field-init", "field-kill", "poke-xp", "catch-result", "inventory",
   "pokes", "balls", "autohelper", "boosts", "mail-badge", "events", "shiny-global",
-  "poke-summon", "trade", "badge-refresh", "hunt-config",
+  "poke-summon", "trade", "badge-refresh", "hunt-config", "pending", "family",
 ]);
 
 export interface Analyzer {
@@ -80,6 +80,13 @@ export interface KillLog {
   xp: number; loot: { itemId: number; name: string; qty: number }[]; ball?: string;
 }
 export interface SoldItem { itemId: number; name: string; qty: number; gold: number; at: number }
+// um corpo na FILA DE CAPTURA (frame `pending` do jogo, confirmado por HAR ago/2026):
+// o servidor reenvia a lista INTEIRA a cada mudanca — cresce a cada kill, drena conforme
+// o auto-catch processa. `speciesId` no frame chama `pokeId` (numero da SPECIES, nao cuid).
+export interface PendingCatch {
+  id: number; speciesId: number; name: string; level: number; shiny: boolean;
+  at: number; row: number; col: number;
+}
 export interface SoldPoke { id: string; name: string; speciesId: number; level: number; shiny: boolean; ivTotal: number; quality: number; sellValue: number; rarity: Rarity }
 export type SessStatus = "idle" | "connecting" | "running" | "kicked" | "error";
 
@@ -95,6 +102,7 @@ export interface HuntState {
   status: SessStatus; error?: string;
   slug: string | null; since: number | null; updatedAt: number | null;
   analyzer: Analyzer | null; recentKills: KillLog[]; soldItems: SoldItem[]; autoSellCount: number;
+  pending: PendingCatch[];     // fila de captura AO VIVO (frame pending)
   pokeSellOn: boolean;
   // cerebro + reconexao (monitor fixo)
   mode: RobotMode;
@@ -162,6 +170,7 @@ class GameSession {
   private updatedAt: number | null = null;
   private analyzer: Analyzer | null = null;
   private recentKills: KillLog[] = [];
+  private pending: PendingCatch[] = []; // fila de captura ao vivo (frame pending)
   private soldItems: SoldItem[] = [];
   private poke: PokeSellSub = { on: false, soldBySpecies: {} };
   private recordedIds = new Set<string>(); // ids ja gravados no acervo (evita rescrever no banco)
@@ -223,7 +232,7 @@ class GameSession {
     return {
       status: this.status, error: this.error, slug: this.slug, since: this.since, updatedAt: this.updatedAt,
       analyzer: this.analyzer, recentKills: this.recentKills.slice(0, 50), soldItems: this.soldItems.slice(0, 30),
-      autoSellCount: this.sellIds.size, pokeSellOn: this.pokeCfg != null,
+      pending: this.pending, autoSellCount: this.sellIds.size, pokeSellOn: this.pokeCfg != null,
       mode: this.mode, leveling: this.leveling, plan: this.plan,
       desiredOn: this.desiredOn, reconnecting: this.reconnectTimer != null, nextRetryAt: this.nextRetryAt,
       fighterLevel: this.fighter?.level ?? null,
@@ -248,6 +257,7 @@ class GameSession {
   /** "Desligar o robo": solta a sessao inteira (conexao + todos os jobs). */
   disconnectSession() {
     this.logSummary();
+    this.leaveField(); // best-effort: avisa o jogo antes de fechar o socket
     this.holdOpen = false;
     this.desiredOn = false;
     this.cancelReconnect();
@@ -429,6 +439,7 @@ class GameSession {
     // trocar de hunt zera o que foi vendido NA HUNT (itens e pokemon por raridade). O
     // totalizador cumulativo (robot_sales) NAO zera — vive no banco.
     this.analyzer = null; this.recentKills = []; this.soldItems = []; this.poke.soldBySpecies = {}; this.summaryLogged = false;
+    this.pending = [];
     this.desiredOn = true;
     this.holdOpen = true; // cacar implica conexao segurada: parar a hunt depois NAO derruba
     this.cancelReconnect();
@@ -524,6 +535,7 @@ class GameSession {
   // continuam instantaneos. Derrubar tudo e o disconnectSession().
   stopHunt() {
     this.logSummary();
+    this.leaveField(); // sai do campo no servidor (a conexao segurada continua viva)
     this.slug = null; this.sellIds.clear(); this.inv.clear();
     this.analyzer = null; this.recentKills = []; this.soldItems = []; this.poke.soldBySpecies = {};
     this.mode = "manual"; this.leveling = null; this.plan = null; this.currentTargetId = null; this.fighter = null;
@@ -556,6 +568,7 @@ class GameSession {
 
   stop() {
     this.logSummary();
+    this.leaveField(); // best-effort: avisa o jogo antes de fechar o socket
     this.holdOpen = false;
     this.desiredOn = false; this.cancelReconnect();
     this.slug = null; this.sellIds.clear(); this.pokeCfg = null;
@@ -567,7 +580,7 @@ class GameSession {
   // aplica a config: conecta se preciso; se ja conectado, so ajusta (sem derrubar)
   private applyOrConnect(reenter: boolean) {
     if (!this.ws) { this.connect(); return; }
-    if (this.slug && reenter) this.send({ type: "enter-hunt", slug: this.slug });
+    if (this.slug && reenter) this.enterHunt(this.slug);
     this.refreshTimers();
   }
 
@@ -578,7 +591,7 @@ class GameSession {
   // reenter nem sempre religa a config (bola trocada seguia a antiga). Pro caso critico
   // (config mudou com hunt viva) use bounceLive(), que garante a releitura.
   refreshHunt(): boolean {
-    if (this.ws && this.slug) { this.send({ type: "enter-hunt", slug: this.slug }); return true; }
+    if (this.ws && this.slug) { this.enterHunt(this.slug); return true; }
     return false;
   }
 
@@ -638,7 +651,7 @@ class GameSession {
         kind: "reconnect", title: "Conexao restabelecida",
         body: this.slug ? `Hunt ${this.slug} retomada` : null, data: { slug: this.slug },
       });
-      if (this.slug) this.send({ type: "enter-hunt", slug: this.slug });
+      if (this.slug) this.enterHunt(this.slug);
       this.refreshTimers();
     });
     ws.addEventListener("message", (ev: MessageEvent) => { if (myGen === this.gen) this.onMessage(ev); });
@@ -647,6 +660,22 @@ class GameSession {
   }
 
   private send(obj: unknown) { try { this.ws?.send(JSON.stringify(obj)); } catch {} }
+
+  // entra no campo IGUAL o cliente do jogo (HAR ago/2026): enter-hunt + pending-get logo
+  // atras — o jogo so REENVIA a fila de captura quando ela muda, entao sem o pending-get
+  // inicial a fila ficaria vazia ate o primeiro kill.
+  private enterHunt(slug: string) {
+    this.send({ type: "enter-hunt", slug });
+    this.send({ type: "pending-get" });
+  }
+
+  // sai do campo DE VERDADE (leave-hunt, HAR ago/2026): sem esse frame, "parar a hunt"
+  // mantendo a conexao segurada (holdOpen) deixava o char cacando no servidor — o campo
+  // so morria quando a conexao inteira caia. Chamar ANTES de zerar this.slug.
+  private leaveField() {
+    if (this.ws && this.slug) this.send({ type: "leave-hunt" });
+    this.pending = [];
+  }
 
   private refreshTimers() {
     if (this.analyzerPoll) { clearInterval(this.analyzerPoll); this.analyzerPoll = null; }
@@ -689,6 +718,15 @@ class GameSession {
         this.push({ at: Date.now(), kind: "catch", species, shiny, xp: 0, loot: [], ball });
         if (shiny && this.userId) void logRobotEvent(this.userId, { kind: "shiny", title: `Shiny ${species} capturado!`, body: ball || null, data: { species, ball } });
       }
+    } else if (m.type === "pending" && Array.isArray(m.list)) {
+      // fila de captura: o jogo reenvia a lista INTEIRA a cada mudanca. `pokeId` no frame
+      // e o numero da SPECIES (nao cuid) — vira speciesId aqui pro sprite da UI.
+      this.pending = (m.list as Record<string, unknown>[]).map((p) => ({
+        id: Number(p.id ?? 0), speciesId: Number(p.pokeId ?? 0), name: String(p.name ?? "?"),
+        level: Number(p.level ?? 0), shiny: Boolean(p.shiny),
+        at: Number(p.at ?? Date.now()), row: Number(p.row ?? 0), col: Number(p.col ?? 0),
+      }));
+      this.emit("hunt");
     } else if (m.type === "inventory") {
       const items = Array.isArray(m.items) ? (m.items as Record<string, unknown>[]) : [];
       this.inv.clear();
@@ -793,8 +831,8 @@ class GameSession {
     this.logSummary(); // fecha o resumo da faixa anterior antes de trocar o slug
     this.slug = slug; this.currentTargetId = targetId;
     try { this.sellIds = new Set((await getBrainData()).sellableLoot(targetId)); } catch { /* mantem a lista atual */ }
-    this.analyzer = null; this.summaryLogged = false; this.inv.clear();
-    if (this.ws) { this.send({ type: "enter-hunt", slug }); this.refreshTimers(); }
+    this.analyzer = null; this.summaryLogged = false; this.inv.clear(); this.pending = [];
+    if (this.ws) { this.enterHunt(slug); this.refreshTimers(); }
     if (this.userId) void logRobotEvent(this.userId, { kind: "brain", title: `Robo trocou de hunt: ${slug}`, body: why, data: { slug, targetId } });
     this.persistDesired({ slug, sellItemIds: [...this.sellIds] });
     this.emit("hunt");
@@ -1037,7 +1075,7 @@ class GameSession {
   private teardown() {
     this.clearTimers();
     if (this.ws) { try { this.ws.close(); } catch {} this.ws = null; }
-    this.inv.clear();
+    this.inv.clear(); this.pending = [];
     this.since = null; this.updatedAt = null;
     this.setStatus("idle");
     this.emit("hunt");
@@ -1048,7 +1086,7 @@ class GameSession {
 // SESSION_REV: bump SEMPRE que a classe ganhar/mudar metodo — no dev, o hot-reload
 // re-avalia o modulo mas a instancia antiga (prototype velho) fica presa no globalThis;
 // sem o rev, chamar um metodo novo dava "is not a function" ate reiniciar o server.
-const SESSION_REV = 11;
+const SESSION_REV = 12;
 const g = globalThis as unknown as { __piwSession?: GameSession; __piwSessionRev?: number };
 if (!g.__piwSession || g.__piwSessionRev !== SESSION_REV) {
   // silencia a instancia velha SEM persistir nada (stop() gravaria enabled=false no banco

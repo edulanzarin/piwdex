@@ -462,6 +462,36 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
         </div>
       )}
 
+      {/* fila de captura AO VIVO — corpos aguardando o auto-catch (frame pending da
+          sessao). Cresce a cada kill e drena conforme o jogo captura; fila vazia com a
+          hunt viva = o auto-catch esta dando conta. */}
+      {huntOn && st?.pending && (
+        <div className="card p-4">
+          <div className="mb-2 flex items-center gap-2">
+            <Pokeball size={12} />
+            <h3 className="section-title flex-1 text-green">{t("robo.hunt.queue")}</h3>
+            <span className="pixel text-[0.6rem] text-text">{st.pending.length}</span>
+          </div>
+          {st.pending.length === 0 ? (
+            <p className="text-[0.66rem] text-text-dim">{t("robo.hunt.queueEmpty")}</p>
+          ) : (
+            <div className="flex flex-wrap gap-1.5">
+              {st.pending.map((p, i) => (
+                <span
+                  key={p.id}
+                  className={`relative flex items-center gap-1.5 rounded border border-border bg-[var(--well-bg)] px-1.5 py-1 ${i === st.pending.length - 1 ? "flash-in" : ""}`}
+                  title={`${p.name} Lv${p.level}`}
+                >
+                  <Sprite src={spriteUrl(p.speciesId, p.shiny)} alt={p.name} size={24} />
+                  <span className="text-[0.6rem] text-text-dim">Lv{p.level}</span>
+                  {p.shiny && <span className="absolute -right-1 -top-1 text-yellow"><Star size={9} /></span>}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* feed ao vivo — kills e capturas com flash de entrada; clique abre o detalhe */}
       {huntOn && st?.recentKills && st.recentKills.length > 0 && (
         <div className="card p-4">

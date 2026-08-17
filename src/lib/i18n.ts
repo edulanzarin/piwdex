@@ -597,6 +597,8 @@ const pt: Dict = {
   "robo.hunt.captures": "Capturados",
   "robo.hunt.time": "Tempo",
   "robo.hunt.recent": "Ultimos kills",
+  "robo.hunt.queue": "Fila de captura",
+  "robo.hunt.queueEmpty": "Fila vazia — o auto-catch esta dando conta.",
 
   // modos do robo (centro de comando da Hunt)
   "robo.mode.auto": "Auto-hunt",
@@ -1525,6 +1527,8 @@ const en: Dict = {
   "robo.hunt.captures": "Caught",
   "robo.hunt.time": "Time",
   "robo.hunt.recent": "Recent kills",
+  "robo.hunt.queue": "Capture queue",
+  "robo.hunt.queueEmpty": "Queue empty — auto-catch is keeping up.",
   "vip.tab.mercado": "Market",
   "vip.tab.alertas": "Alerts",
   "vip.tab.desejos": "Wishlist",
@@ -2304,6 +2308,8 @@ const es: Dict = {
   "robo.hunt.captures": "Capturados",
   "robo.hunt.time": "Tiempo",
   "robo.hunt.recent": "Ultimos kills",
+  "robo.hunt.queue": "Fila de captura",
+  "robo.hunt.queueEmpty": "Fila vacia — el auto-catch va al dia.",
   "vip.tab.mercado": "Mercado",
   "vip.tab.alertas": "Alertas",
   "vip.tab.desejos": "Deseos",
