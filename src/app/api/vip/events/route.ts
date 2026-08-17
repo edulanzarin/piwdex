@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { listRobotEvents, unreadRobotEvents, markRobotEventsRead } from "@/lib/robot-events";
+import { listRobotEvents, unreadRobotEvents, markRobotEventsRead, clearRobotEvents } from "@/lib/robot-events";
 
 export const runtime = "nodejs";
 
@@ -25,5 +25,13 @@ export async function POST() {
   const c = await ctx();
   if (c.error) return c.error;
   await markRobotEventsRead(c.userId);
+  return NextResponse.json({ ok: true });
+}
+
+// DELETE: limpa tudo (botao "Limpar" do feed)
+export async function DELETE() {
+  const c = await ctx();
+  if (c.error) return c.error;
+  await clearRobotEvents(c.userId);
   return NextResponse.json({ ok: true });
 }

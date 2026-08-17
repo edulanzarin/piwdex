@@ -269,7 +269,7 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
         <div className="card p-4">
           <h3 className="section-title mb-2 text-cyan">{t("robo.hunt.recent")}</h3>
           <div className="grid gap-1.5 sm:grid-cols-2">
-            {st.recentKills.slice(0, 12).map((k, i) => {
+            {st.recentKills.slice(0, 10).map((k, i) => {
               const pid = pokeIdOf(k.species);
               const isCatch = k.kind === "catch";
               return (

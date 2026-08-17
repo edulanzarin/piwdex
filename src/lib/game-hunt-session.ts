@@ -44,7 +44,10 @@ export interface SoldItem { itemId: number; name: string; qty: number; gold: num
 export interface SoldPoke { id: string; name: string; speciesId: number; level: number; shiny: boolean; ivTotal: number; quality: number; sellValue: number; rarity: Rarity }
 export type SessStatus = "idle" | "connecting" | "running" | "kicked" | "error";
 
-export interface PokeSellSub { on: boolean; lastSweepAt: number | null; lastSold: number; soldTotal: number; goldTotal: number; lastMatches: SoldPoke[] }
+// pokemon efetivamente vendido (venda confirmada), com hora — vira o log "Vendidos"
+export interface SoldPokeLog extends SoldPoke { at: number }
+
+export interface PokeSellSub { on: boolean; lastSweepAt: number | null; lastSold: number; soldTotal: number; goldTotal: number; lastMatches: SoldPoke[]; soldPokes: SoldPokeLog[] }
 
 // visao "hunt" (GET /api/vip/hunt) — o que a aba Hunt e os Itens vendidos leem
 export interface HuntState {
@@ -53,8 +56,8 @@ export interface HuntState {
   analyzer: Analyzer | null; recentKills: KillLog[]; soldItems: SoldItem[]; autoSellCount: number;
   pokeSellOn: boolean;
 }
-// visao "auto-sell" (GET /api/vip/autosell) — o que o card de venda 24/7 le
-export interface AutoSellView { status: SessStatus; error?: string; since: number | null; lastSweepAt: number | null; lastSold: number; soldTotal: number; goldTotal: number; lastMatches: SoldPoke[] }
+// visao "auto-sell" (GET /api/vip/autosell) — o que Configuracoes (24/7) e a aba Vendidos leem
+export interface AutoSellView { status: SessStatus; error?: string; since: number | null; lastSweepAt: number | null; lastSold: number; soldTotal: number; goldTotal: number; lastMatches: SoldPoke[]; soldPokes: SoldPokeLog[] }
 
 class GameSession {
   private ws: WebSocket | null = null;
@@ -83,7 +86,7 @@ class GameSession {
   private analyzer: Analyzer | null = null;
   private recentKills: KillLog[] = [];
   private soldItems: SoldItem[] = [];
-  private poke: PokeSellSub = { on: false, lastSweepAt: null, lastSold: 0, soldTotal: 0, goldTotal: 0, lastMatches: [] };
+  private poke: PokeSellSub = { on: false, lastSweepAt: null, lastSold: 0, soldTotal: 0, goldTotal: 0, lastMatches: [], soldPokes: [] };
 
   private jobsActive() { return this.slug != null || this.pokeCfg != null; }
 
@@ -99,7 +102,7 @@ class GameSession {
     return {
       status: this.pokeCfg ? this.status : "idle", error: this.error, since: this.since,
       lastSweepAt: this.poke.lastSweepAt, lastSold: this.poke.lastSold, soldTotal: this.poke.soldTotal,
-      goldTotal: this.poke.goldTotal, lastMatches: this.poke.lastMatches,
+      goldTotal: this.poke.goldTotal, lastMatches: this.poke.lastMatches, soldPokes: this.poke.soldPokes.slice(0, 40),
     };
   }
 
@@ -129,13 +132,13 @@ class GameSession {
   setPokeSell(userId: string, tokens: Tokens, shard: number, cfg: PokeSellConfig, onTokens: (t: Tokens) => Promise<void>) {
     this.ctx(userId, tokens, shard, onTokens);
     this.pokeCfg = cfg;
-    this.poke = { on: true, lastSweepAt: null, lastSold: 0, soldTotal: 0, goldTotal: 0, lastMatches: [] };
+    this.poke = { on: true, lastSweepAt: null, lastSold: 0, soldTotal: 0, goldTotal: 0, lastMatches: [], soldPokes: [] };
     this.applyOrConnect(false);
   }
 
   stopPokeSell() {
     this.pokeCfg = null;
-    this.poke = { on: false, lastSweepAt: null, lastSold: 0, soldTotal: 0, goldTotal: 0, lastMatches: [] };
+    this.poke = { on: false, lastSweepAt: null, lastSold: 0, soldTotal: 0, goldTotal: 0, lastMatches: [], soldPokes: [] };
     if (!this.jobsActive()) this.teardown(); else this.refreshTimers();
   }
 
@@ -259,7 +262,16 @@ class GameSession {
       if (w.ok && w.data) {
         const sold = w.data.sold ?? ids.length, gold = w.data.goldGained ?? 0;
         this.poke.lastSold = sold; this.poke.soldTotal += sold; this.poke.goldTotal += gold;
-        if (this.userId && sold > 0) void logRobotEvent(this.userId, { kind: "poke-sold", title: `Vendeu ${sold} pokemon`, body: `+$${Math.round(gold)}`, data: { count: sold, gold } });
+        if (sold > 0) {
+          // registra os que FORAM vendidos de fato (venda confirmada) no log de vendidos —
+          // os primeiros `sold` dos matches (ordenados do pior pro melhor). Dedupe por id
+          // pra um mesmo pokemon nunca aparecer duas vezes (e o Geodude nao "gruda").
+          const now = Date.now();
+          const justSold: SoldPokeLog[] = matches.slice(0, sold).map((p) => ({ id: p.id, name: p.name, speciesId: p.speciesId, level: p.level, shiny: p.shiny, ivTotal: p.ivTotal, quality: p.quality, sellValue: p.sellValue, rarity: p.rarity, at: now }));
+          const seen = new Set(justSold.map((p) => p.id));
+          this.poke.soldPokes = [...justSold, ...this.poke.soldPokes.filter((p) => !seen.has(p.id))].slice(0, 40);
+          if (this.userId) void logRobotEvent(this.userId, { kind: "poke-sold", title: `Vendeu ${sold} pokemon`, body: `+$${Math.round(gold)}`, data: { count: sold, gold } });
+        }
       }
     } catch { /* proxima varredura tenta */ } finally { this.sellingPokes = false; }
   }

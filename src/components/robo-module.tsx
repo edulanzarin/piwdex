@@ -9,6 +9,7 @@ import { useEffect, useState } from "react";
 import { RoboPanel } from "./robo-panel";
 import { DropSeller } from "./drop-seller";
 import { PokeSeller } from "./poke-seller";
+import { PokeSold } from "./poke-sold";
 import { HuntAnalyzer, type HuntOption, type DropOption } from "./hunt-analyzer";
 import type { ComboCreature } from "./pokemon-combobox";
 import { useT } from "./locale-provider";
@@ -67,10 +68,16 @@ export function RoboModule({ hunts, creatures, itemIcons, lootByPoke }: { hunts:
         accent="var(--cyan)"
       />
 
-      {sec === "automacao" && <RoboPanel />}
+      {/* Configuracoes: automacao nativa (auto-helper) + travas/venda 24/7 de pokemon, juntas */}
+      {sec === "automacao" && (
+        <div className="flex flex-col gap-8">
+          <RoboPanel />
+          <PokeSeller />
+        </div>
+      )}
       {sec === "hunt" && <HuntAnalyzer hunts={hunts} creatures={creatures} itemIcons={itemIcons} lootByPoke={lootByPoke} />}
       {sec === "vender-drops" && <DropSeller itemIcons={itemIcons} />}
-      {sec === "vender-pokes" && <PokeSeller />}
+      {sec === "vender-pokes" && <PokeSold />}
       {sec === "auto-compra" && <AutoBuySoon />}
     </div>
   );

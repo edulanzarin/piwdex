@@ -66,7 +66,7 @@ export function VipTabs({ creatures, dex, hunts, itemIcons, lootByPoke }: { crea
     label: (
       <>
         {t(`vip.tab.${key}`)}
-        {key === "alertas" && unread > 0 && (
+        {key === "mercado" && unread > 0 && (
           <span className="rounded-full bg-cyan px-1.5 py-0.5 text-[0.5rem] text-[#06131a]">{unread}</span>
         )}
       </>
@@ -78,14 +78,16 @@ export function VipTabs({ creatures, dex, hunts, itemIcons, lootByPoke }: { crea
       <Tabs tabs={tabItems} active={tab} onChange={(k) => go(k as Tab)} accent="var(--yellow)" />
 
       {tab === "conta" && <AccountPanel creatures={creatures} />}
-      {tab === "mercado" && <MarketAdvisor creatures={creatures} dex={dex} />}
-      {tab === "desejos" && <WishlistPanel creatures={creatures} dex={dex} focusWishId={focusWish} />}
-      {tab === "alertas" && (
+      {/* Mercado = consultor ao vivo + a Central de alertas (achados por desejo moram junto do mercado) */}
+      {tab === "mercado" && (
         <div className="flex flex-col gap-6">
-          <RobotActivity />
+          <MarketAdvisor creatures={creatures} dex={dex} />
           <AlertsInbox onUnread={setUnread} onJumpToWish={jumpToWish} />
         </div>
       )}
+      {tab === "desejos" && <WishlistPanel creatures={creatures} dex={dex} focusWishId={focusWish} />}
+      {/* Alertas = feed de atividade do robo (vendas/hunt), com limpar e expiracao em 48h */}
+      {tab === "alertas" && <RobotActivity />}
       {tab === "robo" && <RoboModule hunts={hunts} creatures={creatures} itemIcons={itemIcons} lootByPoke={lootByPoke} />}
     </div>
   );

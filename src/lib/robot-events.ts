@@ -37,15 +37,19 @@ export async function logRobotEvent(
          SELECT id FROM robot_events WHERE user_id = $1 ORDER BY criado_em DESC LIMIT $2)`,
       [userId, KEEP],
     );
+    // expira sozinho: nada mais velho que 48h fica no feed
+    await query(`DELETE FROM robot_events WHERE user_id = $1 AND criado_em < now() - interval '48 hours'`, [userId]);
   } catch {
     // nao derruba a hunt/venda por causa de um evento nao gravado
   }
 }
 
-export async function listRobotEvents(userId: string, limit = 50): Promise<RobotEvent[]> {
+export async function listRobotEvents(userId: string, limit = 10): Promise<RobotEvent[]> {
   const rows = await query<Row>(
     `SELECT id, kind, title, body, data, read_at, criado_em
-       FROM robot_events WHERE user_id = $1 ORDER BY criado_em DESC LIMIT $2`,
+       FROM robot_events
+      WHERE user_id = $1 AND criado_em > now() - interval '48 hours'
+      ORDER BY criado_em DESC LIMIT $2`,
     [userId, limit],
   );
   return rows.map((r) => ({
@@ -56,7 +60,8 @@ export async function listRobotEvents(userId: string, limit = 50): Promise<Robot
 
 export async function unreadRobotEvents(userId: string): Promise<number> {
   const row = await queryOne<{ n: string }>(
-    `SELECT count(*)::text AS n FROM robot_events WHERE user_id = $1 AND read_at IS NULL`,
+    `SELECT count(*)::text AS n FROM robot_events
+       WHERE user_id = $1 AND read_at IS NULL AND criado_em > now() - interval '48 hours'`,
     [userId],
   );
   return row ? Number(row.n) : 0;
@@ -64,4 +69,9 @@ export async function unreadRobotEvents(userId: string): Promise<number> {
 
 export async function markRobotEventsRead(userId: string): Promise<void> {
   await query(`UPDATE robot_events SET read_at = now() WHERE user_id = $1 AND read_at IS NULL`, [userId]);
+}
+
+// limpa TODO o feed do usuario (botao "Limpar" na aba Alertas)
+export async function clearRobotEvents(userId: string): Promise<void> {
+  await query(`DELETE FROM robot_events WHERE user_id = $1`, [userId]);
 }

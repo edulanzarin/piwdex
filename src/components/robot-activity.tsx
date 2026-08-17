@@ -31,6 +31,12 @@ export function RobotActivity() {
   // ao abrir a aba, marca tudo como lido
   useEffect(() => { fetch("/api/vip/events", { method: "POST" }).catch(() => {}); }, []);
 
+  // limpa o feed inteiro (some tudo). Alem disso o backend expira sozinho o que passa de 48h.
+  const clear = useCallback(async () => {
+    setEvents([]);
+    try { await fetch("/api/vip/events", { method: "DELETE" }); } catch {}
+  }, []);
+
   const render = (e: Ev): { icon: React.ReactNode; text: string; tone?: string } => {
     const d = e.data ?? {};
     switch (e.kind) {
@@ -47,14 +53,22 @@ export function RobotActivity() {
     }
   };
 
+  // sempre os ultimos 10 (o backend ja limita/expira; corta aqui por garantia)
+  const shown = events.slice(0, 10);
+
   return (
     <div className="card p-4">
-      <h3 className="section-title mb-3 text-cyan">{t("evt.title")}</h3>
-      {events.length === 0 ? (
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <h3 className="section-title text-cyan">{t("evt.title")}</h3>
+        {events.length > 0 && (
+          <button type="button" onClick={clear} className="btn btn-ghost">{t("evt.clear")}</button>
+        )}
+      </div>
+      {shown.length === 0 ? (
         <p className="text-[0.72rem] text-text-dim">{t("evt.empty")}</p>
       ) : (
-        <div className="flex flex-col gap-1.5">
-          {events.map((e) => {
+        <div className="flex max-h-96 flex-col gap-1.5 overflow-y-auto pr-1">
+          {shown.map((e) => {
             const r = render(e);
             return (
               <div key={e.id} className="flex items-center gap-2.5 rounded border border-border bg-[var(--well-bg)] p-2">

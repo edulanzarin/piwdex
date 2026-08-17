@@ -17,11 +17,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { ToggleButton } from "./toggle-button";
-import { Sprite } from "./sprite";
 import { StatTile } from "./stat-tile";
-import { spriteUrl } from "@/lib/sprites";
 import { useT } from "./locale-provider";
-import { Coin, Star, Clock, Check, ChevronRight } from "./icons";
+import { Coin, Clock, Check, ChevronRight } from "./icons";
 import { RARITY_COLOR, RARITY_ORDER } from "@/lib/typing";
 import type { Rarity } from "@/lib/types";
 
@@ -232,43 +230,6 @@ export function PokeSeller() {
               </div>
             )}
             <p className="text-[0.58rem] leading-relaxed text-text-dim">{t("robo.auto.warn")}</p>
-          </div>
-        );
-      })()}
-
-      {/* cards do que o robo casou/vendeu na ultima varredura (so quando ligado/tem resultado) */}
-      {(() => {
-        const on = auto?.status === "running" || auto?.status === "connecting";
-        const matches = auto?.lastMatches ?? [];
-        if (!on && matches.length === 0) return null;
-        return (
-          <div className="card flex flex-col gap-3 p-5">
-            <div className="flex items-center justify-between gap-2">
-              <h3 className="section-title text-cyan">{t("robo.auto.matches")}</h3>
-              {auto && auto.lastSold > 0 && <span className="text-[0.62rem] text-green">{t("robo.auto.justSold", { n: auto.lastSold })}</span>}
-            </div>
-            {matches.length === 0 ? (
-              <p className="text-[0.72rem] text-text-dim">{t("robo.auto.matchesEmpty")}</p>
-            ) : (
-              <div className="grid max-h-96 gap-1.5 overflow-auto pr-1 sm:grid-cols-2">
-                {matches.map((p) => (
-                  <div key={p.id} className="flex items-center gap-2.5 rounded border border-border bg-[var(--well-bg)] p-2">
-                    <span className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded bg-[var(--well-bg)]">
-                      <Sprite src={spriteUrl(p.speciesId, p.shiny)} alt={p.name} size={34} />
-                      {p.shiny && <span className="absolute right-0 top-0 text-yellow"><Star size={9} /></span>}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5">
-                        <span className="truncate text-sm">{p.name}</span>
-                        <span className="shrink-0 text-[0.6rem] text-text-dim">Lv{p.level}</span>
-                        <span className="shrink-0 rounded px-1 text-[0.5rem] font-bold uppercase" style={{ background: RARITY_COLOR[p.rarity], color: "#06111a" }}>{p.rarity}</span>
-                      </div>
-                      <div className="text-[0.6rem] text-text-dim">IV {p.ivTotal} · Q {p.quality.toFixed(2)} · <span className="text-yellow">{fmt(p.sellValue)}</span></div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
         );
       })()}
