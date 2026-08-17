@@ -11,35 +11,21 @@ import { DropSeller } from "./drop-seller";
 import { PokeSeller } from "./poke-seller";
 import { PokeSold } from "./poke-sold";
 import { HuntAnalyzer, type HuntOption, type DropOption } from "./hunt-analyzer";
+import { PokeCaught } from "./poke-caught";
 import type { ComboCreature } from "./pokemon-combobox";
 import { useT } from "./locale-provider";
 import { Tabs } from "./tabs";
-import { Star } from "./icons";
 
-type Section = "automacao" | "hunt" | "vender-drops" | "vender-pokes" | "auto-compra";
+type Section = "automacao" | "hunt" | "vender-drops" | "vender-pokes" | "capturados";
 const SECTIONS: { key: Section; label: string }[] = [
   { key: "automacao", label: "robo.nav.automacao" },
   { key: "hunt", label: "robo.nav.hunt" },
   { key: "vender-drops", label: "robo.nav.venderDrops" },
   { key: "vender-pokes", label: "robo.nav.venderPokes" },
-  { key: "auto-compra", label: "robo.nav.autoCompra" },
+  { key: "capturados", label: "robo.nav.capturados" },
 ];
 const KEY = "piw:robo-section";
 const isSection = (v: string): v is Section => SECTIONS.some((s) => s.key === v);
-
-function AutoBuySoon() {
-  const t = useT();
-  return (
-    <div className="flex flex-col gap-4">
-      <div>
-        <h2 className="section-title flex items-center gap-2 text-yellow"><Star size={13} /> {t("robo.buy.title")}</h2>
-      </div>
-      <div className="card p-5">
-        <p className="text-[0.72rem] leading-relaxed text-text-dim">{t("robo.buy.desc")}</p>
-      </div>
-    </div>
-  );
-}
 
 export function RoboModule({ hunts, creatures, itemIcons, lootByPoke }: { hunts: HuntOption[]; creatures: ComboCreature[]; itemIcons: Record<string, string>; lootByPoke: Record<number, DropOption[]> }) {
   const t = useT();
@@ -78,7 +64,7 @@ export function RoboModule({ hunts, creatures, itemIcons, lootByPoke }: { hunts:
       {sec === "hunt" && <HuntAnalyzer hunts={hunts} creatures={creatures} itemIcons={itemIcons} lootByPoke={lootByPoke} />}
       {sec === "vender-drops" && <DropSeller itemIcons={itemIcons} />}
       {sec === "vender-pokes" && <PokeSold />}
-      {sec === "auto-compra" && <AutoBuySoon />}
+      {sec === "capturados" && <PokeCaught creatures={creatures} />}
     </div>
   );
 }

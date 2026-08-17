@@ -31,7 +31,6 @@ interface HuntState { status: Status; slug: string | null; analyzer: Analyzer | 
 
 const fmt = (n: number) => Math.round(n).toLocaleString("pt-BR");
 const hm = (s: number) => `${Math.floor(s / 3600)}h ${Math.floor((s % 3600) / 60)}m`;
-const hms = (ms: number) => new Date(ms).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 const STATUS_COLOR: Record<Status, string> = { idle: "var(--text-dim)", connecting: "var(--yellow)", running: "var(--green)", kicked: "var(--yellow)", error: "var(--pink)" };
 
 function Stat({ label, value, accent, icon }: { label: string; value: string; accent?: boolean; icon?: React.ReactNode }) {
@@ -290,12 +289,11 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
                       {isCatch ? (
                         <span className="ml-auto shrink-0 text-[0.6rem] text-green">{t("robo.hunt.caught")}</span>
                       ) : (
-                        <span className="ml-auto shrink-0 inline-flex items-center gap-1 text-[0.62rem] text-cyan"><Xp size={10} />{fmt(k.xp)}</span>
+                        <span className="ml-auto shrink-0 inline-flex items-center gap-1 text-[0.62rem] text-cyan"><Xp size={10} />{fmt(k.xp)} XP</span>
                       )}
                     </div>
                     <div className="mt-0.5 flex flex-wrap items-center gap-1">
-                      <span className="tabular-nums text-[0.55rem] text-text-dim">{hms(k.at)}</span>
-                      {isCatch && k.ball && <span className="text-[0.56rem] text-text-dim">· {k.ball}</span>}
+                      {isCatch && k.ball && <span className="text-[0.56rem] text-text-dim">{k.ball}</span>}
                       {!isCatch && k.loot.map((l, j) => {
                         const icon = itemIcon(l.name);
                         return (
@@ -333,7 +331,7 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
                   </div>
                   <div className="mt-1 flex items-center gap-1.5 text-[0.62rem] text-text-dim">
                     {isCatch && <Pokeball size={12} />}
-                    {isCatch ? t("robo.hunt.caught") : t("robo.hunt.killed")} · {hms(k.at)}
+                    {isCatch ? t("robo.hunt.caught") : t("robo.hunt.killed")}
                   </div>
                 </div>
               </div>

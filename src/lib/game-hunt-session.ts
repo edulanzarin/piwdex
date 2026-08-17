@@ -21,7 +21,8 @@ import { normalizeActivePokes } from "./game-account";
 import { filterSellable, type PokeSellConfig } from "./poke-sell";
 import { logRobotEvent } from "./robot-events";
 import { addRobotSales } from "./robot-sales";
-import type { Rarity } from "./types";
+import { recordCaptured } from "./captured-pokes";
+import type { PokeType, Rarity } from "./types";
 
 const WS_BASE = (process.env.GAME_HOST || "https://poke.idleworld.online").replace(/^http/, "ws");
 const UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36";
@@ -93,6 +94,7 @@ class GameSession {
   private poke: PokeSellSub = { on: false, soldByRarity: {} };
   private lastPokeSellAt = 0; // ultima venda de pokemon (throttle de 1h)
   private forceSell = false;  // "Vender agora" forca a proxima varredura
+  private recordedIds = new Set<string>(); // ids ja gravados no acervo (evita rescrever no banco)
 
   private jobsActive() { return this.slug != null || this.pokeCfg != null; }
 
@@ -217,7 +219,8 @@ class GameSession {
       this.inv.clear();
       for (const it of items) this.inv.set(Number(it.itemId ?? 0), Number(it.quantity ?? it.qty ?? 0));
     } else if (m.type === "pokes" && Array.isArray(m.list)) {
-      void this.sellPokesSweep(m.list);
+      void this.recordKept(m.list);   // acervo de capturados (real-time)
+      void this.sellPokesSweep(m.list); // venda (throttle 1h)
     }
   }
 
@@ -302,6 +305,34 @@ class GameSession {
     this.forceSell = true;
     this.send({ type: "pokes-get" });
   }
+
+  // grava no acervo (captured_pokes) os pokemon MANTIDOS — os que NAO batem as travas de
+  // venda (bons demais, raridade nao marcada, shiny, time/lider/starter). Roda a cada lista
+  // de pokes (real-time, sem throttle), so gravando ids novos (dedupe em memoria).
+  private async recordKept(list: unknown[]) {
+    if (!this.userId || !this.pokeCfg) return;
+    try {
+      const all = normalizeActivePokes(list);
+      const data = await getData();
+      const rarityOf = (sid: number): Rarity => data.getCreature(sid)?.rarity ?? "COMMON";
+      const sellIds = new Set(filterSellable(all, this.pokeCfg, rarityOf).map((p) => p.id));
+      const kept = all.filter((p) => !sellIds.has(p.id) && !this.recordedIds.has(p.id));
+      if (!kept.length) return;
+      const rows = kept.map((p) => {
+        const cr = data.getCreature(p.speciesId);
+        return {
+          pokeId: p.id, speciesId: p.speciesId, name: p.name, level: p.level, shiny: p.shiny,
+          ivTotal: p.ivTotal, quality: p.quality, rarity: cr?.rarity ?? ("COMMON" as Rarity),
+          type1: cr?.type1 ?? ("NORMAL" as PokeType), type2: cr?.type2 ?? null,
+        };
+      });
+      for (const p of kept) this.recordedIds.add(p.id);
+      await recordCaptured(this.userId, rows);
+    } catch { /* nao derruba a sessao */ }
+  }
+
+  // depois que o usuario limpa o acervo (DELETE), esquece o cache pra re-gravar o que ainda esta na conta
+  resetCapturedCache() { this.recordedIds.clear(); }
 
   private logSummary() {
     if (this.summaryLogged || !this.userId) return;

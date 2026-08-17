@@ -16,7 +16,7 @@ import type { HuntOption, DropOption } from "./hunt-analyzer";
 import type { ComboCreature } from "./pokemon-combobox";
 import { useT } from "./locale-provider";
 import { Tabs } from "./tabs";
-import { Coin, Heart, Bell, Trainer, Robot } from "./icons";
+import { Coin, Heart, Bell, Trainer, Robot, ChevronRight } from "./icons";
 
 type Tab = "conta" | "mercado" | "desejos" | "alertas" | "robo";
 // Uma familia so de icone na fila de abas: todos pixel (Trainer/Coin/Heart/Bell/Robot),
@@ -66,7 +66,7 @@ export function VipTabs({ creatures, dex, hunts, itemIcons, lootByPoke }: { crea
     label: (
       <>
         {t(`vip.tab.${key}`)}
-        {key === "mercado" && unread > 0 && (
+        {key === "desejos" && unread > 0 && (
           <span className="rounded-full bg-cyan px-1.5 py-0.5 text-[0.5rem] text-[#06131a]">{unread}</span>
         )}
       </>
@@ -78,16 +78,27 @@ export function VipTabs({ creatures, dex, hunts, itemIcons, lootByPoke }: { crea
       <Tabs tabs={tabItems} active={tab} onChange={(k) => go(k as Tab)} accent="var(--yellow)" />
 
       {tab === "conta" && <AccountPanel creatures={creatures} />}
-      {/* Mercado = consultor ao vivo + a Central de alertas (achados por desejo moram junto do mercado) */}
-      {tab === "mercado" && (
+      {tab === "mercado" && <MarketAdvisor creatures={creatures} dex={dex} />}
+      {/* Desejos = gerenciar desejos + a Central de desejos (os pokemon achados pra cada desejo) */}
+      {tab === "desejos" && (
         <div className="flex flex-col gap-6">
-          <MarketAdvisor creatures={creatures} dex={dex} />
           <AlertsInbox onUnread={setUnread} onJumpToWish={jumpToWish} />
+          <WishlistPanel creatures={creatures} dex={dex} focusWishId={focusWish} />
         </div>
       )}
-      {tab === "desejos" && <WishlistPanel creatures={creatures} dex={dex} focusWishId={focusWish} />}
-      {/* Alertas = feed de atividade do robo (vendas/hunt), com limpar e expiracao em 48h */}
-      {tab === "alertas" && <RobotActivity />}
+      {/* Alertas = feed de atividade do robo (vendas/hunt) + resumo dos achados de desejo */}
+      {tab === "alertas" && (
+        <div className="flex flex-col gap-6">
+          {unread > 0 && (
+            <button type="button" onClick={() => go("desejos")} className="card card-link flex items-center gap-3 p-4 text-left">
+              <span className="inline-flex text-pink"><Heart size={16} /></span>
+              <span className="flex-1 text-sm text-text">{t("alerts.foundSummary", { n: unread })}</span>
+              <ChevronRight size={12} />
+            </button>
+          )}
+          <RobotActivity />
+        </div>
+      )}
       {tab === "robo" && <RoboModule hunts={hunts} creatures={creatures} itemIcons={itemIcons} lootByPoke={lootByPoke} />}
     </div>
   );
