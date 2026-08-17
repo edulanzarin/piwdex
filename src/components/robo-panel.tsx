@@ -9,6 +9,7 @@ import { LoadingBall } from "./loaders";
 import { ToggleButton } from "./toggle-button";
 import { Caret, Infinity_, Check } from "./icons";
 import { useT } from "./locale-provider";
+import { useVipLive } from "./vip-live";
 
 interface Auto {
   autoCatch: boolean;
@@ -104,6 +105,9 @@ const CFG_FIELDS: Field[] = ["autoCatch", "autoCatchBallId", "autoCatchShiny", "
 
 export function RoboPanel() {
   const t = useT();
+  // contagem de bolas AO VIVO via SSE (cai enquanto a caca gasta) — a config do
+  // auto-helper nao esta no stream, entao o GET unico no mount continua.
+  const liveBalls = useVipLive().account?.account?.balls;
   const [st, setSt] = useState<Load>({ s: "loading" });
   const [draft, setDraft] = useState<Auto | null>(null); // edicao local; so o Confirmar aplica no jogo
   const [busy, setBusy] = useState(false);
@@ -121,20 +125,6 @@ export function RoboPanel() {
   };
   useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
 
-  // tempo real: atualiza SO a contagem de bolas (cai enquanto a caca gasta) sem tocar a
-  // edicao em andamento — nunca sobrescreve o draft nem o baseline (isso e o Confirmar).
-  useEffect(() => {
-    const id = setInterval(async () => {
-      if (document.hidden) return;
-      try {
-        const res = await fetch("/api/vip/auto", { cache: "no-store" });
-        const j = (await res.json().catch(() => ({}))) as { auto?: Auto; balls?: Ball[] };
-        if (res.ok && j.balls) setSt((cur) => (cur.s === "ok" ? { ...cur, balls: j.balls! } : cur));
-      } catch {}
-    }, 10000);
-    return () => clearInterval(id);
-  }, []);
-
   if (st.s === "loading") return <div className="card p-6"><LoadingBall label={t("robo.loading")} /></div>;
   if (st.s === "error") {
     const msg = st.code === "not_connected" || st.code === "expired" ? t("robo.connect") : t("robo.error");
@@ -143,6 +133,10 @@ export function RoboPanel() {
 
   const a = st.auto;
   const d = draft ?? a;
+  // tempo real: sobrepoe SO a contagem de cada bola (mapa por id, vindo do stream) sobre o
+  // catalogo do GET — nunca toca o draft nem o baseline (isso e o Confirmar).
+  const liveCount = new Map((liveBalls ?? []).map((b) => [b.id, b.count]));
+  const balls = st.balls.map((b) => (liveCount.has(b.id) ? { ...b, count: liveCount.get(b.id)! } : b));
   const edit = (p: Partial<Auto>) => setDraft((cur) => ({ ...(cur ?? a), ...p }));
   const dirty = CFG_FIELDS.some((f) => d[f] !== a[f]);
 
@@ -187,7 +181,7 @@ export function RoboPanel() {
         </Row>
         {d.autoCatch && a.isVip && (
           <Row title={t("robo.catchBall")} desc={t("robo.catchBall.desc")}>
-            <BallSelect balls={st.balls} value={d.autoCatchBallId} onChange={(id) => edit({ autoCatchBallId: id })} />
+            <BallSelect balls={balls} value={d.autoCatchBallId} onChange={(id) => edit({ autoCatchBallId: id })} />
           </Row>
         )}
 
@@ -196,7 +190,7 @@ export function RoboPanel() {
         </Row>
         {d.autoCatchShiny && a.isVip && (
           <Row title={t("robo.shinyBall")} desc={t("robo.shinyBall.desc")}>
-            <BallSelect balls={st.balls} value={d.autoCatchShinyBallId} onChange={(id) => edit({ autoCatchShinyBallId: id })} />
+            <BallSelect balls={balls} value={d.autoCatchShinyBallId} onChange={(id) => edit({ autoCatchShinyBallId: id })} />
           </Row>
         )}
 
@@ -222,7 +216,7 @@ export function RoboPanel() {
         </Row>
 
         <Row title={t("robo.selectedBall")} desc={t("robo.selectedBall.desc")}>
-          <BallSelect balls={st.balls} value={d.selectedBallId} onChange={(id) => edit({ selectedBallId: id })} />
+          <BallSelect balls={balls} value={d.selectedBallId} onChange={(id) => edit({ selectedBallId: id })} />
         </Row>
       </div>
     </div>

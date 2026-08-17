@@ -3,12 +3,12 @@
 // Aba Desejos (VIP): a lista de pokemon que voce quer que o piwdex vigie no mercado, e —
 // dentro de cada desejo — os pokemon ACHADOS por ele. Cada achado abre o modal do
 // Mercado (mesmo do consultor) e pode ser recusado ali. O resumo "N achados" fica na
-// aba Alertas; aqui e o detalhe. Tudo leitura: o worker le o mercado e grava; nada
-// escreve no jogo.
+// aba Alertas; aqui e o detalhe. A watchlist (CRUD) continua via fetch; os achados
+// chegam AO VIVO pelo stream (useVipLive) — pokemon novo aparece sem F5.
 
 import { useEffect, useMemo, useState } from "react";
 import { spriteUrl } from "@/lib/sprites";
-import type { Watchlist, Notification } from "@/lib/alerts";
+import type { Watchlist } from "@/lib/alerts";
 import type { Currency, MarketMon } from "@/lib/game-account";
 import type { PokeType } from "@/lib/types";
 import { Sprite } from "./sprite";
@@ -25,6 +25,7 @@ import { TYPE_COLOR } from "@/lib/typing";
 import { MarketMonModal, MarketMonCard, type MarketDex } from "./market-advisor";
 import { useT, useTypeLabel } from "./locale-provider";
 import { Star, Heart, ChevronRight } from "./icons";
+import { useVipLive, type LiveNotification } from "./vip-live";
 
 const fmt = (n: number) => n.toLocaleString("pt-BR");
 const numI = (s: string) => {
@@ -33,7 +34,7 @@ const numI = (s: string) => {
 };
 
 // Remonta o MarketMon a partir do que o worker gravou no alerta (pra abrir o modal).
-function monFromNotif(n: Notification, name: string): MarketMon {
+function monFromNotif(n: LiveNotification, name: string): MarketMon {
   const d = (n.data ?? {}) as Record<string, unknown>;
   const nn = (v: unknown) => (v == null ? null : Number(v));
   return {
@@ -229,7 +230,7 @@ function WishBlock({
   t,
 }: {
   w: Watchlist;
-  matches: Notification[];
+  matches: LiveNotification[];
   expanded: boolean;
   onToggleExpand: () => void;
   onToggle: (a: boolean) => void;
@@ -308,8 +309,10 @@ type Load<T> = { status: "loading" } | { status: "error" } | { status: "ok"; dat
 
 export function WishlistPanel({ creatures, dex, focusWishId }: { creatures: ComboCreature[]; dex: Record<number, MarketDex>; focusWishId?: string | null }) {
   const t = useT();
+  const { alerts, applyAlerts } = useVipLive();
   const [wishes, setWishes] = useState<Load<Watchlist[]>>({ status: "loading" });
-  const [matches, setMatches] = useState<Notification[]>([]);
+  // achados vem AO VIVO do stream; o CRUD da watchlist continua por fetch proprio
+  const matches = useMemo(() => alerts?.notifications ?? [], [alerts]);
   const [selected, setSelected] = useState<MarketMon | null>(null);
   // acordeao: um desejo aberto por vez. Ja abre no desejo que veio do resumo (Alertas).
   const [expandedId, setExpandedId] = useState<string | null>(focusWishId ?? null);
@@ -318,14 +321,9 @@ export function WishlistPanel({ creatures, dex, focusWishId }: { creatures: Comb
 
   const load = async () => {
     try {
-      const [wRes, aRes] = await Promise.all([
-        fetch("/api/vip/watchlist", { cache: "no-store" }),
-        fetch("/api/vip/alerts", { cache: "no-store" }),
-      ]);
+      const wRes = await fetch("/api/vip/watchlist", { cache: "no-store" });
       const wj = (await wRes.json()) as { watchlists?: Watchlist[] };
-      const aj = (await aRes.json()) as { notifications?: Notification[] };
       setWishes({ status: "ok", data: wj.watchlists ?? [] });
-      setMatches(aj.notifications ?? []);
     } catch {
       setWishes({ status: "error" });
     }
@@ -337,7 +335,7 @@ export function WishlistPanel({ creatures, dex, focusWishId }: { creatures: Comb
 
   // achados agrupados por desejo.
   const byWish = useMemo(() => {
-    const m = new Map<string, Notification[]>();
+    const m = new Map<string, LiveNotification[]>();
     for (const n of matches) {
       const wid = String((n.data ?? {}).watchlistId ?? "");
       if (!wid) continue;
@@ -350,7 +348,9 @@ export function WishlistPanel({ creatures, dex, focusWishId }: { creatures: Comb
 
   const remove = async (id: string) => {
     if (wishes.status === "ok") setWishes({ status: "ok", data: wishes.data.filter((w) => w.id !== id) });
-    setMatches((ms) => ms.filter((n) => String((n.data ?? {}).watchlistId ?? "") !== id));
+    // some com os achados do desejo na hora; o stream confirma no proximo push
+    const rest = matches.filter((n) => String((n.data ?? {}).watchlistId ?? "") !== id);
+    applyAlerts({ notifications: rest, unread: rest.filter((n) => !n.readAt).length });
     await fetch(`/api/vip/watchlist?id=${id}`, { method: "DELETE" });
   };
   const toggle = async (id: string, active: boolean) => {
@@ -360,10 +360,12 @@ export function WishlistPanel({ creatures, dex, focusWishId }: { creatures: Comb
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id, active }),
     });
-    load(); // resync: pausar esconde os achados; retomar traz de volta
+    load(); // resync da watchlist; os achados (esconder/voltar) chegam pelo stream
   };
   const dismiss = async (id: string) => {
-    setMatches((ms) => ms.filter((n) => n.id !== id));
+    // otimista: tira da lista local; o stream confirma no proximo push
+    const rest = matches.filter((n) => n.id !== id);
+    applyAlerts({ notifications: rest, unread: rest.filter((n) => !n.readAt).length });
     setSelected(null);
     await fetch("/api/vip/alerts", {
       method: "POST",

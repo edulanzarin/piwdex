@@ -191,6 +191,41 @@ export function Robot({ size = 14, className = "" }: { size?: number; className?
   return <Glyph size={size} dx={2} dy={1} className={className} rows={["...##...", "...##...", ".######.", "#.####.#", "#.#..#.#", "#.####.#", ".######.", "..#..#.."]} />;
 }
 
+/** Sinal/conexao (monitor do robo): barras crescentes estilo wifi pixel. currentColor. */
+export function Signal({ size = 12, className = "" }: { size?: number; className?: string }) {
+  return <Glyph size={size} dx={2} dy={2} className={className} rows={["......##", "......##", "...##.##", "...##.##", "##.##.##", "##.##.##", "##.##.##"]} />;
+}
+
+/** Alvo/mira (hunt, modo auto): crosshair pixel. currentColor. */
+export function Target({ size = 12, className = "" }: { size?: number; className?: string }) {
+  return <Glyph size={size} dx={2} dy={2} className={className} rows={["...##...", ".######.", ".#.##.#.", "########", "########", ".#.##.#.", ".######.", "...##..."]} />;
+}
+
+/** Bandeira (meta de leveling). currentColor. */
+export function Flag({ size = 12, className = "" }: { size?: number; className?: string }) {
+  return <Glyph size={size} dx={2} dy={2} className={className} rows={["##......", "#######.", "########", "#######.", "##......", "##......", "##......", "##......"]} />;
+}
+
+/** Cerebro (o "analisador brutal": decisoes do robo). currentColor. */
+export function Brain({ size = 12, className = "" }: { size?: number; className?: string }) {
+  return <Glyph size={size} dx={2} dy={2} className={className} rows={[".##..##.", "########", "##.##.##", "########", "##.##.##", "########", ".######.", "..#..#.."]} />;
+}
+
+/** Grafico de barras (estatisticas/painel). currentColor. */
+export function Chart({ size = 12, className = "" }: { size?: number; className?: string }) {
+  return <Glyph size={size} dx={2} dy={2} className={className} rows={["......##", "......##", "...##.##", "...##.##", "##.##.##", "########", "########"]} />;
+}
+
+/** Espada (kills/combate). currentColor. */
+export function Sword({ size = 12, className = "" }: { size?: number; className?: string }) {
+  return <Glyph size={size} dx={2} dy={2} className={className} rows={[".....###", "....###.", "...###..", "#..##...", ".####...", "..##....", ".#..#...", "#....#.."]} />;
+}
+
+/** Mochila (acervo/capturados). currentColor. */
+export function Backpack({ size = 12, className = "" }: { size?: number; className?: string }) {
+  return <Glyph size={size} dx={2} dy={1} className={className} rows={["..####..", ".#....#.", "########", "##....##", "##.##.##", "##.##.##", "##....##", "########"]} />;
+}
+
 /** Preco em dolares do jogo: moeda + valor. */
 export function Gold({ value, className = "" }: { value: number; className?: string }) {
   return (

@@ -744,7 +744,7 @@ class GameSession {
     if (this.tokens?.refresh) {
       try {
         const nt = await refreshTokens(this.tokens);
-        if (nt) { this.tokens = nt; await this.onTokens?.(nt).catch(() => {}); }
+        if (nt) { this.tokens = nt; await this.onTokens?.(nt); }
       } catch { /* tenta com o token atual mesmo */ }
     }
     this.connect();

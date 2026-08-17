@@ -490,9 +490,116 @@ img { image-rendering: pixelated; }
     .device-screen { padding: 1.6rem; }
     .device-lens { width: 1.8rem; height: 1.8rem; }
   }
+
+  /* ================= Area VIP (cockpit) =================
+     A area VIP usa a tela inteira: container proprio bem mais largo que o do site,
+     HUD fixo no topo (monitor do robo + recursos ao vivo) e navegacao lateral. */
+  /* breakout: a area VIP estoura o container-page (74rem) e usa quase a tela toda,
+     continuando centrada. 100% aqui e a largura do container pai. */
+  .container-vip {
+    --vip-w: min(103rem, 100vw - 2.5rem);
+    width: var(--vip-w);
+    margin-inline: calc((100% - var(--vip-w)) / 2);
+  }
+
+  /* HUD: faixa fixa sob o header com o estado ao vivo (LED do robo, hunt, recursos).
+     Sticky dentro da telinha do device; fundo mais solido pro conteudo passar por baixo. */
+  .hud {
+    position: sticky;
+    top: 0.5rem;
+    z-index: 30;
+    border: 1px solid var(--border);
+    border-radius: 0.45rem;
+    background: color-mix(in srgb, var(--surface-solid) 88%, transparent);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 10px 30px -18px rgba(0, 0, 0, 0.9);
+  }
+  /* LED de status do robo: cor via --led, aceso com glow */
+  .hud-led {
+    width: 0.6rem; height: 0.6rem; border-radius: 50%;
+    background: var(--led, var(--text-dim));
+    box-shadow: 0 0 8px 0 var(--led, transparent), inset 0 0 3px rgba(255, 255, 255, 0.55);
+  }
+  /* trilho/preenchimento de progresso (XP, plano de leveling): gauge pixel fino */
+  .hud-track {
+    position: relative;
+    height: 0.5rem;
+    background: #0a1020;
+    border: 1px solid rgba(90, 200, 224, 0.18);
+    overflow: hidden;
+    image-rendering: pixelated;
+  }
+  .hud-fill { height: 100%; transition: width 0.6s ease; }
+  .hud-track::after {
+    content: "";
+    position: absolute; inset: 0; pointer-events: none;
+    background: repeating-linear-gradient(90deg, transparent 0 0.4rem, #0a1020 0.4rem 0.5rem);
+  }
+
+  /* navegacao lateral do VIP: itens pixel com acento proprio por secao (--vn) */
+  .vnav {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  .vnav-item {
+    --vn: var(--cyan);
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.5rem 0.7rem;
+    border-radius: 0.3rem;
+    border: 1px solid transparent;
+    font-family: var(--font-pixel), monospace;
+    font-size: 0.58rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s, background 0.15s, transform 0.1s;
+  }
+  .vnav-item:hover { color: var(--text); background: var(--surface-2); }
+  .vnav-item:active { transform: translateY(1px); }
+  .vnav-active {
+    color: var(--vn);
+    border-color: color-mix(in srgb, var(--vn) 45%, transparent);
+    background: color-mix(in srgb, var(--vn) 9%, transparent);
+    box-shadow: 0 0 16px -10px var(--vn);
+  }
+  /* barrinha viva a esquerda do item ativo */
+  .vnav-active::before {
+    content: "";
+    width: 3px; height: 0.9rem;
+    margin-left: -0.35rem;
+    background: var(--vn);
+    box-shadow: 0 0 8px 0 var(--vn);
+  }
+
+  /* entrada com flash neon — kill/captura chegando no feed ao vivo */
+  @keyframes flash-in {
+    0% { opacity: 0; transform: translateY(-4px); box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent, var(--cyan)) 70%, transparent), 0 0 18px -4px var(--accent, var(--cyan)); }
+    60% { opacity: 1; transform: none; }
+    100% { box-shadow: none; }
+  }
+  .flash-in { animation: flash-in 0.9s ease-out both; }
+
+  /* numero que acabou de mudar: pisca no acento (tempo real visivel) */
+  @keyframes tick-glow { 0% { color: var(--accent, var(--cyan)); text-shadow: 0 0 12px currentColor; } 100% { } }
+  .tick-glow { animation: tick-glow 0.8s ease-out; }
+
+  /* radar girando (modo auto procurando/decidindo) */
+  @keyframes radar { to { transform: rotate(360deg); } }
+  .radar::after {
+    content: "";
+    position: absolute; inset: 0;
+    background: conic-gradient(from 0deg, transparent 0 300deg, color-mix(in srgb, var(--cyan) 55%, transparent) 355deg, transparent 360deg);
+    border-radius: 50%;
+    animation: radar 2.4s linear infinite;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .pkdx-float, .bounce-y, .wiggle, .spin, .scanline,
-  .pulse-soft, .glow-pulse, .rise-in { animation: none; }
+  .pulse-soft, .glow-pulse, .rise-in,
+  .flash-in, .tick-glow, .radar::after { animation: none; }
 }

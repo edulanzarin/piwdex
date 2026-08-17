@@ -4,15 +4,15 @@
 // os achados por desejo ("N Golem achados pro seu desejo"); clicar leva pra aba Desejos,
 // onde ficam os pokemon em si. Nasce pronta pra crescer: com o robo, aqui vao cair
 // eventos tipo "vendeu X itens", "foi pra hunt Y", "voltou pra cidade" — cada um com
-// seu icone/cor. Leitura pura.
+// seu icone/cor. Leitura pura: os dados chegam pelo stream ao vivo (useVipLive).
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { spriteUrl } from "@/lib/sprites";
-import type { Notification } from "@/lib/alerts";
 import { Sprite } from "./sprite";
 import { LoadingBall } from "./loaders";
 import { useT } from "./locale-provider";
 import { Bell, ChevronRight } from "./icons";
+import { useVipLive } from "./vip-live";
 
 // Um desejo com achados, agregado pro resumo.
 interface Group {
@@ -22,8 +22,6 @@ interface Group {
   total: number;
   unread: number;
 }
-
-type Load<T> = { status: "loading" } | { status: "error" } | { status: "ok"; data: T };
 
 function SummaryCard({ g, onOpen, t }: { g: Group; onOpen: () => void; t: (k: string, v?: Record<string, string | number>) => string }) {
   const name = g.label ?? t("alerts.anySpecies");
@@ -53,35 +51,14 @@ function SummaryCard({ g, onOpen, t }: { g: Group; onOpen: () => void; t: (k: st
   );
 }
 
-export function AlertsInbox({
-  onUnread,
-  onJumpToWish,
-}: {
-  onUnread?: (n: number) => void;
-  onJumpToWish?: (watchlistId: string) => void;
-}) {
+export function AlertsInbox({ onJumpToWish }: { onJumpToWish?: (watchlistId: string) => void }) {
   const t = useT();
-  const [inbox, setInbox] = useState<Load<Notification[]>>({ status: "loading" });
-
-  const load = async () => {
-    try {
-      const res = await fetch("/api/vip/alerts", { cache: "no-store" });
-      const j = (await res.json()) as { notifications?: Notification[]; unread?: number };
-      setInbox({ status: "ok", data: j.notifications ?? [] });
-      onUnread?.(j.unread ?? 0);
-    } catch {
-      setInbox({ status: "error" });
-    }
-  };
-  useEffect(() => {
-    load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const { alerts, applyAlerts } = useVipLive();
+  const notifications = alerts?.notifications ?? [];
 
   const groups = useMemo<Group[]>(() => {
-    if (inbox.status !== "ok") return [];
     const m = new Map<string, Group>();
-    for (const n of inbox.data) {
+    for (const n of notifications) {
       const d = (n.data ?? {}) as Record<string, unknown>;
       const wid = String(d.watchlistId ?? "");
       if (!wid) continue;
@@ -97,12 +74,12 @@ export function AlertsInbox({
       m.set(wid, g);
     }
     return [...m.values()].sort((a, b) => b.unread - a.unread || b.total - a.total);
-  }, [inbox]);
+  }, [notifications]);
 
   const markAll = async () => {
-    if (inbox.status === "ok") setInbox({ status: "ok", data: inbox.data.map((n) => ({ ...n, readAt: n.readAt ?? new Date().toISOString() })) });
+    // otimista: preenche readAt local e zera o contador; o stream confirma depois
+    applyAlerts({ notifications: notifications.map((n) => ({ ...n, readAt: n.readAt ?? new Date().toISOString() })), unread: 0 });
     await fetch("/api/vip/alerts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ all: true }) });
-    onUnread?.(0);
   };
 
   const totalUnread = groups.reduce((a, g) => a + g.unread, 0);
@@ -123,10 +100,8 @@ export function AlertsInbox({
             <button type="button" onClick={markAll} className="btn btn-ghost">{t("alerts.markAll")}</button>
           </div>
         )}
-        {inbox.status === "loading" ? (
+        {alerts == null ? (
           <LoadingBall label={t("alerts.loading")} />
-        ) : inbox.status === "error" ? (
-          <p className="text-[0.72rem] text-text-dim">{t("alerts.error")}</p>
         ) : groups.length === 0 ? (
           <div className="flex flex-col items-center gap-3 py-8 text-center">
             <span className="text-text-dim/50"><Bell size={40} /></span>

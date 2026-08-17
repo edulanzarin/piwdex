@@ -2,36 +2,25 @@
 
 // Pokemon vendidos NA HUNT ATUAL (read-only): um card por especie (icone+nome+raridade + qtd
 // + valor). Mesmo vendendo o mesmo bicho varias vezes, so soma; reseta ao trocar de hunt. O
-// total acumulado de todas as hunts fica na aba Estatisticas. Vive na aba Hunt. Poll 5s.
+// total acumulado de todas as hunts fica na aba Estatisticas. Vive na aba Hunt.
+// Dados direto do stream ao vivo (useVipLive), sem fetch.
 
-import { useCallback, useEffect, useState } from "react";
 import { Sprite } from "./sprite";
 import { RarityBadge } from "./badges";
 import { spriteUrl } from "@/lib/sprites";
 import { useT } from "./locale-provider";
 import { Coin } from "./icons";
+import { useVipLive } from "./vip-live";
 import type { Rarity } from "@/lib/types";
-
-interface SpeciesSold { speciesId: number; name: string; rarity: Rarity; count: number; gold: number }
-interface AutoView { status: string; soldBySpecies?: SpeciesSold[] }
 
 const fmt = (n: number) => n.toLocaleString("pt-BR");
 
 export function PokeSold() {
   const t = useT();
-  const [view, setView] = useState<AutoView | null>(null);
+  const { autosell } = useVipLive();
 
-  const load = useCallback(async () => {
-    try {
-      const r = await fetch("/api/vip/autosell", { cache: "no-store" });
-      const j = (await r.json().catch(() => null)) as AutoView | null;
-      if (j && "status" in j) setView(j);
-    } catch {}
-  }, []);
-  useEffect(() => { load(); const id = setInterval(load, 5000); return () => clearInterval(id); }, [load]);
-
-  const sold = (view?.soldBySpecies ?? []).slice().sort((a, b) => b.count - a.count);
-  const on = view?.status === "running" || view?.status === "connecting";
+  const sold = (autosell?.soldBySpecies ?? []).slice().sort((a, b) => b.count - a.count);
+  const on = autosell?.status === "running" || autosell?.status === "connecting";
 
   return (
     <div className="flex flex-col gap-4">
@@ -53,7 +42,7 @@ export function PokeSold() {
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5">
                     <span className="truncate text-sm">{p.name}</span>
-                    <RarityBadge rarity={p.rarity} />
+                    <RarityBadge rarity={p.rarity as Rarity} />
                   </div>
                   <div className="text-[0.62rem] text-text-dim">×{fmt(p.count)}</div>
                 </div>

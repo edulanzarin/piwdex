@@ -4,7 +4,7 @@ import { auth } from "@/lib/auth";
 import { getData } from "@/lib/data";
 import { ToolFrame } from "@/components/tool-frame";
 import { type MarketDex } from "@/components/market-advisor";
-import { VipTabs } from "@/components/vip-tabs";
+import { VipShell } from "@/components/vip-shell";
 import { VipPaywall } from "@/components/vip-paywall";
 import type { ComboCreature } from "@/components/pokemon-combobox";
 import { Star } from "@/components/icons";
@@ -85,17 +85,19 @@ export default async function VipPage({ searchParams }: { searchParams: Promise<
     };
   }
 
+  // cockpit: estoura o container do site (104rem) — a area VIP usa a tela inteira
   return (
-    <ToolFrame accent={ACCENT} label="VIP" icon={<Star size={13} />}>
-      <div className="flex flex-col gap-6">
-        <div>
-          <div className="eyebrow mb-2"><T k="vip.eyebrow" /></div>
-          <h1 className="pixel text-xl" style={{ color: ACCENT }}><T k="vip.active.title" /></h1>
-          <p className="mt-3 max-w-2xl text-sm text-text-dim"><T k="vip.active.desc" /></p>
-        </div>
+    <div className="container-vip">
+      <ToolFrame accent={ACCENT} label="VIP" icon={<Star size={13} />}>
+        <div className="flex flex-col gap-5">
+          <div>
+            <div className="eyebrow mb-2"><T k="vip.eyebrow" /></div>
+            <h1 className="pixel text-xl" style={{ color: ACCENT }}><T k="vip.active.title" /></h1>
+          </div>
 
-        <VipTabs creatures={slim} dex={dex} hunts={huntOptions} itemIcons={itemIcons} lootByPoke={lootByPoke} />
-      </div>
-    </ToolFrame>
+          <VipShell creatures={slim} dex={dex} hunts={huntOptions} itemIcons={itemIcons} lootByPoke={lootByPoke} />
+        </div>
+      </ToolFrame>
+    </div>
   );
 }

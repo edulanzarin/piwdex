@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { assetIconUrl, skinSpriteUrl, skinName, spriteUrl } from "@/lib/sprites";
 import type { Account, AccountItem, ActivePoke } from "@/lib/game-account";
+import { useVipLive } from "./vip-live";
 import { Sprite } from "./sprite";
 import { LoadingBall } from "./loaders";
 import { Pokeball } from "./pokeball";
@@ -17,11 +18,6 @@ const pct = (n: number) => `${n > 0 ? "+" : ""}${+n.toFixed(1)}%`;
 const ivColor = (v: number) => (v >= 150 ? "text-green" : v >= 100 ? "text-yellow" : "text-text");
 
 interface TeamSnapshot { list: ActivePoke[]; total: number; at: string }
-
-type State =
-  | { status: "loading" }
-  | { status: "disconnected"; expired?: boolean }
-  | { status: "connected"; account: Account; team: TeamSnapshot | null };
 
 // Bookmarklet: le sessionStorage["pokeweb:tokens"] na aba do jogo e abre /conectar com o
 // token no hash. Gerado com a origem atual (dev/prod). href setado via ref pra o React nao
@@ -343,39 +339,30 @@ function ActiveTeamCard({ initial }: { initial: TeamSnapshot | null }) {
 
 export function AccountPanel({ creatures }: { creatures: ComboCreature[] }) {
   const t = useT();
-  const [state, setState] = useState<State>({ status: "loading" });
+  // Dados AO VIVO via SSE (mesmo shape do GET /api/collection) — sem fetch nem interval aqui.
+  const live = useVipLive().account;
+  // "desconectando" e estado local: mostra o ConnectForm na hora e deixa o proximo push
+  // do stream confirmar (connected:false); nada de refetch manual.
+  const [disconnecting, setDisconnecting] = useState(false);
   const nameById = (id: number) => creatures.find((c) => c.pokeId === id)?.name;
 
-  // `initial` mostra o loader (1a carga); nas atualizacoes ao vivo NAO pisca o loader —
-  // so troca os dados (bola caindo, dolar subindo etc. enquanto o robo roda).
-  const load = async (initial = false) => {
-    if (initial) setState({ status: "loading" });
-    try {
-      const res = await fetch("/api/collection", { cache: "no-store" });
-      if (res.status === 401) return setState({ status: "disconnected" });
-      const j = (await res.json()) as { connected?: boolean; account?: Account; reason?: string; team?: TeamSnapshot | null };
-      if (j.connected && j.account) setState({ status: "connected", account: j.account, team: j.team ?? null });
-      else if (initial) setState({ status: "disconnected", expired: j.reason === "expired" });
-    } catch {
-      if (initial) setState({ status: "disconnected" });
-    }
-  };
-  // 1a carga com loader; depois refaz a cada 10s pra refletir a conta em tempo real (sem F5).
   useEffect(() => {
-    load(true);
-    const id = setInterval(() => load(false), 10000);
-    return () => clearInterval(id);
-  }, []);
+    if (live && !live.connected) setDisconnecting(false);
+  }, [live]);
 
   const disconnect = async () => {
+    setDisconnecting(true);
     await fetch("/api/disconnect", { method: "POST" });
-    setState({ status: "disconnected" });
   };
 
-  if (state.status === "loading") return <div className="card p-8"><LoadingBall label={t("account.loading")} /></div>;
-  if (state.status === "disconnected") return <ConnectForm expired={state.expired} />;
+  if (live === null) return <div className="card p-8"><LoadingBall label={t("account.loading")} /></div>;
+  if (disconnecting) return <ConnectForm />;
+  if (!live.connected || !live.account) return <ConnectForm expired={live.reason === "expired"} />;
 
-  const account = state.account;
+  // o payload do stream espelha o GET /api/collection — os tipos client-side do provider
+  // sao mais estreitos, entao afunilamos pro tipo completo da UI aqui.
+  const account = live.account as unknown as Account;
+  const team = (live.team ?? null) as unknown as TeamSnapshot | null;
   return (
     <div className="flex flex-col gap-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -383,7 +370,7 @@ export function AccountPanel({ creatures }: { creatures: ComboCreature[] }) {
         <button type="button" onClick={disconnect} className="btn btn-ghost">{t("account.disconnect")}</button>
       </div>
       <Overview account={account} />
-      <ActiveTeamCard initial={state.team} />
+      <ActiveTeamCard initial={team} />
       <TrainerCard account={account} />
       <AutomationCard account={account} nameById={nameById} />
       <StreakCard account={account} />

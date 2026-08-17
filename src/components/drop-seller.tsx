@@ -2,32 +2,21 @@
 
 // Itens vendidos NA HUNT ATUAL (read-only): um card por item selecionado; a quantidade e o
 // valor crescem (cumulativo na hunt) e resetam ao trocar de hunt. O total acumulado de todas
-// as hunts fica na aba Estatisticas. Poll a cada 4s. Vive na aba Hunt.
+// as hunts fica na aba Estatisticas. Dados direto do stream ao vivo (useVipLive). Vive na aba Hunt.
 
-import { useCallback, useEffect, useState } from "react";
 import { Sprite } from "./sprite";
 import { assetIconUrl } from "@/lib/sprites";
 import { useT } from "./locale-provider";
 import { Coin } from "./icons";
-
-interface SoldItem { itemId: number; name: string; qty: number; gold: number; at: number }
-interface HuntPeek { soldItems?: SoldItem[]; autoSellCount?: number }
+import { useVipLive } from "./vip-live";
 
 const fmt = (n: number) => n.toLocaleString("pt-BR");
 
 export function DropSeller({ itemIcons }: { itemIcons: Record<string, string> }) {
   const t = useT();
-  const [sold, setSold] = useState<SoldItem[]>([]);
-  const [count, setCount] = useState(0);
-
-  const load = useCallback(async () => {
-    try {
-      const r = await fetch("/api/vip/hunt", { cache: "no-store" });
-      const j = (await r.json().catch(() => null)) as HuntPeek | null;
-      if (j) { setSold(j.soldItems ?? []); setCount(j.autoSellCount ?? 0); }
-    } catch {}
-  }, []);
-  useEffect(() => { load(); const id = setInterval(load, 4000); return () => clearInterval(id); }, [load]);
+  const { hunt } = useVipLive();
+  const sold = hunt?.soldItems ?? [];
+  const count = hunt?.autoSellCount ?? 0;
 
   const shown = sold.slice(0, 30);
   const huntGold = shown.reduce((s, i) => s + i.gold, 0);
@@ -49,10 +38,10 @@ export function DropSeller({ itemIcons }: { itemIcons: Record<string, string> })
               <span className="inline-flex items-center gap-1 text-green"><Coin size={11} />{fmt(huntGold)}</span>
             </div>
             <div className="grid gap-1.5 sm:grid-cols-2">
-              {shown.map((i) => {
+              {shown.map((i, idx) => {
                 const icon = itemIcons[i.name.toLowerCase()];
                 return (
-                  <div key={i.itemId} className="flex items-center gap-2.5 rounded border border-border bg-[var(--well-bg)] p-2">
+                  <div key={i.itemId} className={`flex items-center gap-2.5 rounded border border-border bg-[var(--well-bg)] p-2 ${idx === 0 ? "flash-in" : ""}`}>
                     <span className="flex h-8 w-8 shrink-0 items-center justify-center">{icon ? <Sprite src={assetIconUrl(icon)} alt={i.name} size={26} /> : null}</span>
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-[0.75rem]">{i.name}</div>

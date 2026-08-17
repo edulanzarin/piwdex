@@ -2,22 +2,16 @@
 
 // Estatisticas: DASHBOARD cumulativo (pra sempre, todas as hunts) do robo — o que ele
 // caçou, coletou, vendeu e mantem no acervo. Nunca zera (vem de robot_sales + captured_pokes).
-// Leitura pura, poll 5s. Graficos em barra CSS (sem lib), na estetica pixel/neon.
+// Leitura pura, AO VIVO via SSE (totals do provider — zero fetch aqui). Graficos em barra
+// CSS (sem lib), na estetica pixel/neon.
 
-import { useCallback, useEffect, useState } from "react";
 import { StatTile } from "./stat-tile";
 import { useT } from "./locale-provider";
+import { useVipLive } from "./vip-live";
 import { Coin, Xp, Skull, Star, Robot } from "./icons";
 import { Pokeball } from "./pokeball";
 import { RARITY_COLOR, RARITY_ORDER } from "@/lib/typing";
 
-interface Acervo { total: number; shiny: number; byRarity: Record<string, number> }
-interface Totals {
-  itemsCount: number; itemsGold: number; pokesCount: number; pokesGold: number;
-  hunts: number; kills: number; captures: number; xpGained: number;
-  lootItems: number; lootGold: number; supplyGold: number; rareItems: number;
-  acervo: Acervo;
-}
 const fmt = (n: number) => Math.round(n).toLocaleString("pt-BR");
 
 // uma barra horizontal (label · trilho preenchido pela fracao do maximo · valor)
@@ -45,18 +39,7 @@ function Card({ title, color, icon, children }: { title: string; color: string; 
 
 export function RoboStats() {
   const t = useT();
-  const [tot, setTot] = useState<Totals | null>(null);
-
-  const load = useCallback(async () => {
-    try {
-      const r = await fetch("/api/vip/totals", { cache: "no-store" });
-      const j = (await r.json().catch(() => null)) as Totals | null;
-      if (j && "itemsCount" in j) setTot(j);
-    } catch {}
-  }, []);
-  useEffect(() => { load(); const id = setInterval(load, 5000); return () => clearInterval(id); }, [load]);
-
-  const d = tot;
+  const d = useVipLive().totals;
   // dolar por fonte (loot coletado vs vendas)
   const goldMax = Math.max(1, d?.lootGold ?? 0, d?.itemsGold ?? 0, d?.pokesGold ?? 0);
   // acervo por raridade (so as que existem, na ordem oficial)

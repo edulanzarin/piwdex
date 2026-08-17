@@ -3,7 +3,7 @@
 // Pokemons capturados: o ACERVO persistente dos bichos que o robo manteve (nao vendeu, por
 // estarem acima das travas). Filtra igual ao mercado (especie, tipo, raridade, IV, qualidade,
 // shiny), pagina, e cada card abre um modal com os stats. Nunca limpa sozinho — so no botao.
-// Atualiza em tempo real (poll 8s).
+// Tempo real sem poll: refetch quando o total do acervo muda no stream SSE (captura nova).
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Sprite } from "./sprite";
@@ -19,6 +19,7 @@ import { Star } from "./icons";
 import { spriteUrl } from "@/lib/sprites";
 import { RARITY_ORDER } from "@/lib/typing";
 import { useT } from "./locale-provider";
+import { useVipLive } from "./vip-live";
 import type { PokeType, Rarity } from "@/lib/types";
 
 interface Row {
@@ -31,6 +32,8 @@ const whenDay = (iso: string) => { const d = new Date(iso); return Number.isNaN(
 
 export function PokeCaught({ creatures }: { creatures: ComboCreature[] }) {
   const t = useT();
+  // total do acervo vindo do stream — quando muda (captura nova/limpeza), refaz a busca
+  const acervoTotal = useVipLive().totals?.acervo.total;
   const [species, setSpecies] = useState<ComboCreature | null>(null);
   const [type, setType] = useState<PokeType | "">("");
   const [rarity, setRarity] = useState<Rarity | "">("");
@@ -67,8 +70,9 @@ export function PokeCaught({ creatures }: { creatures: ComboCreature[] }) {
   // volta pra pagina 0 quando um filtro muda
   const firstRun = useRef(true);
   useEffect(() => { if (firstRun.current) { firstRun.current = false; return; } setPage(0); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [species, type, rarity, ivMin, qMin, shiny, sort]);
-  // busca ao mudar filtro/pagina + poll em tempo real
-  useEffect(() => { load(); const id = setInterval(load, 5000); return () => clearInterval(id); }, [load]);
+  // busca ao mudar filtro/pagina; o stream nao carrega a lista filtrada, entao o refetch
+  // e disparado pela mudanca do total do acervo (sem poll cego)
+  useEffect(() => { load(); }, [load, acervoTotal]);
 
   const clear = async () => {
     if (clearing) return;
