@@ -11,7 +11,7 @@ import { WishlistPanel } from "./wishlist-panel";
 import { AlertsInbox } from "./alerts-inbox";
 import { RoboModule } from "./robo-module";
 import { AccountPanel } from "./account-panel";
-import type { HuntOption } from "./hunt-analyzer";
+import type { HuntOption, DropOption } from "./hunt-analyzer";
 import type { ComboCreature } from "./pokemon-combobox";
 import { useT } from "./locale-provider";
 import { Coin, Heart, Bell } from "./icons";
@@ -27,7 +27,7 @@ const TABS: { key: Tab; Icon?: (p: { size?: number; className?: string }) => Rea
 ];
 const isTab = (v: string): v is Tab => TABS.some((tb) => tb.key === v);
 
-export function VipTabs({ creatures, dex, hunts, itemIcons }: { creatures: ComboCreature[]; dex: Record<number, MarketDex>; hunts: HuntOption[]; itemIcons: Record<string, string> }) {
+export function VipTabs({ creatures, dex, hunts, itemIcons, lootByPoke }: { creatures: ComboCreature[]; dex: Record<number, MarketDex>; hunts: HuntOption[]; itemIcons: Record<string, string>; lootByPoke: Record<number, DropOption[]> }) {
   const t = useT();
   const [tab, setTab] = useState<Tab>("conta");
   const [unread, setUnread] = useState(0);
@@ -73,7 +73,7 @@ export function VipTabs({ creatures, dex, hunts, itemIcons }: { creatures: Combo
       {tab === "mercado" && <MarketAdvisor creatures={creatures} dex={dex} />}
       {tab === "desejos" && <WishlistPanel creatures={creatures} dex={dex} focusWishId={focusWish} />}
       {tab === "alertas" && <AlertsInbox onUnread={setUnread} onJumpToWish={jumpToWish} />}
-      {tab === "robo" && <RoboModule hunts={hunts} creatures={creatures} itemIcons={itemIcons} />}
+      {tab === "robo" && <RoboModule hunts={hunts} creatures={creatures} itemIcons={itemIcons} lootByPoke={lootByPoke} />}
     </div>
   );
 }

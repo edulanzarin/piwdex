@@ -59,6 +59,21 @@ export default async function VipPage({ searchParams }: { searchParams: Promise<
     return { slug: h.slug, name: h.name, level: h.level, area: h.area, pokeId };
   });
 
+  // Drops VENDAVEIS por pokemon (pro modal de venda automatica ao ligar a Hunt). O loot da
+  // especie referencia item por NOME; resolve pra item real e mantem so o que da pra vender
+  // no NPC (categoria loot, npcPrice > 0).
+  const huntPokeIds = new Set(huntOptions.map((h) => h.pokeId).filter((x): x is number => x != null));
+  const lootByPoke: Record<number, { itemId: number; name: string; icon: string; npcPrice: number }[]> = {};
+  for (const c of creatures) {
+    if (!huntPokeIds.has(c.pokeId)) continue;
+    const drops: { itemId: number; name: string; icon: string; npcPrice: number }[] = [];
+    for (const l of c.loot) {
+      const it = db.getItemByName(l.name);
+      if (it && it.category === "loot" && it.npcPrice > 0) drops.push({ itemId: it.id, name: it.name, icon: it.icon, npcPrice: it.npcPrice });
+    }
+    if (drops.length) lootByPoke[c.pokeId] = drops;
+  }
+
   // Stats base por especie, pro modal de detalhe de cada anuncio do mercado.
   const dex: Record<number, MarketDex> = {};
   for (const c of creatures) {
@@ -79,7 +94,7 @@ export default async function VipPage({ searchParams }: { searchParams: Promise<
           <p className="mt-3 max-w-2xl text-sm text-text-dim"><T k="vip.active.desc" /></p>
         </div>
 
-        <VipTabs creatures={slim} dex={dex} hunts={huntOptions} itemIcons={itemIcons} />
+        <VipTabs creatures={slim} dex={dex} hunts={huntOptions} itemIcons={itemIcons} lootByPoke={lootByPoke} />
       </div>
     </ToolFrame>
   );

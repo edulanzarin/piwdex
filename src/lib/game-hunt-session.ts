@@ -1,23 +1,29 @@
 // Hunt Analyzer AO VIVO (server-side). O piwdex SEGURA uma sessao WS do jogo, entra na
 // hunt e faz poll do analyzer que o servidor ja calcula. Single-session: enquanto o
 // piwdex segura, o navegador do jogo fica em "conta em uso". O char farma server-side
-// (idle) de qualquer jeito; segurar a sessao e so pra LER/registrar os numeros.
+// (idle) de qualquer jeito; segurar a sessao e so pra LER/registrar os numeros — e, se o
+// jogador pediu, VENDER automaticamente os drops selecionados da hunt.
 //
 // Protocolo (ver scripts/ws-protocol.md, verificado contra a conta real):
 //   ->  {"type":"enter-hunt","slug":"<hunt>"}   entra no campo (dispara field/analyzer)
-//   ->  {"type":"analyzer-get"}                  pede o analyzer (poll ~5s)
+//   ->  {"type":"analyzer-get"}                  pede o analyzer (poll ~2s)
 //   <-  {"type":"analyzer", kills, xpGained, lootGold, supplyGold, balance, ...}
 //   <-  {"type":"field-kill", xpGained, loot:[...], speciesName, shiny}  (log de kills)
+//   <-  {"type":"catch-result", success, speciesName, ballName}          (captura)
+//   <-  {"type":"inventory", items:[{itemId, quantity}]}                 (mochila, reenviada)
 //
 // Singleton por processo (o piwdex roda 1 container long-lived; global sobrevive entre
 // requests). Uma conta por vez — combina com o uso real. Server-only.
 
 import crypto from "node:crypto";
 import type { Tokens } from "./game-auth";
+import { sellItems } from "./game-shop";
+import { getData } from "./data";
 
 const WS_BASE = (process.env.GAME_HOST || "https://poke.idleworld.online").replace(/^http/, "ws");
 const UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36";
 const POLL_MS = 2000;
+const SELL_MS = 30000; // varre a mochila e vende os drops selecionados a cada 30s
 
 export interface Analyzer {
   kills: number; seconds: number; xpGained: number;
@@ -38,6 +44,8 @@ export interface KillLog {
   loot: { itemId: number; name: string; qty: number }[]; // kill
   ball?: string; // catch: nome da bola usada
 }
+// Item que o robo vendeu automaticamente durante a hunt (acumulado, agrupado por item).
+export interface SoldItem { itemId: number; name: string; qty: number; gold: number; at: number }
 export type HuntStatus = "idle" | "connecting" | "running" | "kicked" | "error";
 export interface HuntState {
   status: HuntStatus;
@@ -45,17 +53,30 @@ export interface HuntState {
   since: number | null; // quando o piwdex começou a segurar
   updatedAt: number | null;
   analyzer: Analyzer | null;
-  recentKills: KillLog[]; // últimos kills capturados ao vivo (cap 50)
+  recentKills: KillLog[]; // últimos eventos capturados ao vivo (cap 50)
+  soldItems: SoldItem[]; // drops vendidos automaticamente nesta sessao
+  autoSellCount: number; // quantos itemIds estao marcados pra venda automatica
   error?: string;
 }
+
+const freshState = (over: Partial<HuntState> = {}): HuntState => ({
+  status: "idle", slug: null, since: null, updatedAt: null, analyzer: null,
+  recentKills: [], soldItems: [], autoSellCount: 0, ...over,
+});
 
 class HuntSession {
   private ws: WebSocket | null = null;
   private poll: ReturnType<typeof setInterval> | null = null;
-  private state: HuntState = { status: "idle", slug: null, since: null, updatedAt: null, analyzer: null, recentKills: [] };
+  private sellTimer: ReturnType<typeof setInterval> | null = null;
+  private selling = false;
+  private tokens: Tokens | null = null;
+  private onTokens: ((t: Tokens) => Promise<void>) | null = null;
+  private sellIds = new Set<number>(); // itemIds que o jogador marcou pra vender sozinho
+  private inv = new Map<number, number>(); // mochila atual (itemId -> qtd), da ultima frame
+  private state: HuntState = freshState();
 
   getState(): HuntState {
-    return { ...this.state, recentKills: this.state.recentKills.slice(0, 50) };
+    return { ...this.state, recentKills: this.state.recentKills.slice(0, 50), soldItems: this.state.soldItems.slice(0, 40) };
   }
 
   // adiciona um evento (kill/catch) no topo do feed e limita a 50
@@ -64,9 +85,14 @@ class HuntSession {
     if (this.state.recentKills.length > 50) this.state.recentKills.length = 50;
   }
 
-  start(tokens: Tokens, shard: number, slug: string) {
+  start(tokens: Tokens, shard: number, slug: string, sellItemIds: number[], onTokens: (t: Tokens) => Promise<void>) {
     this.stop(); // uma sessao por vez
-    this.state = { status: "connecting", slug, since: Date.now(), updatedAt: null, analyzer: null, recentKills: [] };
+    this.tokens = tokens;
+    this.onTokens = onTokens;
+    this.sellIds = new Set(sellItemIds.filter((n) => Number.isInteger(n) && n > 0));
+    this.inv.clear();
+    this.state = freshState({ status: "connecting", slug, since: Date.now(), autoSellCount: this.sellIds.size });
+
     const url = `${WS_BASE}/ws${shard}?token=${encodeURIComponent(tokens.access)}&cmid=${crypto.randomBytes(16).toString("hex")}`;
     let ws: WebSocket;
     try {
@@ -83,6 +109,7 @@ class HuntSession {
       const ask = () => { try { ws.send(JSON.stringify({ type: "analyzer-get" })); } catch {} };
       setTimeout(ask, 1200);
       this.poll = setInterval(ask, POLL_MS);
+      if (this.sellIds.size) this.sellTimer = setInterval(() => void this.sellDrops(), SELL_MS);
     });
 
     ws.addEventListener("message", (ev: MessageEvent) => {
@@ -100,6 +127,10 @@ class HuntSession {
         if (k.success) {
           this.push({ at: Date.now(), kind: "catch", species: String(k.speciesName ?? "?"), shiny: Boolean(k.shiny), xp: 0, loot: [], ball: String(k.ballName ?? "") });
         }
+      } else if (m.type === "inventory") {
+        const items = Array.isArray(m.items) ? (m.items as Record<string, unknown>[]) : [];
+        this.inv.clear();
+        for (const it of items) this.inv.set(Number(it.itemId ?? 0), Number(it.quantity ?? it.qty ?? 0));
       }
     });
 
@@ -108,18 +139,56 @@ class HuntSession {
     return this.getState();
   }
 
-  private onGone(status: HuntStatus) {
+  // vende (REST) os itens marcados que tem qtd na mochila; acumula em soldItems.
+  private async sellDrops() {
+    if (this.selling || !this.tokens || this.sellIds.size === 0) return;
+    const toSell: { itemId: number; qty: number }[] = [];
+    for (const id of this.sellIds) { const q = this.inv.get(id) ?? 0; if (q > 0) toSell.push({ itemId: id, qty: q }); }
+    if (!toSell.length) return;
+    this.selling = true;
+    try {
+      const w = await sellItems(this.tokens, toSell);
+      if (w.changed) { this.tokens = w.tokens; await this.onTokens?.(w.tokens); }
+      if (w.ok) {
+        const data = await getData();
+        for (const s of toSell) {
+          this.inv.set(s.itemId, 0); // vendido — evita revender antes da proxima frame
+          const it = data.getItem(s.itemId);
+          const gold = (it?.npcPrice ?? 0) * s.qty;
+          const ex = this.state.soldItems.find((x) => x.itemId === s.itemId);
+          if (ex) { ex.qty += s.qty; ex.gold += gold; ex.at = Date.now(); }
+          else this.state.soldItems.unshift({ itemId: s.itemId, name: it?.name ?? `#${s.itemId}`, qty: s.qty, gold, at: Date.now() });
+        }
+        if (this.state.soldItems.length > 40) this.state.soldItems.length = 40;
+      }
+    } catch {
+      // erro de venda nao derruba a hunt — a proxima varredura tenta de novo
+    } finally {
+      this.selling = false;
+    }
+  }
+
+  private clearTimers() {
     if (this.poll) { clearInterval(this.poll); this.poll = null; }
+    if (this.sellTimer) { clearInterval(this.sellTimer); this.sellTimer = null; }
+  }
+
+  private onGone(status: HuntStatus) {
+    this.clearTimers();
     this.ws = null;
     if (this.state.status === "running" || this.state.status === "connecting") {
-      this.state = { ...this.state, status }; // mantem o ultimo analyzer pra mostrar "caiu, ultima leitura X"
+      this.state = { ...this.state, status }; // mantem analyzer/soldItems pra mostrar "caiu, ate aqui X"
     }
   }
 
   stop() {
-    if (this.poll) { clearInterval(this.poll); this.poll = null; }
+    this.clearTimers();
     if (this.ws) { try { this.ws.close(); } catch {} this.ws = null; }
-    this.state = { status: "idle", slug: null, since: null, updatedAt: null, analyzer: null, recentKills: [] };
+    this.tokens = null;
+    this.onTokens = null;
+    this.sellIds.clear();
+    this.inv.clear();
+    this.state = freshState();
   }
 }
 

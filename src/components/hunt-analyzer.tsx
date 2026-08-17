@@ -14,6 +14,8 @@ import { spriteUrl, assetIconUrl } from "@/lib/sprites";
 // Uma hunt do catalogo do jogo: o `slug` e exatamente o que o enter-hunt come; o resto
 // e detalhe pro seletor (nivel, area, sprite do pokemon daquele ponto).
 export interface HuntOption { slug: string; name: string; level: number; area: string; pokeId: number | null }
+// Um drop vendavel daquela hunt (pro modal de venda automatica ao ligar).
+export interface DropOption { itemId: number; name: string; icon: string; npcPrice: number }
 
 interface Analyzer {
   kills: number; seconds: number; xpGained: number;
@@ -42,10 +44,12 @@ function Stat({ label, value, accent, icon }: { label: string; value: string; ac
   );
 }
 
-export function HuntAnalyzer({ hunts, creatures, itemIcons }: { hunts: HuntOption[]; creatures: { pokeId: number; name: string }[]; itemIcons: Record<string, string> }) {
+export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunts: HuntOption[]; creatures: { pokeId: number; name: string }[]; itemIcons: Record<string, string>; lootByPoke: Record<number, DropOption[]> }) {
   const t = useT();
   const [st, setSt] = useState<HuntState | null>(null);
   const [detail, setDetail] = useState<KillLog | null>(null); // evento aberto no modal
+  const [dropsOpen, setDropsOpen] = useState(false); // modal de escolha dos drops pra vender
+  const [sellDropIds, setSellDropIds] = useState<Set<number>>(new Set());
 
   // resolve o sprite do pokemon (kill/catch so traz o nome) e o icone do loot (por nome:
   // o itemId do field-kill nao bate com o id dos dados, mas o nome sim).
@@ -104,6 +108,15 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons }: { hunts: HuntOptio
   const running = status === "running" || status === "connecting";
   const a = st?.analyzer ?? null;
 
+  // liga a hunt com os drops escolhidos pra venda automatica (ou lista vazia = so analisa)
+  const startHunt = (ids: number[]) => { if (slug.trim()) send({ action: "start", slug: slug.trim(), sellItemIds: ids }); };
+  // ao apertar Ligar: se a hunt tem drops vendaveis, abre o modal de escolha; senao liga direto
+  const huntDrops = selected?.pokeId != null ? lootByPoke[selected.pokeId] : undefined;
+  const openStart = () => {
+    if (huntDrops && huntDrops.length) { setSellDropIds(new Set()); setDropsOpen(true); }
+    else startHunt([]);
+  };
+
   return (
     <div className="flex flex-col gap-4">
       <div>
@@ -130,7 +143,7 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons }: { hunts: HuntOptio
                 t("robo.hunt.pick")
               )}
             </button>
-            <button type="button" onClick={() => slug.trim() && send({ action: "start", slug: slug.trim() })} disabled={busy || !slug.trim()} className="btn btn-cyan disabled:opacity-40">
+            <button type="button" onClick={openStart} disabled={busy || !slug.trim()} className="btn btn-cyan disabled:opacity-40">
               {t("robo.hunt.start")} ›
             </button>
           </>
@@ -178,6 +191,46 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons }: { hunts: HuntOptio
           </div>
         </div>
       )}
+
+      {/* modal de escolha dos drops pra venda automatica (ao ligar a hunt) */}
+      {dropsOpen && selected && (() => {
+        const drops = (selected.pokeId != null ? lootByPoke[selected.pokeId] : []) ?? [];
+        const toggle = (id: number) => setSellDropIds((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setDropsOpen(false)}>
+            <div className="card flex max-h-[80vh] w-full max-w-md flex-col p-4" onClick={(e) => e.stopPropagation()}>
+              <h3 className="pixel text-[0.7rem] text-cyan">{t("robo.hunt.dropsTitle")}</h3>
+              <p className="mt-1 text-[0.62rem] leading-relaxed text-text-dim">{t("robo.hunt.dropsDesc").replace("{hunt}", selected.name)}</p>
+              <div className="mt-3 flex gap-2">
+                <button type="button" onClick={() => setSellDropIds(new Set(drops.map((d) => d.itemId)))} className="btn btn-ghost">{t("robo.hunt.dropsAll")}</button>
+                <button type="button" onClick={() => setSellDropIds(new Set())} className="btn btn-ghost">{t("robo.hunt.dropsNone")}</button>
+              </div>
+              <div className="mt-3 flex flex-1 flex-col gap-1 overflow-auto pr-1">
+                {drops.map((d) => {
+                  const on = sellDropIds.has(d.itemId);
+                  return (
+                    <button
+                      key={d.itemId}
+                      type="button"
+                      onClick={() => toggle(d.itemId)}
+                      className={`flex items-center gap-2 rounded border p-1.5 text-left transition ${on ? "border-cyan bg-[color:var(--cyan)]/10" : "border-border hover:bg-surface-2"}`}
+                    >
+                      <span className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border text-[0.6rem] ${on ? "border-cyan bg-cyan text-[#06131a]" : "border-border text-transparent"}`}>✓</span>
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center">{d.icon ? <Sprite src={assetIconUrl(d.icon)} alt={d.name} size={20} /> : null}</span>
+                      <span className="min-w-0 flex-1 truncate text-[0.72rem]">{d.name}</span>
+                      <span className="inline-flex shrink-0 items-center gap-1 text-[0.62rem] text-yellow"><Coin size={9} />{d.npcPrice}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="mt-3 flex items-center justify-between gap-2 border-t border-border pt-3">
+                <span className="text-[0.62rem] text-text-dim">{t("robo.hunt.dropsSel").replace("{n}", String(sellDropIds.size))}</span>
+                <button type="button" onClick={() => { setDropsOpen(false); startHunt([...sellDropIds]); }} className="btn btn-cyan">{t("robo.hunt.start")} ›</button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* stats */}
       {a && (

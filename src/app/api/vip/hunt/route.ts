@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { getGameLink, saveGameShard } from "@/lib/game-link";
+import { getGameLink, saveGameShard, updateGameTokens } from "@/lib/game-link";
 import { fetchActivePokes } from "@/lib/game-ws";
 import { huntSession } from "@/lib/game-hunt-session";
 import { autoSellSession } from "@/lib/game-auto-sell-session";
+import type { Tokens } from "@/lib/game-auth";
 
 export const runtime = "nodejs";
 
@@ -45,8 +46,13 @@ export async function POST(req: Request) {
       if (r) { shard = r.shard; if (r.shard !== c.shard) await saveGameShard(c.userId, r.shard); }
     }
     if (!shard) return NextResponse.json({ error: "no_shard" }, { status: 502 });
+    // itens que o jogador marcou pra venda automatica dos drops (opcional)
+    const sellItemIds = Array.isArray(b.sellItemIds)
+      ? (b.sellItemIds as unknown[]).map(Number).filter((n) => Number.isInteger(n) && n > 0)
+      : [];
     autoSellSession.stop(); // single-session: os dois seguram o WS — Hunt para a venda automatica
-    huntSession.start(c.tokens, shard, slug);
+    const persist = (tk: Tokens) => updateGameTokens(c.userId, tk);
+    huntSession.start(c.tokens, shard, slug, sellItemIds, persist);
     return NextResponse.json(huntSession.getState());
   }
   return NextResponse.json({ error: "bad_action" }, { status: 400 });

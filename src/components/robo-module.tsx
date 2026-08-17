@@ -9,7 +9,7 @@ import { useEffect, useState } from "react";
 import { RoboPanel } from "./robo-panel";
 import { DropSeller } from "./drop-seller";
 import { PokeSeller } from "./poke-seller";
-import { HuntAnalyzer, type HuntOption } from "./hunt-analyzer";
+import { HuntAnalyzer, type HuntOption, type DropOption } from "./hunt-analyzer";
 import type { ComboCreature } from "./pokemon-combobox";
 import { useT } from "./locale-provider";
 import { Star } from "./icons";
@@ -39,7 +39,7 @@ function AutoBuySoon() {
   );
 }
 
-export function RoboModule({ hunts, creatures, itemIcons }: { hunts: HuntOption[]; creatures: ComboCreature[]; itemIcons: Record<string, string> }) {
+export function RoboModule({ hunts, creatures, itemIcons, lootByPoke }: { hunts: HuntOption[]; creatures: ComboCreature[]; itemIcons: Record<string, string>; lootByPoke: Record<number, DropOption[]> }) {
   const t = useT();
   const [sec, setSec] = useState<Section>("automacao");
 
@@ -73,8 +73,8 @@ export function RoboModule({ hunts, creatures, itemIcons }: { hunts: HuntOption[
       </div>
 
       {sec === "automacao" && <RoboPanel />}
-      {sec === "hunt" && <HuntAnalyzer hunts={hunts} creatures={creatures} itemIcons={itemIcons} />}
-      {sec === "vender-drops" && <DropSeller />}
+      {sec === "hunt" && <HuntAnalyzer hunts={hunts} creatures={creatures} itemIcons={itemIcons} lootByPoke={lootByPoke} />}
+      {sec === "vender-drops" && <DropSeller itemIcons={itemIcons} />}
       {sec === "vender-pokes" && <PokeSeller />}
       {sec === "auto-compra" && <AutoBuySoon />}
     </div>
