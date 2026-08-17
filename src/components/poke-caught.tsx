@@ -12,7 +12,7 @@ import { Pagination } from "./pagination";
 import { CloseButton } from "./icon-button";
 import { SelectMenu } from "./select-menu";
 import { TypeFilter } from "./type-filter";
-import { ToggleButton } from "./toggle-button";
+import { Field, ShinyToggle } from "./filter-field";
 import { PokemonCombobox, type ComboCreature } from "./pokemon-combobox";
 import { TypeBadges, RarityBadge } from "./badges";
 import { Star } from "./icons";
@@ -117,9 +117,9 @@ export function PokeCaught({ creatures }: { creatures: ComboCreature[] }) {
         <label className="flex flex-col gap-1"><span className="field-label">{t("robo.caught.f.qMin")}</span>
           <input type="number" min={0} step={0.05} value={qMin} onChange={(e) => setQMin(e.target.value)} placeholder="—" className="input" />
         </label>
-        <div className="flex flex-col gap-1"><span className="field-label">{t("robo.caught.f.shiny")}</span>
-          <ToggleButton active={shiny} onClick={() => setShiny((s) => !s)} accent="yellow"><Star size={11} /> {shiny ? t("robo.on") : t("robo.off")}</ToggleButton>
-        </div>
+        <Field label={t("robo.caught.f.shiny")}>
+          <ShinyToggle active={shiny} onChange={setShiny} />
+        </Field>
       </div>
 
       {/* grade */}

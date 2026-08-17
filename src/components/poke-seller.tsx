@@ -115,10 +115,11 @@ function RarityBoxes({ selected, onToggle }: { selected: Rarity[]; onToggle: (r:
 export function PokeSeller() {
   const t = useT();
   const [cfg, setCfg] = useState<PokeSellConfig>(DEFAULTS);
+  const [savedCfg, setSavedCfg] = useState<PokeSellConfig>(DEFAULTS);
   const [saved, setSaved] = useState(false);
 
   // hidrata do localStorage so no cliente (evita mismatch de SSR)
-  useEffect(() => setCfg(load()), []);
+  useEffect(() => { const c = load(); setCfg(c); setSavedCfg(c); }, []);
 
   // robo de venda automatica 24/7: poll do estado a cada 4s
   const [auto, setAuto] = useState<AutoState | null>(null);
@@ -135,6 +136,7 @@ export function PokeSeller() {
   const toggleAuto = async (on: boolean) => {
     setAutoBusy(true);
     try {
+      if (on) { try { window.localStorage.setItem(KEY, JSON.stringify(cfg)); } catch {} setSavedCfg(cfg); } // ligar comita as travas atuais
       const body = on ? { action: "start", config: cfg } : { action: "stop" };
       const r = await fetch("/api/vip/autosell", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       const j = (await r.json().catch(() => null)) as AutoState | null;
@@ -150,20 +152,18 @@ export function PokeSeller() {
     } finally { setAutoBusy(false); }
   };
 
-  const patch = (p: Partial<PokeSellConfig>) => {
-    setCfg((c) => {
-      const next = { ...c, ...p };
-      try {
-        window.localStorage.setItem(KEY, JSON.stringify(next));
-      } catch {}
-      return next;
-    });
+  // edita SO em memoria (nunca salva a cada tecla) — o botao Confirmar e que comita.
+  const edit = (p: Partial<PokeSellConfig>) => setCfg((c) => ({ ...c, ...p }));
+  const dirty = JSON.stringify(cfg) !== JSON.stringify(savedCfg);
+  const confirm = () => {
+    try { window.localStorage.setItem(KEY, JSON.stringify(cfg)); } catch {}
+    setSavedCfg(cfg);
     setSaved(true);
-    window.setTimeout(() => setSaved(false), 1200);
+    window.setTimeout(() => setSaved(false), 1500);
   };
 
   const toggleRarity = (r: Rarity) =>
-    patch({ sellRarities: cfg.sellRarities.includes(r) ? cfg.sellRarities.filter((x) => x !== r) : [...cfg.sellRarities, r] });
+    edit({ sellRarities: cfg.sellRarities.includes(r) ? cfg.sellRarities.filter((x) => x !== r) : [...cfg.sellRarities, r] });
 
   return (
     <div className="flex flex-col gap-4">
@@ -172,11 +172,14 @@ export function PokeSeller() {
         <p className="mt-2 max-w-2xl text-sm text-text-dim">{t("robo.pokes.desc")}</p>
       </div>
 
-      {/* travas configuraveis — sempre editaveis, salvam na hora */}
+      {/* travas: editaveis, mas so o Confirmar comita (nao salva a cada tecla) */}
       <div className="card flex flex-col p-5">
-        <div className="mb-1 flex items-center justify-between">
+        <div className="mb-1 flex items-center justify-between gap-2">
           <h3 className="section-title text-cyan">{t("robo.pokes.filters")}</h3>
-          {saved && <span className="text-[0.66rem] font-semibold text-green">{t("robo.pokes.saved")}</span>}
+          <div className="flex items-center gap-2">
+            {saved && <span className="text-[0.66rem] font-semibold text-green">{t("robo.pokes.saved")}</span>}
+            <button type="button" onClick={confirm} disabled={!dirty} className="btn btn-cyan disabled:opacity-40"><Check size={11} /> {t("robo.pokes.commit")}</button>
+          </div>
         </div>
 
         {/* raridade: bloco de largura cheia (6 boxes nao cabem alinhados a direita) */}
@@ -187,16 +190,16 @@ export function PokeSeller() {
         </div>
 
         <Row title={t("robo.pokes.keepShiny")} desc={t("robo.pokes.keepShiny.desc")}>
-          <ToggleButton active={cfg.keepShiny} accent="green" onClick={() => patch({ keepShiny: !cfg.keepShiny })}>
+          <ToggleButton active={cfg.keepShiny} accent="green" onClick={() => edit({ keepShiny: !cfg.keepShiny })}>
             <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ background: cfg.keepShiny ? "var(--green)" : "var(--text-dim)" }} />
             {cfg.keepShiny ? t("robo.on") : t("robo.off")}
           </ToggleButton>
         </Row>
         <Row title={t("robo.pokes.maxIv")} desc={t("robo.pokes.maxIv.desc", { n: cfg.maxIv })}>
-          <Slider value={cfg.maxIv} min={0} max={IV_MAX} step={1} decimals={0} onChange={(n) => patch({ maxIv: n })} />
+          <Slider value={cfg.maxIv} min={0} max={IV_MAX} step={1} decimals={0} onChange={(n) => edit({ maxIv: n })} />
         </Row>
         <Row title={t("robo.pokes.maxQuality")} desc={t("robo.pokes.maxQuality.desc", { n: cfg.maxQuality.toFixed(2) })}>
-          <Slider value={cfg.maxQuality} min={0} max={QUALITY_MAX} step={QUALITY_STEP} decimals={2} onChange={(n) => patch({ maxQuality: n })} />
+          <Slider value={cfg.maxQuality} min={0} max={QUALITY_MAX} step={QUALITY_STEP} decimals={2} onChange={(n) => edit({ maxQuality: n })} />
         </Row>
       </div>
 

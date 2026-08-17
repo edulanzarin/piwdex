@@ -17,7 +17,7 @@ import { TypeFilter } from "./type-filter";
 import { StatBar } from "./stat-bar";
 import { Modal } from "./modal";
 import { Pagination } from "./pagination";
-import { ToggleButton } from "./toggle-button";
+import { Field, ShinyToggle } from "./filter-field";
 import { SelectMenu } from "./select-menu";
 import { StatTile } from "./stat-tile";
 import { CloseButton } from "./icon-button";
@@ -367,14 +367,9 @@ export function MarketAdvisor({
               ]}
             />
           </label>
-          <div className="flex flex-col gap-1">
-            <span className="field-label">{t("alerts.f.filters")}</span>
-            <div className="flex flex-wrap items-center gap-2">
-              <ToggleButton active={shiny} onClick={() => setShiny((s) => !s)} accent="yellow">
-                <Star size={13} /> {t("account.market.shiny")}
-              </ToggleButton>
-            </div>
-          </div>
+          <Field label={t("alerts.f.filters")}>
+            <ShinyToggle active={shiny} onChange={setShiny} />
+          </Field>
         </div>
         <div className="flex items-center justify-end gap-3">
           <button type="button" onClick={() => search()} disabled={busy} className="btn btn-cyan disabled:opacity-40">

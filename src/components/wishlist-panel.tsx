@@ -16,6 +16,7 @@ import { LoadingBall } from "./loaders";
 import { Pagination } from "./pagination";
 import { PokemonCombobox, type ComboCreature } from "./pokemon-combobox";
 import { ToggleButton } from "./toggle-button";
+import { ShinyToggle } from "./filter-field";
 import { SelectMenu } from "./select-menu";
 import { CloseButton } from "./icon-button";
 import { TypeFilter } from "./type-filter";
@@ -179,9 +180,7 @@ function NewWish({ creatures, onCreated }: { creatures: ComboCreature[]; onCreat
           <div className="flex flex-col gap-1">
             <span className={lblCls}>{t("alerts.f.filters")}</span>
             <div className="flex flex-wrap items-center gap-2">
-              <ToggleButton active={shiny} onClick={() => setShiny((v) => !v)} accent="yellow">
-                <Star size={12} /> {t("alerts.f.shiny")}
-              </ToggleButton>
+              <ShinyToggle active={shiny} onChange={setShiny} />
               <ToggleButton active={belowFair} onClick={() => setBelowFair((v) => !v)} accent="green">
                 {t("alerts.f.belowFair")}
               </ToggleButton>

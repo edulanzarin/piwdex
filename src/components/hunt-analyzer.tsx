@@ -107,7 +107,11 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
   };
 
   const status = st?.status ?? "idle";
-  const running = status === "running" || status === "connecting";
+  // hunt LIGADA = tem slug ativo. NAO usar o status da sessao: ele segue "running" quando a
+  // venda de pokemon 24/7 mantem o WS vivo — por isso o DESLIGAR "nao funcionava".
+  const huntOn = !!st?.slug;
+  const huntStatus = huntOn ? status : "idle";
+  const running = huntOn && (status === "running" || status === "connecting");
   const a = st?.analyzer ?? null;
 
   // liga a hunt com os drops escolhidos + (opcional) a venda de pokemon junto, na MESMA
@@ -131,10 +135,10 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
       {/* controle */}
       <div className="card flex flex-wrap items-center gap-3 p-4">
         <span className="inline-flex items-center gap-1.5 text-[0.72rem] font-semibold">
-          <span className={`inline-block h-2 w-2 rounded-full ${running ? "pulse-soft" : ""}`} style={{ background: STATUS_COLOR[status] }} />
-          {t(`robo.hunt.status.${status}`)}
+          <span className={`inline-block h-2 w-2 rounded-full ${running ? "pulse-soft" : ""}`} style={{ background: STATUS_COLOR[huntStatus] }} />
+          {t(`robo.hunt.status.${huntStatus}`)}
         </span>
-        {!running ? (
+        {!huntOn ? (
           <>
             <button type="button" onClick={() => setPickerOpen(true)} className="btn btn-ghost inline-flex items-center gap-2">
               {selected ? (

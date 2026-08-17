@@ -185,7 +185,7 @@ export function EconomyTable({ rows, areas }: { rows: HuntRow[]; areas: string[]
               options={[{ value: "", label: t("hunt.allAreas") }, ...areas.map((a) => ({ value: a, label: area(a) }))]}
             />
           </div>
-          <label className="flex flex-col gap-1 sm:w-28">
+          <label className="flex flex-col gap-1 sm:w-48">
             <span className="field-label">{t("hunt.maxLvl")}</span>
             <input
               className="input w-full"
