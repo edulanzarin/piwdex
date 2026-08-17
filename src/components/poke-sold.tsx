@@ -2,18 +2,20 @@
 
 // Pokemon vendidos (read-only). Dois blocos:
 //  1) totalizador CUMULATIVO (pra sempre, todas as hunts) — /api/vip/totals.
-//  2) um card fixo POR RARIDADE escolhida pra vender (status individual nao importa): so
-//     quantidade + valor cumulativo daquela raridade NA HUNT atual — /api/vip/autosell.
-// Reseta (o bloco 2) ao trocar de hunt; o totalizador nunca reseta.
+//  2) um card POR ESPECIE vendida NA HUNT atual (icone+nome+raridade + qtd + valor). Mesmo
+//     vendendo o mesmo bicho varias vezes, so soma. Reseta ao trocar de hunt — /api/vip/autosell.
 
 import { useCallback, useEffect, useState } from "react";
+import { Sprite } from "./sprite";
 import { StatTile } from "./stat-tile";
+import { RarityBadge } from "./badges";
+import { spriteUrl } from "@/lib/sprites";
 import { useT } from "./locale-provider";
 import { Coin } from "./icons";
-import { RARITY_COLOR, RARITY_ORDER } from "@/lib/typing";
 import type { Rarity } from "@/lib/types";
 
-interface AutoView { status: string; sellRarities?: Rarity[]; soldByRarity?: Partial<Record<Rarity, { count: number; gold: number }>> }
+interface SpeciesSold { speciesId: number; name: string; rarity: Rarity; count: number; gold: number }
+interface AutoView { status: string; soldBySpecies?: SpeciesSold[] }
 interface Totals { itemsCount: number; itemsGold: number; pokesCount: number; pokesGold: number }
 
 const fmt = (n: number) => n.toLocaleString("pt-BR");
@@ -40,8 +42,8 @@ export function PokeSold() {
   useEffect(() => { load(); const id = setInterval(load, 5000); return () => clearInterval(id); }, [load]);
   useEffect(() => { loadTotals(); const id = setInterval(loadTotals, 15000); return () => clearInterval(id); }, [loadTotals]);
 
-  const rarities = (view?.sellRarities ?? []).slice().sort((a, b) => RARITY_ORDER.indexOf(a) - RARITY_ORDER.indexOf(b));
-  const byR = view?.soldByRarity ?? {};
+  const sold = (view?.soldBySpecies ?? []).slice().sort((a, b) => b.count - a.count);
+  const on = view?.status === "running" || view?.status === "connecting";
 
   return (
     <div className="flex flex-col gap-4">
@@ -59,25 +61,27 @@ export function PokeSold() {
         </div>
       </div>
 
-      {/* cards por raridade escolhida (da hunt atual) */}
+      {/* cards por especie vendida (da hunt atual) */}
       <div className="card p-4">
-        {rarities.length === 0 ? (
-          <p className="text-[0.72rem] text-text-dim">{t("robo.pokesold.empty")}</p>
+        {sold.length === 0 ? (
+          <p className="text-[0.72rem] text-text-dim">{on ? t("robo.pokesold.waiting") : t("robo.pokesold.empty")}</p>
         ) : (
-          <div className="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
-            {rarities.map((r) => {
-              const cell = byR[r] ?? { count: 0, gold: 0 };
-              const color = RARITY_COLOR[r];
-              return (
-                <div key={r} className="flex items-center gap-2.5 rounded border p-2.5" style={{ borderColor: `color-mix(in srgb, ${color} 45%, transparent)` }}>
-                  <span className="shrink-0 rounded px-1.5 py-0.5 text-[0.55rem] font-bold uppercase" style={{ background: color, color: "#06111a" }}>{r}</span>
-                  <div className="min-w-0 flex-1">
-                    <div className="pixel text-sm tabular-nums">×{fmt(cell.count)}</div>
+          <div className="grid gap-1.5 sm:grid-cols-2">
+            {sold.map((p) => (
+              <div key={p.speciesId} className="flex items-center gap-2.5 rounded border border-border bg-[var(--well-bg)] p-2">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded bg-[var(--well-bg)]">
+                  <Sprite src={spriteUrl(p.speciesId)} alt={p.name} size={34} />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className="truncate text-sm">{p.name}</span>
+                    <RarityBadge rarity={p.rarity} />
                   </div>
-                  <span className="inline-flex shrink-0 items-center gap-1 text-[0.7rem] text-green tabular-nums"><Coin size={10} />{fmt(cell.gold)}</span>
+                  <div className="text-[0.62rem] text-text-dim">×{fmt(p.count)}</div>
                 </div>
-              );
-            })}
+                <span className="inline-flex shrink-0 items-center gap-1 text-[0.7rem] text-green tabular-nums"><Coin size={10} />{fmt(p.gold)}</span>
+              </div>
+            ))}
           </div>
         )}
       </div>

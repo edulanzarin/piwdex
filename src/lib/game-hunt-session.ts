@@ -52,11 +52,12 @@ export interface SoldItem { itemId: number; name: string; qty: number; gold: num
 export interface SoldPoke { id: string; name: string; speciesId: number; level: number; shiny: boolean; ivTotal: number; quality: number; sellValue: number; rarity: Rarity }
 export type SessStatus = "idle" | "connecting" | "running" | "kicked" | "error";
 
-// venda de pokemon agregada POR RARIDADE (o card e por raridade escolhida, nao por bicho):
-// a hunt so soma quantidade e valor de cada raridade. Reseta ao trocar de hunt.
-export type RaritySold = Partial<Record<Rarity, { count: number; gold: number }>>;
+// venda de pokemon agregada POR ESPECIE (o card mostra o bicho: icone+nome+raridade+qtd+valor):
+// mesmo capturando o mesmo varias vezes na hunt, so soma a quantidade e o valor. Reseta ao
+// trocar de hunt.
+export interface SpeciesSold { speciesId: number; name: string; rarity: Rarity; count: number; gold: number }
 
-export interface PokeSellSub { on: boolean; soldByRarity: RaritySold }
+export interface PokeSellSub { on: boolean; soldBySpecies: Record<number, SpeciesSold> }
 
 // visao "hunt" (GET /api/vip/hunt) — o que a aba Hunt e os Itens vendidos leem
 export interface HuntState {
@@ -65,9 +66,9 @@ export interface HuntState {
   analyzer: Analyzer | null; recentKills: KillLog[]; soldItems: SoldItem[]; autoSellCount: number;
   pokeSellOn: boolean;
 }
-// visao "auto-sell" (GET /api/vip/autosell) — Configuracoes (24/7) e a aba Pokemon vendidos.
-// So o essencial: status, as raridades configuradas (cards fixos) e o vendido por raridade.
-export interface AutoSellView { status: SessStatus; error?: string; sellRarities: Rarity[]; soldByRarity: RaritySold }
+// visao "auto-sell" (GET /api/vip/autosell) — a aba Pokemon vendidos: status + o vendido
+// agregado por especie (cards da hunt atual).
+export interface AutoSellView { status: SessStatus; error?: string; soldBySpecies: SpeciesSold[] }
 
 class GameSession {
   private ws: WebSocket | null = null;
@@ -96,7 +97,7 @@ class GameSession {
   private analyzer: Analyzer | null = null;
   private recentKills: KillLog[] = [];
   private soldItems: SoldItem[] = [];
-  private poke: PokeSellSub = { on: false, soldByRarity: {} };
+  private poke: PokeSellSub = { on: false, soldBySpecies: {} };
   private lastPokeSellAt = 0; // ultima venda de pokemon (throttle de 1h)
   private forceSell = false;  // "Vender agora" forca a proxima varredura
   private recordedIds = new Set<string>(); // ids ja gravados no acervo (evita rescrever no banco)
@@ -120,8 +121,7 @@ class GameSession {
   getAutoSellView(): AutoSellView {
     return {
       status: this.pokeCfg ? this.status : "idle", error: this.error,
-      sellRarities: this.pokeCfg?.sellRarities ?? [],
-      soldByRarity: this.poke.soldByRarity,
+      soldBySpecies: Object.values(this.poke.soldBySpecies),
     };
   }
 
@@ -138,14 +138,14 @@ class GameSession {
     this.inv.clear();
     // trocar de hunt zera o que foi vendido NA HUNT (itens e pokemon por raridade). O
     // totalizador cumulativo (robot_sales) NAO zera — vive no banco.
-    this.analyzer = null; this.recentKills = []; this.soldItems = []; this.poke.soldByRarity = {}; this.summaryLogged = false;
+    this.analyzer = null; this.recentKills = []; this.soldItems = []; this.poke.soldBySpecies = {}; this.summaryLogged = false;
     this.applyOrConnect(true);
   }
 
   stopHunt() {
     this.logSummary();
     this.slug = null; this.sellIds.clear(); this.inv.clear();
-    this.analyzer = null; this.recentKills = []; this.soldItems = []; this.poke.soldByRarity = {};
+    this.analyzer = null; this.recentKills = []; this.soldItems = []; this.poke.soldBySpecies = {};
     if (!this.jobsActive()) this.teardown(); else this.refreshTimers();
   }
 
@@ -294,12 +294,12 @@ class GameSession {
       if (w.ok && w.data) {
         const sold = w.data.sold ?? ids.length, gold = w.data.goldGained ?? 0;
         if (sold > 0) {
-          // agrega POR RARIDADE (os `sold` primeiros dos matches, ordenados do pior pro
-          // melhor) — o card e por raridade, so quantidade e valor. E soma no totalizador.
+          // agrega POR ESPECIE (os `sold` primeiros dos matches, ordenados do pior pro melhor)
+          // — o card mostra o bicho (icone+nome+raridade), so quantidade e valor. E totalizador.
           for (const p of matches.slice(0, sold)) {
-            const cur = this.poke.soldByRarity[p.rarity] ?? { count: 0, gold: 0 };
+            const cur = this.poke.soldBySpecies[p.speciesId] ?? { speciesId: p.speciesId, name: p.name, rarity: p.rarity, count: 0, gold: 0 };
             cur.count += 1; cur.gold += p.sellValue;
-            this.poke.soldByRarity[p.rarity] = cur;
+            this.poke.soldBySpecies[p.speciesId] = cur;
           }
           if (this.userId) {
             void logRobotEvent(this.userId, { kind: "poke-sold", title: `Vendeu ${sold} pokemon`, body: `+$${Math.round(gold)}`, data: { count: sold, gold } });

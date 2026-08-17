@@ -346,19 +346,26 @@ export function AccountPanel({ creatures }: { creatures: ComboCreature[] }) {
   const [state, setState] = useState<State>({ status: "loading" });
   const nameById = (id: number) => creatures.find((c) => c.pokeId === id)?.name;
 
-  const load = async () => {
-    setState({ status: "loading" });
+  // `initial` mostra o loader (1a carga); nas atualizacoes ao vivo NAO pisca o loader —
+  // so troca os dados (bola caindo, dolar subindo etc. enquanto o robo roda).
+  const load = async (initial = false) => {
+    if (initial) setState({ status: "loading" });
     try {
       const res = await fetch("/api/collection", { cache: "no-store" });
       if (res.status === 401) return setState({ status: "disconnected" });
       const j = (await res.json()) as { connected?: boolean; account?: Account; reason?: string; team?: TeamSnapshot | null };
       if (j.connected && j.account) setState({ status: "connected", account: j.account, team: j.team ?? null });
-      else setState({ status: "disconnected", expired: j.reason === "expired" });
+      else if (initial) setState({ status: "disconnected", expired: j.reason === "expired" });
     } catch {
-      setState({ status: "disconnected" });
+      if (initial) setState({ status: "disconnected" });
     }
   };
-  useEffect(() => { load(); }, []);
+  // 1a carga com loader; depois refaz a cada 10s pra refletir a conta em tempo real (sem F5).
+  useEffect(() => {
+    load(true);
+    const id = setInterval(() => load(false), 10000);
+    return () => clearInterval(id);
+  }, []);
 
   const disconnect = async () => {
     await fetch("/api/disconnect", { method: "POST" });
