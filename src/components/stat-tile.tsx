@@ -22,13 +22,14 @@ export function StatTile({
   className?: string;
 }) {
   return (
-    <div className={`well ${hover ? "well-hover" : ""} flex flex-col gap-1 ${className}`}>
+    <div className={`well ${hover ? "well-hover" : ""} flex min-w-0 flex-col gap-1 ${className}`}>
       <span className="field-label flex items-center gap-1.5">
         {icon}
         {label}
       </span>
+      {/* valor longo (ex.: preco de 1 bilhao) quebra em vez de estourar o tile */}
       <span
-        className="pixel text-sm tabular-nums"
+        className="pixel min-w-0 text-sm tabular-nums [overflow-wrap:anywhere]"
         style={accent ? ({ color: accent } as CSSProperties) : undefined}
       >
         {value}

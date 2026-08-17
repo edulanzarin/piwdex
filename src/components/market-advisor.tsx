@@ -83,7 +83,7 @@ const STATS: readonly [string, keyof MarketDex][] = [
 
 // Mini-tile de numero do anuncio: rotulo + valor, no poco padrao (.well via StatTile).
 function Tile({ label, children }: { label: string; children: React.ReactNode }) {
-  return <StatTile label={label} value={<span className="flex items-center gap-1 whitespace-nowrap">{children}</span>} />;
+  return <StatTile label={label} value={<span className="flex min-w-0 items-center gap-1 [overflow-wrap:anywhere]">{children}</span>} />;
 }
 
 // Card de um anuncio do mercado — reusado no consultor E dentro de cada Desejo (aba

@@ -341,9 +341,13 @@ class GameSession {
     if (!this.userId || !this.pokeCfg) return;
     try {
       const all = normalizeActivePokes(list);
-      // A 1a lista vira LINHA DE BASE (a colecao que voce JA tinha): nao entra no acervo. Assim
-      // o acervo guarda SO o que o ROBO capturou depois de ligar — nao a conta inteira.
-      if (this.baselineIds === null) { this.baselineIds = new Set(all.map((p) => p.id)); return; }
+      // A 1a lista NAO-VAZIA vira LINHA DE BASE (a colecao que voce JA tinha): nao entra no
+      // acervo. So depois o robo grava o que capturar. Guard contra lista vazia/parcial: se
+      // a base ficasse vazia, tudo viraria "novo" e a conta inteira entraria (bug do "voltou").
+      if (this.baselineIds === null) {
+        if (all.length) this.baselineIds = new Set(all.map((p) => p.id));
+        return;
+      }
       const data = await getData();
       const rarityOf = (sid: number): Rarity => data.getCreature(sid)?.rarity ?? "COMMON";
       const sellIds = new Set(filterSellable(all, this.pokeCfg, rarityOf).map((p) => p.id));

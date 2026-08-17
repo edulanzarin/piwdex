@@ -51,6 +51,7 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
   const [detail, setDetail] = useState<KillLog | null>(null); // evento aberto no modal
   const [dropsOpen, setDropsOpen] = useState(false); // modal de opcoes ao ligar a hunt
   const [sellDropIds, setSellDropIds] = useState<Set<number>>(new Set());
+  const [bestPoke, setBestPoke] = useState<{ speciesId: number; name: string; level: number; power: number; eff: number } | null>(null);
   const [sellPokesToo, setSellPokesToo] = useState(false); // vender pokemon junto (mesma sessao)
 
   // resolve o sprite do pokemon (kill/catch so traz o nome) e o icone do loot (por nome:
@@ -123,7 +124,14 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
     send(body);
   };
   const huntDrops = (selected?.pokeId != null ? lootByPoke[selected.pokeId] : undefined) ?? [];
-  const openStart = () => { setSellDropIds(new Set()); setSellPokesToo(false); setDropsOpen(true); };
+  const openStart = () => {
+    setSellDropIds(new Set()); setSellPokesToo(false); setBestPoke(null); setDropsOpen(true);
+    // sugere o melhor pokemon do time pra esta hunt (reaproveita huntEffectiveness no servidor)
+    if (selected?.pokeId != null) {
+      fetch(`/api/vip/best-poke?pokeId=${selected.pokeId}`, { cache: "no-store" })
+        .then((r) => r.json()).then((j) => setBestPoke(j?.best ?? null)).catch(() => {});
+    }
+  };
 
   return (
     <div className="flex flex-col gap-4">
@@ -205,6 +213,17 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
           <Modal onClose={() => setDropsOpen(false)} className="w-full max-w-md p-4">
               <h3 className="section-title text-cyan">{t("robo.hunt.dropsTitle")}</h3>
               <p className="mt-1 text-[0.62rem] leading-relaxed text-text-dim">{t("robo.hunt.dropsDesc").replace("{hunt}", selected.name)}</p>
+
+              {/* sugestao: melhor pokemon do time pra esta hunt (so sugere; troca e no jogo) */}
+              {bestPoke && (
+                <div className="mt-3 flex items-center gap-2.5 rounded border border-[color:var(--cyan)]/40 bg-[var(--well-bg)] p-2.5">
+                  <Sprite src={spriteUrl(bestPoke.speciesId)} alt={bestPoke.name} size={30} />
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[0.72rem] text-text">{t("robo.hunt.bestPoke")}: <span className="font-semibold text-cyan">{bestPoke.name}</span> <span className="text-text-dim">Lv{bestPoke.level}</span></div>
+                    <div className="text-[0.58rem] leading-relaxed text-text-dim">{t("robo.hunt.bestPokeHint").replace("{x}", String(bestPoke.eff))}</div>
+                  </div>
+                </div>
+              )}
 
               {huntDrops.length > 0 ? (
                 <>

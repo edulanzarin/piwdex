@@ -7,7 +7,7 @@
 import { useEffect, useRef, useState } from "react";
 import { LoadingBall } from "./loaders";
 import { ToggleButton } from "./toggle-button";
-import { Caret, Infinity_ } from "./icons";
+import { Caret, Infinity_, Check } from "./icons";
 import { useT } from "./locale-provider";
 
 interface Auto {
@@ -100,45 +100,26 @@ function Row({ title, desc, children }: { title: string; desc?: string; children
   );
 }
 
+const CFG_FIELDS: Field[] = ["autoCatch", "autoCatchBallId", "autoCatchShiny", "autoCatchShinyBallId", "autoPotion", "autoPotionThreshold", "autoRevive", "selectedBallId"];
+
 export function RoboPanel() {
   const t = useT();
   const [st, setSt] = useState<Load>({ s: "loading" });
-  const [busy, setBusy] = useState<Field | null>(null);
-  const [threshold, setThreshold] = useState(50); // local pro slider (commit no soltar)
+  const [draft, setDraft] = useState<Auto | null>(null); // edicao local; so o Confirmar aplica no jogo
+  const [busy, setBusy] = useState(false);
+  const [saved, setSaved] = useState(false);
 
   const load = async () => {
     try {
       const res = await fetch("/api/vip/auto", { cache: "no-store" });
       const j = (await res.json().catch(() => ({}))) as { auto?: Auto; balls?: Ball[]; error?: string };
-      if (res.ok && j.auto) {
-        setSt({ s: "ok", auto: j.auto, balls: j.balls ?? [] });
-        setThreshold(j.auto.autoPotionThreshold);
-      } else {
-        setSt({ s: "error", code: j.error ?? "failed" });
-      }
+      if (res.ok && j.auto) { setSt({ s: "ok", auto: j.auto, balls: j.balls ?? [] }); setDraft(j.auto); }
+      else setSt({ s: "error", code: j.error ?? "failed" });
     } catch {
       setSt({ s: "error", code: "failed" });
     }
   };
   useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
-
-  const set = async (field: Field, value: number | boolean) => {
-    setBusy(field);
-    try {
-      const res = await fetch("/api/vip/auto", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ field, value }),
-      });
-      const j = (await res.json().catch(() => ({}))) as { auto?: Auto; balls?: Ball[] };
-      if (res.ok && j.auto) {
-        setSt({ s: "ok", auto: j.auto, balls: j.balls ?? [] });
-        setThreshold(j.auto.autoPotionThreshold);
-      }
-    } finally {
-      setBusy(null);
-    }
-  };
 
   if (st.s === "loading") return <div className="card p-6"><LoadingBall label={t("robo.loading")} /></div>;
   if (st.s === "error") {
@@ -147,67 +128,87 @@ export function RoboPanel() {
   }
 
   const a = st.auto;
+  const d = draft ?? a;
+  const edit = (p: Partial<Auto>) => setDraft((cur) => ({ ...(cur ?? a), ...p }));
+  const dirty = CFG_FIELDS.some((f) => d[f] !== a[f]);
+
+  // Confirmar: aplica no jogo SO os campos que mudaram (nao a cada tecla). Reaplicar a bola aqui
+  // e o que faz ela valer sem precisar desligar/ligar o auto-catch.
+  const confirm = async () => {
+    setBusy(true);
+    try {
+      for (const f of CFG_FIELDS) {
+        if (d[f] !== a[f]) {
+          await fetch("/api/vip/auto", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ field: f, value: d[f] }) });
+        }
+      }
+      await load();
+      setSaved(true); window.setTimeout(() => setSaved(false), 1500);
+    } finally { setBusy(false); }
+  };
+
   const sw = (field: Field, on: boolean, disabled?: boolean) => (
-    <ToggleButton active={on} accent="green" onClick={() => !disabled && set(field, !on)} title={disabled ? t("robo.vipOnly") : undefined}>
+    <ToggleButton active={on} accent="green" onClick={() => !disabled && edit({ [field]: !on } as Partial<Auto>)} title={disabled ? t("robo.vipOnly") : undefined}>
       <span className={`inline-block h-1.5 w-1.5 rounded-full ${on ? "pulse-soft" : ""}`} style={{ background: on ? "var(--green)" : "var(--text-dim)" }} />
-      {busy === field ? "…" : on ? t("robo.on") : t("robo.off")}
+      {on ? t("robo.on") : t("robo.off")}
     </ToggleButton>
   );
 
   return (
     <div className="flex flex-col gap-5">
-      <div>
-        <h2 className="section-title text-yellow">{t("robo.title")}</h2>
-        <p className="mt-2 max-w-2xl text-sm text-text-dim">{t("robo.desc")}</p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="section-title text-yellow">{t("robo.title")}</h2>
+          <p className="mt-2 max-w-2xl text-sm text-text-dim">{t("robo.desc")}</p>
+        </div>
+        <div className="flex items-center gap-2">
+          {saved && <span className="text-[0.66rem] font-semibold text-green">{t("robo.pokes.saved")}</span>}
+          <button type="button" onClick={confirm} disabled={!dirty || busy} className="btn btn-cyan disabled:opacity-40"><Check size={11} /> {busy ? "…" : t("robo.pokes.commit")}</button>
+        </div>
       </div>
 
       <div className="card z-20 flex flex-col p-5">
         <Row title={t("robo.autoCatch")} desc={a.isVip ? t("robo.autoCatch.desc") : t("robo.vipOnly")}>
-          {sw("autoCatch", a.autoCatch, !a.isVip)}
+          {sw("autoCatch", d.autoCatch, !a.isVip)}
         </Row>
-        {a.autoCatch && a.isVip && (
+        {d.autoCatch && a.isVip && (
           <Row title={t("robo.catchBall")} desc={t("robo.catchBall.desc")}>
-            <BallSelect balls={st.balls} value={a.autoCatchBallId} onChange={(id) => set("autoCatchBallId", id)} disabled={busy === "autoCatchBallId"} />
+            <BallSelect balls={st.balls} value={d.autoCatchBallId} onChange={(id) => edit({ autoCatchBallId: id })} />
           </Row>
         )}
 
         <Row title={t("robo.autoShiny")} desc={t("robo.autoShiny.desc")}>
-          {sw("autoCatchShiny", a.autoCatchShiny, !a.isVip)}
+          {sw("autoCatchShiny", d.autoCatchShiny, !a.isVip)}
         </Row>
-        {a.autoCatchShiny && a.isVip && (
+        {d.autoCatchShiny && a.isVip && (
           <Row title={t("robo.shinyBall")} desc={t("robo.shinyBall.desc")}>
-            <BallSelect balls={st.balls} value={a.autoCatchShinyBallId} onChange={(id) => set("autoCatchShinyBallId", id)} disabled={busy === "autoCatchShinyBallId"} />
+            <BallSelect balls={st.balls} value={d.autoCatchShinyBallId} onChange={(id) => edit({ autoCatchShinyBallId: id })} />
           </Row>
         )}
 
         <Row title={t("robo.autoPotion")} desc={t("robo.autoPotion.desc")}>
-          {sw("autoPotion", a.autoPotion)}
+          {sw("autoPotion", d.autoPotion)}
         </Row>
-        {a.autoPotion && (
-          <Row title={t("robo.threshold")} desc={t("robo.threshold.desc", { n: threshold })}>
+        {d.autoPotion && (
+          <Row title={t("robo.threshold")} desc={t("robo.threshold.desc", { n: d.autoPotionThreshold })}>
             <div className="flex items-center gap-3">
               <input
-                type="range"
-                min={5}
-                max={95}
-                step={5}
-                value={threshold}
-                onChange={(e) => setThreshold(Number(e.target.value))}
-                onPointerUp={() => threshold !== a.autoPotionThreshold && set("autoPotionThreshold", threshold)}
-                onKeyUp={() => threshold !== a.autoPotionThreshold && set("autoPotionThreshold", threshold)}
+                type="range" min={5} max={95} step={5}
+                value={d.autoPotionThreshold}
+                onChange={(e) => edit({ autoPotionThreshold: Number(e.target.value) })}
                 className="w-40 accent-[color:var(--yellow)]"
               />
-              <span className="w-9 text-right text-sm font-semibold tabular-nums text-yellow">{threshold}%</span>
+              <span className="w-9 text-right text-sm font-semibold tabular-nums text-yellow">{d.autoPotionThreshold}%</span>
             </div>
           </Row>
         )}
 
         <Row title={t("robo.autoRevive")} desc={t("robo.autoRevive.desc")}>
-          {sw("autoRevive", a.autoRevive)}
+          {sw("autoRevive", d.autoRevive)}
         </Row>
 
         <Row title={t("robo.selectedBall")} desc={t("robo.selectedBall.desc")}>
-          <BallSelect balls={st.balls} value={a.selectedBallId} onChange={(id) => set("selectedBallId", id)} disabled={busy === "selectedBallId"} />
+          <BallSelect balls={st.balls} value={d.selectedBallId} onChange={(id) => edit({ selectedBallId: id })} />
         </Row>
       </div>
     </div>
