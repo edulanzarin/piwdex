@@ -4,6 +4,7 @@ import { gameFetch, parseTokens } from "@/lib/game-auth";
 import { saveGameLink, saveGameShard, saveTeamSnapshot } from "@/lib/game-link";
 import { fetchActivePokes } from "@/lib/game-ws";
 import { normalizeActivePokes } from "@/lib/game-account";
+import { resumeRobotSessions } from "@/lib/robot-boot";
 
 export const runtime = "nodejs";
 
@@ -55,6 +56,11 @@ export async function POST(req: Request) {
       await saveTeamSnapshot(session.user.id, team, all.length);
     }
   } catch { /* time fica pra um "atualizar" na Conta */ }
+
+  // Vinculo renovado: se o robo estava com estado desejado ligado (a conexao caiu porque o
+  // token venceu, nao porque o usuario desligou), ele RETOMA sozinho — reconectar com o
+  // bookmark e a unica acao do usuario, o resto volta ao que era.
+  setTimeout(() => { void resumeRobotSessions().catch(() => {}); }, 1_000);
 
   return NextResponse.json({ ok: true });
 }

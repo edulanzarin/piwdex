@@ -69,9 +69,15 @@ function VipShellInner({ creatures, dex, hunts, itemIcons, lootByPoke }: VipShel
   const [focusWish, setFocusWish] = useState<string | null>(null);
 
   useEffect(() => {
-    const h = window.location.hash.replace("#", "");
-    if (isSection(h)) setSec(h);
-    else if (LEGACY[h]) setSec(LEGACY[h]);
+    const apply = () => {
+      const h = window.location.hash.replace("#", "");
+      if (isSection(h)) setSec(h);
+      else if (LEGACY[h]) setSec(LEGACY[h]);
+    };
+    apply();
+    // links tipo <a href="#conta"> (ex.: aviso de vinculo expirado no HUD) trocam a secao
+    window.addEventListener("hashchange", apply);
+    return () => window.removeEventListener("hashchange", apply);
   }, []);
 
   const go = (v: Section) => {

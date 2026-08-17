@@ -116,6 +116,20 @@ export function VipOverview({
 
   return (
     <div className="flex flex-col gap-4">
+      {/* APITO: o jogo invalidou o vinculo — precisa do bookmark UMA vez de novo */}
+      {account?.reason === "expired" && (
+        <div className="flash-in flex flex-wrap items-center gap-3 rounded border border-red/60 bg-[color:var(--red)]/10 px-4 py-3"
+          style={{ "--accent": "var(--red)" } as React.CSSProperties}>
+          <span className="hud-led pulse-soft shrink-0" style={{ "--led": "var(--red)" } as React.CSSProperties} />
+          <span className="pixel text-[0.62rem] text-red">{t("vip.conn.expired")}</span>
+          <span className="text-[0.62rem] text-text-dim">{t("vip.conn.expiredHint")}</span>
+          <span className="ms-auto" />
+          <button type="button" onClick={() => onGo("conta")} className="btn btn-pink">
+            {t("vip.conn.expiredCta")} <ChevronRight size={9} />
+          </button>
+        </div>
+      )}
+
       {/* APITO: quer conectado mas a conexao falhou/caiu */}
       {troubled && (
         <div className="flash-in flex flex-wrap items-center gap-3 rounded border border-red/60 bg-[color:var(--red)]/10 px-4 py-3"

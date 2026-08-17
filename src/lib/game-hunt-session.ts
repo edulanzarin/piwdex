@@ -818,6 +818,27 @@ class GameSession {
   }
 }
 
-// singleton por processo (sobrevive entre requests no server long-lived)
-const g = globalThis as unknown as { __piwSession?: GameSession };
-export const gameSession: GameSession = g.__piwSession ?? (g.__piwSession = new GameSession());
+// singleton por processo (sobrevive entre requests no server long-lived).
+// SESSION_REV: bump SEMPRE que a classe ganhar/mudar metodo — no dev, o hot-reload
+// re-avalia o modulo mas a instancia antiga (prototype velho) fica presa no globalThis;
+// sem o rev, chamar um metodo novo dava "is not a function" ate reiniciar o server.
+const SESSION_REV = 2;
+const g = globalThis as unknown as { __piwSession?: GameSession; __piwSessionRev?: number };
+if (!g.__piwSession || g.__piwSessionRev !== SESSION_REV) {
+  // silencia a instancia velha SEM persistir nada (stop() gravaria enabled=false no banco
+  // e apagaria a intencao do usuario so por causa de um hot-reload)
+  try {
+    const old = g.__piwSession as unknown as Record<string, unknown> | undefined;
+    if (old) {
+      old.desiredOn = false; old.holdOpen = false;
+      for (const k of ["analyzerPoll", "pokesPoll", "dropTimer", "buyTimer"]) {
+        const t = old[k]; if (t) clearInterval(t as ReturnType<typeof setInterval>);
+      }
+      const rt = old.reconnectTimer; if (rt) clearTimeout(rt as ReturnType<typeof setTimeout>);
+      (old.ws as { close?: () => void } | null | undefined)?.close?.();
+    }
+  } catch { /* melhor um socket orfao no dev que derrubar o modulo */ }
+  g.__piwSession = new GameSession();
+  g.__piwSessionRev = SESSION_REV;
+}
+export const gameSession: GameSession = g.__piwSession;

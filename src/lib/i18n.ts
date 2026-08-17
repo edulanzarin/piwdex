@@ -627,7 +627,10 @@ const pt: Dict = {
   // conexao-primeiro (o robo toma a sessao e segura)
   "vip.conn.connect": "Ligar o robo",
   "vip.conn.disconnect": "Desligar o robo",
-  "vip.conn.connectDesc": "Liga o robo: ele toma a sessao da sua conta e segura (a aba do jogo cai em 'conta em uso'). Dai o time fica ao vivo, a troca de lider e instantanea e as hunts ligam na mesma conexao.",
+  "vip.conn.connectDesc": "Liga o robo: ele toma a sessao da sua conta e segura (a aba do jogo cai em 'conta em uso'). Time ao vivo, troca de lider instantanea e hunts na mesma conexao. O vinculo do jogo e UMA vez so — o piwdex renova o acesso sozinho, mesmo voce relogando no jogo.",
+  "vip.conn.expired": "Vinculo com o jogo expirou",
+  "vip.conn.expiredHint": "O jogo invalidou o acesso (raro). Reconecte com o botao UMA vez e o piwdex volta a manter sozinho.",
+  "vip.conn.expiredCta": "Reconectar",
   "vip.conn.connected": "Conectado",
   "vip.conn.hunting": "Cacando",
   "vip.conn.off": "Desligado",

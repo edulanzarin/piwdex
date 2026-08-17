@@ -108,8 +108,17 @@ export function VipHud({ hunts }: { hunts: HuntOption[] }) {
         )}
       </span>
 
+      {/* vinculo com o jogo expirou: APITA e leva pro reconectar (uma vez so) */}
+      {account?.reason === "expired" && (
+        <a href="#conta" className="flash-in inline-flex items-center gap-1.5 rounded border border-red/60 bg-[color:var(--red)]/10 px-2 py-1 text-[0.56rem] font-semibold text-red"
+          style={{ "--accent": "var(--red)" } as React.CSSProperties}>
+          <span className="hud-led pulse-soft" style={{ "--led": "var(--red)" } as React.CSSProperties} />
+          {t("vip.conn.expired")}
+        </a>
+      )}
+
       {/* conectar rapido direto do HUD */}
-      {!holdOpen && status !== "connecting" && (
+      {!holdOpen && status !== "connecting" && account?.reason !== "expired" && (
         <button type="button" onClick={() => void connect()} disabled={busy} className="btn btn-green !min-h-0 !px-2.5 !py-1 !text-[0.5rem] disabled:opacity-40">
           {t("vip.conn.connect")}
         </button>
