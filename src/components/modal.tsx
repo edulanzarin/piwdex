@@ -3,8 +3,13 @@
 // Casca de modal reusavel: overlay escurecido, fecha por clique fora e por Esc, e
 // trava o scroll do body enquanto aberto. O conteudo (e o botao de fechar) vem do
 // chamador. Usada pelo modal de anuncio do mercado e pelo peek das hunts.
+//
+// Renderiza num PORTAL no <body>: `position: fixed` dentro de ancestral com transform/
+// filter vira relativo ao ancestral (containing block), e o modal ficava preso dentro
+// do card, por baixo do resto da pagina. No body, e overlay de verdade, sempre por cima.
 
 import { useEffect } from "react";
+import { createPortal } from "react-dom";
 
 export function Modal({
   onClose,
@@ -28,8 +33,8 @@ export function Modal({
     };
   }, [onClose]);
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onClose}>
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4" onClick={onClose}>
       <div
         role="dialog"
         aria-modal="true"
@@ -39,6 +44,7 @@ export function Modal({
       >
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
