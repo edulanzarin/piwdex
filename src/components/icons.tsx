@@ -127,6 +127,51 @@ export function Clock({ size = 12, className = "" }: { size?: number; className?
   return <Glyph size={size} dx={2} dy={2} className={className} rows={["..####..", ".#....#.", "#..#...#", "#..##..#", "#......#", ".#....#.", "..####.."]} />;
 }
 
+/** Caret pra baixo (dropdown). Triangulo cheio, mesmo desenho da seta do select nativo. */
+export function Caret({ size = 12, className = "" }: { size?: number; className?: string }) {
+  return <Glyph size={size} dx={2} dy={4} className={className} rows={["#######", ".#####.", "..###..", "...#..."]} />;
+}
+
+/** Check (confirmado, aplicado, sucesso). Herda currentColor. */
+export function Check({ size = 12, className = "" }: { size?: number; className?: string }) {
+  return <Glyph size={size} dx={2} dy={3} className={className} rows={[".......#", "......##", ".....##.", "#...##..", "##.##...", ".###....", "..#....."]} />;
+}
+
+/** X de fechar/remover. Herda currentColor. */
+export function Close({ size = 12, className = "" }: { size?: number; className?: string }) {
+  return <Glyph size={size} dx={2} dy={2} className={className} rows={["##...##", ".##.##.", "..###..", "...#...", "..###..", ".##.##.", "##...##"]} />;
+}
+
+/** Chevron pra esquerda (paginacao anterior). */
+export function ChevronLeft({ size = 12, className = "" }: { size?: number; className?: string }) {
+  return <Glyph size={size} dx={4} dy={3} className={className} rows={["..##", ".##.", "##..", ".##.", "..##"]} />;
+}
+
+/** Chevron pra direita (paginacao proxima, "ir pra"). */
+export function ChevronRight({ size = 12, className = "" }: { size?: number; className?: string }) {
+  return <Glyph size={size} dx={4} dy={3} className={className} rows={["##..", ".##.", "..##", ".##.", "##.."]} />;
+}
+
+/** Mais (adicionar, incrementar). */
+export function Plus({ size = 12, className = "" }: { size?: number; className?: string }) {
+  return <Glyph size={size} dx={2} dy={2} className={className} rows={["...##...", "...##...", "...##...", "########", "########", "...##...", "...##..."]} />;
+}
+
+/** Menos (remover, decrementar). */
+export function Minus({ size = 12, className = "" }: { size?: number; className?: string }) {
+  return <Glyph size={size} dx={2} dy={5} className={className} rows={["########", "########"]} />;
+}
+
+/** Infinito (ilimitado, sem cap). */
+export function Infinity_({ size = 14, className = "" }: { size?: number; className?: string }) {
+  return <Glyph size={size} dx={1} dy={4} className={className} rows={[".##...##.", "#..#.#..#", "#..#.#..#", ".##...##."]} />;
+}
+
+/** Seta pra baixo (download, baixar/importar bookmarklet). */
+export function ArrowDown({ size = 12, className = "" }: { size?: number; className?: string }) {
+  return <Glyph size={size} dx={2} dy={2} className={className} rows={["...##...", "...##...", "...##...", "########", ".######.", "..####..", "...##..."]} />;
+}
+
 /** Preco em dolares do jogo: moeda + valor. */
 export function Gold({ value, className = "" }: { value: number; className?: string }) {
   return (

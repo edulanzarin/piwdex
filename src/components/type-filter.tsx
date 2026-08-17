@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { PokeType } from "@/lib/types";
 import { ALL_TYPES, TYPE_COLOR } from "@/lib/typing";
 import { TypeIcon } from "./type-icon";
+import { Caret } from "./icons";
 import { useT, useTypeLabel } from "./locale-provider";
 
 /** Dropdown de tipo totalmente estilizado (sem <select> nativo): icone pixel + cor.
@@ -66,7 +67,9 @@ export function TypeFilter({
             <span className="text-text-dim">{t("dex.allTypes")}</span>
           )}
         </span>
-        <span className="text-cyan text-[0.6rem]" style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform .15s" }}>▼</span>
+        <span className="inline-flex text-cyan" style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform .15s" }}>
+          <Caret size={9} />
+        </span>
       </button>
 
       {open && (

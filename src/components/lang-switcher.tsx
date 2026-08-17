@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { LOCALES, type Locale } from "@/lib/i18n";
+import { Caret } from "./icons";
 import { useLocale } from "./locale-provider";
 
 function Flag({ code }: { code: Locale }) {
@@ -60,7 +61,9 @@ export function LangSwitcher() {
       >
         <Flag code={current.code} />
         <span>{current.label}</span>
-        <span className="text-[0.5rem] text-text-dim">▾</span>
+        <span className="inline-flex text-text-dim" style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform .15s" }}>
+          <Caret size={8} />
+        </span>
       </button>
       {open && (
         <div className="absolute right-0 z-50 mt-1 w-40 overflow-hidden rounded border border-[color:var(--border-strong)] bg-[#0b1122] shadow-[0_10px_40px_-10px_rgba(0,0,0,0.8)]">

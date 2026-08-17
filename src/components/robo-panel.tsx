@@ -7,6 +7,7 @@
 import { useEffect, useRef, useState } from "react";
 import { LoadingBall } from "./loaders";
 import { ToggleButton } from "./toggle-button";
+import { Caret, Infinity_ } from "./icons";
 import { useT } from "./locale-provider";
 
 interface Auto {
@@ -58,7 +59,9 @@ function BallSelect({ balls, value, onChange, disabled }: { balls: Ball[]; value
           )}
           <span className="truncate">{cur?.name ?? `#${value}`}</span>
         </span>
-        <span className="text-cyan text-[0.6rem]" style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform .15s" }}>▼</span>
+        <span className="inline-flex text-cyan" style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform .15s" }}>
+          <Caret size={9} />
+        </span>
       </button>
       {open && (
         <div role="listbox" className="card fadein absolute z-30 mt-1 max-h-64 w-full overflow-auto p-1" style={{ background: "var(--surface-solid)" }}>
@@ -74,7 +77,7 @@ function BallSelect({ balls, value, onChange, disabled }: { balls: Ball[]; value
                 <img src={b.iconUrl} alt="" width={18} height={18} className="[image-rendering:pixelated]" />
               )}
               <span className="min-w-0 flex-1 truncate">{b.name}</span>
-              <span className="shrink-0 text-[0.6rem] text-text-dim">{b.infinite ? "∞" : b.count}</span>
+              <span className="flex shrink-0 items-center text-[0.6rem] text-text-dim">{b.infinite ? <Infinity_ size={13} /> : b.count}</span>
             </button>
           ))}
         </div>

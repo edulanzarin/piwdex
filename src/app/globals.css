@@ -23,6 +23,13 @@
 
   --accent: var(--cyan);
   --glow: 0 0 0 1px rgba(55, 211, 230, 0.35), 0 0 22px -6px rgba(55, 211, 230, 0.55);
+
+  /* Altura fechada dos controles: TODO input/select/botao de linha usa a mesma,
+     pra filtro e formulario alinharem. Grade numerica densa usa a -sm. */
+  --control-h: 2.25rem;
+  --control-h-sm: 1.85rem;
+  /* fundo padrao do "poco" (mini-tile encaixado): um alfa so, nada de 0.5/0.6/0.7 solto */
+  --well-bg: rgba(8, 14, 28, 0.6);
 }
 
 @theme inline {
@@ -37,6 +44,7 @@
   --color-blue: var(--blue);
   --color-purple: var(--purple);
   --color-yellow: var(--yellow);
+  --color-pink: var(--pink);
   --color-red: var(--red);
   --font-pixel: var(--font-pixel), monospace;
   --font-mono: var(--font-mono), ui-monospace, monospace;
@@ -147,7 +155,8 @@ img { image-rendering: pixelated; }
     align-items: center;
     justify-content: center;
     gap: 0.4rem;
-    padding: 0.6rem 1rem;
+    min-height: var(--control-h);
+    padding: 0.5rem 1rem;
     border-radius: 0.3rem;
     font-family: var(--font-pixel), monospace;
     font-size: 0.62rem;
@@ -155,29 +164,57 @@ img { image-rendering: pixelated; }
     text-transform: uppercase;
     border: 1px solid transparent;
     cursor: pointer;
-    transition: filter 0.15s, box-shadow 0.15s;
+    transition: filter 0.15s, box-shadow 0.15s, transform 0.1s;
   }
   .btn:hover { filter: brightness(1.12); box-shadow: 0 0 18px -6px currentColor; }
+  .btn:active { transform: translateY(1px); }
+  .btn:disabled { cursor: not-allowed; filter: none; box-shadow: none; }
+  /* variantes solidas: so a COR muda a intencao (o tamanho e fechado). Todo tool
+     usa a classe do seu acento em vez de style inline com var(). */
   .btn-cyan { background: var(--cyan); color: #06131a; }
   .btn-green { background: var(--green); color: #052012; }
+  .btn-blue { background: var(--blue); color: #041022; }
+  .btn-purple { background: var(--purple); color: #140a26; }
+  .btn-yellow { background: var(--yellow); color: #2a2200; }
+  .btn-pink { background: var(--pink); color: #2a0a10; }
   .btn-ghost {
     background: transparent;
     border-color: var(--border);
     color: var(--text);
   }
   .btn-ghost:hover { border-color: var(--border-strong); color: #fff; }
+  /* botao-icone quadrado (fechar, remover, acao compacta): mesmo dialeto ghost */
+  .icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.25rem;
+    padding: 0.3rem;
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, transform 0.1s;
+  }
+  .icon-btn:hover { background: var(--surface-2); color: var(--text); }
+  .icon-btn:active { transform: translateY(1px); }
 
   .input {
     width: 100%;
+    min-height: var(--control-h);
     background: rgba(8, 14, 28, 0.7);
     border: 1px solid var(--border);
     border-radius: 0.3rem;
-    padding: 0.55rem 0.75rem;
+    padding: 0.4rem 0.75rem;
     color: var(--text);
     font-family: var(--font-mono), monospace;
     outline: none;
   }
   .input:focus { border-color: var(--border-strong); box-shadow: var(--glow); }
+  /* variante compacta: SO pra grade numerica densa (celulas de IV, etc.) */
+  .input-sm {
+    min-height: var(--control-h-sm);
+    padding: 0.25rem 0.5rem;
+    font-size: 0.8rem;
+  }
 
   /* select totalmente estilizado: seta custom (SVG cyan), sem UI nativa */
   select.input {
@@ -192,6 +229,37 @@ img { image-rendering: pixelated; }
   select.input option {
     background: #0d1428;
     color: var(--text);
+  }
+
+  /* rotulo padrao acima de um campo: um tamanho so em todo o site */
+  .field-label {
+    font-size: 0.58rem;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+  }
+
+  /* titulo de secao dentro de um card: um tamanho so (pixel) */
+  .section-title {
+    font-family: var(--font-pixel), monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.02em;
+    color: var(--text);
+    line-height: 1.4;
+  }
+
+  /* "poco": mini-tile encaixado (label + valor, stat solto). Um alfa, um raio. */
+  .well {
+    border: 1px solid var(--border);
+    background: var(--well-bg);
+    border-radius: 0.3rem;
+    padding: 0.5rem 0.75rem;
+  }
+  .well-hover { transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s; }
+  .well-hover:hover {
+    border-color: var(--border-strong);
+    box-shadow: var(--glow);
+    transform: translateY(-1px);
   }
 
   .tab {
@@ -235,6 +303,21 @@ img { image-rendering: pixelated; }
 
   @keyframes spin { to { transform: rotate(360deg); } }
   .spin { animation: spin 0.9s linear infinite; }
+
+  /* pulso suave de opacidade — leds vivos, badges "ao vivo", pontos de status */
+  @keyframes pulse-soft { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+  .pulse-soft { animation: pulse-soft 1.6s ease-in-out infinite; }
+
+  /* brilho pulsante do acento (borda/sombra) — destaque "ativo" sem trocar layout */
+  @keyframes glow-pulse {
+    0%, 100% { box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent), 0 0 14px -8px var(--accent); }
+    50% { box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 55%, transparent), 0 0 22px -4px var(--accent); }
+  }
+  .glow-pulse { animation: glow-pulse 2s ease-in-out infinite; }
+
+  /* aparece deslizando de baixo (itens de lista/painel que entram) */
+  @keyframes rise-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  .rise-in { animation: rise-in 0.3s ease-out both; }
 
   /* pokebola tentando capturar: chacoalha pros lados */
   @keyframes wiggle {
@@ -410,5 +493,6 @@ img { image-rendering: pixelated; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .pkdx-float, .bounce-y, .wiggle, .spin, .scanline { animation: none; }
+  .pkdx-float, .bounce-y, .wiggle, .spin, .scanline,
+  .pulse-soft, .glow-pulse, .rise-in { animation: none; }
 }
