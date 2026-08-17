@@ -116,20 +116,26 @@ export function PokeSeller() {
   const [cfg, setCfg] = useState<PokeSellConfig>(DEFAULTS);
   const [savedCfg, setSavedCfg] = useState<PokeSellConfig>(DEFAULTS);
   const [saved, setSaved] = useState(false);
+  // switch mestre EDITAVEL como o resto do card: so o Confirmar comita (e ai persiste
+  // e aplica na sessao viva). Ligar o toggle sem confirmar nao faz nada — sem pegadinha.
   const [sellOn, setSellOn] = useState(false);
+  const [savedSellOn, setSavedSellOn] = useState(false);
   const [busy, setBusy] = useState(false);
 
   // hidrata do localStorage so no cliente (evita mismatch de SSR)
   useEffect(() => {
     const c = load(); setCfg(c); setSavedCfg(c);
-    try { setSellOn(window.localStorage.getItem(ON_KEY) === "1"); } catch { /* fica off */ }
+    try {
+      const on = window.localStorage.getItem(ON_KEY) === "1";
+      setSellOn(on); setSavedSellOn(on);
+    } catch { /* fica off */ }
   }, []);
 
   // edita SO em memoria (nunca salva a cada tecla) — o botao Confirmar e que comita.
   const edit = (p: Partial<PokeSellConfig>) => setCfg((c) => ({ ...c, ...p }));
-  const dirty = JSON.stringify(cfg) !== JSON.stringify(savedCfg);
+  const dirty = JSON.stringify(cfg) !== JSON.stringify(savedCfg) || sellOn !== savedSellOn;
 
-  // liga a venda NA SESSAO VIVA agora (se o robo estiver conectado). 409 = sem vinculo:
+  // aplica a venda NA SESSAO VIVA agora (se o robo estiver conectado). 409 = sem vinculo:
   // fica so o estado local, que ja vale no proximo inicio de hunt.
   const pushLive = async (on: boolean, config: PokeSellConfig) => {
     setBusy(true);
@@ -145,25 +151,22 @@ export function PokeSeller() {
   };
 
   const confirm = () => {
-    try { window.localStorage.setItem(KEY, JSON.stringify(cfg)); } catch {}
-    setSavedCfg(cfg);
+    if (busy) return;
+    if (sellOn && !cfg.sellRarities.length) { toast.error(t("robo.pokes.needRarity")); return; }
+    try {
+      window.localStorage.setItem(KEY, JSON.stringify(cfg));
+      window.localStorage.setItem(ON_KEY, sellOn ? "1" : "0");
+    } catch { /* best-effort */ }
+    const wasOn = savedSellOn;
+    setSavedCfg(cfg); setSavedSellOn(sellOn);
     setSaved(true);
     window.setTimeout(() => setSaved(false), 1500);
-    // venda ligada: reaplica a config nova na sessao viva na hora
-    if (sellOn && cfg.sellRarities.length) void pushLive(true, cfg);
+    // sessao viva: ligada (ou config nova com venda ja ligada) reaplica; desligou, para
+    if (sellOn) void pushLive(true, cfg);
+    else if (wasOn) void pushLive(false, cfg);
   };
 
-  // switch mestre: persiste (mesma chave do checkbox da hunt) e aplica na sessao viva.
-  // Ligar tambem COMITA as travas atuais — ligar com edicao pendente sem salvar seria pegadinha.
-  const toggleSell = () => {
-    if (busy) return;
-    const next = !sellOn;
-    if (next && !cfg.sellRarities.length) { toast.error(t("robo.pokes.needRarity")); return; }
-    setSellOn(next);
-    try { window.localStorage.setItem(ON_KEY, next ? "1" : "0"); } catch { /* best-effort */ }
-    if (next) { try { window.localStorage.setItem(KEY, JSON.stringify(cfg)); } catch {} setSavedCfg(cfg); }
-    void pushLive(next, cfg);
-  };
+  const toggleSell = () => setSellOn((v) => !v);
 
   const toggleRarity = (r: Rarity) =>
     edit({ sellRarities: cfg.sellRarities.includes(r) ? cfg.sellRarities.filter((x) => x !== r) : [...cfg.sellRarities, r] });
