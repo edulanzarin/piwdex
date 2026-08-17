@@ -1,74 +1,74 @@
 "use client";
 
-// Chamariz de VIP pra quem NAO e VIP (deslogado ou logado sem assinatura). Dois modos:
-//   - RODAPE estatico no fim da pagina (nao fecha) — sempre o ultimo bloco.
-//   - BARRA fixa no rodape da viewport (fecha no X) enquanto voce rola; some assim que o
-//     rodape estatico entra em cena (ai ele "estaciona" no fim).
-// Some na propria area VIP e nas telas de login/conexao. Path pelo cliente (usePathname).
+// Chamariz pra quem NAO e VIP: UMA barra FLUTUANTE no rodape da viewport (pill com margem,
+// borda e sombra — nao encosta nas beiradas), fecha no X e some sozinha ao chegar no fim da
+// pagina (pra nao cobrir o ultimo conteudo). Dois caminhos:
+//   - ASSINAR VIP -> /vip (libera o robo).
+//   - JOGAR COM MEU LINK -> abre o jogo pela indicacao do Eduardo (quem entra por ali
+//     fortalece a conta que move o piwdex). Link de indicacao publico, confirmado por ele.
+// Some na propria area VIP e nas telas de login/conexao, e pra quem ja e VIP.
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useT } from "./locale-provider";
 import { CloseButton } from "./icon-button";
-import { Star, ChevronRight } from "./icons";
+import { Robot, ChevronRight } from "./icons";
 
 const HIDDEN = ["/vip", "/entrar", "/criar-conta", "/conectar"];
+// Link de indicacao do Poke Idle World (codigo do Eduardo). Trocar aqui se o codigo mudar.
+const REF_URL = "https://poke.idleworld.online/?ref=DQVF6Q2";
 
 export function VipCta({ vip }: { vip: boolean }) {
   const t = useT();
   const pathname = usePathname();
-  const footerRef = useRef<HTMLDivElement>(null);
   const [dismissed, setDismissed] = useState(false);
-  const [footerVisible, setFooterVisible] = useState(false);
+  const [nearBottom, setNearBottom] = useState(false);
 
+  // some ao chegar no fim: se a pagina ROLA e voce esta nos ultimos ~140px, esconde (nao
+  // tapa o rodape/ultimo conteudo). Pagina curta (sem rolagem) mantem a barra visivel.
   useEffect(() => {
-    const el = footerRef.current;
-    if (!el) return;
-    const io = new IntersectionObserver(([e]) => setFooterVisible(e.isIntersecting));
-    io.observe(el);
-    return () => io.disconnect();
-  }, []);
+    const onScroll = () => {
+      const doc = document.documentElement;
+      const scrollable = doc.scrollHeight > window.innerHeight + 8;
+      const reached = window.scrollY + window.innerHeight >= doc.scrollHeight - 140;
+      setNearBottom(scrollable && reached);
+    };
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+    };
+  }, [pathname]);
 
   if (vip) return null;
   if (HIDDEN.some((h) => pathname === h || pathname.startsWith(`${h}/`))) return null;
+  if (dismissed || nearBottom) return null;
 
   return (
-    <>
-      {/* rodape estatico — nao fecha */}
-      <div ref={footerRef} className="container-page pb-8 pt-4">
-        <div
-          className="card flex flex-col items-start gap-4 p-5 sm:flex-row sm:items-center sm:justify-between"
-          style={{ borderColor: "color-mix(in srgb, var(--yellow) 45%, transparent)", background: "rgba(240,200,60,0.05)" }}
+    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center px-3 pb-3">
+      <div className="pointer-events-auto flex w-full max-w-3xl items-center gap-3 rounded-xl border border-[color:var(--yellow)]/45 bg-[color:var(--surface-solid)]/95 px-4 py-3 shadow-[0_10px_36px_rgba(0,0,0,0.55)] backdrop-blur">
+        <span className="hidden shrink-0 text-yellow sm:block"><Robot size={18} /></span>
+        <div className="min-w-0 flex-1">
+          <div className="section-title text-yellow">{t("vipcta.title")}</div>
+          <p className="mt-0.5 truncate text-[0.62rem] text-text-dim">{t("vipcta.desc")}</p>
+        </div>
+        <a
+          href={REF_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="btn btn-ghost hidden shrink-0 sm:inline-flex"
+          title={t("vipcta.playHint")}
         >
-          <div className="min-w-0">
-            <div className="section-title flex items-center gap-2 text-yellow">
-              <Star size={13} /> {t("vipcta.title")}
-            </div>
-            <p className="mt-2 max-w-2xl text-[0.72rem] leading-relaxed text-text-dim">{t("vipcta.desc")}</p>
-          </div>
-          <Link href="/vip" className="btn btn-yellow shrink-0">
-            {t("vipcta.btn")} <ChevronRight size={10} />
-          </Link>
-        </div>
+          {t("vipcta.play")} <ChevronRight size={10} />
+        </a>
+        <Link href="/vip" className="btn btn-yellow shrink-0">
+          {t("vipcta.btn")} <ChevronRight size={10} />
+        </Link>
+        <CloseButton onClick={() => setDismissed(true)} title={t("robo.hunt.close")} className="shrink-0" />
       </div>
-
-      {/* barra fixa na viewport — fecha no X; some quando o rodape aparece */}
-      {!dismissed && !footerVisible && (
-        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[color:var(--yellow)]/40 bg-[color:var(--surface-solid)] shadow-[0_-4px_20px_rgba(0,0,0,0.45)]">
-          <div className="container-page flex items-center gap-3 py-3">
-            <Star size={14} className="shrink-0 text-yellow" />
-            <div className="min-w-0 flex-1">
-              <div className="section-title text-yellow">{t("vipcta.title")}</div>
-              <p className="mt-0.5 hidden truncate text-[0.62rem] text-text-dim sm:block">{t("vipcta.desc")}</p>
-            </div>
-            <Link href="/vip" className="btn btn-yellow shrink-0">
-              {t("vipcta.btn")} <ChevronRight size={10} />
-            </Link>
-            <CloseButton onClick={() => setDismissed(true)} title={t("robo.hunt.close")} className="shrink-0" />
-          </div>
-        </div>
-      )}
-    </>
+    </div>
   );
 }
