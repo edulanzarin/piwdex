@@ -657,8 +657,12 @@ const pt: Dict = {
   "vip.chat.annRunning": "Mandando a cada {n}min no canal {c}.",
   "vip.chat.cooldownHint": "Anti-flood do jogo: da pra mandar de novo em {s}s.",
 
+  "vip.chat.system": "Sistema",
+
   // toasts (confirmacao de acao, padrao do site)
   "toast.chatSent": "Mensagem enviada",
+  "toast.chatRejected": "O jogo recusou a mensagem (conteudo nao permitido). Corrige e manda de novo — sem cooldown.",
+  "toast.chatNoEcho": "O jogo nao confirmou o envio. Tenta de novo — sem cooldown.",
   "toast.chatCooldown": "Chat em cooldown — espera {s}s",
   "toast.annOn": "Anuncio automatico ligado",
   "toast.annOff": "Anuncio automatico desligado",

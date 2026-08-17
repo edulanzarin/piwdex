@@ -198,7 +198,11 @@ class GameSession {
   private announce: AnnounceCfg | null = null;
   private announceTimer: ReturnType<typeof setInterval> | null = null;
   private lastSentAt: number | null = null;
-  private selfName: string | null = null; // nome do jogador (rotula o envio otimista)
+  private selfName: string | null = null; // nome do jogador (casa o eco do envio)
+  // envio aguardando veredito: o jogo ECOA a mensagem aceita (frame chat com seu nome) e
+  // manda um frame de sistema SEM remetente quando recusa ("nao e permitida"). So o eco
+  // confirma o envio — e so envio confirmado arma o cooldown.
+  private pendingSend: { text: string; resolve: (r: "ok" | "rejected" | "timeout") => void } | null = null;
   private debugFrames: { at: number; type: string; raw: string }[] = [];
 
   private jobsActive() { return this.slug != null || this.pokeCfg != null || this.holdOpen; }
@@ -264,24 +268,44 @@ class GameSession {
     };
   }
 
-  /** Manda mensagem no chat do jogo pela sessao viva, com COOLDOWN anti-flood (o jogo
-   *  limita ~1 msg/min; barrar aqui evita ate punicao). Frame de envio CONFIRMADO por
-   *  captura HAR (ago/2026): {"type":"send","channel","body"} — o servidor ecoa a
-   *  mensagem de volta como frame `chat` normal (o dedupe absorve o append otimista). */
-  sendChat(text: string, channel: string, fromName?: string | null): { ok: boolean; reason?: "not_live" | "cooldown" | "empty"; waitMs?: number } {
+  /** Manda mensagem no chat e espera o VEREDITO do jogo (frame de envio confirmado por
+   *  HAR: {"type":"send","channel","body"}). Mensagem aceita = o servidor ECOA de volta
+   *  (frame chat com seu nome) — e o eco no feed. Recusada (conteudo proibido) = frame de
+   *  sistema sem remetente. So envio CONFIRMADO arma o cooldown anti-flood (~1 msg/min):
+   *  recusa nao gasta a janela — corrige o texto e manda de novo na hora. */
+  async sendChat(text: string, channel: string, fromName?: string | null): Promise<{ ok: boolean; reason?: "not_live" | "cooldown" | "empty" | "busy" | "rejected" | "no_echo"; waitMs?: number }> {
     if (!this.ws || this.status !== "running") return { ok: false, reason: "not_live" };
     const t = text.trim();
     if (!t) return { ok: false, reason: "empty" };
+    if (this.pendingSend) return { ok: false, reason: "busy" };
     const since = this.lastSentAt != null ? Date.now() - this.lastSentAt : Infinity;
     if (since < CHAT_COOLDOWN_MS) return { ok: false, reason: "cooldown", waitMs: CHAT_COOLDOWN_MS - since };
-    this.send({ type: "send", channel, body: t });
-    this.lastSentAt = Date.now();
     if (fromName) this.selfName = fromName;
-    // append OTIMISTA: o jogo nao ecoa a mensagem pro proprio remetente — sem isso a sua
-    // mensagem nunca aparecia no feed. Se um eco vier, o dedupe por conteudo absorve.
-    this.pushChat({ at: Date.now(), from: fromName ?? this.selfName ?? "Voce", text: t, channel, mine: true });
-    this.emit("chat");
-    return { ok: true };
+
+    this.send({ type: "send", channel, body: t });
+    const verdict = await new Promise<"ok" | "rejected" | "timeout">((resolve) => {
+      const timer = setTimeout(() => { this.pendingSend = null; resolve("timeout"); }, 6_000);
+      this.pendingSend = {
+        text: t,
+        resolve: (r) => { clearTimeout(timer); this.pendingSend = null; resolve(r); },
+      };
+    });
+
+    if (verdict === "ok") {
+      this.lastSentAt = Date.now(); // cooldown so a partir de envio CONFIRMADO
+      this.emit("chat");
+      return { ok: true };
+    }
+    return { ok: false, reason: verdict === "rejected" ? "rejected" : "no_echo" };
+  }
+
+  // casa cada mensagem recebida com o envio pendente: eco com o SEU nome e o mesmo texto
+  // confirma; frame de sistema (sem remetente) enquanto ha envio pendente = recusa.
+  private checkPendingSend(msg: ChatMsg) {
+    const p = this.pendingSend;
+    if (!p) return;
+    if (this.selfName && msg.from.toLowerCase() === this.selfName.toLowerCase() && msg.text === p.text) p.resolve("ok");
+    else if (msg.from === "?") p.resolve("rejected");
   }
 
   /** Anuncio automatico: manda o texto no canal a cada N minutos enquanto conectado.
@@ -292,9 +316,9 @@ class GameSession {
     if (cfg?.on && cfg.text.trim()) {
       const every = Math.max(ANNOUNCE_MIN_MS, Math.round(cfg.everyMin * 60_000));
       this.announceTimer = setInterval(() => {
-        if (this.announce?.on) this.sendChat(this.announce.text, this.announce.channel);
+        if (this.announce?.on) void this.sendChat(this.announce.text, this.announce.channel);
       }, every);
-      this.sendChat(cfg.text, cfg.channel); // primeiro envio na hora
+      void this.sendChat(cfg.text, cfg.channel); // primeiro envio na hora
     }
     this.persistDesired({ announce: cfg });
     this.emit("chat");
@@ -325,6 +349,7 @@ class GameSession {
   }
 
   private pushChat(msg: ChatMsg) {
+    this.checkPendingSend(msg); // veredito do envio pendente (antes do dedupe)
     // dedupe primario pelo id do jogo (history repete no reconnect)
     if (msg.id) {
       if (this.chatSeenIds.has(msg.id)) return false;
@@ -1018,7 +1043,7 @@ class GameSession {
 // SESSION_REV: bump SEMPRE que a classe ganhar/mudar metodo — no dev, o hot-reload
 // re-avalia o modulo mas a instancia antiga (prototype velho) fica presa no globalThis;
 // sem o rev, chamar um metodo novo dava "is not a function" ate reiniciar o server.
-const SESSION_REV = 8;
+const SESSION_REV = 9;
 const g = globalThis as unknown as { __piwSession?: GameSession; __piwSessionRev?: number };
 if (!g.__piwSession || g.__piwSessionRev !== SESSION_REV) {
   // silencia a instancia velha SEM persistir nada (stop() gravaria enabled=false no banco

@@ -37,9 +37,13 @@ export async function POST(req: Request) {
     const text = typeof b.text === "string" ? b.text.trim().slice(0, 300) : "";
     const channel = typeof b.channel === "string" && CHANNELS.has(b.channel) ? b.channel : "world";
     if (!text) return NextResponse.json({ error: "no_text" }, { status: 400 });
-    const r = gameSession.sendChat(text, channel, g.playerName);
+    // aguarda o VEREDITO do jogo (eco = aceita; frame de sistema = recusada)
+    const r = await gameSession.sendChat(text, channel, g.playerName);
     if (!r.ok) {
       if (r.reason === "cooldown") return NextResponse.json({ error: "cooldown", waitMs: r.waitMs ?? 0 }, { status: 429 });
+      if (r.reason === "rejected") return NextResponse.json({ error: "rejected" }, { status: 422 });
+      if (r.reason === "no_echo") return NextResponse.json({ error: "no_echo" }, { status: 504 });
+      if (r.reason === "busy") return NextResponse.json({ error: "busy" }, { status: 409 });
       return NextResponse.json({ error: "not_live" }, { status: 409 }); // liga o robo antes
     }
     return NextResponse.json(gameSession.getChatView());

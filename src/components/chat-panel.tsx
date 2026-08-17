@@ -142,9 +142,12 @@ export function ChatPanel({ creatures, dex }: { creatures: { pokeId: number; nam
     if (!text.trim() || busy || cooldownLeft > 0) return;
     setBusy(true);
     try {
+      // o POST so volta com o VEREDITO do jogo: aceita (eco no feed) ou recusada
       const r = await post({ action: "send", text: text.trim(), channel });
       if (r.ok) { setText(""); toast.success(t("toast.chatSent")); }
       else if (r.error === "cooldown") toast.info(t("toast.chatCooldown", { s: Math.ceil((r.waitMs ?? 0) / 1000) }));
+      else if (r.error === "rejected") toast.error(t("toast.chatRejected")); // texto fica pra corrigir
+      else if (r.error === "no_echo") toast.error(t("toast.chatNoEcho"));
       else toast.error(t("vip.chat.sendErr"));
     } finally { setBusy(false); }
   };
@@ -198,7 +201,9 @@ export function ChatPanel({ creatures, dex }: { creatures: { pokeId: number; nam
                     style={{ "--accent": "var(--cyan)" } as React.CSSProperties}>
                     <span className="mr-1.5 text-[0.55rem] tabular-nums text-text-dim">{hhmm(m.at)}</span>
                     <span className="mr-1 rounded px-1 text-[0.5rem] uppercase" style={{ color: CH_COLOR[(m.channel as Channel)] ?? "var(--text-dim)" }}>{m.channel}</span>
-                    <span className={`mr-1 font-semibold ${m.admin ? "text-red" : self ? "text-cyan" : m.vip ? "text-yellow" : "text-text"}`}>{m.from}</span>
+                    <span className={`mr-1 font-semibold ${m.from === "?" ? "italic text-yellow" : m.admin ? "text-red" : self ? "text-cyan" : m.vip ? "text-yellow" : "text-text"}`}>
+                      {m.from === "?" ? t("vip.chat.system") : m.from}
+                    </span>
                     {m.level != null && <span className="mr-1.5 text-[0.52rem] tabular-nums text-text-dim">Lv{m.level}</span>}
                     <span className="break-words text-text-dim">{renderBody(m.text, setPokeModal)}</span>
                   </div>
