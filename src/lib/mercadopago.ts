@@ -2,6 +2,9 @@
 // Pro: cria uma "preference" (pagamento avulso) e manda o usuario pro init_point; o MP
 // notifica o webhook quando paga. So liga se MP_ACCESS_TOKEN existir no ambiente.
 //
+// SO PIX: a preference exclui todos os tipos de pagamento menos transferencia bancaria
+// (bank_transfer = PIX no Brasil). O checkout hospedado do MP mostra so o QR/copia-e-cola.
+//
 // Server-only. Importar so de route handlers.
 
 const MP = "https://api.mercadopago.com";
@@ -26,6 +29,20 @@ export async function createPreference(opts: {
     body: JSON.stringify({
       items: [{ title: opts.title, quantity: 1, unit_price: opts.price, currency_id: "BRL" }],
       metadata: { user_id: opts.userId },
+      // SO PIX: exclui todo o resto (cartao, boleto, caixa, saldo MP, pre-pago, cripto).
+      // Sobra bank_transfer, que no Brasil e o PIX.
+      payment_methods: {
+        excluded_payment_types: [
+          { id: "credit_card" },
+          { id: "debit_card" },
+          { id: "ticket" },
+          { id: "atm" },
+          { id: "account_money" },
+          { id: "prepaid_card" },
+          { id: "digital_currency" },
+        ],
+        installments: 1,
+      },
       back_urls: {
         success: `${opts.appUrl}/vip?status=approved`,
         failure: `${opts.appUrl}/vip?status=failure`,
