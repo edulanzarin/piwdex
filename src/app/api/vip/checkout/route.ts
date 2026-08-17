@@ -15,7 +15,13 @@ export async function POST() {
   if (!session?.user?.id) return NextResponse.json({ error: "not_logged" }, { status: 401 });
   if (session.user.vip) return NextResponse.json({ url: "/vip" }); // ja e VIP
 
+  // Sem APP_URL em producao o checkout "funcionaria" com notification_url em localhost
+  // e o webhook nunca chegaria (pagamento sem VIP). Melhor falhar alto.
   const appUrl = process.env.APP_URL || "http://localhost:4070";
+  if (process.env.NODE_ENV === "production" && !process.env.APP_URL) {
+    console.error("[checkout] APP_URL ausente em producao — checkout bloqueado");
+    return NextResponse.json({ error: "unavailable" }, { status: 503 });
+  }
 
   if (!mpEnabled()) {
     // Sem credencial do MP: em dev, libera direto pra testar; em prod, indisponivel.

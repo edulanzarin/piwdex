@@ -33,6 +33,10 @@ RUN addgroup -S nodejs && adduser -S nextjs -G nodejs
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+# db/ na imagem final: no Railway nao existe o container piwdex-migrate do compose —
+# as migrations rodam via pre-deploy command (`node db/setup.mjs`) nesta mesma imagem.
+# O `pg` resolve pelo node_modules do standalone (tracing ja o inclui via src/lib/db.ts).
+COPY --from=builder --chown=nextjs:nodejs /app/db ./db
 USER nextjs
 EXPOSE 3000
 CMD ["node", "server.js"]
