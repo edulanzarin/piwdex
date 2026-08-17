@@ -624,6 +624,36 @@ const pt: Dict = {
   "vip.sec.alertas": "Alertas",
   "vip.sec.conta": "Conta",
 
+  // conexao-primeiro (o robo toma a sessao e segura)
+  "vip.conn.connect": "Ligar o robo",
+  "vip.conn.disconnect": "Desligar o robo",
+  "vip.conn.connectDesc": "Liga o robo: ele toma a sessao da sua conta e segura (a aba do jogo cai em 'conta em uso'). Dai o time fica ao vivo, a troca de lider e instantanea e as hunts ligam na mesma conexao.",
+  "vip.conn.connected": "Conectado",
+  "vip.conn.hunting": "Cacando",
+  "vip.conn.off": "Desligado",
+  "vip.conn.stopHunt": "Parar hunt",
+  "vip.conn.alarm": "Conexao caiu!",
+  "vip.conn.retrying": "religando sozinho...",
+  "vip.conn.forceRetry": "Tentar agora",
+  "vip.conn.readyHint": "Robo conectado segurando a sessao — ligar uma hunt aqui e instantaneo.",
+
+  // time ativo ao vivo
+  "vip.team.title": "Time ativo",
+  "vip.team.snapshot": "Snapshot",
+  "vip.team.empty": "Sem time ainda. Ligue o robo pra ver seu time ao vivo.",
+  "vip.team.power": "poder",
+  "vip.team.makeLeader": "Tornar este o pokemon ativo",
+  "vip.team.use": "Usar",
+  "vip.team.retry": "Falhou",
+
+  // recursos
+  "vip.res.progress": "Progresso do treinador",
+  "vip.res.gold": "Dolares",
+  "vip.res.diamonds": "Diamantes",
+  "vip.res.balls": "Pokebolas",
+  "vip.res.noBalls": "Sem bolas na conta.",
+  "vip.res.streakTitle": "Streak",
+
   // HUD fixo
   "vip.hud.retry": "Religando em {s}s",
   "vip.hud.streamDown": "Stream caiu — reconectando",
@@ -635,9 +665,9 @@ const pt: Dict = {
   "vip.ov.robot": "Robo",
   "vip.ov.reconnecting": "Religando sozinho",
   "vip.ov.keepAlive": "Mantem conexao",
-  "vip.ov.turnOn": "Ligar o robo",
+  "vip.ov.turnOn": "Escolher hunt",
   "vip.ov.hunt": "Hunt atual",
-  "vip.ov.noHunt": "Nenhuma hunt rodando. Ligue o robo e ele farma por voce.",
+  "vip.ov.noHunt": "Nenhuma hunt rodando. Escolha uma (ou use o auto-hunt) e o robo farma por voce.",
   "vip.ov.plan": "Plano de leveling",
   "vip.ov.planDone": "Meta batida",
   "vip.ov.planStep": "Etapa atual",

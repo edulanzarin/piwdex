@@ -27,7 +27,7 @@ import {
 import { sellItems, sellPokes, fetchShop, buyBall } from "./game-shop";
 import { readAuto } from "./game-auto";
 import { getData } from "./data";
-import { normalizeActivePokes } from "./game-account";
+import { normalizeActivePokes, type ActivePoke } from "./game-account";
 import { saveTeamSnapshot } from "./game-link";
 import { filterSellable, type PokeSellConfig } from "./poke-sell";
 import { logRobotEvent } from "./robot-events";
@@ -90,6 +90,11 @@ export interface HuntState {
   reconnecting: boolean;       // ha tentativa de reconexao agendada
   nextRetryAt: number | null;  // quando a proxima tentativa dispara
   fighterLevel: number | null; // nivel AO VIVO do pokemon que caca (frames do WS)
+  // conexao-primeiro: o robo TOMA a sessao da conta e segura; hunt/venda sao jobs em cima
+  holdOpen: boolean;           // usuario quer a conexao segurada (mesmo sem hunt)
+  wsOpen: boolean;             // o socket esta aberto AGORA
+  team: ActivePoke[] | null;   // time AO VIVO (frames pokes da sessao segurada)
+  teamAt: number | null;
 }
 // visao "auto-sell" (GET /api/vip/autosell) — a aba Pokemon vendidos: status + o vendido
 // agregado por especie (cards da hunt atual).
@@ -148,8 +153,13 @@ class GameSession {
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private reconnectAttempt = 0;
   private nextRetryAt: number | null = null;
+  // conexao-primeiro: "ligar o robo" = tomar a sessao da conta e SEGURAR, mesmo sem hunt.
+  // Hunt/venda viram jobs em cima da conexao viva; parar a hunt nao derruba a conexao.
+  private holdOpen = false;
+  private liveTeam: ActivePoke[] | null = null;  // time ao vivo (frames pokes)
+  private liveTeamAt: number | null = null;
 
-  private jobsActive() { return this.slug != null || this.pokeCfg != null; }
+  private jobsActive() { return this.slug != null || this.pokeCfg != null || this.holdOpen; }
 
   private emit(topic: "hunt" | "session") { try { this.bus.emit("change", topic); } catch { /* listener nao derruba a sessao */ } }
 
@@ -171,7 +181,35 @@ class GameSession {
       mode: this.mode, leveling: this.leveling, plan: this.plan,
       desiredOn: this.desiredOn, reconnecting: this.reconnectTimer != null, nextRetryAt: this.nextRetryAt,
       fighterLevel: this.fighter?.level ?? null,
+      holdOpen: this.holdOpen, wsOpen: this.ws != null && this.status === "running",
+      team: this.liveTeam, teamAt: this.liveTeamAt,
     };
+  }
+
+  /** "Ligar o robo": TOMA a sessao da conta e segura (chuta o navegador do jogo). Nao
+   *  liga hunt nenhuma — o time ao vivo, o summon e as vendas passam a operar nesta
+   *  conexao; hunt/auto/leveling entram como jobs por cima. Se cair, religa sozinho. */
+  connectSession(userId: string, tokens: Tokens, shard: number, onTokens: (t: Tokens) => Promise<void>) {
+    this.ctx(userId, tokens, shard, onTokens);
+    this.holdOpen = true;
+    this.desiredOn = true;
+    this.cancelReconnect();
+    this.persistDesired({ enabled: true });
+    if (!this.ws) this.connect(); else this.refreshTimers();
+    this.emit("session");
+  }
+
+  /** "Desligar o robo": solta a sessao inteira (conexao + todos os jobs). */
+  disconnectSession() {
+    this.logSummary();
+    this.holdOpen = false;
+    this.desiredOn = false;
+    this.cancelReconnect();
+    this.slug = null; this.sellIds.clear(); this.pokeCfg = null; this.poke.on = false;
+    this.mode = "manual"; this.leveling = null; this.plan = null; this.currentTargetId = null; this.fighter = null;
+    this.analyzer = null; this.recentKills = []; this.soldItems = []; this.poke.soldBySpecies = {};
+    this.persistDesired({ enabled: false, mode: "manual", slug: null, pokeSellCfg: null, leveling: null });
+    this.teardown();
   }
 
   getAutoSellView(): AutoSellView {
@@ -196,6 +234,7 @@ class GameSession {
     // totalizador cumulativo (robot_sales) NAO zera — vive no banco.
     this.analyzer = null; this.recentKills = []; this.soldItems = []; this.poke.soldBySpecies = {}; this.summaryLogged = false;
     this.desiredOn = true;
+    this.holdOpen = true; // cacar implica conexao segurada: parar a hunt depois NAO derruba
     this.cancelReconnect();
     this.applyOrConnect(true);
     this.emit("hunt");
@@ -274,7 +313,7 @@ class GameSession {
       this.slug = d.slug;
       this.sellIds = new Set(d.sellItemIds);
     }
-    if (!this.jobsActive()) return;
+    this.holdOpen = true; // enabled persistido = conexao desejada (mesmo sem hunt)
     this.desiredOn = true;
     if (this.userId) void logRobotEvent(this.userId, {
       kind: "reconnect", title: "Robo retomado apos reinicio",
@@ -283,17 +322,19 @@ class GameSession {
     this.applyOrConnect(true);
   }
 
+  // para SO a hunt (e a venda atrelada a ela). Conexao-primeiro: se o usuario segura a
+  // conexao (holdOpen), a sessao continua viva — time ao vivo, summon e religar a hunt
+  // continuam instantaneos. Derrubar tudo e o disconnectSession().
   stopHunt() {
     this.logSummary();
-    this.desiredOn = false;
-    this.cancelReconnect();
     this.slug = null; this.sellIds.clear(); this.inv.clear();
     this.analyzer = null; this.recentKills = []; this.soldItems = []; this.poke.soldBySpecies = {};
     this.mode = "manual"; this.leveling = null; this.plan = null; this.currentTargetId = null; this.fighter = null;
-    // a venda de pokemon roda ATRELADA a hunt (o toggle 24/7 standalone saiu): parar a hunt
-    // para a venda tambem. Sem jobs, encerra a sessao.
     this.pokeCfg = null; this.poke.on = false;
-    this.persistDesired({ enabled: false, mode: "manual", slug: null, pokeSellCfg: null, leveling: null });
+    this.persistDesired({ enabled: this.holdOpen, mode: "manual", slug: null, pokeSellCfg: null, leveling: null });
+    if (this.holdOpen) { this.refreshTimers(); this.emit("hunt"); this.emit("session"); return; }
+    this.desiredOn = false;
+    this.cancelReconnect();
     this.teardown();
   }
 
@@ -318,6 +359,7 @@ class GameSession {
 
   stop() {
     this.logSummary();
+    this.holdOpen = false;
     this.desiredOn = false; this.cancelReconnect();
     this.slug = null; this.sellIds.clear(); this.pokeCfg = null;
     this.mode = "manual"; this.leveling = null; this.plan = null; this.currentTargetId = null; this.fighter = null;
@@ -397,10 +439,10 @@ class GameSession {
       this.send({ type: "analyzer-get" });
       this.analyzerPoll = setInterval(() => this.send({ type: "analyzer-get" }), ANALYZER_MS);
     }
-    // pokes-get roda SEMPRE que ha conexao (nao so com venda ligada): alimenta o snapshot
-    // do time ao vivo (Conta/HUD) e e o fallback de nivel do cerebro (frames pokes trazem
-    // o level de cada pokemon). recordKept/sellPokesSweep seguem condicionados ao pokeCfg.
-    if (this.pokeCfg || this.slug) {
+    // pokes-get roda SEMPRE que ha conexao (nao so com venda ligada): alimenta o time AO
+    // VIVO (HUD/painel), e o fallback de nivel do cerebro e o keepalive da sessao segurada.
+    // recordKept/sellPokesSweep seguem condicionados ao pokeCfg.
+    if (this.pokeCfg || this.slug || this.holdOpen) {
       setTimeout(() => this.send({ type: "pokes-get" }), 500);
       this.pokesPoll = setInterval(() => this.send({ type: "pokes-get" }), POKES_MS);
     }
@@ -435,6 +477,7 @@ class GameSession {
       this.inv.clear();
       for (const it of items) this.inv.set(Number(it.itemId ?? 0), Number(it.quantity ?? it.qty ?? 0));
     } else if (m.type === "pokes" && Array.isArray(m.list)) {
+      this.trackLiveTeam(m.list);       // time AO VIVO no estado (HUD/painel, sem banco)
       void this.updateTeamSnapshot(m.list); // Conta reflete o time ao vivo (lider incluso)
       this.trackLevelFromPokes(m.list); // fallback de nivel do cerebro (se poke-xp nao vier)
       void this.recordKept(m.list);   // acervo de capturados (real-time)
@@ -448,6 +491,21 @@ class GameSession {
   }
 
   // ---- cerebro: nivel ao vivo + trocas de hunt automaticas (modo auto/leveling) ----
+
+  // guarda o time AO VIVO no estado da sessao (o HUD e o painel leem direto do stream,
+  // sem roundtrip no banco). Emite so quando algo visivel mudou (lider, nivel, hp, ordem).
+  private trackLiveTeam(list: unknown[]) {
+    try {
+      const all = normalizeActivePokes(list);
+      if (!all.length) return;
+      const team = all.filter((p) => p.team).sort((a, b) => a.slot - b.slot);
+      const sig = team.map((p) => `${p.id}:${p.leader ? 1 : 0}:${p.level}:${p.hp}`).join("|");
+      const prev = this.liveTeam?.map((p) => `${p.id}:${p.leader ? 1 : 0}:${p.level}:${p.hp}`).join("|");
+      this.liveTeam = team;
+      this.liveTeamAt = Date.now();
+      if (sig !== prev) this.emit("session");
+    } catch { /* best-effort */ }
+  }
 
   // fallback via lista de pokes (20s): se os frames de XP nao trouxerem level, a lista traz.
   private trackLevelFromPokes(list: unknown[]) {

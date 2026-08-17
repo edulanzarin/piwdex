@@ -66,7 +66,9 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
   const pokeIdOf = (species: string) => pokeByName.get(species.toLowerCase());
 
   const selected = hunts.find((h) => h.slug === slug) ?? null;
-  const team = account?.team?.list?.filter((p) => p.team) ?? [];
+  // time pro plano de leveling: o AO VIVO da sessao segurada; senao o snapshot do banco
+  const team = (st?.wsOpen && st.team?.length ? st.team : null)
+    ?? account?.team?.list?.filter((p) => p.team) ?? [];
 
   const grouped = useMemo(() => {
     const needle = q.trim().toLowerCase();
@@ -89,7 +91,9 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
   };
 
   const status = st?.status ?? "idle";
-  const huntOn = !!st?.slug && !!st?.desiredOn;
+  // conexao-primeiro: hunt LIGADA = tem slug. A conexao pode estar viva SEM hunt (holdOpen).
+  const huntOn = !!st?.slug;
+  const connected = !!st?.wsOpen;
   const huntStatus = huntOn ? status : "idle";
   const running = huntOn && (status === "running" || status === "connecting");
   const a = st?.analyzer ?? null;
@@ -156,6 +160,14 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
         <h2 className="section-title flex items-center gap-2 text-yellow"><Star size={13} /> {t("robo.hunt.title")}</h2>
         <p className="mt-2 max-w-2xl text-sm text-text-dim">{t("robo.hunt.desc")}</p>
       </div>
+
+      {/* conexao segurada sem hunt: os modos ligam INSTANTANEO na mesma sessao */}
+      {!huntOn && connected && (
+        <div className="flex items-center gap-2.5 rounded border border-[color:var(--green)]/40 bg-[color:var(--green)]/5 px-3.5 py-2">
+          <span className="hud-led pulse-soft" style={{ "--led": "var(--green)" } as React.CSSProperties} />
+          <span className="text-[0.66rem] text-green">{t("vip.conn.readyHint")}</span>
+        </div>
+      )}
 
       {/* controle: desligado = 3 modos; ligado = status + parar */}
       {!huntOn ? (
@@ -231,7 +243,8 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
           </span>
           {st?.slug && <span className="text-[0.68rem] text-text-dim">{hunts.find((h) => h.slug === st.slug)?.name ?? st.slug}</span>}
           <span className="ms-auto" />
-          <button type="button" onClick={() => void send({ action: "stop" })} disabled={busy} className="btn btn-ghost">{t("robo.hunt.stop")}</button>
+          {/* parar a hunt NAO derruba a conexao (o robo segue segurando a sessao) */}
+          <button type="button" onClick={() => void send({ action: "stop" })} disabled={busy} className="btn btn-ghost">{t("vip.conn.stopHunt")}</button>
         </div>
       )}
 

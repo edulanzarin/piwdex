@@ -10,13 +10,17 @@ import type { FighterProfile } from "@/lib/hunt-brain";
 
 export const runtime = "nodejs";
 
-// Job HUNT da sessao UNIFICADA. GET le o estado; POST:
-//   start    {slug, sellItemIds, pokeSellConfig?}  — modo MANUAL (usuario escolheu a hunt)
+// Sessao UNIFICADA do robo, modelo CONEXAO-PRIMEIRO. GET le o estado; POST:
+//   connect                                        — LIGA O ROBO: toma a sessao da conta e
+//                                                    segura (time ao vivo, summon e jobs
+//                                                    passam a operar nela; religa se cair)
+//   disconnect                                     — solta a sessao inteira (conexao + jobs)
+//   start    {slug, sellItemIds, pokeSellConfig?}  — hunt MANUAL (job em cima da conexao)
 //   auto     {pokeSellConfig?}                     — modo AUTO (cerebro escolhe a melhor hunt
 //                                                    pro lider e re-escolhe a cada level-up)
 //   leveling {pokeId, targetLevel, pokeSellConfig?} — plano de leveling: sobe o pokemon ate o
 //                                                    alvo seguindo a sequencia otima de hunts
-//   stop                                           — desliga tudo
+//   stop                                           — para SO a hunt (a conexao continua)
 // Ver src/lib/game-hunt-session.ts e src/lib/hunt-brain.ts.
 
 async function ctx() {
@@ -54,6 +58,16 @@ export async function POST(req: Request) {
 
   if (b.action === "stop") {
     gameSession.stopHunt();
+    return NextResponse.json(gameSession.getState());
+  }
+  if (b.action === "disconnect") {
+    gameSession.disconnectSession();
+    return NextResponse.json(gameSession.getState());
+  }
+  if (b.action === "connect") {
+    const es = await ensureShard(c.userId, c.tokens, c.shard);
+    if (!es.shard) return NextResponse.json({ error: "no_shard" }, { status: 502 });
+    gameSession.connectSession(c.userId, c.tokens, es.shard, persist);
     return NextResponse.json(gameSession.getState());
   }
 

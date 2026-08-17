@@ -8,7 +8,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useVipLive, type LiveStatus } from "./vip-live";
 import type { HuntOption } from "./hunt-analyzer";
-import { Coin, Diamond, Xp, Skull, Signal, Brain, Flag, Target } from "./icons";
+import { Coin, Diamond, Xp, Skull, Signal, Brain, Flag, Target, Star } from "./icons";
 import { Pokeball } from "./pokeball";
 import { Sprite } from "./sprite";
 import { spriteUrl } from "@/lib/sprites";
@@ -43,16 +43,25 @@ function HudDivider() {
 
 export function VipHud({ hunts }: { hunts: HuntOption[] }) {
   const t = useT();
-  const { link, hunt, account } = useVipLive();
+  const { link, hunt, account, applyHunt } = useVipLive();
+  const [busy, setBusy] = useState(false);
 
   const status: LiveStatus = hunt?.status ?? "idle";
-  const running = status === "running";
+  const connected = !!hunt?.wsOpen;
+  const holdOpen = !!hunt?.holdOpen;
+  const hunting = connected && !!hunt?.slug;
+  const troubled = holdOpen && !connected;
   const retryIn = useCountdown(hunt?.reconnecting ? hunt.nextRetryAt : null);
 
   const huntOpt = useMemo(
     () => (hunt?.slug ? (hunts.find((h) => h.slug === hunt.slug) ?? null) : null),
     [hunts, hunt?.slug],
   );
+  // pokemon ATIVO (lider): time ao vivo da sessao segurada; fallback snapshot do banco
+  const leader = useMemo(() => {
+    const team = (connected && hunt?.team?.length ? hunt.team : null) ?? account?.team?.list ?? [];
+    return team.find((p) => p.leader) ?? null;
+  }, [connected, hunt?.team, account?.team]);
 
   const prof = account?.account?.profile ?? null;
   const balls = account?.account?.balls ?? [];
@@ -65,20 +74,32 @@ export function VipHud({ hunts }: { hunts: HuntOption[] }) {
     ? Math.min(100, Math.max(0, ((lv.currentLevel - lv.startLevel) / Math.max(1, lv.targetLevel - lv.startLevel)) * 100))
     : 0;
 
-  // rotulo do monitor: prioriza o que importa AGORA (religando > status da sessao)
-  const statusLabel = hunt?.reconnecting
-    ? t("vip.hud.retry", { s: retryIn ?? 0 })
-    : t(`robo.hunt.status.${status}`);
+  const connect = async () => {
+    setBusy(true);
+    try {
+      const r = await fetch("/api/vip/hunt", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "connect" }) });
+      const j = await r.json().catch(() => null);
+      if (j && "status" in j) applyHunt(j);
+    } finally { setBusy(false); }
+  };
+
+  // rotulo do monitor: religando > cacando > conectado > status cru
+  const statusLabel = troubled
+    ? (retryIn != null ? t("vip.hud.retry", { s: retryIn }) : t(`robo.hunt.status.${status}`))
+    : hunting ? t("vip.conn.hunting")
+    : connected ? t("vip.conn.connected")
+    : status === "connecting" ? t("robo.hunt.status.connecting")
+    : t("vip.conn.off");
 
   return (
     <div className="hud flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2.5">
-      {/* monitor do robo: LED + status + reconexao */}
+      {/* monitor do robo: LED + status + reconexao + conectar rapido */}
       <span className="inline-flex min-w-0 items-center gap-2">
         <span
-          className={`hud-led shrink-0 ${running || status === "connecting" || hunt?.reconnecting ? "pulse-soft" : ""}`}
-          style={{ "--led": hunt?.reconnecting ? "var(--yellow)" : LED[status] } as React.CSSProperties}
+          className={`hud-led shrink-0 ${connected || status === "connecting" || hunt?.reconnecting ? "pulse-soft" : ""}`}
+          style={{ "--led": troubled ? "var(--red)" : LED[status] } as React.CSSProperties}
         />
-        <span className="pixel text-[0.58rem] uppercase tracking-wide text-text">{statusLabel}</span>
+        <span className={`pixel text-[0.58rem] uppercase tracking-wide ${troubled ? "text-red" : "text-text"}`}>{statusLabel}</span>
         {/* stream SSE caiu = aviso discreto (nao confundir com a conexao do robo) */}
         {link !== "open" && (
           <span className="inline-flex items-center gap-1 text-[0.55rem] text-yellow" title={t("vip.hud.streamDown")}>
@@ -87,8 +108,27 @@ export function VipHud({ hunts }: { hunts: HuntOption[] }) {
         )}
       </span>
 
-      {/* modo do cerebro */}
-      {hunt && hunt.desiredOn && (
+      {/* conectar rapido direto do HUD */}
+      {!holdOpen && status !== "connecting" && (
+        <button type="button" onClick={() => void connect()} disabled={busy} className="btn btn-green !min-h-0 !px-2.5 !py-1 !text-[0.5rem] disabled:opacity-40">
+          {t("vip.conn.connect")}
+        </button>
+      )}
+
+      {/* pokemon ATIVO (lider) ao vivo */}
+      {leader && (
+        <span className="inline-flex min-w-0 items-center gap-1.5" title={`IV ${leader.ivTotal} · Q ${leader.quality}`}>
+          <span className="relative flex h-6 w-6 shrink-0 items-center justify-center">
+            <Sprite src={spriteUrl(leader.speciesId, leader.shiny)} alt={leader.name} size={22} />
+            <span className="absolute -right-1 -top-1 text-yellow"><Star size={7} /></span>
+          </span>
+          <span className="truncate text-[0.66rem] text-yellow">{leader.name}</span>
+          <span className="pixel text-[0.55rem] text-text-dim">Lv{hunt?.fighterLevel && hunt.fighterLevel > leader.level ? hunt.fighterLevel : leader.level}</span>
+        </span>
+      )}
+
+      {/* modo do cerebro (so enquanto caca) */}
+      {hunt && hunting && (
         <span
           className="chip shrink-0"
           style={{
@@ -110,7 +150,7 @@ export function VipHud({ hunts }: { hunts: HuntOption[] }) {
           <span className="truncate text-[0.68rem] text-text">{huntOpt.name}</span>
         </span>
       )}
-      {running && hunt?.analyzer && (
+      {hunting && hunt?.analyzer && (
         <span className="hidden items-center gap-3 text-[0.62rem] tabular-nums md:inline-flex">
           <span className="inline-flex items-center gap-1 text-cyan"><Xp size={10} />{fmt(hunt.analyzer.xpPerHour)}/h</span>
           <span className="inline-flex items-center gap-1 text-text-dim"><Skull size={10} />{fmt(hunt.analyzer.kills)}</span>

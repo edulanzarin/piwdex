@@ -43,12 +43,17 @@ export interface LiveHunt {
   mode: LiveMode; leveling: LiveLeveling | null; plan: LivePlanStep[] | null;
   desiredOn: boolean; reconnecting: boolean; nextRetryAt: number | null;
   fighterLevel: number | null;
+  // conexao-primeiro: o robo segura a sessao; hunt/venda sao jobs em cima
+  holdOpen: boolean;
+  wsOpen: boolean;
+  team: LiveTeamPoke[] | null;
+  teamAt: number | null;
 }
 
 export interface LiveSpeciesSold { speciesId: number; name: string; rarity: string; count: number; gold: number }
 export interface LiveAutoSell { status: LiveStatus; error?: string; soldBySpecies: LiveSpeciesSold[] }
 
-export interface LiveBall { id: number; name: string; count: number; icon?: string }
+export interface LiveBall { id: number; name: string; count: number; iconUrl?: string; infinite?: boolean }
 export interface LiveTeamPoke {
   id: string; speciesId: number; name: string; level: number; shiny: boolean;
   team: boolean; slot: number; leader: boolean; starter: boolean;
