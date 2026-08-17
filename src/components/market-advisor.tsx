@@ -176,6 +176,13 @@ export function MarketMonModal({ mon, dex, onClose }: { mon: MarketMon; dex?: Ma
           {mon.price > 0 && (
             <Tile label={t("account.market.price")}><span className="text-text"><Price currency={mon.currency} value={mon.price} size={13} /></span></Tile>
           )}
+          {/* bicho sem preco (ex.: linkado no chat): mostra quanto VALERIA pelo motor de
+              preco justo (teto x mediana do mercado) — chega async, dai o tile condicional */}
+          {mon.price <= 0 && fair != null && (
+            <Tile label={t("account.market.worth")}>
+              <span className="inline-flex items-center gap-1 text-text"><span className="opacity-70">~</span><Price currency={mon.currency} value={fair} size={13} /></span>
+            </Tile>
+          )}
         </div>
 
         {/* Veredito: genes (IV), Quality (Q) e preco (vale a pena). Quality manda na nota. */}
@@ -203,7 +210,8 @@ export function MarketMonModal({ mon, dex, onClose }: { mon: MarketMon; dex?: Ma
                 </span>
               </div>
             )}
-            {fair != null && (
+            {/* so pra anuncio com preco: no bicho do chat o valor ja esta no tile "valeria" */}
+            {fair != null && mon.price > 0 && (
               <div className="flex items-center justify-between gap-2 text-[0.62rem] text-text-dim">
                 <span>{t("account.market.fairPrice")}</span>
                 <span className="inline-flex items-center gap-1"><span className="opacity-70">~</span><Price currency={mon.currency} value={fair} /></span>

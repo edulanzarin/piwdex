@@ -81,6 +81,9 @@ export function ChatPanel({ creatures, dex }: { creatures: { pokeId: number; nam
   const [channel, setChannel] = useState<Channel>("world");
   const [busy, setBusy] = useState(false);
   const [pokeModal, setPokeModal] = useState<PokeLink | null>(null);
+  // "quanto valeria": estimativa do motor de preco justo (/api/vip/value) pro bicho do
+  // chip — o link do chat nao traz preco, entao o modal mostra o valor estimado.
+  const [pokeValue, setPokeValue] = useState<number | null>(null);
   // cooldown anti-flood: contador a partir do ultimo envio (o servidor tambem barra)
   const [cooldownLeft, setCooldownLeft] = useState(0);
   // anuncio automatico (draft local; o efetivo vem do stream)
@@ -100,6 +103,26 @@ export function ChatPanel({ creatures, dex }: { creatures: { pokeId: number; nam
     for (const c of creatures) m.set(c.name.toLowerCase(), c.pokeId);
     return m;
   }, [creatures]);
+
+  // busca a estimativa de valor ao abrir o chip; o cleanup descarta resposta atrasada
+  // de um chip anterior (trocou de modal antes do fetch voltar)
+  useEffect(() => {
+    setPokeValue(null);
+    if (!pokeModal) return;
+    const sid = pokeByName.get(pokeModal.n.toLowerCase());
+    if (sid == null) return;
+    let stale = false;
+    const params = new URLSearchParams({ sp: String(sid) });
+    if (typeof pokeModal.iv === "number") params.set("iv", String(pokeModal.iv));
+    if (typeof pokeModal.q === "number") params.set("q", String(pokeModal.q));
+    void fetch(`/api/vip/value?${params}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: { gold?: number | null } | null) => {
+        if (!stale && d && typeof d.gold === "number" && d.gold > 0) setPokeValue(d.gold);
+      })
+      .catch(() => {});
+    return () => { stale = true; };
+  }, [pokeModal, pokeByName]);
 
   // 1a carga do draft do anuncio a partir do persistido
   useEffect(() => {
@@ -288,11 +311,18 @@ export function ChatPanel({ creatures, dex }: { creatures: { pokeId: number; nam
         </div>
       </div>
 
-      {/* pokemon linkado (clique no chip) — O MESMO modal do mercado, sem a parte de preco */}
+      {/* pokemon linkado (clique no chip) — O MESMO modal do mercado; sem preco no link,
+          o fairPrice estimado (motor de preco justo) vira o "valeria ~X" */}
       {pokeModal && (() => {
         const sid = pokeByName.get(pokeModal.n.toLowerCase());
         if (sid == null) return null;
-        return <MarketMonModal mon={toMarketMon(pokeModal, sid)} dex={dex[sid]} onClose={() => setPokeModal(null)} />;
+        return (
+          <MarketMonModal
+            mon={{ ...toMarketMon(pokeModal, sid), fairPrice: pokeValue }}
+            dex={dex[sid]}
+            onClose={() => setPokeModal(null)}
+          />
+        );
       })()}
     </div>
   );
