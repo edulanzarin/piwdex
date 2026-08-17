@@ -1,21 +1,17 @@
 "use client";
 
-// Itens vendidos (read-only). Dois blocos:
-//  1) totalizador CUMULATIVO (pra sempre, todas as hunts) — /api/vip/totals.
-//  2) os itens que o robo vendeu NA HUNT atual: um card por item selecionado, so a
-//     quantidade e o valor crescem (cumulativo na hunt). Reseta ao trocar de hunt.
-// A venda de drops e automatica (feita pela Hunt); aqui e so leitura. Poll a cada 4s.
+// Itens vendidos NA HUNT ATUAL (read-only): um card por item selecionado; a quantidade e o
+// valor crescem (cumulativo na hunt) e resetam ao trocar de hunt. O total acumulado de todas
+// as hunts fica na aba Estatisticas. Poll a cada 4s. Vive na aba Hunt.
 
 import { useCallback, useEffect, useState } from "react";
 import { Sprite } from "./sprite";
-import { StatTile } from "./stat-tile";
 import { assetIconUrl } from "@/lib/sprites";
 import { useT } from "./locale-provider";
 import { Coin } from "./icons";
 
 interface SoldItem { itemId: number; name: string; qty: number; gold: number; at: number }
 interface HuntPeek { soldItems?: SoldItem[]; autoSellCount?: number }
-interface Totals { itemsCount: number; itemsGold: number; pokesCount: number; pokesGold: number }
 
 const fmt = (n: number) => n.toLocaleString("pt-BR");
 
@@ -23,7 +19,6 @@ export function DropSeller({ itemIcons }: { itemIcons: Record<string, string> })
   const t = useT();
   const [sold, setSold] = useState<SoldItem[]>([]);
   const [count, setCount] = useState(0);
-  const [tot, setTot] = useState<Totals | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -32,15 +27,7 @@ export function DropSeller({ itemIcons }: { itemIcons: Record<string, string> })
       if (j) { setSold(j.soldItems ?? []); setCount(j.autoSellCount ?? 0); }
     } catch {}
   }, []);
-  const loadTotals = useCallback(async () => {
-    try {
-      const r = await fetch("/api/vip/totals", { cache: "no-store" });
-      const j = (await r.json().catch(() => null)) as Totals | null;
-      if (j && "itemsCount" in j) setTot(j);
-    } catch {}
-  }, []);
   useEffect(() => { load(); const id = setInterval(load, 4000); return () => clearInterval(id); }, [load]);
-  useEffect(() => { loadTotals(); const id = setInterval(loadTotals, 15000); return () => clearInterval(id); }, [loadTotals]);
 
   const shown = sold.slice(0, 30);
   const huntGold = shown.reduce((s, i) => s + i.gold, 0);
@@ -52,16 +39,6 @@ export function DropSeller({ itemIcons }: { itemIcons: Record<string, string> })
         <p className="mt-2 max-w-2xl text-sm text-text-dim">{t("robo.sold.desc")}</p>
       </div>
 
-      {/* totalizador cumulativo — nunca reseta */}
-      <div className="card p-4">
-        <h3 className="section-title mb-3 text-cyan">{t("robo.total.title")}</h3>
-        <div className="grid grid-cols-2 gap-2">
-          <StatTile label={t("robo.auto.sold")} value={fmt(tot?.itemsCount ?? 0)} icon={<Coin size={11} className="text-text-dim" />} />
-          <StatTile label={t("robo.auto.gold")} value={fmt(tot?.itemsGold ?? 0)} accent="var(--green)" icon={<Coin size={11} />} />
-        </div>
-      </div>
-
-      {/* itens da hunt atual (qty + valor cumulativos) */}
       <div className="card p-4">
         {shown.length === 0 ? (
           <p className="text-[0.72rem] text-text-dim">{count > 0 ? t("robo.sold.waiting") : t("robo.sold.empty")}</p>

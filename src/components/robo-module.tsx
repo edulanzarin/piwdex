@@ -13,17 +13,19 @@ import { PokeSold } from "./poke-sold";
 import { HuntAnalyzer, type HuntOption, type DropOption } from "./hunt-analyzer";
 import { PokeCaught } from "./poke-caught";
 import { ConsumablesBuyer } from "./consumables-buyer";
+import { RoboStats } from "./robo-stats";
 import type { ComboCreature } from "./pokemon-combobox";
 import { useT } from "./locale-provider";
 import { Tabs } from "./tabs";
 
-type Section = "automacao" | "hunt" | "vender-drops" | "vender-pokes" | "capturados";
+// A Hunt agrupa o analyzer + o que foi vendido NA HUNT (itens e pokemon). O acumulado de
+// tudo (todas as hunts) mora em Estatisticas — separado do "atual".
+type Section = "automacao" | "hunt" | "capturados" | "estatisticas";
 const SECTIONS: { key: Section; label: string }[] = [
   { key: "automacao", label: "robo.nav.automacao" },
   { key: "hunt", label: "robo.nav.hunt" },
-  { key: "vender-drops", label: "robo.nav.venderDrops" },
-  { key: "vender-pokes", label: "robo.nav.venderPokes" },
   { key: "capturados", label: "robo.nav.capturados" },
+  { key: "estatisticas", label: "robo.nav.estatisticas" },
 ];
 const KEY = "piw:robo-section";
 const isSection = (v: string): v is Section => SECTIONS.some((s) => s.key === v);
@@ -63,10 +65,16 @@ export function RoboModule({ hunts, creatures, itemIcons, lootByPoke }: { hunts:
           <ConsumablesBuyer />
         </div>
       )}
-      {sec === "hunt" && <HuntAnalyzer hunts={hunts} creatures={creatures} itemIcons={itemIcons} lootByPoke={lootByPoke} />}
-      {sec === "vender-drops" && <DropSeller itemIcons={itemIcons} />}
-      {sec === "vender-pokes" && <PokeSold />}
+      {/* Hunt = analyzer + o vendido NA HUNT ATUAL (itens e pokemon), tudo junto */}
+      {sec === "hunt" && (
+        <div className="flex flex-col gap-8">
+          <HuntAnalyzer hunts={hunts} creatures={creatures} itemIcons={itemIcons} lootByPoke={lootByPoke} />
+          <DropSeller itemIcons={itemIcons} />
+          <PokeSold />
+        </div>
+      )}
       {sec === "capturados" && <PokeCaught creatures={creatures} />}
+      {sec === "estatisticas" && <RoboStats />}
     </div>
   );
 }

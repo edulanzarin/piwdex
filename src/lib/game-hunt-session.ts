@@ -101,6 +101,8 @@ class GameSession {
   private lastPokeSellAt = 0; // ultima venda de pokemon (throttle de 1h)
   private forceSell = false;  // "Vender agora" forca a proxima varredura
   private recordedIds = new Set<string>(); // ids ja gravados no acervo (evita rescrever no banco)
+  private gen = 0; // geracao do socket: invalida os handlers de um socket antigo no reconnect
+  private baselineIds: Set<string> | null = null; // ids que voce JA tinha ao ligar (colecao antiga)
   // auto-compra de consumiveis (roda no proprio timer, REST — independe do WS de hunt/venda)
   private autoBuy = false;
   private buyTimer: ReturnType<typeof setInterval> | null = null;
@@ -146,7 +148,8 @@ class GameSession {
     this.logSummary();
     this.slug = null; this.sellIds.clear(); this.inv.clear();
     this.analyzer = null; this.recentKills = []; this.soldItems = []; this.poke.soldBySpecies = {};
-    if (!this.jobsActive()) this.teardown(); else this.refreshTimers();
+    // se a venda 24/7 segue, RECONECTA (sem slug o char sai do campo). Senao, encerra tudo.
+    if (!this.jobsActive()) this.teardown(); else this.reconnect();
   }
 
   // liga/atualiza o job de VENDA DE POKEMON (cfg null = desliga). NAO zera o vendido por
@@ -156,6 +159,7 @@ class GameSession {
     this.pokeCfg = cfg;
     this.poke.on = true;
     this.lastPokeSellAt = 0; // a primeira varredura vende logo; depois e de 1h em 1h
+    this.baselineIds = null; // refaz a base: a conta atual nao entra no acervo, so novas capturas
     this.applyOrConnect(false);
   }
 
@@ -183,15 +187,27 @@ class GameSession {
       ws = new WebSocket(url, { headers: { Origin: "https://poke.idleworld.online", "User-Agent": UA } } as unknown as string[]);
     } catch (e) { this.status = "error"; this.error = String(e); return; }
     this.ws = ws;
+    const myGen = ++this.gen; // handlers so valem enquanto este for o socket atual
 
     ws.addEventListener("open", () => {
       this.status = "running";
       if (this.slug) this.send({ type: "enter-hunt", slug: this.slug });
       this.refreshTimers();
     });
-    ws.addEventListener("message", (ev: MessageEvent) => this.onMessage(ev));
-    ws.addEventListener("close", (ev: unknown) => this.onGone("kicked", (ev as { code?: number } | undefined)?.code));
-    ws.addEventListener("error", () => this.onGone("error"));
+    ws.addEventListener("message", (ev: MessageEvent) => { if (myGen === this.gen) this.onMessage(ev); });
+    ws.addEventListener("close", (ev: unknown) => { if (myGen === this.gen) this.onGone("kicked", (ev as { code?: number } | undefined)?.code); });
+    ws.addEventListener("error", () => { if (myGen === this.gen) this.onGone("error"); });
+  }
+
+  // Reconecta "limpo": fecha o socket atual (sem tratar como queda, via geracao) e reabre.
+  // Sem slug, o open NAO re-entra no campo -> o char SAI da hunt. O protocolo do jogo nao tem
+  // comando de leave/teleport; reconectar sem enter-hunt e a unica forma de parar de cacar.
+  private reconnect() {
+    const old = this.ws;
+    this.ws = null;
+    this.clearTimers();
+    if (old) { try { old.close(); } catch {} } // o close do socket antigo cai por gen != this.gen
+    this.connect();
   }
 
   private send(obj: unknown) { try { this.ws?.send(JSON.stringify(obj)); } catch {} }
@@ -217,10 +233,11 @@ class GameSession {
     if (m.type === "analyzer") {
       this.analyzer = m as unknown as Analyzer; this.updatedAt = Date.now();
     } else if (m.type === "field-kill") {
+      if (!this.slug) return; // hunt desligada: ignora kills (o char ainda pode estar saindo do campo)
       const loot = Array.isArray(m.loot) ? (m.loot as Record<string, unknown>[]).map((l) => ({ itemId: Number(l.itemId ?? 0), name: String(l.name ?? ""), qty: Number(l.qty ?? 0) })) : [];
       this.push({ at: Date.now(), kind: "kill", species: String(m.speciesName ?? "?"), shiny: Boolean(m.shiny), xp: Number(m.xpGained ?? 0), loot });
     } else if (m.type === "catch-result") {
-      if (m.success) {
+      if (m.success && this.slug) {
         const species = String(m.speciesName ?? "?"), shiny = Boolean(m.shiny), ball = String(m.ballName ?? "");
         this.push({ at: Date.now(), kind: "catch", species, shiny, xp: 0, loot: [], ball });
         if (shiny && this.userId) void logRobotEvent(this.userId, { kind: "shiny", title: `Shiny ${species} capturado!`, body: ball || null, data: { species, ball } });
@@ -292,7 +309,7 @@ class GameSession {
       const w = await sellPokes(this.tokens, ids);
       if (w.changed) { this.tokens = w.tokens; await this.onTokens?.(w.tokens); }
       if (w.ok && w.data) {
-        const sold = w.data.sold ?? ids.length, gold = w.data.goldGained ?? 0;
+        const sold = w.data.sold ?? 0, gold = w.data.goldGained ?? 0; // so conta o que o jogo CONFIRMOU
         if (sold > 0) {
           // agrega POR ESPECIE (os `sold` primeiros dos matches, ordenados do pior pro melhor)
           // — o card mostra o bicho (icone+nome+raridade), so quantidade e valor. E totalizador.
@@ -324,10 +341,14 @@ class GameSession {
     if (!this.userId || !this.pokeCfg) return;
     try {
       const all = normalizeActivePokes(list);
+      // A 1a lista vira LINHA DE BASE (a colecao que voce JA tinha): nao entra no acervo. Assim
+      // o acervo guarda SO o que o ROBO capturou depois de ligar — nao a conta inteira.
+      if (this.baselineIds === null) { this.baselineIds = new Set(all.map((p) => p.id)); return; }
       const data = await getData();
       const rarityOf = (sid: number): Rarity => data.getCreature(sid)?.rarity ?? "COMMON";
       const sellIds = new Set(filterSellable(all, this.pokeCfg, rarityOf).map((p) => p.id));
-      const kept = all.filter((p) => !sellIds.has(p.id) && !this.recordedIds.has(p.id));
+      // so o que o robo capturou nesta sessao: id NOVO (fora da base) + mantido (nao vai vender)
+      const kept = all.filter((p) => !this.baselineIds!.has(p.id) && !sellIds.has(p.id) && !this.recordedIds.has(p.id));
       if (!kept.length) return;
       const rows = kept.map((p) => {
         const cr = data.getCreature(p.speciesId);
@@ -342,8 +363,9 @@ class GameSession {
     } catch { /* nao derruba a sessao */ }
   }
 
-  // depois que o usuario limpa o acervo (DELETE), esquece o cache pra re-gravar o que ainda esta na conta
-  resetCapturedCache() { this.recordedIds.clear(); }
+  // depois que o usuario limpa o acervo (DELETE): esquece o cache e refaz a linha de base (a
+  // proxima lista vira a base, entao a conta atual NAO volta pro acervo — so novas capturas).
+  resetCapturedCache() { this.recordedIds.clear(); this.baselineIds = null; }
 
   // liga/desliga a auto-compra de consumiveis. Roda no proprio timer (REST, nao precisa do WS).
   setAutoBuy(userId: string, tokens: Tokens, on: boolean, persist: (t: Tokens) => Promise<void>) {

@@ -268,7 +268,7 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
       )}
 
       {/* feed ao vivo — kills e capturas, cada um clicavel (abre modal com detalhe) */}
-      {st?.recentKills && st.recentKills.length > 0 && (
+      {huntOn && st?.recentKills && st.recentKills.length > 0 && (
         <div className="card p-4">
           <h3 className="section-title mb-2 text-cyan">{t("robo.hunt.recent")}</h3>
           <div className="grid gap-1.5 sm:grid-cols-2">
