@@ -9,7 +9,7 @@
 // HuntState novo e aplicam na hora via applyHunt (o stream confirma em seguida).
 // Single-session: ligar desconecta o jogo no browser.
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useT } from "./locale-provider";
 import { useVipLive, type LiveHunt, type LivePlanStep, type LiveTeamPoke } from "./vip-live";
 import { Coin, Star, Xp, Skull, Clock, Check, ChevronRight, Brain, Flag, Target } from "./icons";
@@ -35,6 +35,13 @@ const STATUS_COLOR: Record<string, string> = { idle: "var(--text-dim)", connecti
 function readSellCfg(): unknown | null {
   try { const raw = window.localStorage.getItem("piw:poke-sell-config:v2"); return raw ? JSON.parse(raw) : null; } catch { return null; }
 }
+// "Vender pokemon junto" PERSISTE (localStorage): o checkbox zerando a cada reload fez
+// hunt rodar sem venda sem o usuario perceber — e captura sem venda vai TODA pro acervo
+// (design do acervo). Marcou uma vez, fica marcado ate desmarcar.
+const SELL_TOO_KEY = "piw:sell-pokes-too";
+function readSellPokesToo(): boolean {
+  try { return window.localStorage.getItem(SELL_TOO_KEY) === "1"; } catch { return false; }
+}
 
 export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunts: HuntOption[]; creatures: { pokeId: number; name: string }[]; itemIcons: Record<string, string>; lootByPoke: Record<number, DropOption[]> }) {
   const t = useT();
@@ -46,7 +53,14 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
   const [sellDropIds, setSellDropIds] = useState<Set<number>>(new Set());
   const [bestPoke, setBestPoke] = useState<{ pokeId: string; speciesId: number; name: string; level: number; power: number; eff: number } | null>(null);
   const [summonState, setSummonState] = useState<"idle" | "busy" | "done" | "fail">("idle");
-  const [sellPokesToo, setSellPokesToo] = useState(false);
+  // false no SSR e carrega do localStorage no mount (evita hydration mismatch)
+  const [sellPokesToo, setSellPokesTooState] = useState(false);
+  useEffect(() => { setSellPokesTooState(readSellPokesToo()); }, []);
+  const setSellPokesToo = (fn: (v: boolean) => boolean) => setSellPokesTooState((v) => {
+    const next = fn(v);
+    try { window.localStorage.setItem(SELL_TOO_KEY, next ? "1" : "0"); } catch { /* persistencia e best-effort */ }
+    return next;
+  });
   const [slug, setSlug] = useState("");
   const [busy, setBusy] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);

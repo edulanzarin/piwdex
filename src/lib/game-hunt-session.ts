@@ -176,6 +176,10 @@ class GameSession {
   private recordedIds = new Set<string>(); // ids ja gravados no acervo (evita rescrever no banco)
   private gen = 0; // geracao do socket: invalida os handlers de um socket antigo no reconnect
   private baselineIds: Set<string> | null = null; // ids que voce JA tinha ao ligar (colecao antiga)
+  // conexao NOVA pede refusao da base: o que apareceu na conta enquanto o robo esteve FORA
+  // (ex: captura SUA no navegador, que rouba a sessao) nao e captura do robo. Sem isso, o
+  // primeiro pokes apos reconectar jogava esses ids no acervo (bug do Yanma fantasma ago/2026).
+  private rebaseline = false;
   // auto-compra de consumiveis (roda no proprio timer, REST — independe do WS de hunt/venda)
   private autoBuy = false;
   private buyTimer: ReturnType<typeof setInterval> | null = null;
@@ -199,6 +203,7 @@ class GameSession {
   private holdOpen = false;
   private liveTeam: ActivePoke[] | null = null;  // time ao vivo (frames pokes)
   private liveTeamAt: number | null = null;
+  private liveBox: ActivePoke[] | null = null;   // box ao vivo (fora do time) — so em memoria, fora do SSE
 
   // chat do jogo (ring) + anuncio automatico + frames desconhecidos (modo descoberta)
   private chatLog: ChatMsg[] = [];
@@ -627,6 +632,25 @@ class GameSession {
     return false;
   }
 
+  /** Move um poke BOX <-> TIME na sessao VIVA (poke-store guarda, poke-withdraw tira do
+   *  box — HAR ago/2026). Mesmo desenho do summonActive: manda na conexao segurada e pede
+   *  pokes-get pra o time ao vivo/snapshot refletirem. Retorna true se havia sessao viva;
+   *  sem sessao, o caller faz o one-shot (game-ws.movePokeOneShot). MUTA a conta. */
+  movePoke(pokeId: string, dir: "store" | "withdraw"): boolean {
+    if (this.ws && this.status === "running") {
+      this.send({ type: dir === "store" ? "poke-store" : "poke-withdraw", pokeId });
+      setTimeout(() => this.send({ type: "pokes-get" }), 500);
+      return true;
+    }
+    return false;
+  }
+
+  /** Box AO VIVO (pokes fora do time) da sessao segurada — null sem conexao. Alimenta o
+   *  modal "tirar do box" sem entrar no HuntState (box pode ter centenas; nao vai no SSE). */
+  getLiveBox(): ActivePoke[] | null {
+    return this.ws && this.status === "running" ? this.liveBox : null;
+  }
+
   private connect() {
     if (!this.tokens) return;
     this.setStatus("connecting");
@@ -645,6 +669,7 @@ class GameSession {
 
     ws.addEventListener("open", () => {
       const wasRetry = this.reconnectAttempt > 0;
+      this.rebaseline = true; // o 1o pokes desta conexao FUNDE na base (nao vira acervo)
       this.reconnectAttempt = 0; this.nextRetryAt = null;
       this.setStatus("running");
       if (wasRetry && this.userId) void logRobotEvent(this.userId, {
@@ -761,6 +786,7 @@ class GameSession {
       const sig = team.map((p) => `${p.id}:${p.leader ? 1 : 0}:${p.level}:${p.hp}`).join("|");
       const prev = this.liveTeam?.map((p) => `${p.id}:${p.leader ? 1 : 0}:${p.level}:${p.hp}`).join("|");
       this.liveTeam = team;
+      this.liveBox = all.filter((p) => !p.team); // box ao vivo (modal box<->time le daqui)
       this.liveTeamAt = Date.now();
       if (sig !== prev) this.emit("session");
     } catch { /* best-effort */ }
@@ -918,7 +944,16 @@ class GameSession {
       // acervo. So depois o robo grava o que capturar. Guard contra lista vazia/parcial: se
       // a base ficasse vazia, tudo viraria "novo" e a conta inteira entraria (bug do "voltou").
       if (this.baselineIds === null) {
-        if (all.length) this.baselineIds = new Set(all.map((p) => p.id));
+        if (all.length) { this.baselineIds = new Set(all.map((p) => p.id)); this.rebaseline = false; }
+        return;
+      }
+      // conexao nova: FUNDE na base o que apareceu com o robo fora (captura do navegador,
+      // troca de conta, etc) — nao e captura do robo, nao entra no acervo. Consome a flag
+      // no 1o pokes NAO-VAZIO da conexao; dali em diante id novo = captura do robo.
+      if (this.rebaseline) {
+        if (!all.length) return;
+        for (const p of all) this.baselineIds.add(p.id);
+        this.rebaseline = false;
         return;
       }
       const data = await getData();
@@ -1086,7 +1121,7 @@ class GameSession {
 // SESSION_REV: bump SEMPRE que a classe ganhar/mudar metodo — no dev, o hot-reload
 // re-avalia o modulo mas a instancia antiga (prototype velho) fica presa no globalThis;
 // sem o rev, chamar um metodo novo dava "is not a function" ate reiniciar o server.
-const SESSION_REV = 12;
+const SESSION_REV = 13;
 const g = globalThis as unknown as { __piwSession?: GameSession; __piwSessionRev?: number };
 if (!g.__piwSession || g.__piwSessionRev !== SESSION_REV) {
   // silencia a instancia velha SEM persistir nada (stop() gravaria enabled=false no banco
