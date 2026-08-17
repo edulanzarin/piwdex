@@ -39,7 +39,7 @@ function ToolCard({
 }
 
 export default async function Home() {
-  const { counts, generatedAt, totalDropEntries, live } = await getData();
+  const { counts, totalDropEntries } = await getData();
   const stats: [string | number, string][] = [
     [counts.creatures, "home.stat.pokemons"],
     [counts.items, "home.stat.items"],
@@ -128,15 +128,6 @@ export default async function Home() {
         />
       </section>
 
-      <p className="text-[0.68rem] text-text-dim">
-        {live ? (
-          <span className="inline-flex items-center gap-1.5">
-            <span className="inline-block h-2 w-2 rounded-full bg-green" /> <T k="home.live" />
-          </span>
-        ) : (
-          <T k="home.snapshot" vars={{ date: new Date(generatedAt).toLocaleString("pt-BR") }} />
-        )}
-      </p>
     </div>
   );
 }

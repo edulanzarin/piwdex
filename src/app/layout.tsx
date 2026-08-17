@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { JetBrains_Mono, Press_Start_2P } from "next/font/google";
-import { LocaleProvider, T } from "@/components/locale-provider";
+import { LocaleProvider } from "@/components/locale-provider";
 import { SiteNav } from "@/components/site-nav";
 import { VipCta } from "@/components/vip-cta";
 import { auth } from "@/lib/auth";
@@ -41,11 +41,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <SiteNav user={user} />
           <main className="container-page py-10">{children}</main>
           <VipCta vip={user?.vip ?? false} />
-          <footer className="border-t border-border">
-            <div className="container-page py-8 text-[0.68rem] text-text-dim">
-              <T k="footer" />
-            </div>
-          </footer>
         </LocaleProvider>
       </body>
     </html>

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { Pokeball } from "./pokeball";
-import { NavDex, NavItems, NavHunt, NavCalc, NavLab, NavBreed, NavVip, NavLogout, NavLogin } from "./nav-icons";
+import { NavDex, NavItems, NavHunt, NavCalc, NavLab, NavBreed, NavAccount, NavLogout } from "./nav-icons";
 import { useT } from "./locale-provider";
 import { LangSwitcher } from "./lang-switcher";
 import { logout } from "@/lib/actions/auth";
@@ -79,20 +79,20 @@ export function SiteNav({ user }: { user: NavUser | null }) {
           </nav>
           <span className="hidden h-5 w-px bg-border sm:block" />
 
-          {/* VIP + login/logout (desktop) — icones no mesmo padrao da nav */}
+          {/* conta / login-logout (desktop) — so o icone de conta; sem VIP no topo */}
           <div className="hidden items-center gap-2 sm:flex">
-            <Link
-              href="/vip"
-              title="VIP"
-              aria-label="VIP"
-              className={`${ICON_BTN} ${user?.vip ? "text-text" : "text-text-dim hover:text-text"}`}
-            >
-              <NavVip size={22} filled={user?.vip} />
-              <Tip>VIP{user?.vip ? " · ativo" : ""}</Tip>
-            </Link>
             {user ? (
               <>
-                <span className="ml-1 max-w-[8rem] truncate pixel text-[0.58rem] text-text">{user.name ?? "conta"}</span>
+                <span className="max-w-[8rem] truncate pixel text-[0.58rem] text-text">{user.name ?? "conta"}</span>
+                <Link
+                  href="/vip#conta"
+                  title={t("nav.account")}
+                  aria-label={t("nav.account")}
+                  className={`${ICON_BTN} text-text-dim hover:text-cyan`}
+                >
+                  <NavAccount size={22} />
+                  <Tip>{t("nav.account")}</Tip>
+                </Link>
                 <form action={logout} className="flex">
                   <button
                     type="submit"
@@ -108,12 +108,12 @@ export function SiteNav({ user }: { user: NavUser | null }) {
             ) : (
               <Link
                 href="/entrar"
-                title={t("nav.login")}
-                aria-label={t("nav.login")}
+                title={t("nav.account")}
+                aria-label={t("nav.account")}
                 className={`${ICON_BTN} text-text-dim hover:text-cyan`}
               >
-                <NavLogin size={20} />
-                <Tip>{t("nav.login")}</Tip>
+                <NavAccount size={22} />
+                <Tip>{t("nav.account")}</Tip>
               </Link>
             )}
           </div>
@@ -148,35 +148,30 @@ export function SiteNav({ user }: { user: NavUser | null }) {
               </Link>
             ))}
 
-            {/* VIP (mobile) */}
-            <Link
-              href="/vip"
-              className="flex items-center gap-3 border-b border-border/40 py-3 pixel text-[0.7rem] text-yellow"
-              onClick={() => setOpen(false)}
-            >
-              <NavVip size={20} filled={user?.vip} />
-              VIP {user?.vip && <span className="text-[0.55rem] text-text-dim">ativo</span>}
-            </Link>
-
-            {/* Login/logout (mobile) */}
+            {/* conta / login-logout (mobile) — sem VIP no topo */}
             {user ? (
-              <div className="flex items-center justify-between gap-2 py-3">
-                <span className="flex items-center gap-2 pixel text-[0.7rem] text-text">
-                  {user.name ?? "conta"} <VipChip />
-                </span>
+              <>
+                <Link
+                  href="/vip#conta"
+                  className="flex items-center gap-3 border-b border-border/40 py-3 pixel text-[0.7rem] text-text-dim hover:text-cyan"
+                  onClick={() => setOpen(false)}
+                >
+                  <NavAccount size={20} />
+                  <span className="flex items-center gap-2">{user.name ?? t("nav.account")} <VipChip /></span>
+                </Link>
                 <form action={logout}>
-                  <button type="submit" className="flex items-center gap-2 pixel text-[0.7rem] text-text-dim hover:text-red" onClick={() => setOpen(false)}>
-                    <NavLogout size={18} /> {t("auth.logout")}
+                  <button type="submit" className="flex w-full items-center gap-3 py-3 pixel text-[0.7rem] text-text-dim hover:text-red" onClick={() => setOpen(false)}>
+                    <NavLogout size={20} /> {t("auth.logout")}
                   </button>
                 </form>
-              </div>
+              </>
             ) : (
               <Link
                 href="/entrar"
                 className="flex items-center gap-3 py-3 pixel text-[0.7rem] text-cyan"
                 onClick={() => setOpen(false)}
               >
-                <NavLogin size={18} /> {t("nav.login")}
+                <NavAccount size={20} /> {t("nav.account")}
               </Link>
             )}
           </div>
