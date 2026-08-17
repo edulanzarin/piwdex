@@ -338,13 +338,6 @@ class GameSession {
     } catch { /* proxima varredura tenta */ } finally { this.sellingPokes = false; }
   }
 
-  // "Vender agora": dispara uma varredura imediata (pede a lista agora; a venda ja acontece
-  // a cada varredura, entao isso so antecipa a proxima).
-  sellNow() {
-    if (!this.pokeCfg) return;
-    this.send({ type: "pokes-get" });
-  }
-
   // grava no acervo (captured_pokes) os pokemon MANTIDOS — os que NAO batem as travas de
   // venda (bons demais, raridade nao marcada, shiny, time/lider/starter). Roda a cada lista
   // de pokes (real-time, sem throttle), so gravando ids novos (dedupe em memoria).
@@ -434,6 +427,8 @@ class GameSession {
     this.summaryLogged = true;
     const slug = this.slug ?? "";
     void logRobotEvent(this.userId, { kind: "hunt-summary", title: `Hunt ${slug} — resumo`, body: `${a.kills} kills · ${a.captures} capturas · +$${Math.round(a.balance)}`, data: { slug, kills: a.kills, captures: a.captures, xp: a.xpGained, balance: a.balance } });
+    // totalizador cumulativo (pra sempre) do que a hunt rendeu — alimenta o dashboard de Estatisticas
+    void addRobotSales(this.userId, { hunts: 1, kills: a.kills, captures: a.captures, xpGained: a.xpGained, lootItems: a.lootItems, lootGold: a.lootGold, supplyGold: a.supplyGold });
   }
 
   private clearTimers() {

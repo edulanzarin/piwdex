@@ -36,10 +36,6 @@ export async function POST(req: Request) {
     gameSession.stopPokeSell();
     return NextResponse.json(gameSession.getAutoSellView());
   }
-  if (b.action === "sell-now") {
-    gameSession.sellNow();
-    return NextResponse.json(gameSession.getAutoSellView());
-  }
   if (b.action === "start") {
     const cfg = parsePokeSellCfg(b.config);
     if (!cfg.sellRarities.length) return NextResponse.json({ error: "empty_config" }, { status: 400 });

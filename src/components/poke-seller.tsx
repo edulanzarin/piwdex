@@ -144,14 +144,6 @@ export function PokeSeller() {
     } finally { setAutoBusy(false); }
   };
 
-  // "Vender agora": dispara uma varredura imediata (a venda ja acontece assim que coleta)
-  const sellNow = async () => {
-    setAutoBusy(true);
-    try {
-      await fetch("/api/vip/autosell", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "sell-now" }) });
-    } finally { setAutoBusy(false); }
-  };
-
   // edita SO em memoria (nunca salva a cada tecla) — o botao Confirmar e que comita.
   const edit = (p: Partial<PokeSellConfig>) => setCfg((c) => ({ ...c, ...p }));
   const dirty = JSON.stringify(cfg) !== JSON.stringify(savedCfg);
@@ -215,10 +207,7 @@ export function PokeSeller() {
                 <p className="mt-1 text-[0.62rem] text-text-dim">{t("robo.auto.desc")}</p>
               </div>
               {on ? (
-                <div className="flex items-center gap-2">
-                  <button type="button" onClick={sellNow} disabled={autoBusy} className="btn btn-cyan disabled:opacity-40"><Coin size={11} /> {t("robo.auto.sellNow")}</button>
-                  <button type="button" onClick={() => toggleAuto(false)} disabled={autoBusy} className="btn btn-ghost">{t("robo.auto.stop")}</button>
-                </div>
+                <button type="button" onClick={() => toggleAuto(false)} disabled={autoBusy} className="btn btn-ghost">{t("robo.auto.stop")}</button>
               ) : (
                 <button type="button" onClick={() => toggleAuto(true)} disabled={autoBusy || cfg.sellRarities.length === 0} className="btn btn-cyan disabled:opacity-40">{t("robo.auto.start")} <ChevronRight size={10} /></button>
               )}

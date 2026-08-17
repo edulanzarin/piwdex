@@ -85,3 +85,20 @@ export async function listCaptured(
 export async function clearCaptured(userId: string): Promise<void> {
   await query(`DELETE FROM captured_pokes WHERE user_id = $1`, [userId]);
 }
+
+// Resumo do acervo pro dashboard: total mantido + contagem por raridade (grafico) e quantos
+// shiny. So leitura agregada.
+export async function capturedStats(userId: string): Promise<{ total: number; shiny: number; byRarity: Record<string, number> }> {
+  const rows = await query<{ rarity: string; n: string }>(
+    `SELECT rarity, count(*)::text AS n FROM captured_pokes WHERE user_id = $1 GROUP BY rarity`,
+    [userId],
+  );
+  const shinyRow = await queryOne<{ n: string }>(
+    `SELECT count(*)::text AS n FROM captured_pokes WHERE user_id = $1 AND shiny = true`,
+    [userId],
+  );
+  const byRarity: Record<string, number> = {};
+  let total = 0;
+  for (const r of rows) { const n = Number(r.n); byRarity[r.rarity] = n; total += n; }
+  return { total, shiny: shinyRow ? Number(shinyRow.n) : 0, byRarity };
+}

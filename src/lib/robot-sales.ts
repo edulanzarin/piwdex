@@ -1,44 +1,52 @@
 import { query, queryOne } from "@/lib/db";
 
-// Totalizador cumulativo (pra sempre) das vendas do robo — itens e pokemon. Incrementa a
-// cada venda CONFIRMADA (chamado da sessao, fire-and-forget) e nunca reseta. Ver
-// db/migrations/010_robot_sales.sql.
+// Totalizador cumulativo (pra sempre) do robo — vendas (itens/pokemon) e o que a Hunt
+// acumulou (kills, capturas, XP, itens coletados, loot vs supply). Incrementa a cada venda
+// confirmada e no fim de cada hunt (fire-and-forget da sessao) e nunca reseta. Ver
+// db/migrations/010_robot_sales.sql + 012_robot_totals.sql.
 
-export interface SalesTotals { itemsCount: number; itemsGold: number; pokesCount: number; pokesGold: number }
+export interface SalesTotals {
+  itemsCount: number; itemsGold: number; pokesCount: number; pokesGold: number;
+  hunts: number; kills: number; captures: number; xpGained: number;
+  lootItems: number; lootGold: number; supplyGold: number;
+}
 
-export async function addRobotSales(
-  userId: string,
-  d: { itemsCount?: number; itemsGold?: number; pokesCount?: number; pokesGold?: number },
-): Promise<void> {
-  const ic = Math.round(d.itemsCount ?? 0), ig = Math.round(d.itemsGold ?? 0);
-  const pc = Math.round(d.pokesCount ?? 0), pg = Math.round(d.pokesGold ?? 0);
-  if (!ic && !ig && !pc && !pg) return;
+// colunas do totalizador e o campo do delta que soma em cada uma (uma fonte de verdade
+// pros dois lados: o INSERT/UPDATE e a leitura). Tudo em bigint, arredondado.
+const COLS = [
+  ["items_count", "itemsCount"], ["items_gold", "itemsGold"],
+  ["pokes_count", "pokesCount"], ["pokes_gold", "pokesGold"],
+  ["hunts", "hunts"], ["kills", "kills"], ["captures", "captures"], ["xp_gained", "xpGained"],
+  ["loot_items", "lootItems"], ["loot_gold", "lootGold"], ["supply_gold", "supplyGold"],
+] as const;
+type Delta = Partial<Record<(typeof COLS)[number][1], number>>;
+
+// Soma um delta em qualquer subconjunto de colunas (venda: items/pokes; fim de hunt:
+// hunts/kills/captures/...). Uma linha por usuario, incrementada via UPSERT.
+export async function addRobotSales(userId: string, d: Delta): Promise<void> {
+  const vals = COLS.map(([, key]) => Math.round(d[key] ?? 0));
+  if (vals.every((v) => !v)) return;
+  const names = COLS.map(([col]) => col);
+  const placeholders = names.map((_, i) => `$${i + 2}`).join(", ");
+  const updates = names.map((col) => `${col} = robot_sales.${col} + EXCLUDED.${col}`).join(", ");
   try {
     await query(
-      `INSERT INTO robot_sales (user_id, items_count, items_gold, pokes_count, pokes_gold)
-         VALUES ($1, $2, $3, $4, $5)
-       ON CONFLICT (user_id) DO UPDATE SET
-         items_count = robot_sales.items_count + EXCLUDED.items_count,
-         items_gold  = robot_sales.items_gold  + EXCLUDED.items_gold,
-         pokes_count = robot_sales.pokes_count + EXCLUDED.pokes_count,
-         pokes_gold  = robot_sales.pokes_gold  + EXCLUDED.pokes_gold,
-         updated_em  = now()`,
-      [userId, ic, ig, pc, pg],
+      `INSERT INTO robot_sales (user_id, ${names.join(", ")})
+         VALUES ($1, ${placeholders})
+       ON CONFLICT (user_id) DO UPDATE SET ${updates}, updated_em = now()`,
+      [userId, ...vals],
     );
   } catch {
-    // nao derruba a venda por causa do totalizador
+    // nao derruba a venda/hunt por causa do totalizador
   }
 }
 
 export async function getRobotSales(userId: string): Promise<SalesTotals> {
-  const row = await queryOne<{ items_count: string; items_gold: string; pokes_count: string; pokes_gold: string }>(
-    `SELECT items_count, items_gold, pokes_count, pokes_gold FROM robot_sales WHERE user_id = $1`,
+  const row = await queryOne<Record<string, string>>(
+    `SELECT ${COLS.map(([col]) => col).join(", ")} FROM robot_sales WHERE user_id = $1`,
     [userId],
   );
-  return {
-    itemsCount: row ? Number(row.items_count) : 0,
-    itemsGold: row ? Number(row.items_gold) : 0,
-    pokesCount: row ? Number(row.pokes_count) : 0,
-    pokesGold: row ? Number(row.pokes_gold) : 0,
-  };
+  const out = {} as SalesTotals;
+  for (const [col, key] of COLS) out[key] = row ? Number(row[col]) : 0;
+  return out;
 }
