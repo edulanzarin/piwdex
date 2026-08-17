@@ -23,18 +23,20 @@ import { PokeSold } from "./poke-sold";
 import { PokeCaught } from "./poke-caught";
 import { RoboStats } from "./robo-stats";
 import { HuntAnalyzer, type HuntOption, type DropOption } from "./hunt-analyzer";
+import { ChatPanel } from "./chat-panel";
 import type { ComboCreature } from "./pokemon-combobox";
 import { useT } from "./locale-provider";
-import { Star, Coin, Heart, Bell, Trainer, Robot, Target, Chart, Backpack, ChevronRight } from "./icons";
+import { Star, Coin, Heart, Bell, Trainer, Target, Chart, Backpack, ChevronRight, Gear, Bubble } from "./icons";
 
 type Section =
-  | "painel" | "hunt" | "automacao" | "capturados" | "estatisticas"
+  | "painel" | "hunt" | "chat" | "config" | "capturados" | "estatisticas"
   | "mercado" | "desejos" | "alertas" | "conta";
 
 const SECTIONS: { key: Section; accent: string; Icon: (p: { size?: number; className?: string }) => React.ReactNode }[] = [
   { key: "painel", accent: "var(--yellow)", Icon: Star },
   { key: "hunt", accent: "var(--cyan)", Icon: Target },
-  { key: "automacao", accent: "var(--green)", Icon: Robot },
+  { key: "chat", accent: "var(--green)", Icon: Bubble },
+  { key: "config", accent: "var(--blue)", Icon: Gear },
   { key: "capturados", accent: "var(--blue)", Icon: Backpack },
   { key: "estatisticas", accent: "var(--purple)", Icon: Chart },
   { key: "mercado", accent: "var(--green)", Icon: Coin },
@@ -44,7 +46,7 @@ const SECTIONS: { key: Section; accent: string; Icon: (p: { size?: number; class
 ];
 const isSection = (v: string): v is Section => SECTIONS.some((s) => s.key === v);
 // hashes antigos -> secao nova (links salvos continuam funcionando)
-const LEGACY: Record<string, Section> = { robo: "hunt", mercado: "mercado", desejos: "desejos", alertas: "alertas", conta: "conta" };
+const LEGACY: Record<string, Section> = { robo: "hunt", automacao: "config" };
 
 export interface VipShellProps {
   creatures: ComboCreature[];
@@ -138,7 +140,8 @@ function VipShellInner({ creatures, dex, hunts, itemIcons, lootByPoke }: VipShel
               <PokeSold />
             </div>
           )}
-          {sec === "automacao" && (
+          {sec === "chat" && <ChatPanel />}
+          {sec === "config" && (
             <div className="flex flex-col gap-8">
               <RoboPanel />
               <PokeSeller />

@@ -22,7 +22,7 @@ import {
 } from "./hunt-brain";
 import {
   saveRobotDesired, saveRobotStatus,
-  type RobotMode, type LevelingGoal, type RobotDesired,
+  type RobotMode, type LevelingGoal, type RobotDesired, type AnnounceCfg,
 } from "./robot-session-store";
 import { sellItems, sellPokes, fetchShop, buyBall } from "./game-shop";
 import { readAuto } from "./game-auto";
@@ -52,6 +52,19 @@ const BALL_TARGET = 500;  // repoe ate aqui (limitado pelo dinheiro)
 // (token vencido = conexao recusada direto, sem o retry-em-401 do REST).
 const RECONNECT_BASE_MS = 5_000;
 const RECONNECT_MAX_MS = 60_000;
+// chat do jogo: o snapshot da conexao traz o backlog (`history`) e as mensagens chegam
+// na sessao que o robo ja segura. O formato exato dos frames de chat nao e documentado —
+// o parser e TOLERANTE (varios nomes de campo) e o que nao casar cai num ring de frames
+// desconhecidos exposto na UI (modo descoberta: da pra calibrar olhando o frame real).
+const CHAT_MAX = 150;   // mensagens no ring
+const DEBUG_MAX = 30;   // frames desconhecidos no ring
+const ANNOUNCE_MIN_MS = 60_000; // piso do intervalo do anuncio automatico
+// frames que a sessao conhece (trata ou ignora de proposito) — o resto vira "descoberta"
+const KNOWN_FRAMES = new Set([
+  "analyzer", "field", "field-init", "field-kill", "poke-xp", "catch-result", "inventory",
+  "pokes", "balls", "autohelper", "boosts", "mail-badge", "events", "shiny-global",
+  "poke-summon", "trade", "badge-refresh", "hunt-config",
+]);
 
 export interface Analyzer {
   kills: number; seconds: number; xpGained: number;
@@ -99,6 +112,16 @@ export interface HuntState {
 // visao "auto-sell" (GET /api/vip/autosell) — a aba Pokemon vendidos: status + o vendido
 // agregado por especie (cards da hunt atual).
 export interface AutoSellView { status: SessStatus; error?: string; soldBySpecies: SpeciesSold[] }
+
+// chat do jogo (aba Chat + anuncio automatico)
+export interface ChatMsg { at: number; from: string; text: string; channel: string }
+export interface ChatView {
+  wsOpen: boolean;
+  messages: ChatMsg[];
+  announce: AnnounceCfg | null;
+  lastSentAt: number | null; // ultimo envio (manual ou anuncio) — a UI mostra "enviado"
+  debugFrames: { at: number; type: string; raw: string }[]; // modo descoberta
+}
 
 class GameSession {
   // barramento de eventos pro stream SSE: emit("change", topic) a cada mudanca de estado.
@@ -159,9 +182,17 @@ class GameSession {
   private liveTeam: ActivePoke[] | null = null;  // time ao vivo (frames pokes)
   private liveTeamAt: number | null = null;
 
+  // chat do jogo (ring) + anuncio automatico + frames desconhecidos (modo descoberta)
+  private chatLog: ChatMsg[] = [];
+  private chatSeen = new Set<string>();          // dedupe (history repete no reconnect)
+  private announce: AnnounceCfg | null = null;
+  private announceTimer: ReturnType<typeof setInterval> | null = null;
+  private lastSentAt: number | null = null;
+  private debugFrames: { at: number; type: string; raw: string }[] = [];
+
   private jobsActive() { return this.slug != null || this.pokeCfg != null || this.holdOpen; }
 
-  private emit(topic: "hunt" | "session") { try { this.bus.emit("change", topic); } catch { /* listener nao derruba a sessao */ } }
+  private emit(topic: "hunt" | "session" | "chat") { try { this.bus.emit("change", topic); } catch { /* listener nao derruba a sessao */ } }
 
   // grava estado desejado/status observado — fire-and-forget (banco fora nao derruba o robo)
   private persistDesired(patch: Parameters<typeof saveRobotDesired>[1]) {
@@ -210,6 +241,97 @@ class GameSession {
     this.analyzer = null; this.recentKills = []; this.soldItems = []; this.poke.soldBySpecies = {};
     this.persistDesired({ enabled: false, mode: "manual", slug: null, pokeSellCfg: null, leveling: null });
     this.teardown();
+  }
+
+  getChatView(): ChatView {
+    return {
+      wsOpen: this.ws != null && this.status === "running",
+      messages: this.chatLog.slice(-CHAT_MAX),
+      announce: this.announce,
+      lastSentAt: this.lastSentAt,
+      debugFrames: this.debugFrames.slice(-DEBUG_MAX),
+    };
+  }
+
+  /** Manda mensagem no chat do jogo pela sessao viva. O frame de envio nao e documentado:
+   *  usamos o palpite mais provavel (type "chat") com o texto duplicado em message/text —
+   *  campo extra e inofensivo. A confirmacao e o ECO voltando no stream de chat. */
+  sendChat(text: string, channel: string): boolean {
+    if (!this.ws || this.status !== "running") return false;
+    const t = text.trim();
+    if (!t) return false;
+    this.send({ type: "chat", channel, message: t, text: t });
+    this.lastSentAt = Date.now();
+    this.emit("chat");
+    return true;
+  }
+
+  /** Anuncio automatico: manda o texto no canal a cada N minutos enquanto conectado.
+   *  Persistido (religa com a sessao no boot). cfg.on=false desliga. */
+  setAnnounce(cfg: AnnounceCfg | null) {
+    this.announce = cfg; // guarda mesmo desligado (a UI mantem o texto)
+    if (this.announceTimer) { clearInterval(this.announceTimer); this.announceTimer = null; }
+    if (cfg?.on && cfg.text.trim()) {
+      const every = Math.max(ANNOUNCE_MIN_MS, Math.round(cfg.everyMin * 60_000));
+      this.announceTimer = setInterval(() => {
+        if (this.announce?.on) this.sendChat(this.announce.text, this.announce.channel);
+      }, every);
+      this.sendChat(cfg.text, cfg.channel); // primeiro envio na hora
+    }
+    this.persistDesired({ announce: cfg });
+    this.emit("chat");
+  }
+
+  // ---- captura de chat (parser tolerante + modo descoberta) ----
+
+  private static str(o: Record<string, unknown>, keys: string[]): string | null {
+    for (const k of keys) { const v = o[k]; if (typeof v === "string" && v.trim()) return v; }
+    return null;
+  }
+
+  private parseChatMsg(o: Record<string, unknown>): ChatMsg | null {
+    const text = GameSession.str(o, ["text", "message", "msg", "body", "content"]);
+    if (!text) return null;
+    const from = GameSession.str(o, ["from", "name", "player", "author", "sender", "playerName", "user", "username"]) ?? "?";
+    const channel = GameSession.str(o, ["channel", "chan", "room"]) ?? "world";
+    const raw = o.at ?? o.ts ?? o.time ?? o.createdAt ?? o.timestamp ?? o.date;
+    let at = Date.now();
+    if (typeof raw === "number" && Number.isFinite(raw)) at = raw < 1e12 ? raw * 1000 : raw; // s vs ms
+    else if (typeof raw === "string") { const p = Date.parse(raw); if (Number.isFinite(p)) at = p; }
+    return { at, from, text, channel };
+  }
+
+  private pushChat(msg: ChatMsg) {
+    const key = `${msg.from}|${msg.text}|${Math.round(msg.at / 1000)}`;
+    if (this.chatSeen.has(key)) return false;
+    this.chatSeen.add(key);
+    if (this.chatSeen.size > CHAT_MAX * 3) this.chatSeen.clear(); // ring do dedupe tambem
+    this.chatLog.push(msg);
+    this.chatLog.sort((a, b) => a.at - b.at);
+    if (this.chatLog.length > CHAT_MAX) this.chatLog.splice(0, this.chatLog.length - CHAT_MAX);
+    return true;
+  }
+
+  // frame de chat/history: acha a lista de mensagens (varios nomes possiveis) ou uma so
+  private captureChat(m: Record<string, unknown>) {
+    const arr = [m.messages, m.list, m.items, m.history, m.data].find(Array.isArray) as Record<string, unknown>[] | undefined;
+    let got = false;
+    if (arr) {
+      for (const o of arr) { const p = o && this.parseChatMsg(o); if (p && this.pushChat(p)) got = true; }
+    } else {
+      const p = this.parseChatMsg(m);
+      if (p && this.pushChat(p)) got = true;
+    }
+    if (got) this.emit("chat");
+    else this.captureUnknown(m); // veio com cara de chat mas nao casou: vai pro descobridor
+  }
+
+  // frame que a sessao nao conhece: guarda truncado pro modo descoberta da aba Chat
+  private captureUnknown(m: Record<string, unknown>) {
+    let raw = "";
+    try { raw = JSON.stringify(m).slice(0, 600); } catch { raw = String(m.type ?? "?"); }
+    this.debugFrames.push({ at: Date.now(), type: String(m.type ?? "?"), raw });
+    if (this.debugFrames.length > DEBUG_MAX) this.debugFrames.splice(0, this.debugFrames.length - DEBUG_MAX);
   }
 
   getAutoSellView(): AutoSellView {
@@ -313,6 +435,7 @@ class GameSession {
       this.slug = d.slug;
       this.sellIds = new Set(d.sellItemIds);
     }
+    if (d.announce) this.setAnnounce(d.announce); // anuncio automatico religa junto
     this.holdOpen = true; // enabled persistido = conexao desejada (mesmo sem hunt)
     this.desiredOn = true;
     if (this.userId) void logRobotEvent(this.userId, {
@@ -502,6 +625,10 @@ class GameSession {
       this.trackLevelFromPokes(m.list); // fallback de nivel do cerebro (se poke-xp nao vier)
       void this.recordKept(m.list);   // acervo de capturados (real-time)
       void this.sellPokesSweep(m.list); // venda (assim que coleta)
+    } else if (m.type === "history" || String(m.type ?? "").toLowerCase().includes("chat")) {
+      this.captureChat(m); // backlog do snapshot + mensagens ao vivo
+    } else if (!KNOWN_FRAMES.has(String(m.type ?? ""))) {
+      this.captureUnknown(m); // modo descoberta: frame novo aparece na aba Chat
     }
   }
 
@@ -842,7 +969,7 @@ class GameSession {
 // SESSION_REV: bump SEMPRE que a classe ganhar/mudar metodo — no dev, o hot-reload
 // re-avalia o modulo mas a instancia antiga (prototype velho) fica presa no globalThis;
 // sem o rev, chamar um metodo novo dava "is not a function" ate reiniciar o server.
-const SESSION_REV = 3;
+const SESSION_REV = 4;
 const g = globalThis as unknown as { __piwSession?: GameSession; __piwSessionRev?: number };
 if (!g.__piwSession || g.__piwSessionRev !== SESSION_REV) {
   // silencia a instancia velha SEM persistir nada (stop() gravaria enabled=false no banco

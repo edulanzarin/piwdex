@@ -19,6 +19,13 @@ export interface LevelingGoal {
   done: boolean;
 }
 
+export interface AnnounceCfg {
+  on: boolean;
+  text: string;
+  everyMin: number;                    // intervalo entre envios (min)
+  channel: "world" | "trade" | "help"; // canal do chat do jogo
+}
+
 export interface RobotDesired {
   enabled: boolean;
   mode: RobotMode;
@@ -27,6 +34,7 @@ export interface RobotDesired {
   pokeSellCfg: PokeSellConfig | null;
   autobuy: boolean;
   leveling: LevelingGoal | null;
+  announce: AnnounceCfg | null;
   lastStatus: string;
   lastError: string | null;
 }
@@ -40,6 +48,7 @@ interface Row {
   poke_sell_cfg: PokeSellConfig | null;
   autobuy: boolean;
   leveling: LevelingGoal | null;
+  announce: AnnounceCfg | null;
   last_status: string;
   last_error: string | null;
 }
@@ -53,6 +62,7 @@ function fromRow(r: Row): RobotDesired {
     pokeSellCfg: r.poke_sell_cfg,
     autobuy: r.autobuy,
     leveling: r.leveling,
+    announce: r.announce,
     lastStatus: r.last_status,
     lastError: r.last_error,
   };
@@ -76,10 +86,10 @@ export async function saveRobotDesired(
   patch: Partial<Omit<RobotDesired, "lastStatus" | "lastError">>,
 ): Promise<void> {
   await query(
-    `INSERT INTO robot_sessions (user_id, enabled, mode, slug, sell_item_ids, poke_sell_cfg, autobuy, leveling)
+    `INSERT INTO robot_sessions (user_id, enabled, mode, slug, sell_item_ids, poke_sell_cfg, autobuy, leveling, announce)
      VALUES ($1,
              COALESCE($2, false), COALESCE($3, 'manual'), $4,
-             COALESCE($5, '[]'::jsonb), $6, COALESCE($7, false), $8)
+             COALESCE($5, '[]'::jsonb), $6, COALESCE($7, false), $8, $12)
      ON CONFLICT (user_id) DO UPDATE SET
        enabled       = COALESCE($2, robot_sessions.enabled),
        mode          = COALESCE($3, robot_sessions.mode),
@@ -88,6 +98,7 @@ export async function saveRobotDesired(
        poke_sell_cfg = CASE WHEN $10 THEN $6 ELSE robot_sessions.poke_sell_cfg END,
        autobuy       = COALESCE($7, robot_sessions.autobuy),
        leveling      = CASE WHEN $11 THEN $8 ELSE robot_sessions.leveling END,
+       announce      = CASE WHEN $13 THEN $12 ELSE robot_sessions.announce END,
        updated_at    = now()`,
     [
       userId,
@@ -98,9 +109,11 @@ export async function saveRobotDesired(
       patch.pokeSellCfg ? JSON.stringify(patch.pokeSellCfg) : null,
       patch.autobuy ?? null,
       patch.leveling ? JSON.stringify(patch.leveling) : null,
-      "slug" in patch,       // null tambem e valor valido pra slug/cfg/leveling:
+      "slug" in patch,       // null tambem e valor valido pra slug/cfg/leveling/announce:
       "pokeSellCfg" in patch, // flags dizem se o campo veio no patch
       "leveling" in patch,
+      patch.announce ? JSON.stringify(patch.announce) : null,
+      "announce" in patch,
     ],
   );
 }

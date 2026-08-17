@@ -311,7 +311,7 @@ export function VipOverview({
             <div className="flex items-center gap-2">
               <Pokeball size={13} />
               <h3 className="section-title flex-1">{t("vip.res.balls")}</h3>
-              <button type="button" onClick={() => onGo("automacao")} className="icon-btn" aria-label={t("vip.sec.automacao")}><ChevronRight size={11} /></button>
+              <button type="button" onClick={() => onGo("config")} className="icon-btn" aria-label={t("vip.sec.config")}><ChevronRight size={11} /></button>
             </div>
             {balls.length ? (
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">

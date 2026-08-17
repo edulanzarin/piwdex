@@ -94,6 +94,16 @@ export interface LiveNotification {
   [k: string]: unknown;
 }
 
+export interface LiveChatMsg { at: number; from: string; text: string; channel: string }
+export interface LiveAnnounce { on: boolean; text: string; everyMin: number; channel: "world" | "trade" | "help" }
+export interface LiveChat {
+  wsOpen: boolean;
+  messages: LiveChatMsg[];
+  announce: LiveAnnounce | null;
+  lastSentAt: number | null;
+  debugFrames: { at: number; type: string; raw: string }[];
+}
+
 export interface LiveTotals {
   itemsCount: number; itemsGold: number; pokesCount: number; pokesGold: number;
   hunts: number; kills: number; captures: number; xpGained: number;
@@ -110,8 +120,10 @@ export interface VipLive {
   events: { events: LiveEvent[]; unread: number } | null;
   alerts: { notifications: LiveNotification[]; unread: number } | null;
   totals: LiveTotals | null;
+  chat: LiveChat | null;
   /** aplica um HuntState devolvido por um POST na hora (sem esperar o proximo push) */
   applyHunt: (h: LiveHunt) => void;
+  applyChat: (c: LiveChat) => void;
   /** zera o contador local de alertas/eventos (apos marcar lido) */
   applyAlerts: (a: { notifications: LiveNotification[]; unread: number }) => void;
   applyEvents: (e: { events: LiveEvent[]; unread: number }) => void;
@@ -133,6 +145,7 @@ export function VipLiveProvider({ children }: { children: React.ReactNode }) {
   const [events, setEvents] = useState<VipLive["events"]>(null);
   const [alerts, setAlerts] = useState<VipLive["alerts"]>(null);
   const [totals, setTotals] = useState<LiveTotals | null>(null);
+  const [chat, setChat] = useState<LiveChat | null>(null);
   const esRef = useRef<EventSource | null>(null);
 
   useEffect(() => {
@@ -154,13 +167,14 @@ export function VipLiveProvider({ children }: { children: React.ReactNode }) {
     on<{ events: LiveEvent[]; unread: number }>("events", setEvents);
     on<{ notifications: LiveNotification[]; unread: number }>("alerts", setAlerts);
     on<LiveTotals>("totals", setTotals);
+    on<LiveChat>("chat", setChat);
 
     return () => { es.close(); esRef.current = null; };
   }, []);
 
   const value: VipLive = {
-    link, hunt, autosell, account, events, alerts, totals,
-    applyHunt: setHunt, applyAlerts: setAlerts, applyEvents: setEvents,
+    link, hunt, autosell, account, events, alerts, totals, chat,
+    applyHunt: setHunt, applyChat: setChat, applyAlerts: setAlerts, applyEvents: setEvents,
   };
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

@@ -45,7 +45,7 @@ export async function GET(req: Request) {
         } catch { closed = true; }
       };
 
-      const pushHunt = () => { send("hunt", gameSession.getState()); send("autosell", gameSession.getAutoSellView()); };
+      const pushHunt = () => { send("hunt", gameSession.getState()); send("autosell", gameSession.getAutoSellView()); send("chat", gameSession.getChatView()); };
       const pushAccount = async () => { try { send("account", await fetchAccountSnapshot(userId)); } catch { /* proximo tick */ } };
       const pushTotals = async () => { try { send("totals", await fetchTotalsSnapshot(userId)); } catch { /* proximo tick */ } };
       const pushDb = async () => {

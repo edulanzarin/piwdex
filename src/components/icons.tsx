@@ -226,6 +226,16 @@ export function Backpack({ size = 12, className = "" }: { size?: number; classNa
   return <Glyph size={size} dx={2} dy={1} className={className} rows={["..####..", ".#....#.", "########", "##....##", "##.##.##", "##.##.##", "##....##", "########"]} />;
 }
 
+/** Engrenagem (configuracoes). currentColor. */
+export function Gear({ size = 12, className = "" }: { size?: number; className?: string }) {
+  return <Glyph size={size} dx={2} dy={2} className={className} rows={["#..##..#", ".######.", ".##..##.", "###..###", "###..###", ".##..##.", ".######.", "#..##..#"]} />;
+}
+
+/** Balao de fala (chat). currentColor. */
+export function Bubble({ size = 12, className = "" }: { size?: number; className?: string }) {
+  return <Glyph size={size} dx={2} dy={2} className={className} rows={[".######.", "########", "########", "########", ".######.", "..##....", ".##....."]} />;
+}
+
 /** Preco em dolares do jogo: moeda + valor. */
 export function Gold({ value, className = "" }: { value: number; className?: string }) {
   return (
