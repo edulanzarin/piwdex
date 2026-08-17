@@ -80,8 +80,9 @@ export function RoboStats() {
           <Bar label={t("robo.stats.src.pokes")} value={d?.pokesGold ?? 0} max={goldMax} color="var(--yellow)" />
           <Bar label={t("robo.stats.src.supply")} value={d?.supplyGold ?? 0} max={goldMax} color="var(--pink)" valueText={`-${fmt(d?.supplyGold ?? 0)}`} />
         </div>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
           <StatTile label={t("robo.stats.received")} value={fmt(received)} accent="var(--green)" icon={<Coin size={11} />} />
+          <StatTile label={t("robo.stats.supply")} value={`-${fmt(d?.supplyGold ?? 0)}`} accent="var(--pink)" icon={<Coin size={11} className="text-pink" />} />
           <StatTile label={t("robo.stats.net")} value={fmt(received - (d?.supplyGold ?? 0))} accent={received - (d?.supplyGold ?? 0) >= 0 ? "var(--green)" : "var(--pink)"} icon={<Coin size={11} />} />
         </div>
       </Card>
