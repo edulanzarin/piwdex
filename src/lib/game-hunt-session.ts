@@ -59,6 +59,7 @@ const RECONNECT_MAX_MS = 60_000;
 const CHAT_MAX = 150;   // mensagens no ring
 const DEBUG_MAX = 30;   // frames desconhecidos no ring
 const ANNOUNCE_MIN_MS = 60_000; // piso do intervalo do anuncio automatico
+const CHAT_COOLDOWN_MS = 60_000; // anti-flood do chat do jogo (~1 msg/min) — barra no servidor
 // frames que a sessao conhece (trata ou ignora de proposito) — o resto vira "descoberta"
 const KNOWN_FRAMES = new Set([
   "analyzer", "field", "field-init", "field-kill", "poke-xp", "catch-result", "inventory",
@@ -263,13 +264,15 @@ class GameSession {
     };
   }
 
-  /** Manda mensagem no chat do jogo pela sessao viva. O frame de envio nao e documentado:
-   *  usamos o palpite mais provavel (type "chat") com o texto duplicado em message/text —
-   *  campo extra e inofensivo. A confirmacao e o ECO voltando no stream de chat. */
-  sendChat(text: string, channel: string, fromName?: string | null): boolean {
-    if (!this.ws || this.status !== "running") return false;
+  /** Manda mensagem no chat do jogo pela sessao viva, com COOLDOWN anti-flood (o jogo
+   *  limita ~1 msg/min; barrar aqui evita ate punicao). O frame de envio nao e
+   *  documentado: palpite mais provavel (type "chat") com o texto em body/message/text. */
+  sendChat(text: string, channel: string, fromName?: string | null): { ok: boolean; reason?: "not_live" | "cooldown" | "empty"; waitMs?: number } {
+    if (!this.ws || this.status !== "running") return { ok: false, reason: "not_live" };
     const t = text.trim();
-    if (!t) return false;
+    if (!t) return { ok: false, reason: "empty" };
+    const since = this.lastSentAt != null ? Date.now() - this.lastSentAt : Infinity;
+    if (since < CHAT_COOLDOWN_MS) return { ok: false, reason: "cooldown", waitMs: CHAT_COOLDOWN_MS - since };
     // o frame de ENTRADA e {type:"chat", msg:{channel, body}} — o de saida provavelmente
     // espelha (body no top-level ou no msg). Mandamos os dois shapes + aliases; campo
     // extra e inofensivo.
@@ -280,7 +283,7 @@ class GameSession {
     // mensagem nunca aparecia no feed. Se um eco vier, o dedupe por conteudo absorve.
     this.pushChat({ at: Date.now(), from: fromName ?? this.selfName ?? "Voce", text: t, channel, mine: true });
     this.emit("chat");
-    return true;
+    return { ok: true };
   }
 
   /** Anuncio automatico: manda o texto no canal a cada N minutos enquanto conectado.
@@ -1017,7 +1020,7 @@ class GameSession {
 // SESSION_REV: bump SEMPRE que a classe ganhar/mudar metodo — no dev, o hot-reload
 // re-avalia o modulo mas a instancia antiga (prototype velho) fica presa no globalThis;
 // sem o rev, chamar um metodo novo dava "is not a function" ate reiniciar o server.
-const SESSION_REV = 6;
+const SESSION_REV = 7;
 const g = globalThis as unknown as { __piwSession?: GameSession; __piwSessionRev?: number };
 if (!g.__piwSession || g.__piwSessionRev !== SESSION_REV) {
   // silencia a instancia velha SEM persistir nada (stop() gravaria enabled=false no banco

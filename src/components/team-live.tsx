@@ -10,6 +10,7 @@ import { useVipLive, type LiveTeamPoke } from "./vip-live";
 import { Star, Xp, Check, Trainer } from "./icons";
 import { Sprite } from "./sprite";
 import { spriteUrl } from "@/lib/sprites";
+import { useToast } from "./toast";
 import { useT } from "./locale-provider";
 
 const fmt = (n: number) => Math.round(n).toLocaleString("pt-BR");
@@ -26,6 +27,7 @@ function HpBar({ hp, maxHp }: { hp: number; maxHp: number }) {
 
 export function TeamLive() {
   const t = useT();
+  const toast = useToast();
   const { hunt, account, applyHunt } = useVipLive();
   const [busyId, setBusyId] = useState<string | null>(null);
   const [failId, setFailId] = useState<string | null>(null);
@@ -44,12 +46,13 @@ export function TeamLive() {
     setBusyId(p.id); setFailId(null);
     try {
       const r = await fetch("/api/vip/summon", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ pokeId: p.id }) });
-      if (!r.ok) { setFailId(p.id); return; }
+      if (!r.ok) { setFailId(p.id); toast.error(t("toast.summonFail")); return; }
       // otimista: marca o novo lider na hora; o stream confirma no proximo frame pokes
       if (hunt?.team) {
         applyHunt({ ...hunt, team: hunt.team.map((x) => ({ ...x, leader: x.id === p.id })) });
       }
-    } catch { setFailId(p.id); } finally { setBusyId(null); }
+      toast.success(t("toast.summonOk", { name: p.name }));
+    } catch { setFailId(p.id); toast.error(t("toast.summonFail")); } finally { setBusyId(null); }
   };
 
   return (

@@ -18,6 +18,7 @@ import {
   ChevronRight, Robot,
 } from "./icons";
 import { spriteUrl, assetIconUrl } from "@/lib/sprites";
+import { useToast } from "./toast";
 import { useT } from "./locale-provider";
 
 const fmt = (n: number) => Math.round(n).toLocaleString("pt-BR");
@@ -65,6 +66,7 @@ export function VipOverview({
   onGo: (section: string) => void;
 }) {
   const t = useT();
+  const toast = useToast();
   const { hunt, account, events, totals, applyHunt } = useVipLive();
   const [busy, setBusy] = useState(false);
 
@@ -97,12 +99,14 @@ export function VipOverview({
     : 0;
   const currentStep = lv && plan ? (plan.find((s) => lv.currentLevel >= s.from && lv.currentLevel <= s.to) ?? plan[plan.length - 1]) : null;
 
-  const send = async (body: Record<string, unknown>) => {
+  const send = async (body: Record<string, unknown>, okMsg?: string) => {
     setBusy(true);
     try {
       const r = await fetch("/api/vip/hunt", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       const j = await r.json().catch(() => null);
       if (j && "status" in j) applyHunt(j);
+      if (r.ok && okMsg) toast.success(okMsg);
+      else if (!r.ok) toast.error(t("toast.err"));
     } finally { setBusy(false); }
   };
 
@@ -180,23 +184,23 @@ export function VipOverview({
           {!holdOpen ? (
             <>
               <p className="text-[0.62rem] leading-relaxed text-text-dim">{t("vip.conn.connectDesc")}</p>
-              <button type="button" onClick={() => void send({ action: "connect" })} disabled={busy} className="btn btn-green mt-auto disabled:opacity-40">
+              <button type="button" onClick={() => void send({ action: "connect" }, t("toast.connected"))} disabled={busy} className="btn btn-green mt-auto disabled:opacity-40">
                 {t("vip.conn.connect")} <ChevronRight size={10} />
               </button>
             </>
           ) : (
             <div className="mt-auto flex flex-wrap gap-2">
               {!hunting && connected && (
-                <button type="button" onClick={() => void send({ action: "auto" })} disabled={busy} className="btn btn-cyan disabled:opacity-40">
+                <button type="button" onClick={() => void send({ action: "auto" }, t("toast.autoOn"))} disabled={busy} className="btn btn-cyan disabled:opacity-40">
                   <Brain size={10} /> {t("robo.mode.autoStart")}
                 </button>
               )}
               {hunting && (
-                <button type="button" onClick={() => void send({ action: "stop" })} disabled={busy} className="btn btn-ghost disabled:opacity-40">
+                <button type="button" onClick={() => void send({ action: "stop" }, t("toast.huntOff"))} disabled={busy} className="btn btn-ghost disabled:opacity-40">
                   {t("vip.conn.stopHunt")}
                 </button>
               )}
-              <button type="button" onClick={() => void send({ action: "disconnect" })} disabled={busy} className="btn btn-ghost disabled:opacity-40">
+              <button type="button" onClick={() => void send({ action: "disconnect" }, t("toast.disconnected"))} disabled={busy} className="btn btn-ghost disabled:opacity-40">
                 {t("vip.conn.disconnect")}
               </button>
             </div>

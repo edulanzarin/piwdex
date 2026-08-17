@@ -165,14 +165,17 @@ export function MarketMonModal({ mon, dex, onClose }: { mon: MarketMon; dex?: Ma
           <CloseButton onClick={onClose} className="shrink-0 self-start" />
         </div>
 
-        {/* Numeros reais do anuncio — 2 colunas fixas: cabem valores ate ~1 bilhao sem vazar */}
+        {/* Numeros reais do anuncio — 2 colunas fixas: cabem valores ate ~1 bilhao sem vazar.
+            price <= 0 = nao veio preco (ex.: pokemon LINKADO no chat): esconde o tile. */}
         <div className="grid grid-cols-2 gap-2">
           <Tile label={t("account.col.power")}><span className="text-yellow">{mon.power != null ? fmt(mon.power) : "—"}</span></Tile>
           <Tile label={t("account.col.iv")}>
             {mon.ivTotal != null ? <><span className={ivColor(mon.ivTotal)}>{mon.ivTotal}</span><span className="text-[0.62rem] text-text-dim">/192</span></> : "—"}
           </Tile>
           <Tile label={t("account.col.quality")}><span className={qual ? GRADE_TEXT[qual] : "text-cyan"}>{mon.quality != null ? mon.quality.toFixed(3) : "—"}</span></Tile>
-          <Tile label={t("account.market.price")}><span className="text-text"><Price currency={mon.currency} value={mon.price} size={13} /></span></Tile>
+          {mon.price > 0 && (
+            <Tile label={t("account.market.price")}><span className="text-text"><Price currency={mon.currency} value={mon.price} size={13} /></span></Tile>
+          )}
         </div>
 
         {/* Veredito: genes (IV), Quality (Q) e preco (vale a pena). Quality manda na nota. */}

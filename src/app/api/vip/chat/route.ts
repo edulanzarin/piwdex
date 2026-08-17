@@ -37,8 +37,11 @@ export async function POST(req: Request) {
     const text = typeof b.text === "string" ? b.text.trim().slice(0, 300) : "";
     const channel = typeof b.channel === "string" && CHANNELS.has(b.channel) ? b.channel : "world";
     if (!text) return NextResponse.json({ error: "no_text" }, { status: 400 });
-    const ok = gameSession.sendChat(text, channel, g.playerName);
-    if (!ok) return NextResponse.json({ error: "not_live" }, { status: 409 }); // liga o robo antes
+    const r = gameSession.sendChat(text, channel, g.playerName);
+    if (!r.ok) {
+      if (r.reason === "cooldown") return NextResponse.json({ error: "cooldown", waitMs: r.waitMs ?? 0 }, { status: 429 });
+      return NextResponse.json({ error: "not_live" }, { status: 409 }); // liga o robo antes
+    }
     return NextResponse.json(gameSession.getChatView());
   }
 

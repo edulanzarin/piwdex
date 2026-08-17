@@ -655,7 +655,22 @@ const pt: Dict = {
   "vip.chat.annStart": "Ligar anuncio",
   "vip.chat.annStop": "Parar anuncio",
   "vip.chat.annRunning": "Mandando a cada {n}min no canal {c}.",
-  "vip.chat.statsAt": "Stats no nivel {lv}",
+  "vip.chat.cooldownHint": "Anti-flood do jogo: da pra mandar de novo em {s}s.",
+
+  // toasts (confirmacao de acao, padrao do site)
+  "toast.chatSent": "Mensagem enviada",
+  "toast.chatCooldown": "Chat em cooldown — espera {s}s",
+  "toast.annOn": "Anuncio automatico ligado",
+  "toast.annOff": "Anuncio automatico desligado",
+  "toast.connected": "Robo ligado — sessao da conta tomada",
+  "toast.disconnected": "Robo desligado",
+  "toast.huntOn": "Hunt ligada",
+  "toast.huntOff": "Hunt parada — conexao segue viva",
+  "toast.autoOn": "Auto-hunt ligado — o cerebro escolheu a hunt",
+  "toast.planOn": "Plano de leveling iniciado",
+  "toast.summonOk": "{name} agora e o pokemon ativo",
+  "toast.summonFail": "Nao deu pra trocar o pokemon ativo",
+  "toast.err": "Nao rolou — tenta de novo",
 
   // conexao-primeiro (o robo toma a sessao e segura)
   "vip.conn.connect": "Ligar o robo",

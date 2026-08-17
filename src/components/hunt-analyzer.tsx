@@ -18,6 +18,7 @@ import { CloseButton } from "./icon-button";
 import { Sprite } from "./sprite";
 import { Pokeball } from "./pokeball";
 import { StatTile } from "./stat-tile";
+import { useToast } from "./toast";
 import { spriteUrl, assetIconUrl } from "@/lib/sprites";
 
 // Uma hunt do catalogo do jogo: o `slug` e exatamente o que o enter-hunt come; o resto
@@ -37,6 +38,7 @@ function readSellCfg(): unknown | null {
 
 export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunts: HuntOption[]; creatures: { pokeId: number; name: string }[]; itemIcons: Record<string, string>; lootByPoke: Record<number, DropOption[]> }) {
   const t = useT();
+  const toast = useToast();
   const { hunt: st, account, applyHunt } = useVipLive();
 
   const [detail, setDetail] = useState<LiveHunt["recentKills"][number] | null>(null);
@@ -80,12 +82,14 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
       .map(([area, list]) => [area, [...list].sort((x, y) => x.level - y.level)] as const);
   }, [hunts, q]);
 
-  const send = async (body: Record<string, unknown>) => {
+  const send = async (body: Record<string, unknown>, okMsg?: string) => {
     setBusy(true);
     try {
       const res = await fetch("/api/vip/hunt", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       const j = (await res.json().catch(() => null)) as LiveHunt | null;
       if (j && "status" in j) applyHunt(j);
+      if (res.ok && okMsg) toast.success(okMsg);
+      else if (!res.ok) toast.error(t("toast.err"));
       return res.ok;
     } finally { setBusy(false); }
   };
@@ -108,9 +112,9 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
 
   const startHunt = (ids: number[]) => {
     if (!slug.trim()) return;
-    void send(withSellCfg({ action: "start", slug: slug.trim(), sellItemIds: ids }));
+    void send(withSellCfg({ action: "start", slug: slug.trim(), sellItemIds: ids }), t("toast.huntOn"));
   };
-  const startAuto = () => void send(withSellCfg({ action: "auto" }));
+  const startAuto = () => void send(withSellCfg({ action: "auto" }), t("toast.autoOn"));
 
   const huntDrops = (selected?.pokeId != null ? lootByPoke[selected.pokeId] : undefined) ?? [];
   const openStart = () => {
@@ -145,7 +149,7 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
 
   const startLeveling = async () => {
     if (!planPoke || !planSteps) return;
-    const ok = await send(withSellCfg({ action: "leveling", pokeId: planPoke.id, targetLevel: Math.floor(Number(planTarget)) }));
+    const ok = await send(withSellCfg({ action: "leveling", pokeId: planPoke.id, targetLevel: Math.floor(Number(planTarget)) }), t("toast.planOn"));
     if (ok) { setPlanOpen(false); setPlanSteps(null); setPlanPoke(null); setPlanTarget(""); }
   };
 
@@ -244,7 +248,7 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
           {st?.slug && <span className="text-[0.68rem] text-text-dim">{hunts.find((h) => h.slug === st.slug)?.name ?? st.slug}</span>}
           <span className="ms-auto" />
           {/* parar a hunt NAO derruba a conexao (o robo segue segurando a sessao) */}
-          <button type="button" onClick={() => void send({ action: "stop" })} disabled={busy} className="btn btn-ghost">{t("vip.conn.stopHunt")}</button>
+          <button type="button" onClick={() => void send({ action: "stop" }, t("toast.huntOff"))} disabled={busy} className="btn btn-ghost">{t("vip.conn.stopHunt")}</button>
         </div>
       )}
 

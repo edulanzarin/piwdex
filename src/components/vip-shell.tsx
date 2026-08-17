@@ -24,6 +24,7 @@ import { PokeCaught } from "./poke-caught";
 import { RoboStats } from "./robo-stats";
 import { HuntAnalyzer, type HuntOption, type DropOption } from "./hunt-analyzer";
 import { ChatPanel } from "./chat-panel";
+import { ToastProvider } from "./toast";
 import type { ComboCreature } from "./pokemon-combobox";
 import { useT } from "./locale-provider";
 import { Star, Coin, Heart, Bell, Trainer, Target, Chart, Backpack, ChevronRight, Gear, Bubble } from "./icons";
@@ -59,7 +60,9 @@ export interface VipShellProps {
 export function VipShell(props: VipShellProps) {
   return (
     <VipLiveProvider>
-      <VipShellInner {...props} />
+      <ToastProvider>
+        <VipShellInner {...props} />
+      </ToastProvider>
     </VipLiveProvider>
   );
 }
@@ -140,7 +143,7 @@ function VipShellInner({ creatures, dex, hunts, itemIcons, lootByPoke }: VipShel
               <PokeSold />
             </div>
           )}
-          {sec === "chat" && <ChatPanel creatures={creatures} />}
+          {sec === "chat" && <ChatPanel creatures={creatures} dex={dex} />}
           {sec === "config" && (
             <div className="flex flex-col gap-8">
               <RoboPanel />

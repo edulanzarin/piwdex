@@ -8,23 +8,29 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useVipLive, type LiveChat } from "./vip-live";
-import { Bubble, Check, ChevronRight, Clock, Signal, Star, Xp } from "./icons";
-import { Modal } from "./modal";
-import { CloseButton } from "./icon-button";
-import { Sprite } from "./sprite";
-import { StatTile } from "./stat-tile";
-import { TypeBadges } from "./badges";
-import { spriteUrl } from "@/lib/sprites";
-import type { PokeType } from "@/lib/types";
+import { Bubble, ChevronRight, Clock, Signal, Star } from "./icons";
+import { MarketMonModal, type MarketDex } from "./market-advisor";
+import type { MarketMon } from "@/lib/game-account";
+import { useToast } from "./toast";
 import { useT } from "./locale-provider";
 
 // pokemon linkado no chat: [poke!<base64>] carrega o bicho INTEIRO — nome, nivel, shiny,
-// Q, IV, poder e os STATS REAIS naquele nivel. O chip e clicavel e abre um modal no
-// mesmo dialeto do mercado (igual o hover do jogo, so que melhor: com os stats).
+// Q, IV, poder. O chip e clicavel e abre O MESMO modal do mercado (MarketMonModal),
+// sem a parte de preco (o link nao traz preco).
 interface PokeLink {
   n: string; lv?: number; sh?: number; q?: number; iv?: number; pw?: number;
   t1?: string; t2?: string;
   st?: { hp?: number; atk?: number; def?: number; spAtk?: number; spDef?: number; speed?: number };
+}
+
+// vira um MarketMon "sem anuncio" (price 0 esconde o bloco de preco no modal)
+function toMarketMon(j: PokeLink, speciesId: number): MarketMon {
+  return {
+    listingId: "chat-link", speciesId, name: j.n, level: j.lv ?? 1, shiny: !!j.sh,
+    ivTotal: j.iv ?? null, quality: j.q ?? null, power: j.pw ?? null,
+    type1: j.t1 ?? null, type2: j.t2 ?? null,
+    price: 0, currency: "GOLD", belowNpc: false, sellers: 0, fairPrice: null,
+  };
 }
 
 const decodePoke = (b64: string): PokeLink | null => {
@@ -59,60 +65,7 @@ function renderBody(text: string, onPoke: (p: PokeLink) => void): React.ReactNod
   return parts.length === 1 ? parts[0] : parts;
 }
 
-const fmtN = (n: number) => Math.round(n).toLocaleString("pt-BR");
-const ivColor = (v?: number) => (v == null ? "text-text-dim" : v >= 150 ? "text-green" : v >= 100 ? "text-yellow" : "text-text");
-
-// modal do pokemon linkado — mesmo dialeto do modal do mercado (sprite + tiles + stats)
-function PokeLinkModal({ poke, speciesId, onClose }: { poke: PokeLink; speciesId: number | null; onClose: () => void }) {
-  const t = useT();
-  const st = poke.st ?? {};
-  const STATS: [string, number | undefined][] = [
-    ["HP", st.hp], ["ATK", st.atk], ["DEF", st.def],
-    ["SP.ATK", st.spAtk], ["SP.DEF", st.spDef], ["SPEED", st.speed],
-  ];
-  const max = Math.max(1, ...STATS.map(([, v]) => v ?? 0));
-  return (
-    <Modal onClose={onClose} className="w-full max-w-md gap-5 p-5">
-      <div className="flex items-center gap-4">
-        <div className="relative flex h-20 w-20 shrink-0 items-center justify-center rounded bg-[var(--well-bg)]">
-          {speciesId != null && <Sprite src={spriteUrl(speciesId, !!poke.sh)} alt={poke.n} size={72} />}
-          {!!poke.sh && <span className="absolute right-1 top-1 text-yellow"><Star size={13} /></span>}
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <h3 className="truncate pixel text-[0.9rem] text-text">{poke.n}</h3>
-            <span className="text-[0.62rem] text-text-dim">Lv.{poke.lv ?? "?"}</span>
-          </div>
-          <div className="mt-2 flex flex-wrap items-center gap-1.5">
-            {poke.t1 && <TypeBadges t1={poke.t1 as PokeType} t2={(poke.t2 as PokeType) ?? null} />}
-            {!!poke.sh && <span className="chip" style={{ background: "var(--yellow)", color: "#3a2c00" }}>shiny</span>}
-          </div>
-        </div>
-        <CloseButton onClick={onClose} className="shrink-0 self-start" />
-      </div>
-
-      <div className="grid grid-cols-3 gap-2">
-        <StatTile label={t("account.col.power")} value={<span className="text-yellow">{poke.pw != null ? fmtN(poke.pw) : "—"}</span>} icon={<Xp size={10} className="text-yellow" />} />
-        <StatTile label={t("account.col.iv")} value={poke.iv != null ? <span className={ivColor(poke.iv)}>{poke.iv}<span className="text-[0.62rem] text-text-dim">/192</span></span> : "—"} />
-        <StatTile label={t("account.col.quality")} value={<span className="text-cyan">{poke.q != null ? poke.q.toFixed(3) : "—"}</span>} />
-      </div>
-
-      {/* stats REAIS no nivel do anuncio (vem no proprio link) */}
-      <div className="flex flex-col gap-1.5 rounded border border-border bg-[var(--well-bg)] p-3">
-        <div className="field-label mb-1">{t("vip.chat.statsAt", { lv: poke.lv ?? "?" })}</div>
-        {STATS.map(([label, v]) => (
-          <div key={label} className="flex items-center gap-2.5">
-            <span className="w-14 shrink-0 text-[0.58rem] uppercase text-text-dim">{label}</span>
-            <div className="h-2 flex-1 overflow-hidden rounded-sm bg-[rgba(8,14,28,0.8)]">
-              <div className="h-full rounded-sm bg-cyan" style={{ width: `${((v ?? 0) / max) * 100}%` }} />
-            </div>
-            <span className="w-12 shrink-0 text-right text-[0.66rem] tabular-nums text-text">{v != null ? fmtN(v) : "—"}</span>
-          </div>
-        ))}
-      </div>
-    </Modal>
-  );
-}
+const COOLDOWN_S = 60; // limite anti-flood do chat do jogo (~1 msg/min)
 
 const CHANNELS = ["world", "trade", "help"] as const;
 type Channel = (typeof CHANNELS)[number];
@@ -120,14 +73,16 @@ const CH_COLOR: Record<Channel, string> = { world: "var(--cyan)", trade: "var(--
 
 const hhmm = (ms: number) => new Date(ms).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 
-export function ChatPanel({ creatures }: { creatures: { pokeId: number; name: string }[] }) {
+export function ChatPanel({ creatures, dex }: { creatures: { pokeId: number; name: string }[]; dex: Record<number, MarketDex> }) {
   const t = useT();
+  const toast = useToast();
   const { chat, hunt, account, applyChat } = useVipLive();
   const [text, setText] = useState("");
   const [channel, setChannel] = useState<Channel>("world");
   const [busy, setBusy] = useState(false);
-  const [sendErr, setSendErr] = useState(false);
   const [pokeModal, setPokeModal] = useState<PokeLink | null>(null);
+  // cooldown anti-flood: contador a partir do ultimo envio (o servidor tambem barra)
+  const [cooldownLeft, setCooldownLeft] = useState(0);
   // anuncio automatico (draft local; o efetivo vem do stream)
   const [annText, setAnnText] = useState("");
   const [annEvery, setAnnEvery] = useState("10");
@@ -165,26 +120,41 @@ export function ChatPanel({ creatures }: { creatures: { pokeId: number; name: st
     if (el) el.scrollTop = el.scrollHeight;
   }, [msgs.length]);
 
+  // contador do cooldown a partir do lastSentAt do stream
+  useEffect(() => {
+    const tick = () => {
+      const last = chat?.lastSentAt ?? 0;
+      setCooldownLeft(Math.max(0, COOLDOWN_S - Math.floor((Date.now() - last) / 1000)));
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [chat?.lastSentAt]);
+
   const post = async (body: Record<string, unknown>) => {
     const r = await fetch("/api/vip/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-    const j = (await r.json().catch(() => null)) as LiveChat | null;
+    const j = (await r.json().catch(() => null)) as (LiveChat & { error?: string; waitMs?: number }) | null;
     if (r.ok && j && "messages" in j) applyChat(j);
-    return r.ok;
+    return { ok: r.ok, error: j?.error, waitMs: j?.waitMs };
   };
 
   const sendMsg = async () => {
-    if (!text.trim() || busy) return;
-    setBusy(true); setSendErr(false);
+    if (!text.trim() || busy || cooldownLeft > 0) return;
+    setBusy(true);
     try {
-      const ok = await post({ action: "send", text: text.trim(), channel });
-      if (ok) setText(""); else setSendErr(true);
+      const r = await post({ action: "send", text: text.trim(), channel });
+      if (r.ok) { setText(""); toast.success(t("toast.chatSent")); }
+      else if (r.error === "cooldown") toast.info(t("toast.chatCooldown", { s: Math.ceil((r.waitMs ?? 0) / 1000) }));
+      else toast.error(t("vip.chat.sendErr"));
     } finally { setBusy(false); }
   };
 
   const saveAnnounce = async (on: boolean) => {
     setAnnBusy(true);
     try {
-      await post({ action: "announce", on, text: annText.trim(), everyMin: Number(annEvery) || 10, channel: annChannel });
+      const r = await post({ action: "announce", on, text: annText.trim(), everyMin: Number(annEvery) || 10, channel: annChannel });
+      if (r.ok) { if (on) toast.success(t("toast.annOn")); else toast.info(t("toast.annOff")); }
+      else toast.error(t("toast.err"));
     } finally { setAnnBusy(false); }
   };
 
@@ -257,14 +227,13 @@ export function ChatPanel({ creatures }: { creatures: { pokeId: number; name: st
               maxLength={300}
               className="input min-w-40 flex-1"
             />
-            <button type="button" onClick={() => void sendMsg()} disabled={busy || !connected || !text.trim()} className="btn btn-cyan disabled:opacity-40">
-              {busy ? "…" : t("vip.chat.send")} <ChevronRight size={9} />
+            <button type="button" onClick={() => void sendMsg()} disabled={busy || !connected || !text.trim() || cooldownLeft > 0} className="btn btn-cyan disabled:opacity-40">
+              {busy ? "…" : cooldownLeft > 0 ? `${cooldownLeft}s` : t("vip.chat.send")} <ChevronRight size={9} />
             </button>
           </div>
-          {sendErr && <p className="mt-1.5 text-[0.6rem] text-red">{t("vip.chat.sendErr")}</p>}
-          {chat?.lastSentAt != null && !sendErr && (
+          {cooldownLeft > 0 && (
             <p className="mt-1.5 inline-flex items-center gap-1 text-[0.58rem] text-text-dim">
-              <Check size={9} className="text-green" /> {t("vip.chat.sentAt", { h: hhmm(chat.lastSentAt) })}
+              <Clock size={9} className="text-yellow" /> {t("vip.chat.cooldownHint", { s: cooldownLeft })}
             </p>
           )}
         </div>
@@ -314,14 +283,12 @@ export function ChatPanel({ creatures }: { creatures: { pokeId: number; name: st
         </div>
       </div>
 
-      {/* modal do pokemon linkado (clique no chip) — mesmo dialeto do modal do mercado */}
-      {pokeModal && (
-        <PokeLinkModal
-          poke={pokeModal}
-          speciesId={pokeByName.get(pokeModal.n.toLowerCase()) ?? null}
-          onClose={() => setPokeModal(null)}
-        />
-      )}
+      {/* pokemon linkado (clique no chip) — O MESMO modal do mercado, sem a parte de preco */}
+      {pokeModal && (() => {
+        const sid = pokeByName.get(pokeModal.n.toLowerCase());
+        if (sid == null) return null;
+        return <MarketMonModal mon={toMarketMon(pokeModal, sid)} dex={dex[sid]} onClose={() => setPokeModal(null)} />;
+      })()}
     </div>
   );
 }
