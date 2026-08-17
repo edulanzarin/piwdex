@@ -56,7 +56,7 @@ const RECONNECT_MAX_MS = 60_000;
 // na sessao que o robo ja segura. O formato exato dos frames de chat nao e documentado —
 // o parser e TOLERANTE (varios nomes de campo) e o que nao casar cai num ring de frames
 // desconhecidos exposto na UI (modo descoberta: da pra calibrar olhando o frame real).
-const CHAT_MAX = 150;   // mensagens no ring
+const CHAT_MAX = 20;    // mensagens no ring: so as N ultimas ficam (a 21a derruba a mais velha)
 const DEBUG_MAX = 30;   // frames desconhecidos no ring
 const ANNOUNCE_MIN_MS = 60_000; // piso do intervalo do anuncio automatico
 const CHAT_COOLDOWN_MS = 60_000; // anti-flood do chat do jogo (~1 msg/min) — barra no servidor
@@ -1048,7 +1048,7 @@ class GameSession {
 // SESSION_REV: bump SEMPRE que a classe ganhar/mudar metodo — no dev, o hot-reload
 // re-avalia o modulo mas a instancia antiga (prototype velho) fica presa no globalThis;
 // sem o rev, chamar um metodo novo dava "is not a function" ate reiniciar o server.
-const SESSION_REV = 10;
+const SESSION_REV = 11;
 const g = globalThis as unknown as { __piwSession?: GameSession; __piwSessionRev?: number };
 if (!g.__piwSession || g.__piwSessionRev !== SESSION_REV) {
   // silencia a instancia velha SEM persistir nada (stop() gravaria enabled=false no banco
