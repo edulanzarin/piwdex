@@ -40,7 +40,7 @@ function Stat({ label, value, accent, icon }: { label: string; value: string; ac
         {icon}
         {label}
       </div>
-      <div className={`mt-1 pixel text-[0.7rem] ${accent ? "text-yellow" : "text-text"}`}>{value}</div>
+      <div className={`mt-1 pixel text-[0.7rem] ${accent ? "text-green" : "text-text"}`}>{value}</div>
     </div>
   );
 }
@@ -221,7 +221,7 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
                           <span className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border ${on ? "border-cyan bg-cyan text-[#06131a]" : "border-border text-transparent"}`}><Check size={10} /></span>
                           <span className="flex h-6 w-6 shrink-0 items-center justify-center">{d.icon ? <Sprite src={assetIconUrl(d.icon)} alt={d.name} size={20} /> : null}</span>
                           <span className="min-w-0 flex-1 truncate text-[0.72rem]">{d.name}</span>
-                          <span className="inline-flex shrink-0 items-center gap-1 text-[0.62rem] text-yellow"><Coin size={9} />{d.npcPrice}</span>
+                          <span className="inline-flex shrink-0 items-center gap-1 text-[0.62rem] text-green"><Coin size={9} />{d.npcPrice}</span>
                         </button>
                       );
                     })}

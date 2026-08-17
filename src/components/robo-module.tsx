@@ -12,6 +12,7 @@ import { PokeSeller } from "./poke-seller";
 import { PokeSold } from "./poke-sold";
 import { HuntAnalyzer, type HuntOption, type DropOption } from "./hunt-analyzer";
 import { PokeCaught } from "./poke-caught";
+import { ConsumablesBuyer } from "./consumables-buyer";
 import type { ComboCreature } from "./pokemon-combobox";
 import { useT } from "./locale-provider";
 import { Tabs } from "./tabs";
@@ -59,6 +60,7 @@ export function RoboModule({ hunts, creatures, itemIcons, lootByPoke }: { hunts:
         <div className="flex flex-col gap-8">
           <RoboPanel />
           <PokeSeller />
+          <ConsumablesBuyer />
         </div>
       )}
       {sec === "hunt" && <HuntAnalyzer hunts={hunts} creatures={creatures} itemIcons={itemIcons} lootByPoke={lootByPoke} />}

@@ -72,7 +72,7 @@ export function ItemsBrowser({ items }: { items: Item[] }) {
                   {i.category}
                   {i.rare ? <> · {t("items.rare")}</> : ""}
                 </div>
-                <div className="mt-0.5 flex items-center gap-1 text-[0.7rem] text-yellow">
+                <div className="mt-0.5 flex items-center gap-1 text-[0.7rem] text-green">
                   <Gold value={i.npcPrice} />
                 </div>
               </div>

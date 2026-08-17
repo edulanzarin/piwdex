@@ -168,7 +168,7 @@ export function PokeSeller() {
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <h2 className="section-title flex items-center gap-2 text-yellow"><Coin size={14} /> {t("robo.pokes.title")}</h2>
+        <h2 className="section-title flex items-center gap-2 text-green"><Coin size={14} /> {t("robo.pokes.title")}</h2>
         <p className="mt-2 max-w-2xl text-sm text-text-dim">{t("robo.pokes.desc")}</p>
       </div>
 
@@ -208,7 +208,7 @@ export function PokeSeller() {
           <div className="card flex flex-col gap-3 p-5">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="min-w-0">
-                <h3 className="section-title text-yellow">{t("robo.auto.title")}</h3>
+                <h3 className="section-title text-green">{t("robo.auto.title")}</h3>
                 <p className="mt-1 text-[0.62rem] text-text-dim">{t("robo.auto.desc")}</p>
               </div>
               {on ? (

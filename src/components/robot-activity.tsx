@@ -48,6 +48,8 @@ export function RobotActivity() {
         return { icon: <Coin size={12} />, text: t("evt.pokeSold").replace("{count}", num(d.count)).replace("{gold}", num(d.gold)) };
       case "item-sold":
         return { icon: <Coin size={12} />, text: t("evt.itemSold").replace("{count}", num(d.count)).replace("{gold}", num(d.gold)) };
+      case "item-bought":
+        return { icon: <Coin size={12} />, text: e.title, tone: "text-text-dim" };
       default:
         return { icon: null, text: e.title };
     }

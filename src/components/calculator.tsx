@@ -222,7 +222,7 @@ export function Calculator({ creatures }: { creatures: CalcCreature[] }) {
             <StatTile label={t("calc.strongStat")} icon={<StatIcon index={profile.maxI} size={12} />} accent="var(--green)" value={STAT_LABELS[profile.maxI]} />
             <StatTile label={t("calc.weakStat")} icon={<StatIcon index={profile.minI} size={12} />} accent="var(--red)" value={STAT_LABELS[profile.minI]} />
             <StatTile label={t("calc.xpKill")} icon={<Xp size={12} className="text-cyan" />} accent="var(--cyan)" value={creature.xp.toLocaleString("pt-BR")} />
-            <StatTile label={t("calc.goldKill")} icon={<Coin />} accent="var(--yellow)" value={creature.goldEV.toLocaleString("pt-BR")} />
+            <StatTile label={t("calc.goldKill")} icon={<Coin />} accent="var(--green)" value={creature.goldEV.toLocaleString("pt-BR")} />
           </div>
           <p className="mt-3 text-[0.62rem] text-text-dim">{t("calc.bst")} <span className="pixel ml-1 text-[0.7rem] text-cyan">{profile.bst}</span></p>
         </div>

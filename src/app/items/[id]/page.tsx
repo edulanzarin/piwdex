@@ -51,7 +51,7 @@ export default async function ItemPage({
           <div className="flex flex-wrap items-center gap-2 text-sm text-text-dim">
             <span className="chip" style={{ background: "var(--surface-2)", color: "var(--text)" }}>{item.category}</span>
             {item.rare && <span className="text-yellow font-semibold text-[0.7rem] uppercase"><T k="items.rare" /></span>}
-            <span className="inline-flex items-center gap-1 text-yellow">
+            <span className="inline-flex items-center gap-1 text-green">
               <Gold value={item.npcPrice} />
             </span>
             {item.healAmount ? <span>cura {item.healAmount}</span> : null}

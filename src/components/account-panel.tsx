@@ -128,7 +128,7 @@ function Overview({ account }: { account: Account }) {
           </div>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
             <Stat label={t("account.profile.level")} value={fmt(p.level)} color="text-cyan" icon={<Xp size={11} className="text-cyan" />} />
-            <Stat label={t("account.profile.gold")} value={fmt(p.gold)} color="text-yellow" icon={<Coin size={11} />} />
+            <Stat label={t("account.profile.gold")} value={fmt(p.gold)} color="text-green" icon={<Coin size={11} />} />
             <Stat label={t("account.profile.diamonds")} value={fmt(p.diamonds)} color="text-cyan" icon={<Diamond size={11} className="text-cyan" />} />
             <Stat label={t("account.profile.catches")} value={fmt(p.catches)} icon={<Pokeball size={11} />} />
             <Stat label={t("account.profile.pokedex")} value={<span className="text-green">{p.pokedexCount}<span className="text-text-dim">/{p.pokedexTotal}</span></span>} icon={<Star size={11} className="text-green" />} />

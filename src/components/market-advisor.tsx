@@ -70,7 +70,7 @@ function Price({ currency, value, size = 12 }: { currency: Currency; value: numb
     <span className="inline-flex items-center gap-1 tabular-nums">
       {currency === "DIAMONDS"
         ? <span className="text-cyan"><Diamond size={size} /></span>
-        : <span className="text-yellow"><Coin size={size} /></span>}
+        : <span className="text-green"><Coin size={size} /></span>}
       {fmt(value)}
     </span>
   );

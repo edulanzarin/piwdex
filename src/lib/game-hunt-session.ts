@@ -15,7 +15,8 @@
 
 import crypto from "node:crypto";
 import type { Tokens } from "./game-auth";
-import { sellItems, sellPokes } from "./game-shop";
+import { sellItems, sellPokes, fetchShop, buyBall } from "./game-shop";
+import { readAuto } from "./game-auto";
 import { getData } from "./data";
 import { normalizeActivePokes } from "./game-account";
 import { filterSellable, type PokeSellConfig } from "./poke-sell";
@@ -30,6 +31,10 @@ const ANALYZER_MS = 2000; // poll do analyzer (e keepalive da hunt)
 const POKES_MS = 20000;   // poll da lista de pokemon (venda + keepalive)
 const DROPS_MS = 30000;   // varredura de venda de drops
 const SELL_EVERY_MS = 60 * 60 * 1000; // venda de pokemon roda 1x por hora (ou no "Vender agora")
+// auto-compra de consumiveis: reabastece 1x/h as bolas da automacao quando ficam baixas.
+const BUY_EVERY_MS = 60 * 60 * 1000;
+const BALL_FLOOR = 100;   // abaixo disso, repoe
+const BALL_TARGET = 500;  // repoe ate aqui (limitado pelo dinheiro)
 
 export interface Analyzer {
   kills: number; seconds: number; xpGained: number;
@@ -95,6 +100,12 @@ class GameSession {
   private lastPokeSellAt = 0; // ultima venda de pokemon (throttle de 1h)
   private forceSell = false;  // "Vender agora" forca a proxima varredura
   private recordedIds = new Set<string>(); // ids ja gravados no acervo (evita rescrever no banco)
+  // auto-compra de consumiveis (roda no proprio timer, REST — independe do WS de hunt/venda)
+  private autoBuy = false;
+  private buyTimer: ReturnType<typeof setInterval> | null = null;
+  private buyTokens: Tokens | null = null;
+  private buyUserId: string | null = null;
+  private buyPersist: ((t: Tokens) => Promise<void>) | null = null;
 
   private jobsActive() { return this.slug != null || this.pokeCfg != null; }
 
@@ -333,6 +344,51 @@ class GameSession {
 
   // depois que o usuario limpa o acervo (DELETE), esquece o cache pra re-gravar o que ainda esta na conta
   resetCapturedCache() { this.recordedIds.clear(); }
+
+  // liga/desliga a auto-compra de consumiveis. Roda no proprio timer (REST, nao precisa do WS).
+  setAutoBuy(userId: string, tokens: Tokens, on: boolean, persist: (t: Tokens) => Promise<void>) {
+    this.buyUserId = userId; this.buyTokens = tokens; this.buyPersist = persist;
+    this.autoBuy = on;
+    if (this.buyTimer) { clearInterval(this.buyTimer); this.buyTimer = null; }
+    if (on) {
+      void this.restockBalls();
+      this.buyTimer = setInterval(() => void this.restockBalls(), BUY_EVERY_MS);
+    }
+  }
+  getAutoBuyOn() { return this.autoBuy; }
+
+  // reabastece SO as bolas que a automacao usa (auto-catch, shiny, selecionada) quando abaixo
+  // do piso, ate o alvo, limitado pelo dinheiro. GASTA dolares do jogo — por isso e opt-in e
+  // loga cada compra. "Calcula sozinho" = decide a quantidade pelo que falta pro alvo.
+  private async restockBalls() {
+    if (!this.autoBuy || !this.buyTokens || !this.buyUserId) return;
+    try {
+      const a = await readAuto(this.buyTokens);
+      if (!a || "unauth" in a) return;
+      if (a.changed) { this.buyTokens = a.tokens; await this.buyPersist?.(a.tokens); }
+      const shopRes = await fetchShop(this.buyTokens);
+      if (!shopRes) return;
+      if (shopRes.changed) { this.buyTokens = shopRes.tokens; await this.buyPersist?.(shopRes.tokens); }
+      let gold = shopRes.shop.gold;
+      const countById = new Map(a.balls.map((b) => [b.id, b.count]));
+      const wantIds = [...new Set([a.auto.autoCatchBallId, a.auto.autoCatchShinyBallId, a.auto.selectedBallId].filter((id) => id > 0))];
+      for (const id of wantIds) {
+        const have = countById.get(id) ?? 0;
+        if (have >= BALL_FLOOR) continue;
+        const shopBall = shopRes.shop.balls.find((b) => b.id === id);
+        if (!shopBall || shopBall.priceGold <= 0) continue;
+        const qty = Math.min(BALL_TARGET - have, Math.floor(gold / shopBall.priceGold));
+        if (qty <= 0) continue;
+        const w = await buyBall(this.buyTokens, id, qty);
+        if (w.changed) { this.buyTokens = w.tokens; await this.buyPersist?.(w.tokens); }
+        if (w.ok) {
+          gold -= qty * shopBall.priceGold;
+          const spent = qty * shopBall.priceGold;
+          void logRobotEvent(this.buyUserId, { kind: "item-bought", title: `Comprou ${qty} ${shopBall.name}`, body: `-$${spent}`, data: { count: qty, gold: -spent } });
+        }
+      }
+    } catch { /* proxima hora tenta */ }
+  }
 
   private logSummary() {
     if (this.summaryLogged || !this.userId) return;

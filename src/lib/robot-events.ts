@@ -3,7 +3,7 @@ import { query, queryOne } from "@/lib/db";
 // Eventos dos robos server-side (Hunt + venda automatica), gravados enquanto rodam —
 // inclusive com o jogador offline. Server-only (chamado das sessoes WS e das rotas VIP).
 
-export type RobotEventKind = "shiny" | "hunt-summary" | "poke-sold" | "item-sold";
+export type RobotEventKind = "shiny" | "hunt-summary" | "poke-sold" | "item-sold" | "item-bought";
 
 export interface RobotEvent {
   id: string;

@@ -46,7 +46,7 @@ export function PokeSold() {
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <h2 className="section-title flex items-center gap-2 text-yellow"><Coin size={14} /> {t("robo.pokesold.title")}</h2>
+        <h2 className="section-title flex items-center gap-2 text-green"><Coin size={14} /> {t("robo.pokesold.title")}</h2>
         <p className="mt-2 max-w-2xl text-sm text-text-dim">{t("robo.pokesold.desc")}</p>
       </div>
 
@@ -55,7 +55,7 @@ export function PokeSold() {
         <h3 className="section-title mb-3 text-cyan">{t("robo.total.title")}</h3>
         <div className="grid grid-cols-2 gap-2">
           <StatTile label={t("robo.auto.sold")} value={fmt(tot?.pokesCount ?? 0)} icon={<Coin size={11} className="text-text-dim" />} />
-          <StatTile label={t("robo.auto.gold")} value={fmt(tot?.pokesGold ?? 0)} accent="var(--yellow)" icon={<Coin size={11} />} />
+          <StatTile label={t("robo.auto.gold")} value={fmt(tot?.pokesGold ?? 0)} accent="var(--green)" icon={<Coin size={11} />} />
         </div>
       </div>
 
@@ -74,7 +74,7 @@ export function PokeSold() {
                   <div className="min-w-0 flex-1">
                     <div className="pixel text-sm tabular-nums">×{fmt(cell.count)}</div>
                   </div>
-                  <span className="inline-flex shrink-0 items-center gap-1 text-[0.7rem] text-yellow tabular-nums"><Coin size={10} />{fmt(cell.gold)}</span>
+                  <span className="inline-flex shrink-0 items-center gap-1 text-[0.7rem] text-green tabular-nums"><Coin size={10} />{fmt(cell.gold)}</span>
                 </div>
               );
             })}

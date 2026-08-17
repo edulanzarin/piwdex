@@ -221,7 +221,7 @@ export function RouteGenerator({ species, enemies }: { species: Species[]; enemi
                   </div>
                   <div className="flex flex-col items-end gap-0.5">
                     <span className="text-[0.5rem] uppercase tracking-wide text-text-dim">{t("hunt.col.goldh")}</span>
-                    <span className="inline-flex items-center gap-1 tabular-nums text-sm font-bold text-yellow"><Coin />{compact(est.goldH)}</span>
+                    <span className="inline-flex items-center gap-1 tabular-nums text-sm font-bold text-green"><Coin />{compact(est.goldH)}</span>
                   </div>
                 </div>
               </div>

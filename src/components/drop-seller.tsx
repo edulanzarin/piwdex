@@ -48,7 +48,7 @@ export function DropSeller({ itemIcons }: { itemIcons: Record<string, string> })
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <h2 className="section-title flex items-center gap-2 text-yellow"><Coin size={14} /> {t("robo.sold.title")}</h2>
+        <h2 className="section-title flex items-center gap-2 text-green"><Coin size={14} /> {t("robo.sold.title")}</h2>
         <p className="mt-2 max-w-2xl text-sm text-text-dim">{t("robo.sold.desc")}</p>
       </div>
 
@@ -57,7 +57,7 @@ export function DropSeller({ itemIcons }: { itemIcons: Record<string, string> })
         <h3 className="section-title mb-3 text-cyan">{t("robo.total.title")}</h3>
         <div className="grid grid-cols-2 gap-2">
           <StatTile label={t("robo.auto.sold")} value={fmt(tot?.itemsCount ?? 0)} icon={<Coin size={11} className="text-text-dim" />} />
-          <StatTile label={t("robo.auto.gold")} value={fmt(tot?.itemsGold ?? 0)} accent="var(--yellow)" icon={<Coin size={11} />} />
+          <StatTile label={t("robo.auto.gold")} value={fmt(tot?.itemsGold ?? 0)} accent="var(--green)" icon={<Coin size={11} />} />
         </div>
       </div>
 
@@ -69,7 +69,7 @@ export function DropSeller({ itemIcons }: { itemIcons: Record<string, string> })
           <div className="flex flex-col gap-3">
             <div className="flex items-center justify-between text-[0.72rem]">
               <span className="text-text-dim">{t("robo.sold.count").replace("{n}", String(shown.length))}</span>
-              <span className="inline-flex items-center gap-1 text-yellow"><Coin size={11} />{fmt(huntGold)}</span>
+              <span className="inline-flex items-center gap-1 text-green"><Coin size={11} />{fmt(huntGold)}</span>
             </div>
             <div className="grid gap-1.5 sm:grid-cols-2">
               {shown.map((i) => {
@@ -81,7 +81,7 @@ export function DropSeller({ itemIcons }: { itemIcons: Record<string, string> })
                       <div className="truncate text-[0.75rem]">{i.name}</div>
                       <div className="text-[0.6rem] text-text-dim">×{fmt(i.qty)}</div>
                     </div>
-                    <span className="inline-flex shrink-0 items-center gap-1 text-[0.66rem] text-yellow"><Coin size={9} />{fmt(i.gold)}</span>
+                    <span className="inline-flex shrink-0 items-center gap-1 text-[0.66rem] text-green"><Coin size={9} />{fmt(i.gold)}</span>
                   </div>
                 );
               })}
