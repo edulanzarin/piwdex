@@ -19,6 +19,7 @@ import crypto from "node:crypto";
 import type { Tokens } from "./game-auth";
 import { sellItems } from "./game-shop";
 import { getData } from "./data";
+import { logRobotEvent } from "./robot-events";
 
 const WS_BASE = (process.env.GAME_HOST || "https://poke.idleworld.online").replace(/^http/, "ws");
 const UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36";
@@ -69,6 +70,8 @@ class HuntSession {
   private poll: ReturnType<typeof setInterval> | null = null;
   private sellTimer: ReturnType<typeof setInterval> | null = null;
   private selling = false;
+  private userId: string | null = null;
+  private summaryLogged = false;
   private tokens: Tokens | null = null;
   private onTokens: ((t: Tokens) => Promise<void>) | null = null;
   private sellIds = new Set<number>(); // itemIds que o jogador marcou pra vender sozinho
@@ -85,8 +88,10 @@ class HuntSession {
     if (this.state.recentKills.length > 50) this.state.recentKills.length = 50;
   }
 
-  start(tokens: Tokens, shard: number, slug: string, sellItemIds: number[], onTokens: (t: Tokens) => Promise<void>) {
-    this.stop(); // uma sessao por vez
+  start(userId: string, tokens: Tokens, shard: number, slug: string, sellItemIds: number[], onTokens: (t: Tokens) => Promise<void>) {
+    this.stop(); // uma sessao por vez (loga o resumo da anterior, se houve)
+    this.userId = userId;
+    this.summaryLogged = false;
     this.tokens = tokens;
     this.onTokens = onTokens;
     this.sellIds = new Set(sellItemIds.filter((n) => Number.isInteger(n) && n > 0));
@@ -125,7 +130,14 @@ class HuntSession {
       } else if (m.type === "catch-result") {
         const k = m as Record<string, unknown>;
         if (k.success) {
-          this.push({ at: Date.now(), kind: "catch", species: String(k.speciesName ?? "?"), shiny: Boolean(k.shiny), xp: 0, loot: [], ball: String(k.ballName ?? "") });
+          const species = String(k.speciesName ?? "?");
+          const shiny = Boolean(k.shiny);
+          const ball = String(k.ballName ?? "");
+          this.push({ at: Date.now(), kind: "catch", species, shiny, xp: 0, loot: [], ball });
+          // shiny vira alerta em destaque (persiste offline); captura comum entra no resumo.
+          if (shiny && this.userId) {
+            void logRobotEvent(this.userId, { kind: "shiny", title: `Shiny ${species} capturado!`, body: ball || null, data: { species, ball } });
+          }
         }
       } else if (m.type === "inventory") {
         const items = Array.isArray(m.items) ? (m.items as Record<string, unknown>[]) : [];
@@ -151,15 +163,20 @@ class HuntSession {
       if (w.changed) { this.tokens = w.tokens; await this.onTokens?.(w.tokens); }
       if (w.ok) {
         const data = await getData();
+        let qtyTotal = 0, goldTotal = 0;
         for (const s of toSell) {
           this.inv.set(s.itemId, 0); // vendido — evita revender antes da proxima frame
           const it = data.getItem(s.itemId);
           const gold = (it?.npcPrice ?? 0) * s.qty;
+          qtyTotal += s.qty; goldTotal += gold;
           const ex = this.state.soldItems.find((x) => x.itemId === s.itemId);
           if (ex) { ex.qty += s.qty; ex.gold += gold; ex.at = Date.now(); }
           else this.state.soldItems.unshift({ itemId: s.itemId, name: it?.name ?? `#${s.itemId}`, qty: s.qty, gold, at: Date.now() });
         }
         if (this.state.soldItems.length > 40) this.state.soldItems.length = 40;
+        if (this.userId && qtyTotal > 0) {
+          void logRobotEvent(this.userId, { kind: "item-sold", title: `Vendeu ${qtyTotal} itens`, body: `+$${Math.round(goldTotal)}`, data: { count: qtyTotal, gold: goldTotal } });
+        }
       }
     } catch {
       // erro de venda nao derruba a hunt — a proxima varredura tenta de novo
@@ -173,15 +190,32 @@ class HuntSession {
     if (this.sellTimer) { clearInterval(this.sellTimer); this.sellTimer = null; }
   }
 
+  // resumo da sessao (uma vez) quando a hunt para/cai — persiste offline nos Alertas.
+  private logSummary() {
+    if (this.summaryLogged || !this.userId) return;
+    const a = this.state.analyzer;
+    if (!a || a.kills <= 0) return;
+    this.summaryLogged = true;
+    const slug = this.state.slug ?? "";
+    void logRobotEvent(this.userId, {
+      kind: "hunt-summary",
+      title: `Hunt ${slug} — resumo`,
+      body: `${a.kills} kills · ${a.captures} capturas · +$${Math.round(a.balance)}`,
+      data: { slug, kills: a.kills, captures: a.captures, xp: a.xpGained, balance: a.balance },
+    });
+  }
+
   private onGone(status: HuntStatus) {
     this.clearTimers();
     this.ws = null;
     if (this.state.status === "running" || this.state.status === "connecting") {
+      this.logSummary();
       this.state = { ...this.state, status }; // mantem analyzer/soldItems pra mostrar "caiu, ate aqui X"
     }
   }
 
   stop() {
+    this.logSummary();
     this.clearTimers();
     if (this.ws) { try { this.ws.close(); } catch {} this.ws = null; }
     this.tokens = null;

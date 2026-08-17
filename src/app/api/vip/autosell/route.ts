@@ -54,7 +54,7 @@ export async function POST(req: Request) {
     huntSession.stop();
 
     const persist = (t: Tokens) => updateGameTokens(c.userId, t);
-    autoSellSession.start(c.tokens, shard, cfg, persist);
+    autoSellSession.start(c.userId, c.tokens, shard, cfg, persist);
     return NextResponse.json(autoSellSession.getState());
   }
   return NextResponse.json({ error: "bad_action" }, { status: 400 });

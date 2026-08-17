@@ -9,6 +9,7 @@ import { useEffect, useState } from "react";
 import { MarketAdvisor, type MarketDex } from "./market-advisor";
 import { WishlistPanel } from "./wishlist-panel";
 import { AlertsInbox } from "./alerts-inbox";
+import { RobotActivity } from "./robot-activity";
 import { RoboModule } from "./robo-module";
 import { AccountPanel } from "./account-panel";
 import type { HuntOption, DropOption } from "./hunt-analyzer";
@@ -72,7 +73,12 @@ export function VipTabs({ creatures, dex, hunts, itemIcons, lootByPoke }: { crea
       {tab === "conta" && <AccountPanel creatures={creatures} />}
       {tab === "mercado" && <MarketAdvisor creatures={creatures} dex={dex} />}
       {tab === "desejos" && <WishlistPanel creatures={creatures} dex={dex} focusWishId={focusWish} />}
-      {tab === "alertas" && <AlertsInbox onUnread={setUnread} onJumpToWish={jumpToWish} />}
+      {tab === "alertas" && (
+        <div className="flex flex-col gap-6">
+          <RobotActivity />
+          <AlertsInbox onUnread={setUnread} onJumpToWish={jumpToWish} />
+        </div>
+      )}
       {tab === "robo" && <RoboModule hunts={hunts} creatures={creatures} itemIcons={itemIcons} lootByPoke={lootByPoke} />}
     </div>
   );

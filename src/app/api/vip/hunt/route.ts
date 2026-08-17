@@ -52,7 +52,7 @@ export async function POST(req: Request) {
       : [];
     autoSellSession.stop(); // single-session: os dois seguram o WS — Hunt para a venda automatica
     const persist = (tk: Tokens) => updateGameTokens(c.userId, tk);
-    huntSession.start(c.tokens, shard, slug, sellItemIds, persist);
+    huntSession.start(c.userId, c.tokens, shard, slug, sellItemIds, persist);
     return NextResponse.json(huntSession.getState());
   }
   return NextResponse.json({ error: "bad_action" }, { status: 400 });

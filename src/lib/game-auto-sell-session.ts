@@ -18,6 +18,7 @@ import { normalizeActivePokes } from "./game-account";
 import { sellPokes } from "./game-shop";
 import { getData } from "./data";
 import { filterSellable, type PokeSellConfig } from "./poke-sell";
+import { logRobotEvent } from "./robot-events";
 import type { Rarity } from "./types";
 
 const WS_BASE = (process.env.GAME_HOST || "https://poke.idleworld.online").replace(/^http/, "ws");
@@ -43,6 +44,7 @@ class AutoSellSession {
   private ws: WebSocket | null = null;
   private poll: ReturnType<typeof setInterval> | null = null;
   private sweeping = false;
+  private userId: string | null = null;
   private tokens: Tokens | null = null;
   private cfg: PokeSellConfig | null = null;
   private onTokens: ((t: Tokens) => Promise<void>) | null = null;
@@ -52,8 +54,9 @@ class AutoSellSession {
     return { ...this.state };
   }
 
-  start(tokens: Tokens, shard: number, cfg: PokeSellConfig, onTokens: (t: Tokens) => Promise<void>) {
+  start(userId: string, tokens: Tokens, shard: number, cfg: PokeSellConfig, onTokens: (t: Tokens) => Promise<void>) {
     this.stop(); // uma sessao por vez
+    this.userId = userId;
     this.tokens = tokens;
     this.cfg = cfg;
     this.onTokens = onTokens;
@@ -109,9 +112,14 @@ class AutoSellSession {
       const w = await sellPokes(this.tokens, ids);
       if (w.changed) { this.tokens = w.tokens; await this.onTokens?.(w.tokens); }
       if (w.ok && w.data) {
-        this.state.lastSold = w.data.sold ?? ids.length;
-        this.state.soldTotal += this.state.lastSold;
-        this.state.goldTotal += w.data.goldGained ?? 0;
+        const sold = w.data.sold ?? ids.length;
+        const gold = w.data.goldGained ?? 0;
+        this.state.lastSold = sold;
+        this.state.soldTotal += sold;
+        this.state.goldTotal += gold;
+        if (this.userId && sold > 0) {
+          void logRobotEvent(this.userId, { kind: "poke-sold", title: `Vendeu ${sold} pokemon`, body: `+$${Math.round(gold)}`, data: { count: sold, gold } });
+        }
       }
     } catch {
       // um erro de varredura nao derruba o robo — a proxima tenta de novo
