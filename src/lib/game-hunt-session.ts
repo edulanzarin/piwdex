@@ -14,7 +14,16 @@
 // Singleton por processo (1 container long-lived). Uma conta por vez. Server-only.
 
 import crypto from "node:crypto";
-import type { Tokens } from "./game-auth";
+import { EventEmitter } from "node:events";
+import { refreshTokens, type Tokens } from "./game-auth";
+import {
+  pickBestHunt, reconsiderHunt, buildLevelPlan, stepForLevel, getBrainData,
+  type PlanStep, type FighterProfile,
+} from "./hunt-brain";
+import {
+  saveRobotDesired, saveRobotStatus,
+  type RobotMode, type LevelingGoal, type RobotDesired,
+} from "./robot-session-store";
 import { sellItems, sellPokes, fetchShop, buyBall } from "./game-shop";
 import { readAuto } from "./game-auto";
 import { getData } from "./data";
@@ -38,6 +47,11 @@ const DROPS_MS = 30000;   // varredura de venda de drops
 const BUY_EVERY_MS = 60 * 60 * 1000;
 const BALL_FLOOR = 100;   // abaixo disso, repoe
 const BALL_TARGET = 500;  // repoe ate aqui (limitado pelo dinheiro)
+// reconexao automatica: enquanto o usuario QUER o robo ligado (desiredOn), a conexao que
+// cai volta sozinha com backoff exponencial. Renova o access token antes de cada tentativa
+// (token vencido = conexao recusada direto, sem o retry-em-401 do REST).
+const RECONNECT_BASE_MS = 5_000;
+const RECONNECT_MAX_MS = 60_000;
 
 export interface Analyzer {
   kills: number; seconds: number; xpGained: number;
@@ -62,18 +76,30 @@ export interface SpeciesSold { speciesId: number; name: string; rarity: Rarity; 
 
 export interface PokeSellSub { on: boolean; soldBySpecies: Record<number, SpeciesSold> }
 
-// visao "hunt" (GET /api/vip/hunt) — o que a aba Hunt e os Itens vendidos leem
+// visao "hunt" (GET /api/vip/hunt + stream SSE) — o que a aba Hunt e o HUD leem
 export interface HuntState {
   status: SessStatus; error?: string;
   slug: string | null; since: number | null; updatedAt: number | null;
   analyzer: Analyzer | null; recentKills: KillLog[]; soldItems: SoldItem[]; autoSellCount: number;
   pokeSellOn: boolean;
+  // cerebro + reconexao (monitor fixo)
+  mode: RobotMode;
+  leveling: LevelingGoal | null;
+  plan: PlanStep[] | null;
+  desiredOn: boolean;          // usuario quer o robo rodando (religa sozinho)
+  reconnecting: boolean;       // ha tentativa de reconexao agendada
+  nextRetryAt: number | null;  // quando a proxima tentativa dispara
+  fighterLevel: number | null; // nivel AO VIVO do pokemon que caca (frames do WS)
 }
 // visao "auto-sell" (GET /api/vip/autosell) — a aba Pokemon vendidos: status + o vendido
 // agregado por especie (cards da hunt atual).
 export interface AutoSellView { status: SessStatus; error?: string; soldBySpecies: SpeciesSold[] }
 
 class GameSession {
+  // barramento de eventos pro stream SSE: emit("change", topic) a cada mudanca de estado.
+  // topic "hunt" = analyzer/kills/vendas mudaram; "session" = status/modo/reconexao mudou.
+  readonly bus = new EventEmitter();
+
   private ws: WebSocket | null = null;
   private analyzerPoll: ReturnType<typeof setInterval> | null = null;
   private pokesPoll: ReturnType<typeof setInterval> | null = null;
@@ -111,13 +137,40 @@ class GameSession {
   private buyUserId: string | null = null;
   private buyPersist: ((t: Tokens) => Promise<void>) | null = null;
 
+  // cerebro (modo auto/leveling) + reconexao automatica
+  private mode: RobotMode = "manual";
+  private leveling: LevelingGoal | null = null;
+  private plan: PlanStep[] | null = null;
+  private fighter: FighterProfile | null = null; // perfil de combate do pokemon que caca
+  private currentTargetId: number | null = null; // especie-alvo da hunt atual (pro reconsider)
+  private thinking = false;                      // lock do cerebro (evita trocas concorrentes)
+  private desiredOn = false;                     // usuario QUER o robo rodando -> reconecta sozinho
+  private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  private reconnectAttempt = 0;
+  private nextRetryAt: number | null = null;
+
   private jobsActive() { return this.slug != null || this.pokeCfg != null; }
+
+  private emit(topic: "hunt" | "session") { try { this.bus.emit("change", topic); } catch { /* listener nao derruba a sessao */ } }
+
+  // grava estado desejado/status observado — fire-and-forget (banco fora nao derruba o robo)
+  private persistDesired(patch: Parameters<typeof saveRobotDesired>[1]) {
+    if (this.userId) void saveRobotDesired(this.userId, patch).catch(() => {});
+  }
+  private setStatus(s: SessStatus, error?: string) {
+    this.status = s; this.error = error;
+    if (this.userId) void saveRobotStatus(this.userId, s, error ?? null).catch(() => {});
+    this.emit("session");
+  }
 
   getState(): HuntState {
     return {
       status: this.status, error: this.error, slug: this.slug, since: this.since, updatedAt: this.updatedAt,
       analyzer: this.analyzer, recentKills: this.recentKills.slice(0, 50), soldItems: this.soldItems.slice(0, 30),
       autoSellCount: this.sellIds.size, pokeSellOn: this.pokeCfg != null,
+      mode: this.mode, leveling: this.leveling, plan: this.plan,
+      desiredOn: this.desiredOn, reconnecting: this.reconnectTimer != null, nextRetryAt: this.nextRetryAt,
+      fighterLevel: this.fighter?.level ?? null,
     };
   }
 
@@ -132,8 +185,8 @@ class GameSession {
     this.userId = userId; this.tokens = tokens; this.shard = shard; this.onTokens = onTokens;
   }
 
-  // liga/atualiza o job de HUNT (reinicia a acumulacao daquela caca)
-  setHunt(userId: string, tokens: Tokens, shard: number, slug: string, sellItemIds: number[], onTokens: (t: Tokens) => Promise<void>) {
+  // corpo comum de "entrar numa hunt" (reinicia a acumulacao daquela caca)
+  private beginHunt(userId: string, tokens: Tokens, shard: number, slug: string, sellItemIds: number[], onTokens: (t: Tokens) => Promise<void>) {
     this.logSummary(); // fecha o resumo da hunt anterior, se houve
     this.ctx(userId, tokens, shard, onTokens);
     this.slug = slug;
@@ -142,16 +195,105 @@ class GameSession {
     // trocar de hunt zera o que foi vendido NA HUNT (itens e pokemon por raridade). O
     // totalizador cumulativo (robot_sales) NAO zera — vive no banco.
     this.analyzer = null; this.recentKills = []; this.soldItems = []; this.poke.soldBySpecies = {}; this.summaryLogged = false;
+    this.desiredOn = true;
+    this.cancelReconnect();
+    this.applyOrConnect(true);
+    this.emit("hunt");
+  }
+
+  // liga/atualiza o job de HUNT em modo MANUAL (o usuario escolheu a hunt)
+  setHunt(userId: string, tokens: Tokens, shard: number, slug: string, sellItemIds: number[], onTokens: (t: Tokens) => Promise<void>) {
+    this.mode = "manual"; this.leveling = null; this.plan = null; this.currentTargetId = null;
+    this.beginHunt(userId, tokens, shard, slug, sellItemIds, onTokens);
+    this.persistDesired({ enabled: true, mode: "manual", slug, sellItemIds, leveling: null });
+  }
+
+  /** Modo AUTO: o cerebro escolhe a melhor hunt pro pokemon dado (lider) e vai. Re-escolhe
+   *  sozinho a cada level-up (margem de 8%). Drops da especie-alvo entram pra venda. */
+  async startAuto(userId: string, tokens: Tokens, shard: number, onTokens: (t: Tokens) => Promise<void>, fighter: FighterProfile) {
+    const pick = await pickBestHunt(fighter, true);
+    if (!pick) return null;
+    this.mode = "auto"; this.leveling = null; this.plan = null;
+    this.fighter = fighter; this.currentTargetId = pick.target.pokeId;
+    const sellIds = (await getBrainData()).sellableLoot(pick.target.pokeId);
+    this.beginHunt(userId, tokens, shard, pick.target.slug, sellIds, onTokens);
+    this.persistDesired({ enabled: true, mode: "auto", slug: pick.target.slug, sellItemIds: sellIds, leveling: null });
+    if (this.userId) void logRobotEvent(this.userId, {
+      kind: "brain", title: `Auto-hunt: ${pick.target.huntName}`,
+      body: `${pick.target.name} · ~${Math.round(pick.est.xpH).toLocaleString("pt-BR")} XP/h`,
+      data: { slug: pick.target.slug, targetId: pick.target.pokeId },
+    });
+    return pick;
+  }
+
+  /** Modo LEVELING: monta o plano do nivel atual ate `targetLevel` (buildRoute) e segue a
+   *  sequencia sozinho, trocando de hunt quando o nivel entra na proxima faixa. */
+  async startLeveling(
+    userId: string, tokens: Tokens, shard: number, onTokens: (t: Tokens) => Promise<void>,
+    fighter: FighterProfile, goal: { pokeId: string; name: string; targetLevel: number },
+  ) {
+    const plan = await buildLevelPlan(fighter, goal.targetLevel, true);
+    if (!plan.length) return null;
+    const step = stepForLevel(plan, fighter.level)!;
+    this.mode = "leveling"; this.fighter = fighter; this.plan = plan; this.currentTargetId = step.targetId;
+    this.leveling = {
+      pokeId: goal.pokeId, speciesId: fighter.speciesId, name: goal.name,
+      startLevel: fighter.level, targetLevel: goal.targetLevel, currentLevel: fighter.level, done: false,
+    };
+    const sellIds = (await getBrainData()).sellableLoot(step.targetId);
+    this.beginHunt(userId, tokens, shard, step.slug, sellIds, onTokens);
+    this.persistDesired({ enabled: true, mode: "leveling", slug: step.slug, sellItemIds: sellIds, leveling: this.leveling });
+    if (this.userId) void logRobotEvent(this.userId, {
+      kind: "brain", title: `Plano de leveling: ${goal.name} ${fighter.level} -> ${goal.targetLevel}`,
+      body: `${plan.length} etapa${plan.length > 1 ? "s" : ""} · comeca em ${step.huntName}`,
+      data: { targetLevel: goal.targetLevel, steps: plan.length },
+    });
+    return { plan, step };
+  }
+
+  /** Religa a sessao a partir do estado persistido (boot do container / instrumentation). */
+  async resume(userId: string, tokens: Tokens, shard: number, onTokens: (t: Tokens) => Promise<void>, d: RobotDesired, fighter: FighterProfile | null) {
+    this.ctx(userId, tokens, shard, onTokens);
+    this.mode = d.mode; this.leveling = d.leveling; this.fighter = fighter;
+    if (d.pokeSellCfg) { this.pokeCfg = d.pokeSellCfg; this.poke.on = true; this.baselineIds = null; }
+    if (d.autobuy) this.setAutoBuy(userId, tokens, true, onTokens);
+    const data = await getBrainData();
+    if (d.mode === "leveling" && d.leveling && !d.leveling.done && fighter) {
+      fighter.level = Math.max(fighter.level, d.leveling.currentLevel);
+      this.plan = await buildLevelPlan(fighter, d.leveling.targetLevel, true);
+      const step = stepForLevel(this.plan, fighter.level);
+      this.slug = step?.slug ?? d.slug;
+      this.currentTargetId = step?.targetId ?? null;
+      this.sellIds = new Set(step ? data.sellableLoot(step.targetId) : d.sellItemIds);
+    } else if (d.mode === "auto" && fighter) {
+      const pick = await pickBestHunt(fighter, true);
+      this.slug = pick?.target.slug ?? d.slug;
+      this.currentTargetId = pick?.target.pokeId ?? null;
+      this.sellIds = new Set(pick ? data.sellableLoot(pick.target.pokeId) : d.sellItemIds);
+    } else {
+      this.slug = d.slug;
+      this.sellIds = new Set(d.sellItemIds);
+    }
+    if (!this.jobsActive()) return;
+    this.desiredOn = true;
+    if (this.userId) void logRobotEvent(this.userId, {
+      kind: "reconnect", title: "Robo retomado apos reinicio",
+      body: this.slug ? `Hunt ${this.slug}` : null, data: { slug: this.slug },
+    });
     this.applyOrConnect(true);
   }
 
   stopHunt() {
     this.logSummary();
+    this.desiredOn = false;
+    this.cancelReconnect();
     this.slug = null; this.sellIds.clear(); this.inv.clear();
     this.analyzer = null; this.recentKills = []; this.soldItems = []; this.poke.soldBySpecies = {};
+    this.mode = "manual"; this.leveling = null; this.plan = null; this.currentTargetId = null; this.fighter = null;
     // a venda de pokemon roda ATRELADA a hunt (o toggle 24/7 standalone saiu): parar a hunt
     // para a venda tambem. Sem jobs, encerra a sessao.
     this.pokeCfg = null; this.poke.on = false;
+    this.persistDesired({ enabled: false, mode: "manual", slug: null, pokeSellCfg: null, leveling: null });
     this.teardown();
   }
 
@@ -162,16 +304,26 @@ class GameSession {
     this.pokeCfg = cfg;
     this.poke.on = true;
     this.baselineIds = null; // refaz a base: a conta atual nao entra no acervo, so novas capturas
+    this.desiredOn = true;
+    this.persistDesired({ enabled: true, pokeSellCfg: cfg });
     this.applyOrConnect(false);
   }
 
   stopPokeSell() {
     this.pokeCfg = null;
     this.poke.on = false;
-    if (!this.jobsActive()) this.teardown(); else this.refreshTimers();
+    this.persistDesired({ pokeSellCfg: null });
+    if (!this.jobsActive()) { this.desiredOn = false; this.cancelReconnect(); this.teardown(); } else this.refreshTimers();
   }
 
-  stop() { this.logSummary(); this.slug = null; this.sellIds.clear(); this.pokeCfg = null; this.teardown(); }
+  stop() {
+    this.logSummary();
+    this.desiredOn = false; this.cancelReconnect();
+    this.slug = null; this.sellIds.clear(); this.pokeCfg = null;
+    this.mode = "manual"; this.leveling = null; this.plan = null; this.currentTargetId = null; this.fighter = null;
+    this.persistDesired({ enabled: false, mode: "manual", slug: null, pokeSellCfg: null, leveling: null });
+    this.teardown();
+  }
 
   // aplica a config: conecta se preciso; se ja conectado, so ajusta (sem derrubar)
   private applyOrConnect(reenter: boolean) {
@@ -205,17 +357,28 @@ class GameSession {
 
   private connect() {
     if (!this.tokens) return;
-    this.status = "connecting"; this.error = undefined; this.since = Date.now(); this.updatedAt = null;
+    this.setStatus("connecting");
+    this.since = Date.now(); this.updatedAt = null;
     const url = `${WS_BASE}/ws${this.shard}?token=${encodeURIComponent(this.tokens.access)}&cmid=${crypto.randomBytes(16).toString("hex")}`;
     let ws: WebSocket;
     try {
       ws = new WebSocket(url, { headers: { Origin: "https://poke.idleworld.online", "User-Agent": UA } } as unknown as string[]);
-    } catch (e) { this.status = "error"; this.error = String(e); return; }
+    } catch (e) {
+      this.setStatus("error", String(e));
+      if (this.desiredOn && this.jobsActive()) this.scheduleReconnect();
+      return;
+    }
     this.ws = ws;
     const myGen = ++this.gen; // handlers so valem enquanto este for o socket atual
 
     ws.addEventListener("open", () => {
-      this.status = "running";
+      const wasRetry = this.reconnectAttempt > 0;
+      this.reconnectAttempt = 0; this.nextRetryAt = null;
+      this.setStatus("running");
+      if (wasRetry && this.userId) void logRobotEvent(this.userId, {
+        kind: "reconnect", title: "Conexao restabelecida",
+        body: this.slug ? `Hunt ${this.slug} retomada` : null, data: { slug: this.slug },
+      });
       if (this.slug) this.send({ type: "enter-hunt", slug: this.slug });
       this.refreshTimers();
     });
@@ -234,7 +397,10 @@ class GameSession {
       this.send({ type: "analyzer-get" });
       this.analyzerPoll = setInterval(() => this.send({ type: "analyzer-get" }), ANALYZER_MS);
     }
-    if (this.pokeCfg) {
+    // pokes-get roda SEMPRE que ha conexao (nao so com venda ligada): alimenta o snapshot
+    // do time ao vivo (Conta/HUD) e e o fallback de nivel do cerebro (frames pokes trazem
+    // o level de cada pokemon). recordKept/sellPokesSweep seguem condicionados ao pokeCfg.
+    if (this.pokeCfg || this.slug) {
       setTimeout(() => this.send({ type: "pokes-get" }), 500);
       this.pokesPoll = setInterval(() => this.send({ type: "pokes-get" }), POKES_MS);
     }
@@ -246,10 +412,18 @@ class GameSession {
     try { m = JSON.parse(typeof ev.data === "string" ? ev.data : String(ev.data)); } catch { return; }
     if (m.type === "analyzer") {
       this.analyzer = m as unknown as Analyzer; this.updatedAt = Date.now();
+      this.emit("hunt");
     } else if (m.type === "field-kill") {
       if (!this.slug) return; // hunt desligada: ignora kills (o char ainda pode estar saindo do campo)
       const loot = Array.isArray(m.loot) ? (m.loot as Record<string, unknown>[]).map((l) => ({ itemId: Number(l.itemId ?? 0), name: String(l.name ?? ""), qty: Number(l.qty ?? 0) })) : [];
       this.push({ at: Date.now(), kind: "kill", species: String(m.speciesName ?? "?"), shiny: Boolean(m.shiny), xp: Number(m.xpGained ?? 0), loot });
+      // nivel AO VIVO do lider (que e quem caca): alimenta o HUD e o cerebro
+      this.trackLevel(Number(m.level), Boolean(m.leveledUp));
+      this.emit("hunt");
+    } else if (m.type === "poke-xp") {
+      // XP por pokemon: no leveling, so interessa o pokemon do plano
+      const id = String(m.id ?? "");
+      if (!this.leveling || id === this.leveling.pokeId) this.trackLevel(Number(m.level), Boolean(m.leveledUp));
     } else if (m.type === "catch-result") {
       if (m.success && this.slug) {
         const species = String(m.speciesName ?? "?"), shiny = Boolean(m.shiny), ball = String(m.ballName ?? "");
@@ -262,6 +436,7 @@ class GameSession {
       for (const it of items) this.inv.set(Number(it.itemId ?? 0), Number(it.quantity ?? it.qty ?? 0));
     } else if (m.type === "pokes" && Array.isArray(m.list)) {
       void this.updateTeamSnapshot(m.list); // Conta reflete o time ao vivo (lider incluso)
+      this.trackLevelFromPokes(m.list); // fallback de nivel do cerebro (se poke-xp nao vier)
       void this.recordKept(m.list);   // acervo de capturados (real-time)
       void this.sellPokesSweep(m.list); // venda (assim que coleta)
     }
@@ -270,6 +445,80 @@ class GameSession {
   private push(ev: KillLog) {
     this.recentKills.unshift(ev);
     if (this.recentKills.length > 50) this.recentKills.length = 50;
+  }
+
+  // ---- cerebro: nivel ao vivo + trocas de hunt automaticas (modo auto/leveling) ----
+
+  // fallback via lista de pokes (20s): se os frames de XP nao trouxerem level, a lista traz.
+  private trackLevelFromPokes(list: unknown[]) {
+    if (this.mode === "manual" || !this.fighter) return;
+    try {
+      const all = normalizeActivePokes(list);
+      const target = this.leveling
+        ? all.find((p) => p.id === this.leveling!.pokeId)
+        : (all.find((p) => p.leader) ?? null);
+      if (target && target.level > this.fighter.level) this.trackLevel(target.level, true);
+    } catch { /* fallback e best-effort */ }
+  }
+
+  // registra o nivel observado nos frames do WS; num level-up, deixa o cerebro decidir.
+  private trackLevel(level: number, leveledUp: boolean) {
+    if (!Number.isFinite(level) || level <= 0) return;
+    if (this.fighter && level !== this.fighter.level) { this.fighter.level = level; this.emit("session"); }
+    if (this.leveling && level !== this.leveling.currentLevel) this.leveling.currentLevel = level;
+    if (leveledUp && this.mode !== "manual") void this.onLevelUp(level);
+  }
+
+  private async onLevelUp(level: number) {
+    if (this.thinking || !this.fighter || !this.userId) return;
+    this.thinking = true;
+    try {
+      this.fighter.level = level;
+      if (this.mode === "leveling" && this.leveling) {
+        this.leveling.currentLevel = level;
+        if (level >= this.leveling.targetLevel && !this.leveling.done) {
+          // meta atingida: celebra e segue farmando em modo AUTO (nao para de render)
+          this.leveling.done = true;
+          void logRobotEvent(this.userId, {
+            kind: "goal", title: `Meta atingida: ${this.leveling.name} chegou ao nivel ${level}!`,
+            body: `Plano ${this.leveling.startLevel} -> ${this.leveling.targetLevel} concluido`,
+            data: { level, pokeId: this.leveling.pokeId },
+          });
+          this.mode = "auto"; this.plan = null;
+          this.persistDesired({ mode: "auto", leveling: this.leveling });
+          // cai no bloco do modo auto abaixo (re-escolhe a hunt pro nivel atual)
+        } else if (this.plan) {
+          const step = stepForLevel(this.plan, level);
+          if (step && step.slug !== this.slug) {
+            await this.switchHunt(step.slug, step.targetId, `Plano: nivel ${level} entra na faixa ${step.from}-${step.to} (${step.huntName})`);
+          }
+          this.persistDesired({ leveling: this.leveling });
+          this.emit("session");
+          return;
+        }
+      }
+      if (this.mode === "auto" && this.currentTargetId != null) {
+        const better = await reconsiderHunt(this.fighter, this.currentTargetId, true);
+        if (better) {
+          await this.switchHunt(better.target.slug, better.target.pokeId,
+            `Auto: ${better.target.huntName} rende mais no nivel ${level} (~${Math.round(better.est.xpH).toLocaleString("pt-BR")} XP/h)`);
+        }
+      }
+      this.emit("session");
+    } catch { /* cerebro nunca derruba a sessao */ } finally { this.thinking = false; }
+  }
+
+  // troca de hunt NA MESMA conexao (enter-hunt), atualizando alvo/drops. Mantem o feed de
+  // kills (a sensacao e de continuidade); o analyzer zera porque e por-campo.
+  private async switchHunt(slug: string, targetId: number, why: string) {
+    this.logSummary(); // fecha o resumo da faixa anterior antes de trocar o slug
+    this.slug = slug; this.currentTargetId = targetId;
+    try { this.sellIds = new Set((await getBrainData()).sellableLoot(targetId)); } catch { /* mantem a lista atual */ }
+    this.analyzer = null; this.summaryLogged = false; this.inv.clear();
+    if (this.ws) { this.send({ type: "enter-hunt", slug }); this.refreshTimers(); }
+    if (this.userId) void logRobotEvent(this.userId, { kind: "brain", title: `Robo trocou de hunt: ${slug}`, body: why, data: { slug, targetId } });
+    this.persistDesired({ slug, sellItemIds: [...this.sellIds] });
+    this.emit("hunt");
   }
 
   // vende os drops marcados que tem na mochila (REST)
@@ -298,6 +547,7 @@ class GameSession {
         // sem alerta por venda (poluia o feed): o vendido ja aparece em "Itens vendidos" e
         // no totalizador de Estatisticas. So acumula o totalizador cumulativo.
         if (this.userId && qtyTotal > 0) void addRobotSales(this.userId, { itemsCount: qtyTotal, itemsGold: goldTotal });
+        this.emit("hunt");
       }
     } catch { /* proxima varredura tenta */ } finally { this.sellingDrops = false; }
   }
@@ -331,6 +581,7 @@ class GameSession {
           }
           // sem alerta por venda (o vendido aparece em "Pokemon vendidos" e em Estatisticas).
           if (this.userId) void addRobotSales(this.userId, { pokesCount: sold, pokesGold: gold });
+          this.emit("hunt");
         }
       }
     } catch { /* proxima varredura tenta */ } finally { this.sellingPokes = false; }
@@ -389,6 +640,7 @@ class GameSession {
   setAutoBuy(userId: string, tokens: Tokens, on: boolean, persist: (t: Tokens) => Promise<void>) {
     this.buyUserId = userId; this.buyTokens = tokens; this.buyPersist = persist;
     this.autoBuy = on;
+    void saveRobotDesired(userId, { autobuy: on }).catch(() => {});
     if (this.buyTimer) { clearInterval(this.buyTimer); this.buyTimer = null; }
     if (on) {
       void this.restockBalls();
@@ -459,22 +711,52 @@ class GameSession {
     this.analyzerPoll = this.pokesPoll = this.dropTimer = null;
   }
 
-  // a conexao caiu (kicked/error). Mantem os jobs configurados; o usuario religa.
+  // a conexao caiu (kicked/error). Mantem os jobs configurados e, se o usuario QUER o robo
+  // ligado (desiredOn), religa sozinho com backoff — e o "manter a conexao pra farmar sozinho".
   private onGone(status: SessStatus, code?: number) {
     this.clearTimers();
     this.ws = null;
     if (this.status === "running" || this.status === "connecting") {
       this.logSummary();
-      this.status = status;
-      this.error = code != null ? `close ${code}` : undefined;
+      this.setStatus(status, code != null ? `close ${code}` : undefined);
     }
+    if (this.desiredOn && this.jobsActive()) this.scheduleReconnect();
+  }
+
+  private cancelReconnect() {
+    if (this.reconnectTimer) { clearTimeout(this.reconnectTimer); this.reconnectTimer = null; }
+    this.reconnectAttempt = 0; this.nextRetryAt = null;
+  }
+
+  private scheduleReconnect() {
+    if (this.reconnectTimer) return;
+    const delay = Math.min(RECONNECT_MAX_MS, RECONNECT_BASE_MS * 2 ** this.reconnectAttempt);
+    this.reconnectAttempt++;
+    this.nextRetryAt = Date.now() + delay;
+    this.emit("session");
+    this.reconnectTimer = setTimeout(() => { this.reconnectTimer = null; void this.tryReconnect(); }, delay);
+  }
+
+  private async tryReconnect() {
+    if (!this.desiredOn || !this.jobsActive() || this.ws) return;
+    // renova o access ANTES de reabrir: o WS nao tem o retry-em-401 do REST — token vencido
+    // seria recusado direto e o backoff subiria a toa.
+    if (this.tokens?.refresh) {
+      try {
+        const nt = await refreshTokens(this.tokens);
+        if (nt) { this.tokens = nt; await this.onTokens?.(nt).catch(() => {}); }
+      } catch { /* tenta com o token atual mesmo */ }
+    }
+    this.connect();
   }
 
   private teardown() {
     this.clearTimers();
     if (this.ws) { try { this.ws.close(); } catch {} this.ws = null; }
     this.inv.clear();
-    this.status = "idle"; this.error = undefined; this.since = null; this.updatedAt = null;
+    this.since = null; this.updatedAt = null;
+    this.setStatus("idle");
+    this.emit("hunt");
   }
 }
 

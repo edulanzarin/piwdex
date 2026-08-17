@@ -105,7 +105,9 @@ function authHeaders(t: Tokens): HeadersInit {
   return { Authorization: `Bearer ${t.access}`, "User-Agent": UA, Accept: "application/json" };
 }
 
-async function refreshTokens(t: Tokens): Promise<Tokens | null> {
+// Exportado pro motor do robo renovar o access ANTES de reconectar o WS (o socket nao tem
+// o retry-em-401 do gameFetch: token vencido = conexao recusada direto).
+export async function refreshTokens(t: Tokens): Promise<Tokens | null> {
   try {
     const res = await fetch(`${GAME}/api/auth/refresh`, {
       method: "POST",
