@@ -657,8 +657,8 @@ class GameSession {
       this.analyzerPoll = setInterval(() => this.send({ type: "analyzer-get" }), ANALYZER_MS);
     }
     // pokes-get roda SEMPRE que ha conexao (nao so com venda ligada): alimenta o time AO
-    // VIVO (HUD/painel), e o fallback de nivel do cerebro e o keepalive da sessao segurada.
-    // recordKept/sellPokesSweep seguem condicionados ao pokeCfg.
+    // VIVO (HUD/painel), o acervo de capturados (recordKept, que roda com ou sem venda),
+    // o fallback de nivel do cerebro e o keepalive. So sellPokesSweep exige pokeCfg.
     if (this.pokeCfg || this.slug || this.holdOpen) {
       setTimeout(() => this.send({ type: "pokes-get" }), 500);
       this.pokesPoll = setInterval(() => this.send({ type: "pokes-get" }), POKES_MS);
@@ -866,11 +866,14 @@ class GameSession {
     } catch { /* proxima varredura tenta */ } finally { this.sellingPokes = false; }
   }
 
-  // grava no acervo (captured_pokes) os pokemon MANTIDOS — os que NAO batem as travas de
-  // venda (bons demais, raridade nao marcada, shiny, time/lider/starter). Roda a cada lista
-  // de pokes (real-time, sem throttle), so gravando ids novos (dedupe em memoria).
+  // grava no acervo (captured_pokes) os pokemon MANTIDOS — os que NAO vao ser vendidos.
+  // Com a venda ligada, mantido = nao bate as travas (bons demais, raridade nao marcada,
+  // shiny, time/lider/starter); com a venda DESLIGADA, TODA captura nova e mantida — o
+  // acervo nao depende da venda (senao capturado sem venda ficava invisivel: contava no
+  // analyzer mas nao aparecia em lugar nenhum). Roda a cada lista de pokes (real-time,
+  // sem throttle), so gravando ids novos (dedupe em memoria).
   private async recordKept(list: unknown[]) {
-    if (!this.userId || !this.pokeCfg) return;
+    if (!this.userId) return;
     try {
       const all = normalizeActivePokes(list);
       // A 1a lista NAO-VAZIA vira LINHA DE BASE (a colecao que voce JA tinha): nao entra no
@@ -882,7 +885,9 @@ class GameSession {
       }
       const data = await getData();
       const rarityOf = (sid: number): Rarity => data.getCreature(sid)?.rarity ?? "COMMON";
-      const sellIds = new Set(filterSellable(all, this.pokeCfg, rarityOf).map((p) => p.id));
+      const sellIds = this.pokeCfg
+        ? new Set(filterSellable(all, this.pokeCfg, rarityOf).map((p) => p.id))
+        : new Set<string>();
       // so o que o robo capturou nesta sessao: id NOVO (fora da base) + mantido (nao vai vender)
       const kept = all.filter((p) => !this.baselineIds!.has(p.id) && !sellIds.has(p.id) && !this.recordedIds.has(p.id));
       if (!kept.length) return;
@@ -1043,7 +1048,7 @@ class GameSession {
 // SESSION_REV: bump SEMPRE que a classe ganhar/mudar metodo — no dev, o hot-reload
 // re-avalia o modulo mas a instancia antiga (prototype velho) fica presa no globalThis;
 // sem o rev, chamar um metodo novo dava "is not a function" ate reiniciar o server.
-const SESSION_REV = 9;
+const SESSION_REV = 10;
 const g = globalThis as unknown as { __piwSession?: GameSession; __piwSessionRev?: number };
 if (!g.__piwSession || g.__piwSessionRev !== SESSION_REV) {
   // silencia a instancia velha SEM persistir nada (stop() gravaria enabled=false no banco

@@ -17,11 +17,11 @@ function assertProdEnv(): void {
     missing.push("APP_URL (https://, ex: https://piwdex.com.br)");
   }
   if (missing.length) {
-    console.error(
+    // throw derruba o boot do server (e nao dispara o warning de process.exit no Edge)
+    throw new Error(
       `[boot] producao sem env obrigatoria: ${missing.join(", ")}. ` +
-        "Configure no Railway/compose e suba de novo. Abortando.",
+        "Configure no Railway/compose e suba de novo.",
     );
-    process.exit(1);
   }
 }
 
