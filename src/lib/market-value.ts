@@ -104,7 +104,21 @@ export function median(xs: number[]): number | null {
 // ---------------------------------------------------------------------------
 
 const CEIL_LEVEL = 100; // nivel de referencia constante — o valor absoluto some na razao
-export const MIN_SPECIES_SAMPLE = 5; // abaixo disso a taxa da especie e fraca -> usa a global
+export const MIN_SPECIES_SAMPLE = 5; // abaixo disso a taxa da especie e fraca -> desce a cadeia
+
+// O preco NAO escala linear com o teto: um Q2.1+ (so sai de breeding) vale despropor-
+// cionalmente mais que a projecao linear sugere, e a mediana do mercado inteiro e
+// dominada por bicho cru (Q~1.0-1.3 baratinho) — uma regua unica ESMAGA a elite.
+// Por isso a regua e POR FAIXA de Quality (e shiny separado de nao-shiny, o premio de
+// shiny e outro mercado): elite se compara com elite. Faixas casadas com as notas
+// (Q_OK/Q_GREAT) + o corte de breeding-only (2.1, acima do teto selvagem ~1.8+herancas).
+export const Q_BAND_EDGES = [1.4, 1.8, 2.1] as const;
+export function qualityBand(q: number | null): number {
+  if (q == null) return 0;
+  let b = 0;
+  for (const edge of Q_BAND_EDGES) if (q >= edge) b++;
+  return b; // 0: cru | 1: medio | 2: topo selvagem | 3: elite de breeding
+}
 
 /** Teto de Power do bicho, independente do nivel atual: projeta no nivel de referencia
  *  com a Quality real e o IV distribuido igual entre os stats. Precisa dos bases da especie. */
@@ -122,54 +136,76 @@ export interface PriceItem {
   currency: Currency;
   price: number;
   ceil: number | null;
+  quality: number | null;
+  shiny: boolean;
 }
+
+interface Rate { rate: number; n: number }
 
 export interface PriceModel {
-  globalRate: { GOLD: number | null; DIAMONDS: number | null };
-  speciesRate: Map<string, number>; // `${speciesId}:${currency}` -> mediana de preco/teto
-  speciesCount: Map<string, number>;
+  globalRate: { GOLD: number | null; DIAMONDS: number | null }; // ultimo fallback (regua geral)
+  bandRate: Map<string, Rate>; // `${currency}:${band}:${shiny}` -> mediana de preco/teto da faixa
+  speciesBandRate: Map<string, Rate>; // `${speciesId}:${currency}:${band}:${shiny}`
 }
 
-const keyOf = (speciesId: number, currency: Currency) => `${speciesId}:${currency}`;
+const sbKey = (speciesId: number, currency: Currency, band: number, shiny: boolean) =>
+  `${speciesId}:${currency}:${band}:${shiny ? 1 : 0}`;
+const bKey = (currency: Currency, band: number, shiny: boolean) => `${currency}:${band}:${shiny ? 1 : 0}`;
 
-/** Monta a regua (mediana de preco-por-teto por especie+moeda, e global) sobre TODO o mercado. */
+/** Monta a regua (mediana de preco-por-teto por especie+faixa, por faixa, e global)
+ *  sobre TODO o mercado. */
 export function buildPriceModel(items: PriceItem[]): PriceModel {
   const g: number[] = [];
   const d: number[] = [];
-  const bySp = new Map<string, number[]>();
+  const byBand = new Map<string, number[]>();
+  const bySpBand = new Map<string, number[]>();
+  const push = (m: Map<string, number[]>, k: string, v: number) => {
+    const arr = m.get(k);
+    if (arr) arr.push(v);
+    else m.set(k, [v]);
+  };
   for (const it of items) {
     if (it.ceil == null || it.ceil <= 0 || it.price <= 0) continue;
     const ppc = it.price / it.ceil;
     (it.currency === "DIAMONDS" ? d : g).push(ppc);
-    const k = keyOf(it.speciesId, it.currency);
-    const arr = bySp.get(k);
-    if (arr) arr.push(ppc);
-    else bySp.set(k, [ppc]);
+    const band = qualityBand(it.quality);
+    push(byBand, bKey(it.currency, band, it.shiny), ppc);
+    push(bySpBand, sbKey(it.speciesId, it.currency, band, it.shiny), ppc);
   }
-  const speciesRate = new Map<string, number>();
-  const speciesCount = new Map<string, number>();
-  for (const [k, arr] of bySp) {
-    speciesCount.set(k, arr.length);
-    const md = median(arr);
-    if (md != null) speciesRate.set(k, md);
-  }
-  return { globalRate: { GOLD: median(g), DIAMONDS: median(d) }, speciesRate, speciesCount };
+  const toRates = (m: Map<string, number[]>): Map<string, Rate> => {
+    const out = new Map<string, Rate>();
+    for (const [k, arr] of m) {
+      const md = median(arr);
+      if (md != null) out.set(k, { rate: md, n: arr.length });
+    }
+    return out;
+  };
+  return { globalRate: { GOLD: median(g), DIAMONDS: median(d) }, bandRate: toRates(byBand), speciesBandRate: toRates(bySpBand) };
 }
 
-/** Preco justo estimado do anuncio: taxa da especie (se amostra >= MIN) senao a global,
- *  vezes o teto do bicho. Null quando falta teto ou regua. */
-export function fairPriceOf(it: PriceItem, model: PriceModel): number | null {
+export interface FairPriceMeta {
+  price: number;
+  n: number; // quantos anuncios sustentam a taxa usada
+  tier: "species-band" | "band" | "global"; // qual degrau da cadeia respondeu
+}
+
+/** Preco justo estimado com a proveniencia: taxa da especie NA MESMA faixa de Quality
+ *  (amostra >= MIN), senao a faixa global, senao a regua geral — sempre x teto do bicho. */
+export function fairPriceMeta(it: PriceItem, model: PriceModel): FairPriceMeta | null {
   if (it.ceil == null || it.ceil <= 0) return null;
-  const k = keyOf(it.speciesId, it.currency);
-  const n = model.speciesCount.get(k) ?? 0;
-  const sp = model.speciesRate.get(k);
-  const rate = n >= MIN_SPECIES_SAMPLE && sp != null
-    ? sp
-    : it.currency === "DIAMONDS"
-      ? model.globalRate.DIAMONDS
-      : model.globalRate.GOLD;
+  const band = qualityBand(it.quality);
+  const sb = model.speciesBandRate.get(sbKey(it.speciesId, it.currency, band, it.shiny));
+  if (sb && sb.n >= MIN_SPECIES_SAMPLE) return { price: Math.round(sb.rate * it.ceil), n: sb.n, tier: "species-band" };
+  const b = model.bandRate.get(bKey(it.currency, band, it.shiny));
+  if (b && b.n >= MIN_SPECIES_SAMPLE) return { price: Math.round(b.rate * it.ceil), n: b.n, tier: "band" };
+  const rate = it.currency === "DIAMONDS" ? model.globalRate.DIAMONDS : model.globalRate.GOLD;
   if (rate == null || rate <= 0) return null;
-  return Math.round(rate * it.ceil);
+  return { price: Math.round(rate * it.ceil), n: 0, tier: "global" };
+}
+
+/** Preco justo estimado do anuncio (so o numero). Null quando falta teto ou regua. */
+export function fairPriceOf(it: PriceItem, model: PriceModel): number | null {
+  return fairPriceMeta(it, model)?.price ?? null;
 }
 
 // ---- Veredito de preco a partir do preco justo (usado no client) ----

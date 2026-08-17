@@ -79,7 +79,13 @@ export async function GET(req: Request) {
   };
   mons = [...mons].sort((a, b) => rank(b) - rank(a) || a.price - b.price).slice(0, 120);
   // Anexa o preco justo estimado (motor acima) em cada anuncio retornado.
-  mons = mons.map((m) => ({ ...m, fairPrice: fairPriceOf({ speciesId: m.speciesId, currency: m.currency, price: m.price, ceil: ceilOf(m) }, priceModel) }));
+  mons = mons.map((m) => ({
+    ...m,
+    fairPrice: fairPriceOf(
+      { speciesId: m.speciesId, currency: m.currency, price: m.price, ceil: ceilOf(m), quality: m.quality, shiny: m.shiny },
+      priceModel,
+    ),
+  }));
 
   if (loaded.changed) await updateGameTokens(session.user.id, loaded.tokens);
   return NextResponse.json({ connected: true, mons, total: loaded.mons.length });

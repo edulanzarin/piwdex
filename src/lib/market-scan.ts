@@ -25,16 +25,12 @@ export async function fetchScoredMarket(initial: Tokens): Promise<ScoredMarket |
   const ceilOf = (m: MarketMon) => monCeiling(basesById.get(m.speciesId), m.ivTotal, m.quality);
 
   const mons = normalizeMarketMons(raw, creatures);
-  const model = buildPriceModel(
-    mons.map<PriceItem>((m) => ({ speciesId: m.speciesId, currency: m.currency, price: m.price, ceil: ceilOf(m) })),
-  );
-  const scored = mons.map((m) => ({
-    ...m,
-    fairPrice: fairPriceOf(
-      { speciesId: m.speciesId, currency: m.currency, price: m.price, ceil: ceilOf(m) },
-      model,
-    ),
-  }));
+  const toItem = (m: MarketMon): PriceItem => ({
+    speciesId: m.speciesId, currency: m.currency, price: m.price, ceil: ceilOf(m),
+    quality: m.quality, shiny: m.shiny,
+  });
+  const model = buildPriceModel(mons.map(toItem));
+  const scored = mons.map((m) => ({ ...m, fairPrice: fairPriceOf(toItem(m), model) }));
 
   return { mons: scored, tokens: r.tokens, changed: r.changed };
 }

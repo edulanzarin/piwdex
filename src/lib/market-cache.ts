@@ -34,7 +34,10 @@ export async function marketPriceModel(mons: MarketMon[]): Promise<{
   for (const c of creatures) basesById.set(c.pokeId, [c.baseHp, c.baseAtk, c.baseDef, c.baseSpAtk, c.baseSpDef, c.baseSpeed]);
   const ceilOf = (m: MarketMon) => monCeiling(basesById.get(m.speciesId), m.ivTotal, m.quality);
   const model = buildPriceModel(
-    mons.map<PriceItem>((m) => ({ speciesId: m.speciesId, currency: m.currency, price: m.price, ceil: ceilOf(m) })),
+    mons.map<PriceItem>((m) => ({
+      speciesId: m.speciesId, currency: m.currency, price: m.price, ceil: ceilOf(m),
+      quality: m.quality, shiny: m.shiny,
+    })),
   );
   return { model, ceilOf, basesById };
 }

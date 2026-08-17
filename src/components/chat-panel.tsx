@@ -115,6 +115,7 @@ export function ChatPanel({ creatures, dex }: { creatures: { pokeId: number; nam
     const params = new URLSearchParams({ sp: String(sid) });
     if (typeof pokeModal.iv === "number") params.set("iv", String(pokeModal.iv));
     if (typeof pokeModal.q === "number") params.set("q", String(pokeModal.q));
+    if (pokeModal.sh) params.set("shiny", "1");
     void fetch(`/api/vip/value?${params}`)
       .then((r) => (r.ok ? r.json() : null))
       .then((d: { gold?: number | null } | null) => {
