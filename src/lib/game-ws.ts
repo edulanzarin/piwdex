@@ -124,3 +124,38 @@ export function summonPoke(tokens: Tokens, shard: number, pokeId: string, timeou
     ws.addEventListener("error", () => { clearTimeout(to); done(null); });
   });
 }
+
+// Move um poke BOX <-> TIME numa conexao ONE-SHOT (poke-withdraw tira do box pro time,
+// poke-store guarda no box — frames confirmados por HAR ago/2026; o jogo responde com
+// `pokes` atualizado). Mesmo desenho do summonPoke: so usar SEM sessao viva; confirma
+// pelo EFEITO (flag `team` do alvo na lista que volta) e devolve a lista lida, ou null.
+export function movePokeOneShot(tokens: Tokens, shard: number, pokeId: string, dir: "store" | "withdraw", timeoutMs = 9000): Promise<Record<string, unknown>[] | null> {
+  const token = tokens.access;
+  const wantTeam = dir === "withdraw"; // withdraw = entrou no time; store = saiu
+  return new Promise((resolve) => {
+    let settled = false, sent = false;
+    let ws: WebSocket;
+    const done = (v: Record<string, unknown>[] | null) => { if (settled) return; settled = true; try { ws.close(); } catch { /* noop */ } resolve(v); };
+    try {
+      ws = new WebSocket(`${WS_BASE}/ws${shard}?token=${encodeURIComponent(token)}`);
+    } catch { resolve(null); return; }
+    const to = setTimeout(() => done(null), timeoutMs);
+    ws.addEventListener("open", () => {
+      if (sent) return; sent = true;
+      try { ws.send(JSON.stringify({ type: dir === "store" ? "poke-store" : "poke-withdraw", pokeId })); } catch { /* noop */ }
+      setTimeout(() => { try { ws.send(JSON.stringify({ type: "pokes-get" })); } catch { /* noop */ } }, 500);
+    });
+    ws.addEventListener("message", (ev: MessageEvent) => {
+      if (!sent) return;
+      let j: { type?: string; list?: unknown };
+      try { j = JSON.parse(typeof ev.data === "string" ? ev.data : "") as typeof j; } catch { return; }
+      if (j?.type === "pokes" && Array.isArray(j.list)) {
+        const list = j.list as Record<string, unknown>[];
+        const hit = list.find((p) => String(p?.id) === pokeId);
+        if (hit && Boolean(hit.team) === wantTeam) { clearTimeout(to); done(list); }
+      }
+    });
+    ws.addEventListener("close", () => { clearTimeout(to); done(null); });
+    ws.addEventListener("error", () => { clearTimeout(to); done(null); });
+  });
+}
