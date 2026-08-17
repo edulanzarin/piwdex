@@ -17,20 +17,16 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { ToggleButton } from "./toggle-button";
-import { StatTile } from "./stat-tile";
 import { useT } from "./locale-provider";
-import { Coin, Clock, Check, ChevronRight } from "./icons";
+import { Coin, Check, ChevronRight } from "./icons";
 import { RARITY_COLOR, RARITY_ORDER } from "@/lib/typing";
 import type { Rarity } from "@/lib/types";
 
-const fmt = (n: number) => n.toLocaleString("pt-BR");
-
-// estado do robo de venda automatica 24/7 (GET /api/vip/autosell)
+// estado do robo de venda automatica 24/7 (GET /api/vip/autosell). Os totais vendidos
+// ficam nas abas Pokemon/Itens vendidos (totalizador cumulativo), nao aqui.
 type AutoStatus = "idle" | "connecting" | "running" | "kicked" | "error";
-interface SoldPoke { id: string; name: string; speciesId: number; level: number; shiny: boolean; ivTotal: number; quality: number; sellValue: number; rarity: Rarity }
-interface AutoState { status: AutoStatus; since: number | null; lastSweepAt: number | null; lastSold: number; soldTotal: number; goldTotal: number; lastMatches: SoldPoke[]; error?: string }
+interface AutoState { status: AutoStatus; error?: string }
 const AUTO_COLOR: Record<AutoStatus, string> = { idle: "var(--text-dim)", connecting: "var(--yellow)", running: "var(--green)", kicked: "var(--yellow)", error: "var(--pink)" };
-const hhmm = (ms: number | null) => (ms ? new Date(ms).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" }) : "—");
 
 export interface PokeSellConfig {
   sellRarities: Rarity[]; // raridades que PODEM ser vendidas (o resto nunca vende)
@@ -146,6 +142,14 @@ export function PokeSeller() {
     } finally { setAutoBusy(false); }
   };
 
+  // "Vender agora": dispara uma varredura na hora (ignora o intervalo de 1h)
+  const sellNow = async () => {
+    setAutoBusy(true);
+    try {
+      await fetch("/api/vip/autosell", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "sell-now" }) });
+    } finally { setAutoBusy(false); }
+  };
+
   const patch = (p: Partial<PokeSellConfig>) => {
     setCfg((c) => {
       const next = { ...c, ...p };
@@ -208,7 +212,10 @@ export function PokeSeller() {
                 <p className="mt-1 text-[0.62rem] text-text-dim">{t("robo.auto.desc")}</p>
               </div>
               {on ? (
-                <button type="button" onClick={() => toggleAuto(false)} disabled={autoBusy} className="btn btn-ghost">{t("robo.auto.stop")}</button>
+                <div className="flex items-center gap-2">
+                  <button type="button" onClick={sellNow} disabled={autoBusy} className="btn btn-cyan disabled:opacity-40"><Coin size={11} /> {t("robo.auto.sellNow")}</button>
+                  <button type="button" onClick={() => toggleAuto(false)} disabled={autoBusy} className="btn btn-ghost">{t("robo.auto.stop")}</button>
+                </div>
               ) : (
                 <button type="button" onClick={() => toggleAuto(true)} disabled={autoBusy || cfg.sellRarities.length === 0} className="btn btn-cyan disabled:opacity-40">{t("robo.auto.start")} <ChevronRight size={10} /></button>
               )}
@@ -222,13 +229,7 @@ export function PokeSeller() {
                 {t("robo.auto.kickedHint")}{auto?.error ? ` (${auto.error})` : ""}
               </p>
             )}
-            {auto && (auto.soldTotal > 0 || auto.lastSweepAt) && (
-              <div className="grid grid-cols-3 gap-2">
-                <StatTile label={t("robo.auto.sold")} value={fmt(auto.soldTotal)} icon={<Coin size={11} className="text-text-dim" />} />
-                <StatTile label={t("robo.auto.gold")} value={fmt(auto.goldTotal)} accent="var(--yellow)" icon={<Coin size={11} />} />
-                <StatTile label={t("robo.auto.lastSweep")} value={hhmm(auto.lastSweepAt)} icon={<Clock size={11} className="text-text-dim" />} />
-              </div>
-            )}
+            <p className="rounded border border-border bg-[var(--well-bg)] px-3 py-2 text-[0.62rem] leading-relaxed text-text-dim">{t("robo.auto.interval")}</p>
             <p className="text-[0.58rem] leading-relaxed text-text-dim">{t("robo.auto.warn")}</p>
           </div>
         );

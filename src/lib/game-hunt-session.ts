@@ -20,6 +20,7 @@ import { getData } from "./data";
 import { normalizeActivePokes } from "./game-account";
 import { filterSellable, type PokeSellConfig } from "./poke-sell";
 import { logRobotEvent } from "./robot-events";
+import { addRobotSales } from "./robot-sales";
 import type { Rarity } from "./types";
 
 const WS_BASE = (process.env.GAME_HOST || "https://poke.idleworld.online").replace(/^http/, "ws");
@@ -27,6 +28,7 @@ const UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Geck
 const ANALYZER_MS = 2000; // poll do analyzer (e keepalive da hunt)
 const POKES_MS = 20000;   // poll da lista de pokemon (venda + keepalive)
 const DROPS_MS = 30000;   // varredura de venda de drops
+const SELL_EVERY_MS = 60 * 60 * 1000; // venda de pokemon roda 1x por hora (ou no "Vender agora")
 
 export interface Analyzer {
   kills: number; seconds: number; xpGained: number;
@@ -44,10 +46,11 @@ export interface SoldItem { itemId: number; name: string; qty: number; gold: num
 export interface SoldPoke { id: string; name: string; speciesId: number; level: number; shiny: boolean; ivTotal: number; quality: number; sellValue: number; rarity: Rarity }
 export type SessStatus = "idle" | "connecting" | "running" | "kicked" | "error";
 
-// pokemon efetivamente vendido (venda confirmada), com hora — vira o log "Vendidos"
-export interface SoldPokeLog extends SoldPoke { at: number }
+// venda de pokemon agregada POR RARIDADE (o card e por raridade escolhida, nao por bicho):
+// a hunt so soma quantidade e valor de cada raridade. Reseta ao trocar de hunt.
+export type RaritySold = Partial<Record<Rarity, { count: number; gold: number }>>;
 
-export interface PokeSellSub { on: boolean; lastSweepAt: number | null; lastSold: number; soldTotal: number; goldTotal: number; lastMatches: SoldPoke[]; soldPokes: SoldPokeLog[] }
+export interface PokeSellSub { on: boolean; soldByRarity: RaritySold }
 
 // visao "hunt" (GET /api/vip/hunt) — o que a aba Hunt e os Itens vendidos leem
 export interface HuntState {
@@ -56,8 +59,9 @@ export interface HuntState {
   analyzer: Analyzer | null; recentKills: KillLog[]; soldItems: SoldItem[]; autoSellCount: number;
   pokeSellOn: boolean;
 }
-// visao "auto-sell" (GET /api/vip/autosell) — o que Configuracoes (24/7) e a aba Vendidos leem
-export interface AutoSellView { status: SessStatus; error?: string; since: number | null; lastSweepAt: number | null; lastSold: number; soldTotal: number; goldTotal: number; lastMatches: SoldPoke[]; soldPokes: SoldPokeLog[] }
+// visao "auto-sell" (GET /api/vip/autosell) — Configuracoes (24/7) e a aba Pokemon vendidos.
+// So o essencial: status, as raridades configuradas (cards fixos) e o vendido por raridade.
+export interface AutoSellView { status: SessStatus; error?: string; sellRarities: Rarity[]; soldByRarity: RaritySold }
 
 class GameSession {
   private ws: WebSocket | null = null;
@@ -86,23 +90,25 @@ class GameSession {
   private analyzer: Analyzer | null = null;
   private recentKills: KillLog[] = [];
   private soldItems: SoldItem[] = [];
-  private poke: PokeSellSub = { on: false, lastSweepAt: null, lastSold: 0, soldTotal: 0, goldTotal: 0, lastMatches: [], soldPokes: [] };
+  private poke: PokeSellSub = { on: false, soldByRarity: {} };
+  private lastPokeSellAt = 0; // ultima venda de pokemon (throttle de 1h)
+  private forceSell = false;  // "Vender agora" forca a proxima varredura
 
   private jobsActive() { return this.slug != null || this.pokeCfg != null; }
 
   getState(): HuntState {
     return {
       status: this.status, error: this.error, slug: this.slug, since: this.since, updatedAt: this.updatedAt,
-      analyzer: this.analyzer, recentKills: this.recentKills.slice(0, 50), soldItems: this.soldItems.slice(0, 40),
+      analyzer: this.analyzer, recentKills: this.recentKills.slice(0, 50), soldItems: this.soldItems.slice(0, 30),
       autoSellCount: this.sellIds.size, pokeSellOn: this.pokeCfg != null,
     };
   }
 
   getAutoSellView(): AutoSellView {
     return {
-      status: this.pokeCfg ? this.status : "idle", error: this.error, since: this.since,
-      lastSweepAt: this.poke.lastSweepAt, lastSold: this.poke.lastSold, soldTotal: this.poke.soldTotal,
-      goldTotal: this.poke.goldTotal, lastMatches: this.poke.lastMatches, soldPokes: this.poke.soldPokes.slice(0, 40),
+      status: this.pokeCfg ? this.status : "idle", error: this.error,
+      sellRarities: this.pokeCfg?.sellRarities ?? [],
+      soldByRarity: this.poke.soldByRarity,
     };
   }
 
@@ -117,28 +123,32 @@ class GameSession {
     this.slug = slug;
     this.sellIds = new Set(sellItemIds.filter((n) => Number.isInteger(n) && n > 0));
     this.inv.clear();
-    this.analyzer = null; this.recentKills = []; this.soldItems = []; this.summaryLogged = false;
+    // trocar de hunt zera o que foi vendido NA HUNT (itens e pokemon por raridade). O
+    // totalizador cumulativo (robot_sales) NAO zera — vive no banco.
+    this.analyzer = null; this.recentKills = []; this.soldItems = []; this.poke.soldByRarity = {}; this.summaryLogged = false;
     this.applyOrConnect(true);
   }
 
   stopHunt() {
     this.logSummary();
     this.slug = null; this.sellIds.clear(); this.inv.clear();
-    this.analyzer = null; this.recentKills = []; this.soldItems = [];
+    this.analyzer = null; this.recentKills = []; this.soldItems = []; this.poke.soldByRarity = {};
     if (!this.jobsActive()) this.teardown(); else this.refreshTimers();
   }
 
-  // liga/atualiza o job de VENDA DE POKEMON (cfg null = desliga)
+  // liga/atualiza o job de VENDA DE POKEMON (cfg null = desliga). NAO zera o vendido por
+  // raridade (isso so zera ao trocar de hunt) — ligar/desligar preserva a contagem da hunt.
   setPokeSell(userId: string, tokens: Tokens, shard: number, cfg: PokeSellConfig, onTokens: (t: Tokens) => Promise<void>) {
     this.ctx(userId, tokens, shard, onTokens);
     this.pokeCfg = cfg;
-    this.poke = { on: true, lastSweepAt: null, lastSold: 0, soldTotal: 0, goldTotal: 0, lastMatches: [], soldPokes: [] };
+    this.poke.on = true;
+    this.lastPokeSellAt = 0; // a primeira varredura vende logo; depois e de 1h em 1h
     this.applyOrConnect(false);
   }
 
   stopPokeSell() {
     this.pokeCfg = null;
-    this.poke = { on: false, lastSweepAt: null, lastSold: 0, soldTotal: 0, goldTotal: 0, lastMatches: [], soldPokes: [] };
+    this.poke.on = false;
     if (!this.jobsActive()) this.teardown(); else this.refreshTimers();
   }
 
@@ -238,42 +248,59 @@ class GameSession {
           if (ex) { ex.qty += s.qty; ex.gold += gold; ex.at = Date.now(); }
           else this.soldItems.unshift({ itemId: s.itemId, name: it?.name ?? `#${s.itemId}`, qty: s.qty, gold, at: Date.now() });
         }
-        if (this.soldItems.length > 40) this.soldItems.length = 40;
-        if (this.userId && qtyTotal > 0) void logRobotEvent(this.userId, { kind: "item-sold", title: `Vendeu ${qtyTotal} itens`, body: `+$${Math.round(goldTotal)}`, data: { count: qtyTotal, gold: goldTotal } });
+        if (this.soldItems.length > 30) this.soldItems.length = 30;
+        if (this.userId && qtyTotal > 0) {
+          void logRobotEvent(this.userId, { kind: "item-sold", title: `Vendeu ${qtyTotal} itens`, body: `+$${Math.round(goldTotal)}`, data: { count: qtyTotal, gold: goldTotal } });
+          void addRobotSales(this.userId, { itemsCount: qtyTotal, itemsGold: goldTotal }); // totalizador cumulativo
+        }
       }
     } catch { /* proxima varredura tenta */ } finally { this.sellingDrops = false; }
   }
 
-  // vende os pokemon que batem as travas (REST). Nunca time/lider/starter/shiny (filterSellable).
+  // Uma VARREDURA de venda de pokemon: le a lista viva da conta, aplica as travas e vende
+  // os que batem (REST). Nunca time/lider/starter/shiny (filterSellable). Roda 1x por hora
+  // (throttle) ou quando o usuario clica "Vender agora" (forceSell) — evita gastar servidor
+  // vendendo a cada poll. O poll de pokes-get (20s) segue so como keepalive.
   private async sellPokesSweep(list: unknown[]) {
     if (this.sellingPokes || !this.tokens || !this.pokeCfg) return;
+    const now = Date.now();
+    if (!this.forceSell && now - this.lastPokeSellAt < SELL_EVERY_MS) return; // ainda nao e hora
     this.sellingPokes = true;
+    this.forceSell = false;
+    this.lastPokeSellAt = now;
     try {
       const all = normalizeActivePokes(list);
       const data = await getData();
       const rarityOf = (sid: number): Rarity => data.getCreature(sid)?.rarity ?? "COMMON";
       const matches = filterSellable(all, this.pokeCfg, rarityOf);
-      this.poke.lastSweepAt = Date.now();
-      this.poke.lastMatches = matches.slice(0, 60).map((p) => ({ id: p.id, name: p.name, speciesId: p.speciesId, level: p.level, shiny: p.shiny, ivTotal: p.ivTotal, quality: p.quality, sellValue: p.sellValue, rarity: p.rarity }));
-      if (!matches.length) { this.poke.lastSold = 0; return; }
+      if (!matches.length) return;
       const ids = matches.map((p) => p.id);
       const w = await sellPokes(this.tokens, ids);
       if (w.changed) { this.tokens = w.tokens; await this.onTokens?.(w.tokens); }
       if (w.ok && w.data) {
         const sold = w.data.sold ?? ids.length, gold = w.data.goldGained ?? 0;
-        this.poke.lastSold = sold; this.poke.soldTotal += sold; this.poke.goldTotal += gold;
         if (sold > 0) {
-          // registra os que FORAM vendidos de fato (venda confirmada) no log de vendidos —
-          // os primeiros `sold` dos matches (ordenados do pior pro melhor). Dedupe por id
-          // pra um mesmo pokemon nunca aparecer duas vezes (e o Geodude nao "gruda").
-          const now = Date.now();
-          const justSold: SoldPokeLog[] = matches.slice(0, sold).map((p) => ({ id: p.id, name: p.name, speciesId: p.speciesId, level: p.level, shiny: p.shiny, ivTotal: p.ivTotal, quality: p.quality, sellValue: p.sellValue, rarity: p.rarity, at: now }));
-          const seen = new Set(justSold.map((p) => p.id));
-          this.poke.soldPokes = [...justSold, ...this.poke.soldPokes.filter((p) => !seen.has(p.id))].slice(0, 40);
-          if (this.userId) void logRobotEvent(this.userId, { kind: "poke-sold", title: `Vendeu ${sold} pokemon`, body: `+$${Math.round(gold)}`, data: { count: sold, gold } });
+          // agrega POR RARIDADE (os `sold` primeiros dos matches, ordenados do pior pro
+          // melhor) — o card e por raridade, so quantidade e valor. E soma no totalizador.
+          for (const p of matches.slice(0, sold)) {
+            const cur = this.poke.soldByRarity[p.rarity] ?? { count: 0, gold: 0 };
+            cur.count += 1; cur.gold += p.sellValue;
+            this.poke.soldByRarity[p.rarity] = cur;
+          }
+          if (this.userId) {
+            void logRobotEvent(this.userId, { kind: "poke-sold", title: `Vendeu ${sold} pokemon`, body: `+$${Math.round(gold)}`, data: { count: sold, gold } });
+            void addRobotSales(this.userId, { pokesCount: sold, pokesGold: gold }); // totalizador cumulativo
+          }
         }
       }
     } catch { /* proxima varredura tenta */ } finally { this.sellingPokes = false; }
+  }
+
+  // "Vender agora": forca a proxima resposta de pokes-get a vender (ignora o throttle de 1h).
+  sellNow() {
+    if (!this.pokeCfg) return;
+    this.forceSell = true;
+    this.send({ type: "pokes-get" });
   }
 
   private logSummary() {
