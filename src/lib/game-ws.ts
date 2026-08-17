@@ -90,19 +90,19 @@ export async function fetchActivePokes(tokens: Tokens, knownShard?: number | nul
 // fecha). So usar quando NAO ha sessao de hunt viva — com hunt rodando, o single-session
 // derrubaria a caca, entao o caller manda pelo socket vivo (gameSession.summonActive).
 //
-// A confirmacao NAO conta so com o echo `poke-summon` (nem sempre chega): apos mandar o
-// summon, pede `pokes-get` e considera OK quando a lista volta com o alvo `leader:true` —
-// a prova de que a conta mutou. Aceita tambem o echo, se vier.
-export function summonPoke(tokens: Tokens, shard: number, pokeId: string, timeoutMs = 9000): Promise<boolean> {
+// Confirma pelo EFEITO, nao pelo echo (que nem sempre chega): apos o summon, pede `pokes-get`
+// e resolve quando a lista volta com o alvo `leader:true`. Devolve a LISTA lida (o caller usa
+// pra atualizar o snapshot do time na Conta) ou null se nao confirmou na janela.
+export function summonPoke(tokens: Tokens, shard: number, pokeId: string, timeoutMs = 9000): Promise<Record<string, unknown>[] | null> {
   const token = tokens.access;
   return new Promise((resolve) => {
     let settled = false, sent = false;
     let ws: WebSocket;
-    const done = (v: boolean) => { if (settled) return; settled = true; try { ws.close(); } catch { /* noop */ } resolve(v); };
+    const done = (v: Record<string, unknown>[] | null) => { if (settled) return; settled = true; try { ws.close(); } catch { /* noop */ } resolve(v); };
     try {
       ws = new WebSocket(`${WS_BASE}/ws${shard}?token=${encodeURIComponent(token)}`);
-    } catch { resolve(false); return; }
-    const to = setTimeout(() => done(false), timeoutMs);
+    } catch { resolve(null); return; }
+    const to = setTimeout(() => done(null), timeoutMs);
     const summon = () => {
       if (sent) return; sent = true;
       try { ws.send(JSON.stringify({ type: "poke-summon", pokeId })); } catch { /* noop */ }
@@ -114,13 +114,13 @@ export function summonPoke(tokens: Tokens, shard: number, pokeId: string, timeou
       if (!sent) return; // ignora o snapshot inicial (antes do summon)
       let j: { type?: string; list?: unknown };
       try { j = JSON.parse(typeof ev.data === "string" ? ev.data : "") as typeof j; } catch { return; }
-      if (j?.type === "poke-summon") { clearTimeout(to); done(true); return; }
       if (j?.type === "pokes" && Array.isArray(j.list)) {
-        const hit = (j.list as Record<string, unknown>[]).find((p) => String(p?.id) === pokeId);
-        if (hit && Boolean(hit.leader)) { clearTimeout(to); done(true); }
+        const list = j.list as Record<string, unknown>[];
+        const hit = list.find((p) => String(p?.id) === pokeId);
+        if (hit && Boolean(hit.leader)) { clearTimeout(to); done(list); }
       }
     });
-    ws.addEventListener("close", () => { clearTimeout(to); done(false); });
-    ws.addEventListener("error", () => { clearTimeout(to); done(false); });
+    ws.addEventListener("close", () => { clearTimeout(to); done(null); });
+    ws.addEventListener("error", () => { clearTimeout(to); done(null); });
   });
 }

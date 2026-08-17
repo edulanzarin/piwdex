@@ -19,6 +19,7 @@ import { sellItems, sellPokes, fetchShop, buyBall } from "./game-shop";
 import { readAuto } from "./game-auto";
 import { getData } from "./data";
 import { normalizeActivePokes } from "./game-account";
+import { saveTeamSnapshot } from "./game-link";
 import { filterSellable, type PokeSellConfig } from "./poke-sell";
 import { logRobotEvent } from "./robot-events";
 import { addRobotSales } from "./robot-sales";
@@ -190,10 +191,15 @@ class GameSession {
   }
 
   // Troca o pokemon ATIVO/LIDER (o que caca) na sessao VIVA: poke-summon na mesma conexao,
-  // sem reconectar (single-session: abrir outro socket derrubaria a hunt). Retorna true se
-  // havia conexao viva pra mandar. Sem conexao, o caller faz um one-shot (game-ws.summonPoke).
+  // sem reconectar (single-session: abrir outro socket derrubaria a hunt). Pede pokes-get em
+  // seguida pra a sessao reler o time e regravar o snapshot (Conta reflete o novo lider).
+  // Retorna true se havia conexao viva. Sem conexao, o caller faz um one-shot (game-ws).
   summonActive(pokeId: string): boolean {
-    if (this.ws && this.status === "running") { this.send({ type: "poke-summon", pokeId }); return true; }
+    if (this.ws && this.status === "running") {
+      this.send({ type: "poke-summon", pokeId });
+      setTimeout(() => this.send({ type: "pokes-get" }), 500);
+      return true;
+    }
     return false;
   }
 
@@ -255,8 +261,9 @@ class GameSession {
       this.inv.clear();
       for (const it of items) this.inv.set(Number(it.itemId ?? 0), Number(it.quantity ?? it.qty ?? 0));
     } else if (m.type === "pokes" && Array.isArray(m.list)) {
+      void this.updateTeamSnapshot(m.list); // Conta reflete o time ao vivo (lider incluso)
       void this.recordKept(m.list);   // acervo de capturados (real-time)
-      void this.sellPokesSweep(m.list); // venda (throttle 1h)
+      void this.sellPokesSweep(m.list); // venda (assim que coleta)
     }
   }
 
@@ -365,6 +372,18 @@ class GameSession {
   // depois que o usuario limpa o acervo (DELETE): esquece o cache e refaz a linha de base (a
   // proxima lista vira a base, entao a conta atual NAO volta pro acervo — so novas capturas).
   resetCapturedCache() { this.recordedIds.clear(); this.baselineIds = null; }
+
+  // regrava o snapshot do time (game_links) a cada lista de pokes: enquanto o robo segura a
+  // sessao, a Conta mostra o time AO VIVO (lider atual incluso) sem precisar reconectar.
+  private async updateTeamSnapshot(list: unknown[]) {
+    if (!this.userId) return;
+    try {
+      const all = normalizeActivePokes(list);
+      if (!all.length) return;
+      const team = all.filter((p) => p.team).sort((a, b) => a.slot - b.slot);
+      await saveTeamSnapshot(this.userId, team, all.length);
+    } catch { /* snapshot e best-effort, nao derruba a sessao */ }
+  }
 
   // liga/desliga a auto-compra de consumiveis. Roda no proprio timer (REST, nao precisa do WS).
   setAutoBuy(userId: string, tokens: Tokens, on: boolean, persist: (t: Tokens) => Promise<void>) {
