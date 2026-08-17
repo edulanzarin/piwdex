@@ -94,7 +94,10 @@ export interface LiveNotification {
   [k: string]: unknown;
 }
 
-export interface LiveChatMsg { at: number; from: string; text: string; channel: string }
+export interface LiveChatMsg {
+  at: number; from: string; text: string; channel: string;
+  level?: number; vip?: boolean; admin?: boolean;
+}
 export interface LiveAnnounce { on: boolean; text: string; everyMin: number; channel: "world" | "trade" | "help" }
 export interface LiveChat {
   wsOpen: boolean;

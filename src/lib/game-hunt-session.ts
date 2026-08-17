@@ -113,8 +113,14 @@ export interface HuntState {
 // agregado por especie (cards da hunt atual).
 export interface AutoSellView { status: SessStatus; error?: string; soldBySpecies: SpeciesSold[] }
 
-// chat do jogo (aba Chat + anuncio automatico)
-export interface ChatMsg { at: number; from: string; text: string; channel: string }
+// chat do jogo (aba Chat + anuncio automatico). Formato REAL confirmado pelo modo
+// descoberta (ago/2026): chat ao vivo = {type:"chat", msg:{id, channel, fromName, level,
+// isAdmin, isTutor, isVip, body, at:ISO}}; backlog = {type:"history", world:[...],
+// trade:[...], help:[...]} (um array POR CANAL, itens no mesmo shape do msg).
+export interface ChatMsg {
+  at: number; from: string; text: string; channel: string;
+  level?: number; vip?: boolean; admin?: boolean;
+}
 export interface ChatView {
   wsOpen: boolean;
   messages: ChatMsg[];
@@ -260,7 +266,10 @@ class GameSession {
     if (!this.ws || this.status !== "running") return false;
     const t = text.trim();
     if (!t) return false;
-    this.send({ type: "chat", channel, message: t, text: t });
+    // o frame de ENTRADA e {type:"chat", msg:{channel, body}} — o de saida provavelmente
+    // espelha (body no top-level ou no msg). Mandamos os dois shapes + aliases; campo
+    // extra e inofensivo e o eco no feed confirma qual pegou.
+    this.send({ type: "chat", channel, body: t, message: t, text: t, msg: { channel, body: t } });
     this.lastSentAt = Date.now();
     this.emit("chat");
     return true;
@@ -289,16 +298,20 @@ class GameSession {
     return null;
   }
 
-  private parseChatMsg(o: Record<string, unknown>): ChatMsg | null {
-    const text = GameSession.str(o, ["text", "message", "msg", "body", "content"]);
+  private parseChatMsg(o: Record<string, unknown>, fallbackChannel?: string): ChatMsg | null {
+    const text = GameSession.str(o, ["body", "text", "message", "content"]);
     if (!text) return null;
-    const from = GameSession.str(o, ["from", "name", "player", "author", "sender", "playerName", "user", "username"]) ?? "?";
-    const channel = GameSession.str(o, ["channel", "chan", "room"]) ?? "world";
+    const from = GameSession.str(o, ["fromName", "from", "name", "player", "author", "sender", "playerName", "user", "username"]) ?? "?";
+    const channel = GameSession.str(o, ["channel", "chan", "room"]) ?? fallbackChannel ?? "world";
     const raw = o.at ?? o.ts ?? o.time ?? o.createdAt ?? o.timestamp ?? o.date;
     let at = Date.now();
     if (typeof raw === "number" && Number.isFinite(raw)) at = raw < 1e12 ? raw * 1000 : raw; // s vs ms
     else if (typeof raw === "string") { const p = Date.parse(raw); if (Number.isFinite(p)) at = p; }
-    return { at, from, text, channel };
+    const level = typeof o.level === "number" && Number.isFinite(o.level) ? o.level : undefined;
+    return {
+      at, from, text, channel, level,
+      vip: o.isVip === true || undefined, admin: o.isAdmin === true || undefined,
+    };
   }
 
   private pushChat(msg: ChatMsg) {
@@ -312,13 +325,29 @@ class GameSession {
     return true;
   }
 
-  // frame de chat/history: acha a lista de mensagens (varios nomes possiveis) ou uma so
+  // frame de chat/history no formato real do jogo (ver comentario do ChatMsg):
+  //   chat    -> mensagem unica aninhada em m.msg
+  //   history -> um array POR CANAL (world/trade/help) com itens no mesmo shape
+  // Mantem os fallbacks tolerantes (top-level, arrays com outros nomes) por robustez.
   private captureChat(m: Record<string, unknown>) {
-    const arr = [m.messages, m.list, m.items, m.history, m.data].find(Array.isArray) as Record<string, unknown>[] | undefined;
     let got = false;
-    if (arr) {
-      for (const o of arr) { const p = o && this.parseChatMsg(o); if (p && this.pushChat(p)) got = true; }
-    } else {
+    // 1) chat ao vivo: {type:"chat", msg:{...}}
+    if (m.msg && typeof m.msg === "object" && !Array.isArray(m.msg)) {
+      const p = this.parseChatMsg(m.msg as Record<string, unknown>);
+      if (p && this.pushChat(p)) got = true;
+    }
+    // 2) history/qualquer frame com arrays: varre TODAS as chaves que sao array — a chave
+    //    (world/trade/help) vira o canal fallback dos itens
+    for (const [key, val] of Object.entries(m)) {
+      if (!Array.isArray(val)) continue;
+      for (const o of val as Record<string, unknown>[]) {
+        if (!o || typeof o !== "object") continue;
+        const p = this.parseChatMsg(o, key);
+        if (p && this.pushChat(p)) got = true;
+      }
+    }
+    // 3) fallback: mensagem no top-level do frame
+    if (!got) {
       const p = this.parseChatMsg(m);
       if (p && this.pushChat(p)) got = true;
     }
@@ -969,7 +998,7 @@ class GameSession {
 // SESSION_REV: bump SEMPRE que a classe ganhar/mudar metodo — no dev, o hot-reload
 // re-avalia o modulo mas a instancia antiga (prototype velho) fica presa no globalThis;
 // sem o rev, chamar um metodo novo dava "is not a function" ate reiniciar o server.
-const SESSION_REV = 4;
+const SESSION_REV = 5;
 const g = globalThis as unknown as { __piwSession?: GameSession; __piwSessionRev?: number };
 if (!g.__piwSession || g.__piwSessionRev !== SESSION_REV) {
   // silencia a instancia velha SEM persistir nada (stop() gravaria enabled=false no banco

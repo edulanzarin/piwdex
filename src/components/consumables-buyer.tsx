@@ -1,8 +1,9 @@
 "use client";
 
 // Auto-compra de consumiveis (seção de Configuracoes): o robo repoe sozinho as pokebolas
-// que a automacao usa quando ficam baixas — ele calcula a quantidade. Comeca DESLIGADO
-// (gasta dolares do jogo de verdade). O estado vive na sessao (/api/vip/autobuy).
+// que a automacao usa quando ficam baixas — ele calcula a quantidade. PERSISTENTE: fica
+// como o usuario deixar (robot_sessions.autobuy religa no boot; o GET re-arma se o
+// processo renasceu). Gasta dolares do jogo de verdade — por isso e opt-in.
 
 import { useCallback, useEffect, useState } from "react";
 import { ToggleButton } from "./toggle-button";

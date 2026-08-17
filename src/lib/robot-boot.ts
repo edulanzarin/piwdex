@@ -38,5 +38,12 @@ export async function resumeRobotSessions(): Promise<void> {
     : null;
 
   const persist = (tk: Parameters<typeof updateGameTokens>[1]) => updateGameTokens(first.userId, tk);
+
+  // so autobuy (sem conexao desejada): arma o timer REST e pronto — nao toma a sessao
+  if (!d.enabled) {
+    if (d.autobuy) gameSession.setAutoBuy(first.userId, link.tokens, true, persist);
+    return;
+  }
+
   await gameSession.resume(first.userId, link.tokens, shard, persist, d, fighter);
 }

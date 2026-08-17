@@ -73,10 +73,11 @@ export async function getRobotDesired(userId: string): Promise<RobotDesired | nu
   return row ? fromRow(row) : null;
 }
 
-/** Sessoes que o boot deve religar (enabled). O motor e single-conta por processo, mas a
- *  query devolve todas — quem religa decide (hoje: a mais recente). */
+/** Sessoes que o boot deve religar: enabled (conexao/hunt) OU autobuy (timer REST que
+ *  tambem sobrevive a restart). O motor e single-conta por processo, mas a query devolve
+ *  todas — quem religa decide (hoje: a mais recente). */
 export async function listEnabledSessions(): Promise<{ userId: string; desired: RobotDesired }[]> {
-  const rows = await query<Row>(`SELECT * FROM robot_sessions WHERE enabled ORDER BY updated_at DESC`);
+  const rows = await query<Row>(`SELECT * FROM robot_sessions WHERE enabled OR autobuy ORDER BY updated_at DESC`);
   return rows.map((r) => ({ userId: r.user_id, desired: fromRow(r) }));
 }
 

@@ -8,8 +8,35 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useVipLive, type LiveChat } from "./vip-live";
-import { Bubble, Check, ChevronRight, Clock, Signal } from "./icons";
+import { Bubble, Check, ChevronRight, Clock, Signal, Star } from "./icons";
 import { useT } from "./locale-provider";
+
+// links de pokemon no chat: [poke!<base64 de {n,lv,sh,q,iv,pw,...}>] viram um chip
+// legivel (nome + nivel + IV + Q) em vez do blob
+function renderBody(text: string): React.ReactNode {
+  const re = /\[poke!([A-Za-z0-9+/=]+)\]/g;
+  const parts: React.ReactNode[] = [];
+  let last = 0, k = 0, mt: RegExpExecArray | null;
+  while ((mt = re.exec(text))) {
+    if (mt.index > last) parts.push(text.slice(last, mt.index));
+    let chip: React.ReactNode = mt[0];
+    try {
+      const j = JSON.parse(atob(mt[1])) as { n?: string; lv?: number; iv?: number; q?: number; sh?: number };
+      if (j.n) {
+        chip = (
+          <span key={k++} className="mx-0.5 inline-flex items-center gap-1 rounded border border-[color:var(--cyan)]/40 bg-[color:var(--cyan)]/10 px-1.5 py-0.5 text-[0.6rem] text-cyan">
+            {j.sh ? <Star size={8} className="text-yellow" /> : null}
+            {j.n} <span className="text-text-dim">Lv{j.lv ?? "?"} · IV {j.iv ?? "?"} · Q{typeof j.q === "number" ? j.q.toFixed(2) : "?"}</span>
+          </span>
+        );
+      }
+    } catch { /* base64 invalido: mostra cru */ }
+    parts.push(chip);
+    last = mt.index + mt[0].length;
+  }
+  if (last < text.length) parts.push(text.slice(last));
+  return parts.length === 1 ? parts[0] : parts;
+}
 
 const CHANNELS = ["world", "trade", "help"] as const;
 type Channel = (typeof CHANNELS)[number];
@@ -119,8 +146,9 @@ export function ChatPanel() {
                     style={{ "--accent": "var(--cyan)" } as React.CSSProperties}>
                     <span className="mr-1.5 text-[0.55rem] tabular-nums text-text-dim">{hhmm(m.at)}</span>
                     <span className="mr-1 rounded px-1 text-[0.5rem] uppercase" style={{ color: CH_COLOR[(m.channel as Channel)] ?? "var(--text-dim)" }}>{m.channel}</span>
-                    <span className={`mr-1.5 font-semibold ${self ? "text-cyan" : "text-text"}`}>{m.from}:</span>
-                    <span className="break-words text-text-dim">{m.text}</span>
+                    <span className={`mr-1 font-semibold ${m.admin ? "text-red" : self ? "text-cyan" : m.vip ? "text-yellow" : "text-text"}`}>{m.from}</span>
+                    {m.level != null && <span className="mr-1.5 text-[0.52rem] tabular-nums text-text-dim">Lv{m.level}</span>}
+                    <span className="break-words text-text-dim">{renderBody(m.text)}</span>
                   </div>
                 );
               })
