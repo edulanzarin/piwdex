@@ -8,6 +8,7 @@ import { TypeFilter } from "./type-filter";
 import { SelectMenu } from "./select-menu";
 import { TypeIcon } from "./type-icon";
 import { Pagination } from "./pagination";
+import { Close } from "./icons";
 import { useT, useTypeLabel } from "./locale-provider";
 
 const PAGE_SIZE = 60;
@@ -39,7 +40,7 @@ export function DexBrowser({ creatures, acq }: { creatures: Creature[]; acq: Rec
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+      <div className="flex flex-wrap items-center gap-3">
         <input
           className="input sm:max-w-xs"
           placeholder={t("dex.search")}
@@ -62,8 +63,8 @@ export function DexBrowser({ creatures, acq }: { creatures: Creature[]; acq: Rec
 
       {type && (
         <div className="flex flex-wrap gap-2 text-xs">
-          <button className="chip" style={{ background: TYPE_COLOR[type], color: "#fff" }} onClick={() => setType("")}>
-            <TypeIcon type={type} size={11} /> {typeLabel(type)} ×
+          <button className="chip inline-flex items-center gap-1" style={{ background: TYPE_COLOR[type], color: "#fff" }} onClick={() => setType("")}>
+            <TypeIcon type={type} size={11} /> {typeLabel(type)} <Close size={9} />
           </button>
         </div>
       )}

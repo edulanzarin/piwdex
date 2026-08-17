@@ -39,7 +39,7 @@ export function ItemsBrowser({ items }: { items: Item[] }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-3 sm:flex-row">
+      <div className="flex flex-wrap items-center gap-3">
         <input
           className="input sm:max-w-xs"
           placeholder={t("items.search")}
@@ -63,7 +63,7 @@ export function ItemsBrowser({ items }: { items: Item[] }) {
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
           {paged.map((i) => (
             <Link key={i.id} href={`/items/${i.id}`} className="card card-link flex items-center gap-3 p-3">
-              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded bg-[rgba(8,14,28,0.6)]">
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded bg-[var(--well-bg)]">
                 <Sprite src={itemIconUrl(i)} alt={i.name} size={30} />
               </span>
               <div className="min-w-0 flex-1">

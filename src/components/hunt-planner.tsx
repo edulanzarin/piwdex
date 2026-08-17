@@ -11,7 +11,10 @@ import { PokemonCombobox, type ComboCreature } from "./pokemon-combobox";
 import { SelectMenu } from "./select-menu";
 import { StatBar } from "./stat-bar";
 import { Modal } from "./modal";
-import { Coin, Gold } from "./icons";
+import { StatTile } from "./stat-tile";
+import { Pagination } from "./pagination";
+import { CloseButton } from "./icon-button";
+import { Coin, Gold, Xp, ChevronRight } from "./icons";
 import { useT } from "./locale-provider";
 
 // Uma linha = um pokemon cacavel, com a economia por kill ja calculada no server.
@@ -48,7 +51,7 @@ function HuntRowModal({ row, onClose }: { row: HuntRow; onClose: () => void }) {
   return (
     <Modal onClose={onClose} className="w-full max-w-md gap-5 p-5">
       <div className="flex items-center gap-4">
-        <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded bg-[rgba(8,14,28,0.6)]">
+        <div className="well flex h-20 w-20 shrink-0 items-center justify-center">
           <Sprite src={spriteUrl(row.pokeId)} alt={row.name} size={72} />
         </div>
         <div className="min-w-0 flex-1">
@@ -59,35 +62,38 @@ function HuntRowModal({ row, onClose }: { row: HuntRow; onClose: () => void }) {
             <span className="chip" style={{ background: "var(--surface-2)", color: "var(--text)" }}>lvl {row.huntLevel}</span>
           </div>
         </div>
-        <button type="button" onClick={onClose} aria-label="fechar" className="shrink-0 self-start rounded p-1 text-text-dim hover:bg-surface-2 hover:text-text">✕</button>
+        <CloseButton onClick={onClose} className="shrink-0 self-start" />
       </div>
 
       {/* Economia por kill */}
       <div className="grid grid-cols-3 gap-2">
-        <div className="rounded border border-border bg-[rgba(8,14,28,0.5)] px-3 py-2">
-          <div className="text-[0.55rem] uppercase tracking-wide text-text-dim">{t("hunt.col.xp")}</div>
-          <div className="mt-0.5 text-sm font-bold tabular-nums text-text">{row.xp.toLocaleString("pt-BR")}</div>
-        </div>
-        <div className="rounded border border-border bg-[rgba(8,14,28,0.5)] px-3 py-2">
-          <div className="text-[0.55rem] uppercase tracking-wide text-text-dim">{t("hunt.col.gold")}</div>
-          <div className="mt-0.5 flex items-center gap-1 text-sm font-bold tabular-nums text-yellow"><Gold value={row.gold} /></div>
-        </div>
-        <div className="rounded border border-border bg-[rgba(8,14,28,0.5)] px-3 py-2">
-          <div className="text-[0.55rem] uppercase tracking-wide text-text-dim">{t("hunt.col.sell")}</div>
-          <div className="mt-0.5 flex items-center gap-1 text-sm font-bold tabular-nums text-text-dim">
-            {row.sell > 0 ? <><Coin />{row.sell.toLocaleString("pt-BR")}</> : "—"}
-          </div>
-        </div>
+        <StatTile
+          label={t("hunt.col.xp")}
+          value={row.xp.toLocaleString("pt-BR")}
+          icon={<Xp size={11} className="text-yellow" />}
+          accent="var(--yellow)"
+        />
+        <StatTile
+          label={t("hunt.col.gold")}
+          value={row.gold.toLocaleString("pt-BR")}
+          icon={<Coin size={11} />}
+          accent="var(--yellow)"
+        />
+        <StatTile
+          label={t("hunt.col.sell")}
+          value={row.sell > 0 ? row.sell.toLocaleString("pt-BR") : "—"}
+          icon={<Coin size={11} />}
+        />
       </div>
 
       {/* Stats base */}
       <div className="flex flex-col gap-2.5">
-        <div className="pixel text-[0.62rem] text-cyan">{t("cr.statsBase")}</div>
+        <div className="section-title text-cyan">{t("cr.statsBase")}</div>
         {STAT_LABELS.map((lb, i) => (
           <StatBar key={lb} iconIndex={i} label={lb} value={row.bases[i]} best={row.bases[i] === best} />
         ))}
         <div className="mt-1 flex items-center justify-between border-t border-border pt-2 text-sm">
-          <span className="text-[0.62rem] uppercase tracking-wide text-text-dim">{t("cr.total")}</span>
+          <span className="field-label">{t("cr.total")}</span>
           <strong className="tabular-nums text-cyan">{total}</strong>
         </div>
       </div>
@@ -95,12 +101,12 @@ function HuntRowModal({ row, onClose }: { row: HuntRow; onClose: () => void }) {
       {/* Onde cacar + melhor drop */}
       <div className="flex flex-col gap-2 text-[0.72rem]">
         <div className="flex items-start gap-2">
-          <span className="w-14 shrink-0 pt-0.5 text-[0.55rem] uppercase tracking-wide text-text-dim">{t("hunt.col.where")}</span>
+          <span className="w-14 shrink-0 pt-0.5 field-label">{t("hunt.col.where")}</span>
           <span className="text-text">{row.areas.map(area).join(", ")} · {t("hunt.spots", { n: row.spotCount })}</span>
         </div>
         {row.topDrop && (
           <div className="flex items-center gap-2">
-            <span className="w-14 shrink-0 text-[0.55rem] uppercase tracking-wide text-text-dim">{t("hunt.col.drop")}</span>
+            <span className="w-14 shrink-0 field-label">{t("hunt.col.drop")}</span>
             <span className="inline-flex items-center gap-2 text-text">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={row.topDrop.icon} alt="" width={18} height={18} className="[image-rendering:pixelated]" />
@@ -110,7 +116,7 @@ function HuntRowModal({ row, onClose }: { row: HuntRow; onClose: () => void }) {
         )}
       </div>
 
-      <a href={`/dex/${row.pokeId}`} className="btn btn-cyan self-start">{t("hunt.viewDex")} ›</a>
+      <a href={`/dex/${row.pokeId}`} className="btn btn-cyan self-start">{t("hunt.viewDex")} <ChevronRight size={10} /></a>
     </Modal>
   );
 }
@@ -164,15 +170,15 @@ export function EconomyTable({ rows, areas }: { rows: HuntRow[]; areas: string[]
       <div className="flex flex-col gap-3">
         <div className="grid grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:items-end">
           <label className="col-span-2 flex flex-col gap-1 sm:w-64">
-            <span className="text-[0.55rem] uppercase tracking-wide text-text-dim">{t("hunt.col.pokemon")}</span>
+            <span className="field-label">{t("hunt.col.pokemon")}</span>
             <PokemonCombobox creatures={comboList} value={species} onSelect={setSpecies} placeholder={t("hunt.search")} />
           </label>
           <div className="flex flex-col gap-1 sm:w-52">
-            <span className="text-[0.55rem] uppercase tracking-wide text-text-dim">{t("hunt.type")}</span>
+            <span className="field-label">{t("hunt.type")}</span>
             <TypeFilter value={type} onChange={setType} />
           </div>
           <div className="flex flex-col gap-1 sm:w-48">
-            <span className="text-[0.55rem] uppercase tracking-wide text-text-dim">{t("hunt.allAreas")}</span>
+            <span className="field-label">{t("hunt.allAreas")}</span>
             <SelectMenu
               value={areaSel}
               onChange={setAreaSel}
@@ -180,7 +186,7 @@ export function EconomyTable({ rows, areas }: { rows: HuntRow[]; areas: string[]
             />
           </div>
           <label className="flex flex-col gap-1 sm:w-28">
-            <span className="text-[0.55rem] uppercase tracking-wide text-text-dim">{t("hunt.maxLvl")}</span>
+            <span className="field-label">{t("hunt.maxLvl")}</span>
             <input
               className="input w-full"
               inputMode="numeric"
@@ -190,7 +196,7 @@ export function EconomyTable({ rows, areas }: { rows: HuntRow[]; areas: string[]
             />
           </label>
           <div className="flex flex-col gap-1 sm:w-52">
-            <span className="text-[0.55rem] uppercase tracking-wide text-text-dim">{t("hunt.sortBy")}</span>
+            <span className="field-label">{t("hunt.sortBy")}</span>
             <SelectMenu
               value={sort}
               onChange={(v) => setSort(v as Sort)}
@@ -234,7 +240,7 @@ export function EconomyTable({ rows, areas }: { rows: HuntRow[]; areas: string[]
                 >
                   <td className="px-4 py-2.5">
                     <span className="flex items-center gap-3">
-                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded bg-[rgba(8,14,28,0.5)]">
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded bg-[var(--well-bg)]">
                         <Sprite src={spriteUrl(r.pokeId)} alt={r.name} size={34} />
                       </span>
                       <span className="flex flex-col gap-1">
@@ -284,29 +290,7 @@ export function EconomyTable({ rows, areas }: { rows: HuntRow[]; areas: string[]
             </tbody>
           </table>
         </div>
-        {pageCount > 1 && (
-          <div className="flex items-center justify-center gap-4">
-            <button
-              type="button"
-              className="btn btn-ghost !py-1.5 disabled:opacity-40"
-              disabled={safePage <= 0}
-              onClick={() => setPage((p) => Math.max(0, p - 1))}
-            >
-              ‹
-            </button>
-            <span className="text-[0.7rem] uppercase tracking-wide text-text-dim">
-              {t("hunt.page", { a: safePage + 1, b: pageCount })}
-            </span>
-            <button
-              type="button"
-              className="btn btn-ghost !py-1.5 disabled:opacity-40"
-              disabled={safePage >= pageCount - 1}
-              onClick={() => setPage((p) => Math.min(pageCount - 1, p + 1))}
-            >
-              ›
-            </button>
-          </div>
-        )}
+        <Pagination page={safePage} pageCount={pageCount} onPage={setPage} />
       </>
       )}
 

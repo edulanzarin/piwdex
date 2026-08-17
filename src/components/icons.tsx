@@ -172,6 +172,17 @@ export function ArrowDown({ size = 12, className = "" }: { size?: number; classN
   return <Glyph size={size} dx={2} dy={2} className={className} rows={["...##...", "...##...", "...##...", "########", ".######.", "..####..", "...##..."]} />;
 }
 
+/** Treinador (conta): busto pixel. Herda currentColor. Mesma familia do Star/Bell —
+ *  fecha o set pra a aba de conta nao precisar de icone de linha. */
+export function Trainer({ size = 14, className = "" }: { size?: number; className?: string }) {
+  return <Glyph size={size} dx={2} dy={1} className={className} rows={["...##...", "..####..", "..####..", "...##...", ".######.", "########", "########", "########"]} />;
+}
+
+/** Robo (automacao): cabeca de robo pixel com antena e olhos (vazados). currentColor. */
+export function Robot({ size = 14, className = "" }: { size?: number; className?: string }) {
+  return <Glyph size={size} dx={2} dy={1} className={className} rows={["...##...", "...##...", ".######.", "#.####.#", "#.#..#.#", "#.####.#", ".######.", "..#..#.."]} />;
+}
+
 /** Preco em dolares do jogo: moeda + valor. */
 export function Gold({ value, className = "" }: { value: number; className?: string }) {
   return (

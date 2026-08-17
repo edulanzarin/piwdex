@@ -8,7 +8,7 @@ import { PokemonCombobox, type ComboCreature } from "./pokemon-combobox";
 import { TypeBadges } from "./badges";
 import { TypeIcon } from "./type-icon";
 import { ToggleButton } from "./toggle-button";
-import { Coin, Diamond } from "./icons";
+import { Coin, Diamond, Xp, ChevronRight } from "./icons";
 import { useT, useTypeLabel } from "./locale-provider";
 import { TYPE_COLOR } from "@/lib/typing";
 import { STAT_LABELS, estimateIvs, powerOf } from "@/lib/stats";
@@ -30,24 +30,12 @@ const SIM_IVS = Array<number>(6).fill(SIM_IV);
 function StatIn({ label, value, onChange, iconIndex }: { label: string; value: string; onChange: (v: string) => void; iconIndex: number }) {
   return (
     <label className="flex flex-col gap-1">
-      <span className="inline-flex items-center gap-1 text-[0.52rem] uppercase tracking-wide text-text-dim">
+      <span className="field-label inline-flex items-center gap-1">
         <StatIcon index={iconIndex} size={10} />{label}
       </span>
-      <input className="input !py-1.5 text-sm" inputMode="decimal" value={value} onChange={(e) => onChange(e.target.value)} />
+      <input className="input" inputMode="decimal" value={value} onChange={(e) => onChange(e.target.value)} />
     </label>
   );
-}
-
-// Seta pra cima (upar/XP), herda a cor.
-const XP_ROWS = [
-  ".....##.....", "....####....", "...######...", "..########..",
-  ".##########.", "....####....", "....####....", "....####....",
-  "....####....", "............", "............", "............",
-];
-function XpIcon({ size = 12 }: { size?: number }) {
-  const rects: React.ReactNode[] = [];
-  XP_ROWS.forEach((r, y) => { for (let x = 0; x < r.length; x++) if (r[x] === "#") rects.push(<rect key={`${x}-${y}`} x={x} y={y} width={1} height={1} fill="currentColor" />); });
-  return <svg width={size} height={size} viewBox="0 0 12 12" shapeRendering="crispEdges" style={{ imageRendering: "pixelated" }} aria-hidden="true">{rects}</svg>;
 }
 
 export function RouteGenerator({ species, enemies }: { species: Species[]; enemies: EnemyCombat[] }) {
@@ -112,22 +100,22 @@ export function RouteGenerator({ species, enemies }: { species: Species[]; enemi
       <div className="card p-5">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <label className="flex flex-col gap-1 sm:col-span-2 lg:col-span-1">
-            <span className="text-[0.6rem] uppercase tracking-wide text-text-dim">{t("hunt.route.pokemon")}</span>
+            <span className="field-label">{t("hunt.route.pokemon")}</span>
             <PokemonCombobox creatures={combo} value={pick} onSelect={setPick} />
           </label>
           <label className="flex flex-col gap-1">
-            <span className="text-[0.6rem] uppercase tracking-wide text-text-dim">{t("hunt.route.level")}</span>
+            <span className="field-label">{t("hunt.route.level")}</span>
             <input className="input" inputMode="numeric" placeholder="ex: 54" value={level} onChange={(e) => setLevel(e.target.value)} />
           </label>
           <label className="flex flex-col gap-1">
-            <span className="text-[0.6rem] uppercase tracking-wide text-text-dim">{t("hunt.route.quality")}</span>
+            <span className="field-label">{t("hunt.route.quality")}</span>
             <input className="input" inputMode="decimal" placeholder="ex: 1,8" value={quality} onChange={(e) => setQuality(e.target.value)} />
           </label>
         </div>
 
         <div className="mt-5 border-t border-border pt-4">
           <div className="mb-2 flex items-center justify-between gap-2">
-            <span className="text-[0.6rem] uppercase tracking-wide text-text-dim">{t("hunt.route.statsOpt")}</span>
+            <span className="field-label">{t("hunt.route.statsOpt")}</span>
             {picked && <button type="button" className="btn btn-ghost !py-1 !text-[0.5rem]" onClick={fillBase}>{t("hunt.route.useBase")}</button>}
           </div>
           <div className="grid grid-cols-3 gap-2.5">
@@ -151,15 +139,15 @@ export function RouteGenerator({ species, enemies }: { species: Species[]; enemi
         <div className="mt-4 flex flex-col gap-4 border-t border-border pt-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="flex flex-wrap items-end gap-x-5 gap-y-4">
             <label className="flex flex-col gap-1">
-              <span className="text-[0.6rem] uppercase tracking-wide text-cyan">{t("hunt.route.target")}</span>
+              <span className="field-label text-cyan">{t("hunt.route.target")}</span>
               <input className="input w-28" inputMode="numeric" placeholder="ex: 200" value={target} onChange={(e) => setTarget(e.target.value)} />
             </label>
 
             <div className="flex flex-col gap-1">
-              <span className="text-[0.6rem] uppercase tracking-wide text-text-dim">{t("hunt.route.priority")}</span>
+              <span className="field-label">{t("hunt.route.priority")}</span>
               <div className="flex gap-1.5">
                 <ToggleButton active={mode === "xp"} onClick={() => setMode("xp")} accent="green">
-                  <XpIcon size={12} /> {t("hunt.route.priorityXp")}
+                  <Xp size={12} /> {t("hunt.route.priorityXp")}
                 </ToggleButton>
                 <ToggleButton active={mode === "gold"} onClick={() => setMode("gold")} accent="yellow">
                   <Coin /> {t("hunt.route.priorityGold")}
@@ -168,7 +156,7 @@ export function RouteGenerator({ species, enemies }: { species: Species[]; enemi
             </div>
 
             <div className="flex flex-col gap-1">
-              <span className="text-[0.6rem] uppercase tracking-wide text-text-dim">VIP</span>
+              <span className="field-label">VIP</span>
               <ToggleButton active={vip} onClick={() => setVip((v) => !v)} accent="cyan">
                 <Diamond size={14} /> {t("hunt.vip")}
               </ToggleButton>
@@ -179,10 +167,9 @@ export function RouteGenerator({ species, enemies }: { species: Species[]; enemi
             type="button"
             onClick={calc}
             disabled={!canCalc || computing}
-            className="btn self-start disabled:opacity-40 lg:self-auto"
-            style={{ background: "var(--cyan)", color: "#06131a" }}
+            className="btn btn-yellow self-start disabled:opacity-40 lg:self-auto"
           >
-            {computing ? `${t("hunt.route.calcing")}...` : `${t("hunt.route.calc")} ›`}
+            {computing ? `${t("hunt.route.calcing")}...` : <>{t("hunt.route.calc")} <ChevronRight size={10} /></>}
           </button>
         </div>
       </div>
@@ -204,7 +191,7 @@ export function RouteGenerator({ species, enemies }: { species: Species[]; enemi
 
                 <div className="flex flex-1 items-center gap-3 border-t border-border/50 pt-3 lg:border-l lg:border-t-0 lg:pl-4 lg:pt-0">
                   <span className="text-[0.58rem] uppercase tracking-wide text-text-dim">{t("hunt.route.hunt")}</span>
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded bg-[rgba(8,14,28,0.5)]">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded bg-[var(--well-bg)]">
                     <Sprite src={spriteUrl(e.pokeId)} alt={e.name} size={34} />
                   </span>
                   <span className="flex flex-col gap-1">

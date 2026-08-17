@@ -10,48 +10,11 @@ import { TypeBadges } from "./badges";
 import { StatIcon } from "./stat-icons";
 import { StatCompareRow } from "./stat-bar";
 import { LoadingBall } from "./loaders";
-import { Coin } from "./icons";
+import { Coin, Xp, ChevronRight } from "./icons";
+import { Tabs } from "./tabs";
+import { StatTile } from "./stat-tile";
 import { PokemonCombobox } from "./pokemon-combobox";
 import { useT } from "./locale-provider";
-
-function MiniBox({ label, value }: { label: string; value: React.ReactNode }) {
-  return (
-    <div className="rounded border border-border bg-[rgba(8,14,28,0.5)] px-3 py-2">
-      <div className="text-[0.55rem] uppercase tracking-wide text-text-dim">{label}</div>
-      <div className="mt-0.5 flex items-center gap-1 text-sm font-bold tabular-nums">{value}</div>
-    </div>
-  );
-}
-
-// Icones pixel das abas (monocromaticos, herdam a cor do texto).
-const CHART_ROWS = [
-  "............", ".........##.", ".........##.", ".....##..##.",
-  ".....##..##.", ".##..##..##.", ".##..##..##.", ".##..##..##.",
-  ".##..##..##.", "############", "............", "............",
-];
-const LEVELUP_ROWS = [
-  "............", ".....##.....", "....####....", "...######...",
-  "..########..", ".##########.", ".....##.....", ".....##.....",
-  ".....##.....", ".....##.....", "............", "............",
-];
-function TabIcon({ rows, size = 13 }: { rows: string[]; size?: number }) {
-  const rects: React.ReactNode[] = [];
-  rows.forEach((r, y) => { for (let x = 0; x < r.length; x++) if (r[x] === "#") rects.push(<rect key={`${x}-${y}`} x={x} y={y} width={1} height={1} />); });
-  return <svg width={size} height={size} viewBox="0 0 12 12" fill="currentColor" shapeRendering="crispEdges" style={{ imageRendering: "pixelated" }} aria-hidden="true">{rects}</svg>;
-}
-function TabBtn({ active, onClick, rows, label }: { active: boolean; onClick: () => void; rows: string[]; label: string }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`inline-flex items-center gap-2 rounded border px-4 py-2 pixel text-[0.62rem] transition ${
-        active ? "border-[color:var(--cyan)] bg-surface-2 text-cyan" : "border-border text-text-dim hover:text-text"
-      }`}
-    >
-      <TabIcon rows={rows} /> {label}
-    </button>
-  );
-}
 
 const EEVEE_ID = 133;
 
@@ -104,7 +67,7 @@ function Field({
 }) {
   return (
     <label className="flex flex-col gap-1">
-      <span className="inline-flex items-center gap-1 text-[0.6rem] uppercase tracking-wide text-text-dim">
+      <span className="field-label inline-flex items-center gap-1">
         {iconIndex != null && <StatIcon index={iconIndex} size={12} />}{label}
       </span>
       <input className="input" inputMode="decimal" value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} />
@@ -179,14 +142,14 @@ export function Calculator({ creatures }: { creatures: CalcCreature[] }) {
       <div className="card p-5">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
           <div className="flex shrink-0 flex-col items-center gap-2">
-            <div className="flex h-24 w-24 items-center justify-center rounded bg-[rgba(8,14,28,0.6)]">
+            <div className="flex h-24 w-24 items-center justify-center rounded bg-[var(--well-bg)]">
               <Sprite src={creature ? spriteUrl(creature.pokeId) : null} alt={creature?.name ?? ""} size={80} />
             </div>
             {creature && <TypeBadges t1={creature.type1} t2={creature.type2} />}
           </div>
           <div className="grid flex-1 gap-3 sm:grid-cols-2">
             <label className="flex flex-col gap-1 sm:col-span-2">
-              <span className="text-[0.6rem] uppercase tracking-wide text-text-dim">{t("calc.pokemon")}</span>
+              <span className="field-label">{t("calc.pokemon")}</span>
               <PokemonCombobox creatures={creatures} value={creature} onSelect={setCreature} />
             </label>
             <Field label={t("calc.level")} value={level} onChange={setLevel} placeholder="ex: 58" />
@@ -204,8 +167,8 @@ export function Calculator({ creatures }: { creatures: CalcCreature[] }) {
       {isEevee ? (
         <div className="card flex flex-col items-center gap-3 p-8 text-center">
           <p className="max-w-sm text-sm text-text-dim">{t("calc.eeveeHint")}</p>
-          <Link href="/eevee" className="btn" style={{ background: "var(--cyan)", color: "#06131a" }}>
-            {t("eevee.open")} ›
+          <Link href="/eevee" className="btn btn-cyan">
+            {t("eevee.open")} <ChevronRight size={10} />
           </Link>
         </div>
       ) : (
@@ -213,7 +176,7 @@ export function Calculator({ creatures }: { creatures: CalcCreature[] }) {
 
       {/* Stats atuais (acima das abas — o Calcular gera analise E projecao) */}
       <div className="card p-5">
-        <h2 className="pixel mb-3 text-[0.72rem] text-cyan">{t("calc.currentStats")}</h2>
+        <h2 className="section-title mb-3 text-cyan">{t("calc.currentStats")}</h2>
         <p className="mb-4 text-sm text-text-dim">{t("calc.currentHint")}</p>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {STAT_LABELS.map((label, i) => (
@@ -226,36 +189,40 @@ export function Calculator({ creatures }: { creatures: CalcCreature[] }) {
             type="button"
             onClick={calc}
             disabled={!canCalc || computing}
-            className="btn shrink-0 self-start disabled:opacity-40 sm:self-auto"
-            style={{ background: "var(--cyan)", color: "#06131a" }}
+            className="btn btn-cyan shrink-0 self-start disabled:opacity-40 sm:self-auto"
           >
-            {computing ? `${t("calc.calcing")}...` : `${t("calc.calcBtn")} ›`}
+            {computing ? `${t("calc.calcing")}...` : <>{t("calc.calcBtn")} <ChevronRight size={10} /></>}
           </button>
         </div>
       </div>
 
       {/* Abas */}
-      <div className="flex flex-wrap gap-2">
-        <TabBtn active={tab === "analise"} onClick={() => setTab("analise")} rows={CHART_ROWS} label={t("calc.tab.analise")} />
-        <TabBtn active={tab === "projetar"} onClick={() => setTab("projetar")} rows={LEVELUP_ROWS} label={t("calc.tab.projetar")} />
-      </div>
+      <Tabs
+        accent="var(--purple)"
+        active={tab}
+        onChange={(k) => setTab(k as "analise" | "projetar")}
+        tabs={[
+          { key: "analise", label: t("calc.tab.analise"), icon: <StatIcon index={0} size={13} /> },
+          { key: "projetar", label: t("calc.tab.projetar"), icon: <Xp size={13} /> },
+        ]}
+      />
 
       {tab === "analise" ? (
       <>
       {/* Perfil / analise a partir do base */}
       {creature && profile && (
         <div className="card p-5">
-          <h2 className="pixel mb-3 text-[0.72rem] text-yellow">{t("calc.profile")}</h2>
+          <h2 className="section-title mb-3 text-yellow">{t("calc.profile")}</h2>
           <div className="flex flex-wrap items-center gap-2">
             {profile.roles.map((r) => (
               <span key={r} className="chip" style={{ background: "var(--surface-2)", color: "var(--text)" }}>{t(r)}</span>
             ))}
           </div>
           <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <MiniBox label={t("calc.strongStat")} value={<span className="inline-flex items-center gap-1 text-green"><StatIcon index={profile.maxI} size={12} />{STAT_LABELS[profile.maxI]}</span>} />
-            <MiniBox label={t("calc.weakStat")} value={<span className="inline-flex items-center gap-1 text-red"><StatIcon index={profile.minI} size={12} />{STAT_LABELS[profile.minI]}</span>} />
-            <MiniBox label={t("calc.xpKill")} value={<span className="text-cyan">{creature.xp.toLocaleString("pt-BR")}</span>} />
-            <MiniBox label={t("calc.goldKill")} value={<span className="inline-flex items-center gap-1 text-yellow"><Coin />{creature.goldEV.toLocaleString("pt-BR")}</span>} />
+            <StatTile label={t("calc.strongStat")} icon={<StatIcon index={profile.maxI} size={12} />} accent="var(--green)" value={STAT_LABELS[profile.maxI]} />
+            <StatTile label={t("calc.weakStat")} icon={<StatIcon index={profile.minI} size={12} />} accent="var(--red)" value={STAT_LABELS[profile.minI]} />
+            <StatTile label={t("calc.xpKill")} icon={<Xp size={12} className="text-cyan" />} accent="var(--cyan)" value={creature.xp.toLocaleString("pt-BR")} />
+            <StatTile label={t("calc.goldKill")} icon={<Coin />} accent="var(--yellow)" value={creature.goldEV.toLocaleString("pt-BR")} />
           </div>
           <p className="mt-3 text-[0.62rem] text-text-dim">{t("calc.bst")} <span className="pixel ml-1 text-[0.7rem] text-cyan">{profile.bst}</span></p>
         </div>
@@ -263,7 +230,7 @@ export function Calculator({ creatures }: { creatures: CalcCreature[] }) {
 
       {/* Resultado: IVs estimados */}
       <div className="card p-5">
-        <h2 className="pixel text-[0.72rem] text-green">{t("calc.ivEstimated")}</h2>
+        <h2 className="section-title text-green">{t("calc.ivEstimated")}</h2>
         {computing ? (
           <LoadingBall label={t("calc.calcing")} />
         ) : !res || !iv ? (
@@ -272,8 +239,8 @@ export function Calculator({ creatures }: { creatures: CalcCreature[] }) {
           <div className="mt-4 flex flex-col gap-4">
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               {STAT_LABELS.map((label, i) => (
-                <div key={label} className="rounded border border-border bg-[rgba(8,14,28,0.5)] px-3 py-2">
-                  <div className="inline-flex items-center gap-1 text-[0.58rem] uppercase tracking-wide text-text-dim"><StatIcon index={i} size={11} />{label}</div>
+                <div key={label} className="well">
+                  <div className="field-label inline-flex items-center gap-1"><StatIcon index={i} size={11} />{label}</div>
                   <div className={`tabular-nums text-lg font-bold ${iv.ivs[i] > IV_MAX ? "text-red" : "text-text"}`}>{iv.ivs[i].toFixed(1)}</div>
                 </div>
               ))}
@@ -281,15 +248,15 @@ export function Calculator({ creatures }: { creatures: CalcCreature[] }) {
             <div className="flex flex-col gap-3 border-t border-border pt-3">
               <div className="flex flex-wrap gap-6">
                 <div>
-                  <div className="text-[0.6rem] uppercase tracking-wide text-text-dim">{t("calc.ivTotal")}</div>
+                  <div className="field-label">{t("calc.ivTotal")}</div>
                   <div className="pixel text-base text-green">{iv.total.toFixed(0)}<span className="text-text-dim">/{IV_MAX_TOTAL}</span></div>
                 </div>
                 <div>
-                  <div className="text-[0.6rem] uppercase tracking-wide text-text-dim">{t("calc.ivUsage")}</div>
+                  <div className="field-label">{t("calc.ivUsage")}</div>
                   <div className="pixel text-base text-cyan">{Math.round((iv.total / IV_MAX_TOTAL) * 100)}%</div>
                 </div>
                 <div>
-                  <div className="text-[0.6rem] uppercase tracking-wide text-text-dim">{t("calc.power")}</div>
+                  <div className="field-label">{t("calc.power")}</div>
                   <div className="pixel text-base text-yellow">{currentPower?.toLocaleString("pt-BR")}</div>
                 </div>
               </div>
@@ -309,11 +276,11 @@ export function Calculator({ creatures }: { creatures: CalcCreature[] }) {
       {/* Seu vs perfeito */}
       {res && iv && perfect && creature && (
         <div className="card p-5">
-          <h2 className="pixel mb-1 text-[0.72rem] text-yellow">{t("calc.compare")}</h2>
+          <h2 className="section-title mb-1 text-yellow">{t("calc.compare")}</h2>
           <p className="mb-4 text-[0.62rem] leading-relaxed text-text-dim">{t("calc.compareHint")}</p>
           <div className="grid gap-4 sm:grid-cols-2">
             {/* Seu */}
-            <div className="rounded-lg border border-[color:var(--cyan)] p-4">
+            <div className="card p-4" style={{ borderColor: "var(--cyan)" }}>
               <div className="mb-3 flex items-center justify-between">
                 <span className="pixel text-[0.62rem] text-cyan">{t("calc.compareYou", { name: creature.name })}</span>
                 <span className="text-[0.58rem] tabular-nums text-text-dim">{iv.total.toFixed(0)}/{IV_MAX_TOTAL} · {Math.round((iv.total / IV_MAX_TOTAL) * 100)}%</span>
@@ -323,10 +290,10 @@ export function Calculator({ creatures }: { creatures: CalcCreature[] }) {
                   <StatCompareRow key={lb} label={lb} iconIndex={i} value={statVals[i]} max={perfect.stats[i]} iv={res.ivs[i]} ivClass={ivColor(res.ivs[i])} />
                 ))}
               </div>
-              <div className="mt-3 border-t border-border pt-2 text-[0.6rem] uppercase tracking-wide text-text-dim">{t("calc.power")} <span className="pixel ml-1 text-[0.7rem] text-yellow">{currentPower?.toLocaleString("pt-BR")}</span></div>
+              <div className="mt-3 border-t border-border pt-2 field-label">{t("calc.power")} <span className="pixel ml-1 text-[0.7rem] text-yellow">{currentPower?.toLocaleString("pt-BR")}</span></div>
             </div>
             {/* Perfeito */}
-            <div className="rounded-lg border border-[color:var(--green)] p-4">
+            <div className="card p-4" style={{ borderColor: "var(--green)" }}>
               <div className="mb-3 flex items-center justify-between">
                 <span className="pixel text-[0.62rem] text-green">{t("calc.comparePerfect")}</span>
                 <span className="text-[0.58rem] tabular-nums text-text-dim">{IV_MAX_TOTAL}/{IV_MAX_TOTAL} · 100%</span>
@@ -336,7 +303,7 @@ export function Calculator({ creatures }: { creatures: CalcCreature[] }) {
                   <StatCompareRow key={lb} label={lb} iconIndex={i} value={perfect.stats[i]} max={perfect.stats[i]} iv={IV_MAX} ivClass="text-green" />
                 ))}
               </div>
-              <div className="mt-3 border-t border-border pt-2 text-[0.6rem] uppercase tracking-wide text-text-dim">{t("calc.power")} <span className="pixel ml-1 text-[0.7rem] text-yellow">{perfect.power.toLocaleString("pt-BR")}</span></div>
+              <div className="mt-3 border-t border-border pt-2 field-label">{t("calc.power")} <span className="pixel ml-1 text-[0.7rem] text-yellow">{perfect.power.toLocaleString("pt-BR")}</span></div>
             </div>
           </div>
         </div>
@@ -346,7 +313,7 @@ export function Calculator({ creatures }: { creatures: CalcCreature[] }) {
       ) : (
       /* Aba: Projetar nivel */
       <div className="card p-5">
-        <h2 className="pixel mb-2 inline-flex items-center gap-2 text-[0.72rem] text-cyan"><TabIcon rows={LEVELUP_ROWS} size={14} />{t("calc.project")}</h2>
+        <h2 className="section-title mb-2 inline-flex items-center gap-2 text-cyan"><Xp size={14} />{t("calc.project")}</h2>
         <p className="mb-4 mt-1 text-sm text-text-dim">{t("calc.projectHint")}</p>
         <div className="max-w-[10rem]">
           <Field label={t("calc.targetLevel")} value={target} onChange={setTarget} placeholder="ex: 100" />
@@ -358,7 +325,7 @@ export function Calculator({ creatures }: { creatures: CalcCreature[] }) {
             <p className="text-[0.62rem] leading-relaxed text-text-dim">{t("calc.projCompareHint", { n: tgt })}</p>
             <div className="grid gap-4 sm:grid-cols-2">
               {/* Seu, projetado no nivel alvo */}
-              <div className="rounded-lg border border-[color:var(--cyan)] p-4">
+              <div className="card p-4" style={{ borderColor: "var(--cyan)" }}>
                 <div className="mb-3 flex items-center justify-between">
                   <span className="pixel text-[0.62rem] text-cyan">{t("calc.compareYou", { name: creature.name })}</span>
                   <span className="text-[0.58rem] tabular-nums text-text-dim">{iv.total.toFixed(0)}/{IV_MAX_TOTAL} · {Math.round((iv.total / IV_MAX_TOTAL) * 100)}%</span>
@@ -368,10 +335,10 @@ export function Calculator({ creatures }: { creatures: CalcCreature[] }) {
                     <StatCompareRow key={lb} label={lb} iconIndex={i} value={projection.stats[i]} max={perfectProjection.stats[i]} iv={res.ivs[i]} ivClass={ivColor(res.ivs[i])} />
                   ))}
                 </div>
-                <div className="mt-3 border-t border-border pt-2 text-[0.6rem] uppercase tracking-wide text-text-dim">{t("calc.powerAt", { n: tgt })} <span className="pixel ml-1 text-[0.7rem] text-yellow">{projection.power.toLocaleString("pt-BR")}</span></div>
+                <div className="mt-3 border-t border-border pt-2 field-label">{t("calc.powerAt", { n: tgt })} <span className="pixel ml-1 text-[0.7rem] text-yellow">{projection.power.toLocaleString("pt-BR")}</span></div>
               </div>
               {/* Perfeito, projetado no nivel alvo */}
-              <div className="rounded-lg border border-[color:var(--green)] p-4">
+              <div className="card p-4" style={{ borderColor: "var(--green)" }}>
                 <div className="mb-3 flex items-center justify-between">
                   <span className="pixel text-[0.62rem] text-green">{t("calc.comparePerfect")}</span>
                   <span className="text-[0.58rem] tabular-nums text-text-dim">{IV_MAX_TOTAL}/{IV_MAX_TOTAL} · 100%</span>
@@ -381,7 +348,7 @@ export function Calculator({ creatures }: { creatures: CalcCreature[] }) {
                     <StatCompareRow key={lb} label={lb} iconIndex={i} value={perfectProjection.stats[i]} max={perfectProjection.stats[i]} iv={IV_MAX} ivClass="text-green" />
                   ))}
                 </div>
-                <div className="mt-3 border-t border-border pt-2 text-[0.6rem] uppercase tracking-wide text-text-dim">{t("calc.powerAt", { n: tgt })} <span className="pixel ml-1 text-[0.7rem] text-yellow">{perfectProjection.power.toLocaleString("pt-BR")}</span></div>
+                <div className="mt-3 border-t border-border pt-2 field-label">{t("calc.powerAt", { n: tgt })} <span className="pixel ml-1 text-[0.7rem] text-yellow">{perfectProjection.power.toLocaleString("pt-BR")}</span></div>
               </div>
             </div>
           </div>

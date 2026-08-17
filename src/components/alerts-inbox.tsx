@@ -12,7 +12,7 @@ import type { Notification } from "@/lib/alerts";
 import { Sprite } from "./sprite";
 import { LoadingBall } from "./loaders";
 import { useT } from "./locale-provider";
-import { Bell } from "./icons";
+import { Bell, ChevronRight } from "./icons";
 
 // Um desejo com achados, agregado pro resumo.
 interface Group {
@@ -31,24 +31,24 @@ function SummaryCard({ g, onOpen, t }: { g: Group; onOpen: () => void; t: (k: st
     <button
       type="button"
       onClick={onOpen}
-      className="flex w-full items-center gap-3 rounded border p-3 text-left transition hover:border-[color:var(--border-strong)]"
+      className="card card-link flex w-full items-center gap-3 p-3 text-left"
       style={{
         borderColor: g.unread > 0 ? "var(--green)" : "var(--border)",
         background: g.unread > 0 ? "color-mix(in srgb, var(--green) 8%, transparent)" : "transparent",
       }}
     >
-      <div className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded bg-[rgba(8,14,28,0.6)]">
+      <div className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded bg-[var(--well-bg)]">
         <Sprite src={g.speciesId ? spriteUrl(g.speciesId) : null} alt={name} size={40} />
-        {g.unread > 0 && <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-green" />}
+        {g.unread > 0 && <span className="pulse-soft absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-green" />}
       </div>
       <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-1 text-[0.5rem] uppercase tracking-wide text-green">
+        <div className="field-label flex items-center gap-1 text-green">
           <Bell size={9} /> {t("alerts.kind.snipe")}
         </div>
         <div className="mt-0.5 text-sm font-semibold text-text">{t("alerts.found", { n: g.total, name })}</div>
         {g.unread > 0 && <div className="mt-0.5 text-[0.62rem] text-green">{t("alerts.newCount", { n: g.unread })}</div>}
       </div>
-      <span className="shrink-0 text-[0.6rem] text-cyan">{t("alerts.see")} ›</span>
+      <span className="inline-flex shrink-0 items-center gap-1 text-[0.6rem] text-cyan">{t("alerts.see")} <ChevronRight size={10} /></span>
     </button>
   );
 }
@@ -110,7 +110,7 @@ export function AlertsInbox({
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <h2 className="pixel flex items-center gap-2 text-[0.8rem] text-green">
+        <h2 className="section-title flex items-center gap-2 text-green">
           <Bell size={15} /> {t("alerts.inbox.title")}
           {totalUnread > 0 && <span className="rounded-full bg-cyan px-1.5 py-0.5 text-[0.5rem] text-[#06131a]">{totalUnread}</span>}
         </h2>

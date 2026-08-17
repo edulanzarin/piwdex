@@ -12,6 +12,7 @@ import { PokeSeller } from "./poke-seller";
 import { HuntAnalyzer, type HuntOption, type DropOption } from "./hunt-analyzer";
 import type { ComboCreature } from "./pokemon-combobox";
 import { useT } from "./locale-provider";
+import { Tabs } from "./tabs";
 import { Star } from "./icons";
 
 type Section = "automacao" | "hunt" | "vender-drops" | "vender-pokes" | "auto-compra";
@@ -30,7 +31,7 @@ function AutoBuySoon() {
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <h2 className="pixel flex items-center gap-2 text-[0.8rem] text-yellow"><Star size={13} /> {t("robo.buy.title")}</h2>
+        <h2 className="section-title flex items-center gap-2 text-yellow"><Star size={13} /> {t("robo.buy.title")}</h2>
       </div>
       <div className="card p-5">
         <p className="text-[0.72rem] leading-relaxed text-text-dim">{t("robo.buy.desc")}</p>
@@ -59,18 +60,12 @@ export function RoboModule({ hunts, creatures, itemIcons, lootByPoke }: { hunts:
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap gap-1.5 border-b border-border pb-3">
-        {SECTIONS.map(({ key, label }) => (
-          <button
-            key={key}
-            type="button"
-            onClick={() => go(key)}
-            className={`tab ${sec === key ? "tab-active" : ""}`}
-          >
-            {t(label)}
-          </button>
-        ))}
-      </div>
+      <Tabs
+        tabs={SECTIONS.map(({ key, label }) => ({ key, label: t(label) }))}
+        active={sec}
+        onChange={(k) => go(k as Section)}
+        accent="var(--cyan)"
+      />
 
       {sec === "automacao" && <RoboPanel />}
       {sec === "hunt" && <HuntAnalyzer hunts={hunts} creatures={creatures} itemIcons={itemIcons} lootByPoke={lootByPoke} />}

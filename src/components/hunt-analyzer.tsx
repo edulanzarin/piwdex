@@ -6,7 +6,9 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useT } from "./locale-provider";
-import { Coin, Star, Xp, Skull, Clock } from "./icons";
+import { Coin, Star, Xp, Skull, Clock, Check, ChevronRight } from "./icons";
+import { Modal } from "./modal";
+import { CloseButton } from "./icon-button";
 import { Sprite } from "./sprite";
 import { Pokeball } from "./pokeball";
 import { spriteUrl, assetIconUrl } from "@/lib/sprites";
@@ -35,7 +37,7 @@ const STATUS_COLOR: Record<Status, string> = { idle: "var(--text-dim)", connecti
 function Stat({ label, value, accent, icon }: { label: string; value: string; accent?: boolean; icon?: React.ReactNode }) {
   return (
     <div className="rounded border border-border p-3">
-      <div className="flex items-center gap-1.5 text-[0.6rem] uppercase tracking-wide text-text-dim">
+      <div className="field-label flex items-center gap-1.5">
         {icon}
         {label}
       </div>
@@ -123,14 +125,14 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <h2 className="pixel flex items-center gap-2 text-[0.8rem] text-yellow"><Star size={13} /> {t("robo.hunt.title")}</h2>
+        <h2 className="section-title flex items-center gap-2 text-yellow"><Star size={13} /> {t("robo.hunt.title")}</h2>
         <p className="mt-2 max-w-2xl text-sm text-text-dim">{t("robo.hunt.desc")}</p>
       </div>
 
       {/* controle */}
       <div className="card flex flex-wrap items-center gap-3 p-4">
         <span className="inline-flex items-center gap-1.5 text-[0.72rem] font-semibold">
-          <span className="inline-block h-2 w-2 rounded-full" style={{ background: STATUS_COLOR[status] }} />
+          <span className={`inline-block h-2 w-2 rounded-full ${running ? "pulse-soft" : ""}`} style={{ background: STATUS_COLOR[status] }} />
           {t(`robo.hunt.status.${status}`)}
         </span>
         {!running ? (
@@ -147,7 +149,7 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
               )}
             </button>
             <button type="button" onClick={openStart} disabled={busy || !slug.trim()} className="btn btn-cyan disabled:opacity-40">
-              {t("robo.hunt.start")} ›
+              {t("robo.hunt.start")} <ChevronRight size={10} />
             </button>
           </>
         ) : (
@@ -157,11 +159,10 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
 
       {/* modal de escolha da hunt — busca + agrupado por area, com sprite e nivel */}
       {pickerOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setPickerOpen(false)}>
-          <div className="card flex max-h-[80vh] w-full max-w-lg flex-col p-4" onClick={(e) => e.stopPropagation()}>
+        <Modal onClose={() => setPickerOpen(false)} className="w-full max-w-lg p-4">
             <div className="mb-3 flex items-center justify-between">
-              <h3 className="pixel text-[0.7rem] text-cyan">{t("robo.hunt.pickTitle")}</h3>
-              <button type="button" onClick={() => setPickerOpen(false)} className="btn btn-ghost">✕</button>
+              <h3 className="section-title text-cyan">{t("robo.hunt.pickTitle")}</h3>
+              <CloseButton onClick={() => setPickerOpen(false)} />
             </div>
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("robo.hunt.searchPh")} className="input mb-3" autoFocus />
             <div className="flex-1 overflow-auto pr-1">
@@ -170,7 +171,7 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
               ) : (
                 grouped.map(([area, list]) => (
                   <div key={area} className="mb-3">
-                    <div className="mb-1 text-[0.55rem] uppercase tracking-wide text-text-dim">{area}</div>
+                    <div className="field-label mb-1">{area}</div>
                     <div className="grid gap-1 sm:grid-cols-2">
                       {list.map((h) => (
                         <button
@@ -191,17 +192,15 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
                 ))
               )}
             </div>
-          </div>
-        </div>
+        </Modal>
       )}
 
       {/* modal de opcoes ao ligar a hunt: drops pra vender + vender pokemon junto */}
       {dropsOpen && selected && (() => {
         const toggle = (id: number) => setSellDropIds((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
         return (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setDropsOpen(false)}>
-            <div className="card flex max-h-[85vh] w-full max-w-md flex-col p-4" onClick={(e) => e.stopPropagation()}>
-              <h3 className="pixel text-[0.7rem] text-cyan">{t("robo.hunt.dropsTitle")}</h3>
+          <Modal onClose={() => setDropsOpen(false)} className="w-full max-w-md p-4">
+              <h3 className="section-title text-cyan">{t("robo.hunt.dropsTitle")}</h3>
               <p className="mt-1 text-[0.62rem] leading-relaxed text-text-dim">{t("robo.hunt.dropsDesc").replace("{hunt}", selected.name)}</p>
 
               {huntDrops.length > 0 ? (
@@ -220,7 +219,7 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
                           onClick={() => toggle(d.itemId)}
                           className={`flex items-center gap-2 rounded border p-1.5 text-left transition ${on ? "border-cyan bg-[color:var(--cyan)]/10" : "border-border hover:bg-surface-2"}`}
                         >
-                          <span className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border text-[0.6rem] ${on ? "border-cyan bg-cyan text-[#06131a]" : "border-border text-transparent"}`}>✓</span>
+                          <span className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border ${on ? "border-cyan bg-cyan text-[#06131a]" : "border-border text-transparent"}`}><Check size={10} /></span>
                           <span className="flex h-6 w-6 shrink-0 items-center justify-center">{d.icon ? <Sprite src={assetIconUrl(d.icon)} alt={d.name} size={20} /> : null}</span>
                           <span className="min-w-0 flex-1 truncate text-[0.72rem]">{d.name}</span>
                           <span className="inline-flex shrink-0 items-center gap-1 text-[0.62rem] text-yellow"><Coin size={9} />{d.npcPrice}</span>
@@ -239,16 +238,15 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
                 onClick={() => setSellPokesToo((v) => !v)}
                 className={`mt-3 flex items-center gap-2 rounded border p-2 text-left transition ${sellPokesToo ? "border-cyan bg-[color:var(--cyan)]/10" : "border-border hover:bg-surface-2"}`}
               >
-                <span className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border text-[0.6rem] ${sellPokesToo ? "border-cyan bg-cyan text-[#06131a]" : "border-border text-transparent"}`}>✓</span>
+                <span className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border ${sellPokesToo ? "border-cyan bg-cyan text-[#06131a]" : "border-border text-transparent"}`}><Check size={10} /></span>
                 <span className="min-w-0 flex-1 text-[0.7rem]">{t("robo.hunt.sellPokesToo")}</span>
               </button>
 
               <div className="mt-3 flex items-center justify-between gap-2 border-t border-border pt-3">
                 <span className="text-[0.62rem] text-text-dim">{t("robo.hunt.dropsSel").replace("{n}", String(sellDropIds.size))}</span>
-                <button type="button" onClick={() => { setDropsOpen(false); startHunt([...sellDropIds]); }} className="btn btn-cyan">{t("robo.hunt.start")} ›</button>
+                <button type="button" onClick={() => { setDropsOpen(false); startHunt([...sellDropIds]); }} className="btn btn-cyan">{t("robo.hunt.start")} <ChevronRight size={10} /></button>
               </div>
-            </div>
-          </div>
+          </Modal>
         );
       })()}
 
@@ -269,7 +267,7 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
       {/* feed ao vivo — kills e capturas, cada um clicavel (abre modal com detalhe) */}
       {st?.recentKills && st.recentKills.length > 0 && (
         <div className="card p-4">
-          <h3 className="pixel mb-2 text-[0.6rem] text-cyan">{t("robo.hunt.recent")}</h3>
+          <h3 className="section-title mb-2 text-cyan">{t("robo.hunt.recent")}</h3>
           <div className="grid gap-1.5 sm:grid-cols-2">
             {st.recentKills.slice(0, 12).map((k, i) => {
               const pid = pokeIdOf(k.species);
@@ -279,9 +277,9 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
                   key={k.at + "-" + i}
                   type="button"
                   onClick={() => setDetail(k)}
-                  className="flex items-center gap-2.5 rounded border border-border bg-[rgba(8,14,28,0.5)] p-2 text-left transition hover:border-[color:var(--border-strong)] hover:bg-surface-2"
+                  className="flex items-center gap-2.5 rounded border border-border bg-[var(--well-bg)] p-2 text-left transition hover:border-[color:var(--border-strong)] hover:bg-surface-2"
                 >
-                  <span className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded bg-[rgba(8,14,28,0.6)]">
+                  <span className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded bg-[var(--well-bg)]">
                     {pid != null && <Sprite src={spriteUrl(pid, k.shiny)} alt={k.species} size={34} />}
                     {k.shiny && <span className="absolute right-0 top-0 text-yellow"><Star size={9} /></span>}
                     {isCatch && <span className="absolute -bottom-1 -left-1"><Pokeball size={14} /></span>}
@@ -301,7 +299,7 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
                       {!isCatch && k.loot.map((l, j) => {
                         const icon = itemIcon(l.name);
                         return (
-                          <span key={j} className="inline-flex items-center gap-1 rounded bg-[rgba(8,14,28,0.6)] px-1 py-0.5 text-[0.56rem] text-text-dim" title={l.name}>
+                          <span key={j} className="inline-flex items-center gap-1 rounded bg-[var(--well-bg)] px-1 py-0.5 text-[0.56rem] text-text-dim" title={l.name}>
                             {icon ? <Sprite src={assetIconUrl(icon)} alt={l.name} size={14} /> : <span className="max-w-[6rem] truncate">{l.name}</span>}
                             x{l.qty}
                           </span>
@@ -322,10 +320,9 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
         const pid = pokeIdOf(k.species);
         const isCatch = k.kind === "catch";
         return (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setDetail(null)}>
-            <div className="card w-full max-w-sm p-5" onClick={(e) => e.stopPropagation()}>
+          <Modal onClose={() => setDetail(null)} className="w-full max-w-sm p-5">
               <div className="flex items-start gap-3">
-                <span className="relative flex h-16 w-16 shrink-0 items-center justify-center rounded bg-[rgba(8,14,28,0.6)]">
+                <span className="relative flex h-16 w-16 shrink-0 items-center justify-center rounded bg-[var(--well-bg)]">
                   {pid != null && <Sprite src={spriteUrl(pid, k.shiny)} alt={k.species} size={56} />}
                   {k.shiny && <span className="absolute right-0.5 top-0.5 text-yellow"><Star size={12} /></span>}
                 </span>
@@ -352,7 +349,7 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
                       <span className="text-text-dim">XP</span>
                       <span className="inline-flex items-center gap-1 text-cyan"><Xp size={11} />{fmt(k.xp)}</span>
                     </div>
-                    <div className="mt-1 text-[0.55rem] uppercase tracking-wide text-text-dim">{t("robo.hunt.drops")}</div>
+                    <div className="field-label mt-1">{t("robo.hunt.drops")}</div>
                     {k.loot.length === 0 ? (
                       <span className="text-[0.72rem] text-text-dim">{t("robo.hunt.noDrops")}</span>
                     ) : (
@@ -375,8 +372,7 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
               <div className="mt-4 flex justify-end">
                 <button type="button" onClick={() => setDetail(null)} className="btn btn-ghost">{t("robo.hunt.close")}</button>
               </div>
-            </div>
-          </div>
+          </Modal>
         );
       })()}
     </div>

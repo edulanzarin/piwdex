@@ -12,7 +12,7 @@ import { T } from "@/components/locale-provider";
 
 export const metadata: Metadata = { title: "VIP" };
 
-const ACCENT = "#f0c83c";
+const ACCENT = "var(--yellow)";
 
 export default async function VipPage({ searchParams }: { searchParams: Promise<{ status?: string }> }) {
   const session = await auth();

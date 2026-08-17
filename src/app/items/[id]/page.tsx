@@ -5,7 +5,7 @@ import { getData } from "@/lib/data";
 import { itemIconUrl } from "@/lib/sprites";
 import { Sprite } from "@/components/sprite";
 import { DropSourcesTable } from "@/components/drop-sources-table";
-import { Gold } from "@/components/icons";
+import { Gold, ChevronLeft } from "@/components/icons";
 import { T } from "@/components/locale-provider";
 
 export async function generateStaticParams() {
@@ -38,12 +38,12 @@ export default async function ItemPage({
 
   return (
     <div className="flex flex-col gap-5">
-      <Link href="/items" className="text-[0.7rem] text-text-dim hover:text-cyan uppercase tracking-wide">
-        ‹ <T k="item.back" />
+      <Link href="/items" className="inline-flex items-center gap-1 text-[0.7rem] text-text-dim hover:text-cyan uppercase tracking-wide">
+        <ChevronLeft size={10} /> <T k="item.back" />
       </Link>
 
       <div className="card flex items-center gap-4 p-6">
-        <span className="flex h-20 w-20 shrink-0 items-center justify-center rounded bg-[rgba(8,14,28,0.6)]">
+        <span className="well flex h-20 w-20 shrink-0 items-center justify-center">
           <Sprite src={itemIconUrl(item)} alt={item.name} size={48} />
         </span>
         <div className="flex flex-col gap-2">
@@ -60,13 +60,13 @@ export default async function ItemPage({
       </div>
 
       <section className="card p-5">
-        <h2 className="pixel text-[0.72rem] text-green"><T k="item.whereDrops" /> ({sources.length})</h2>
+        <h2 className="section-title text-green"><T k="item.whereDrops" /> ({sources.length})</h2>
         <p className="mb-4 mt-2 text-sm text-text-dim">
           <T k="item.whereDropsHint" />
         </p>
 
         {sources.length === 0 ? (
-          <div className="rounded bg-[rgba(8,14,28,0.6)] p-6 text-center text-sm text-text-dim">
+          <div className="rounded bg-[var(--well-bg)] p-6 text-center text-sm text-text-dim">
             <T k="item.noDrop" />
           </div>
         ) : (

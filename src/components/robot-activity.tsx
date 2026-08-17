@@ -49,7 +49,7 @@ export function RobotActivity() {
 
   return (
     <div className="card p-4">
-      <h3 className="pixel mb-3 text-[0.62rem] text-cyan">{t("evt.title")}</h3>
+      <h3 className="section-title mb-3 text-cyan">{t("evt.title")}</h3>
       {events.length === 0 ? (
         <p className="text-[0.72rem] text-text-dim">{t("evt.empty")}</p>
       ) : (
@@ -57,7 +57,7 @@ export function RobotActivity() {
           {events.map((e) => {
             const r = render(e);
             return (
-              <div key={e.id} className="flex items-center gap-2.5 rounded border border-border bg-[rgba(8,14,28,0.5)] p-2">
+              <div key={e.id} className="flex items-center gap-2.5 rounded border border-border bg-[var(--well-bg)] p-2">
                 <span className="flex h-6 w-6 shrink-0 items-center justify-center">{r.icon}</span>
                 <span className={`min-w-0 flex-1 truncate text-[0.72rem] ${r.tone ?? "text-text"}`}>{r.text}</span>
                 <span className="shrink-0 tabular-nums text-[0.55rem] text-text-dim">{when(e.createdAt)}</span>

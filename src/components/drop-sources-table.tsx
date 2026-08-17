@@ -6,6 +6,8 @@ import { spriteUrl } from "@/lib/sprites";
 import type { PokeType } from "@/lib/types";
 import { Sprite } from "./sprite";
 import { TypeBadges } from "./badges";
+import { Pagination } from "./pagination";
+import { ChevronRight } from "./icons";
 import { useT } from "./locale-provider";
 
 export interface DropRow {
@@ -56,7 +58,7 @@ export function DropSourcesTable({ sources }: { sources: DropRow[] }) {
                   <Link href={`/dex/${s.pokeId}`} className="flex items-center gap-2 text-cyan group-hover:underline">
                     <Sprite src={spriteUrl(s.pokeId)} alt="" size={30} />
                     <span>{s.name}</span>
-                    <span className="text-[0.6rem] text-text-dim opacity-0 transition group-hover:opacity-100">›</span>
+                    <span className="text-text-dim opacity-0 transition group-hover:opacity-100"><ChevronRight size={10} /></span>
                   </Link>
                 </td>
                 <td className="py-1.5"><TypeBadges t1={s.type1} t2={s.type2} /></td>
@@ -69,13 +71,7 @@ export function DropSourcesTable({ sources }: { sources: DropRow[] }) {
         </table>
       </div>
 
-      {pageCount > 1 && (
-        <div className="flex items-center justify-center gap-4">
-          <button type="button" className="btn btn-ghost !py-1.5 disabled:opacity-40" disabled={safePage <= 0} onClick={() => setPage((p) => Math.max(0, p - 1))}>‹</button>
-          <span className="text-[0.7rem] uppercase tracking-wide text-text-dim">{t("hunt.page", { a: safePage + 1, b: pageCount })}</span>
-          <button type="button" className="btn btn-ghost !py-1.5 disabled:opacity-40" disabled={safePage >= pageCount - 1} onClick={() => setPage((p) => Math.min(pageCount - 1, p + 1))}>›</button>
-        </div>
-      )}
+      <Pagination page={safePage} pageCount={pageCount} onPage={setPage} />
     </div>
   );
 }

@@ -149,15 +149,15 @@ export function RoboPanel() {
   const a = st.auto;
   const sw = (field: Field, on: boolean, disabled?: boolean) => (
     <ToggleButton active={on} accent="green" onClick={() => !disabled && set(field, !on)} title={disabled ? t("robo.vipOnly") : undefined}>
-      <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ background: on ? "var(--green)" : "var(--text-dim)" }} />
+      <span className={`inline-block h-1.5 w-1.5 rounded-full ${on ? "pulse-soft" : ""}`} style={{ background: on ? "var(--green)" : "var(--text-dim)" }} />
       {busy === field ? "…" : on ? t("robo.on") : t("robo.off")}
     </ToggleButton>
   );
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-5">
       <div>
-        <h2 className="pixel text-[0.8rem] text-yellow">{t("robo.title")}</h2>
+        <h2 className="section-title text-yellow">{t("robo.title")}</h2>
         <p className="mt-2 max-w-2xl text-sm text-text-dim">{t("robo.desc")}</p>
       </div>
 

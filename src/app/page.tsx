@@ -2,6 +2,8 @@ import Link from "next/link";
 import { getData } from "@/lib/data";
 import { PokedexIcon } from "@/components/pokedex-icon";
 import { ItemsIcon, HuntIcon, CalcIcon, LabIcon, BreedIcon } from "@/components/tool-icons";
+import { StatTile } from "@/components/stat-tile";
+import { ChevronRight } from "@/components/icons";
 import { T } from "@/components/locale-provider";
 
 function ToolCard({
@@ -31,7 +33,7 @@ function ToolCard({
         <h2 className="pixel text-[0.8rem] sm:text-sm" style={{ color }}><T k={titleKey} /></h2>
         <p className="text-sm text-text-dim leading-relaxed"><T k={descKey} /></p>
         <span className="btn mt-1 self-start whitespace-nowrap" style={{ background: color, color: ctaText }}>
-          <T k={ctaKey} /> ›
+          <T k={ctaKey} /> <ChevronRight size={10} />
         </span>
       </div>
     </Link>
@@ -48,7 +50,7 @@ export default async function Home() {
   ];
 
   return (
-    <div className="flex flex-col gap-10">
+    <div className="flex flex-col gap-6">
       {/* Hero */}
       <section className="card overflow-hidden p-6 sm:p-10 lg:p-12">
         <div className="eyebrow mb-4"><T k="home.eyebrow" /></div>
@@ -62,10 +64,7 @@ export default async function Home() {
 
         <div className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-4">
           {stats.map(([value, label]) => (
-            <div key={label} className="rounded border border-border bg-[rgba(8,14,28,0.5)] px-4 py-3">
-              <div className="pixel text-base text-cyan">{value}</div>
-              <div className="mt-1 text-[0.68rem] text-text-dim uppercase tracking-wide"><T k={label} /></div>
-            </div>
+            <StatTile key={label} label={<T k={label} />} value={value} accent="var(--cyan)" />
           ))}
         </div>
       </section>

@@ -10,6 +10,8 @@ import { TypeBadges } from "./badges";
 import { LoadingBall } from "./loaders";
 import { StatIcon } from "./stat-icons";
 import { StatCompareRow } from "./stat-bar";
+import { Star, ChevronRight } from "./icons";
+import { Tabs } from "./tabs";
 import { useT } from "./locale-provider";
 
 export interface EvoNode {
@@ -63,40 +65,16 @@ function chevrons(p: { x: number; y: number }): string[] {
 function StatIn({ label, value, onChange, iconIndex }: { label: string; value: string; onChange: (v: string) => void; iconIndex: number }) {
   return (
     <label className="flex flex-col gap-1">
-      <span className="inline-flex items-center gap-1 text-[0.52rem] uppercase tracking-wide text-text-dim">
+      <span className="field-label inline-flex items-center gap-1">
         <StatIcon index={iconIndex} size={11} />{label}
       </span>
-      <input className="input !py-1.5 text-sm" inputMode="decimal" value={value} onChange={(e) => onChange(e.target.value)} />
+      <input className="input" inputMode="decimal" value={value} onChange={(e) => onChange(e.target.value)} />
     </label>
   );
 }
 
 const IV_MAX = 32;
 const ivColor = (v: number) => (v > IV_MAX ? "text-red" : v >= 26 ? "text-green" : v >= 14 ? "text-yellow" : "text-red");
-
-// Icones pixel das abas.
-const STAR_ROWS = [
-  "............", ".....##.....", ".....##.....", "...######...",
-  "..########..", "###########.", ".#########..", "...######...",
-  "..###..###..", ".###....###.", "##........##", "............",
-];
-const CHART_ROWS = [
-  "............", ".........##.", ".........##.", ".....##..##.",
-  ".....##..##.", ".##..##..##.", ".##..##..##.", ".##..##..##.",
-  ".##..##..##.", "############", "............", "............",
-];
-function TabIcon({ rows, size = 13 }: { rows: string[]; size?: number }) {
-  const rects: React.ReactNode[] = [];
-  rows.forEach((r, y) => { for (let x = 0; x < r.length; x++) if (r[x] === "#") rects.push(<rect key={`${x}-${y}`} x={x} y={y} width={1} height={1} />); });
-  return <svg width={size} height={size} viewBox="0 0 12 12" fill="currentColor" shapeRendering="crispEdges" style={{ imageRendering: "pixelated" }} aria-hidden="true">{rects}</svg>;
-}
-function TabBtn({ active, onClick, rows, label }: { active: boolean; onClick: () => void; rows: string[]; label: string }) {
-  return (
-    <button type="button" onClick={onClick} className={`inline-flex items-center gap-2 rounded border px-4 py-2 pixel text-[0.62rem] transition ${active ? "border-[color:var(--cyan)] bg-surface-2 text-cyan" : "border-border text-text-dim hover:text-text"}`}>
-      <TabIcon rows={rows} /> {label}
-    </button>
-  );
-}
 
 // Card no formato do Pokedex (sprite + #id + nome + tipos) + pedra + stats.
 // Os stats aparecem SEMPRE (com ??? antes de calcular) pro card nao mudar de tamanho.
@@ -190,26 +168,26 @@ export function EeveeLab({ eevee, evos }: { eevee: { pokeId: number; name: strin
   }, [result, selEvo, evos, qual]);
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-5">
       {/* Formulario em cima */}
       <div className="card p-5">
         <div className="grid gap-4 sm:grid-cols-3">
           <label className="flex flex-col gap-1">
-            <span className="text-[0.6rem] uppercase tracking-wide text-text-dim">{t("eevee.level")}</span>
+            <span className="field-label">{t("eevee.level")}</span>
             <input className="input" inputMode="numeric" placeholder="ex: 54" value={level} onChange={(e) => setLevel(e.target.value)} />
           </label>
           <label className="flex flex-col gap-1">
-            <span className="text-[0.6rem] uppercase tracking-wide text-text-dim">{t("eevee.quality")}</span>
+            <span className="field-label">{t("eevee.quality")}</span>
             <input className="input" inputMode="decimal" placeholder="ex: 1,8" value={quality} onChange={(e) => setQuality(e.target.value)} />
           </label>
           <label className="flex flex-col gap-1">
-            <span className="text-[0.6rem] uppercase tracking-wide text-cyan">{t("eevee.targetLevel")}</span>
+            <span className="field-label text-cyan">{t("eevee.targetLevel")}</span>
             <input className="input" inputMode="numeric" placeholder="100" value={target} onChange={(e) => setTarget(e.target.value)} />
           </label>
         </div>
 
         <div className="mt-5 border-t border-border pt-4">
-          <span className="text-[0.6rem] uppercase tracking-wide text-text-dim">{t("eevee.statsLabel")}</span>
+          <span className="field-label">{t("eevee.statsLabel")}</span>
           <div className="mt-2 grid grid-cols-3 gap-2.5">
             {STAT_LABELS.map((lb, i) => (
               <StatIn key={lb} iconIndex={i} label={lb} value={stats[i]} onChange={(v) => setStat(i, v)} />
@@ -230,19 +208,18 @@ export function EeveeLab({ eevee, evos }: { eevee: { pokeId: number; name: strin
               type="button"
               onClick={calc}
               disabled={!ready || computing}
-              className="btn self-start disabled:opacity-40 sm:self-auto"
-              style={{ background: "var(--cyan)", color: "#06131a" }}
+              className="btn btn-cyan self-start disabled:opacity-40 sm:self-auto"
             >
-              {computing ? `${t("eevee.calcing")}...` : `${t("eevee.calc")} ›`}
+              {computing ? `${t("eevee.calcing")}...` : <>{t("eevee.calc")} <ChevronRight size={10} /></>}
             </button>
           </div>
           {result && (
             <div className="mt-4 flex flex-col gap-2 border-t border-border pt-3">
               <div className="flex flex-wrap items-center gap-x-6 gap-y-1">
-                <span className="text-[0.6rem] uppercase tracking-wide text-text-dim">
+                <span className="field-label">
                   {t("eevee.ivTotal")} <span className="pixel ml-1 text-[0.72rem] text-green">{result.ivTotal.toFixed(0)}<span className="text-text-dim">/192</span></span>
                 </span>
-                <span className="text-[0.6rem] uppercase tracking-wide text-text-dim">
+                <span className="field-label">
                   {t("calc.ivUsage")} <span className="pixel ml-1 text-[0.72rem] text-cyan">{Math.round((result.ivTotal / 192) * 100)}%</span>
                 </span>
               </div>
@@ -262,10 +239,15 @@ export function EeveeLab({ eevee, evos }: { eevee: { pokeId: number; name: strin
       </div>
 
       {/* Abas: estrela (projecao) e comparar (seu vs perfeito por evolucao) */}
-      <div className="flex flex-wrap gap-2">
-        <TabBtn active={tab === "estrela"} onClick={() => setTab("estrela")} rows={STAR_ROWS} label={t("eevee.tab.star")} />
-        <TabBtn active={tab === "comparar"} onClick={() => setTab("comparar")} rows={CHART_ROWS} label={t("eevee.tab.compare")} />
-      </div>
+      <Tabs
+        accent="var(--cyan)"
+        active={tab}
+        onChange={(k) => setTab(k as "estrela" | "comparar")}
+        tabs={[
+          { key: "estrela", label: t("eevee.tab.star"), icon: <Star size={13} /> },
+          { key: "comparar", label: t("eevee.tab.compare"), icon: <StatIcon index={0} size={13} /> },
+        ]}
+      />
 
       {tab === "comparar" ? (
         <div className="card p-5">
@@ -273,7 +255,7 @@ export function EeveeLab({ eevee, evos }: { eevee: { pokeId: number; name: strin
             <p className="text-sm text-text-dim">{t("eevee.compareEmpty")}</p>
           ) : (
             <>
-              <h2 className="pixel mb-1 text-[0.72rem] text-yellow">{t("calc.compare")}</h2>
+              <h2 className="section-title mb-1 text-yellow">{t("calc.compare")}</h2>
               <p className="mb-3 text-[0.62rem] leading-relaxed text-text-dim">{t("eevee.compareHint")}</p>
               <div className="mb-4 flex flex-wrap gap-2">
                 {evos.map((e) => (
@@ -285,7 +267,7 @@ export function EeveeLab({ eevee, evos }: { eevee: { pokeId: number; name: strin
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 {/* Seu {evo} */}
-                <div className="rounded-lg border border-[color:var(--cyan)] p-4">
+                <div className="card p-4" style={{ borderColor: "var(--cyan)" }}>
                   <div className="mb-3 flex items-center justify-between">
                     <span className="inline-flex items-center gap-1.5 pixel text-[0.62rem] text-cyan"><Sprite src={spriteUrl(cmp.evo.pokeId)} alt="" size={18} />{t("calc.compareYou", { name: cmp.evo.name })}</span>
                     <span className="text-[0.58rem] tabular-nums text-text-dim">{result.ivTotal.toFixed(0)}/192 · {Math.round((result.ivTotal / 192) * 100)}%</span>
@@ -295,10 +277,10 @@ export function EeveeLab({ eevee, evos }: { eevee: { pokeId: number; name: strin
                       <StatCompareRow key={lb} label={lb} iconIndex={i} value={cmp.seu.stats[i]} max={cmp.perf.stats[i]} iv={result.ivs[i]} ivClass={ivColor(result.ivs[i])} />
                     ))}
                   </div>
-                  <div className="mt-3 border-t border-border pt-2 text-[0.6rem] uppercase tracking-wide text-text-dim">{t("calc.power")} <span className="pixel ml-1 text-[0.7rem] text-yellow">{cmp.seu.power.toLocaleString("pt-BR")}</span></div>
+                  <div className="mt-3 border-t border-border pt-2 field-label">{t("calc.power")} <span className="pixel ml-1 text-[0.7rem] text-yellow">{cmp.seu.power.toLocaleString("pt-BR")}</span></div>
                 </div>
                 {/* Perfeito {evo} */}
-                <div className="rounded-lg border border-[color:var(--green)] p-4">
+                <div className="card p-4" style={{ borderColor: "var(--green)" }}>
                   <div className="mb-3 flex items-center justify-between">
                     <span className="inline-flex items-center gap-1.5 pixel text-[0.62rem] text-green"><Sprite src={spriteUrl(cmp.evo.pokeId)} alt="" size={18} />{t("calc.comparePerfect")}</span>
                     <span className="text-[0.58rem] tabular-nums text-text-dim">192/192 · 100%</span>
@@ -308,7 +290,7 @@ export function EeveeLab({ eevee, evos }: { eevee: { pokeId: number; name: strin
                       <StatCompareRow key={lb} label={lb} iconIndex={i} value={cmp.perf.stats[i]} max={cmp.perf.stats[i]} iv={IV_MAX} ivClass="text-green" />
                     ))}
                   </div>
-                  <div className="mt-3 border-t border-border pt-2 text-[0.6rem] uppercase tracking-wide text-text-dim">{t("calc.power")} <span className="pixel ml-1 text-[0.7rem] text-yellow">{cmp.perf.power.toLocaleString("pt-BR")}</span></div>
+                  <div className="mt-3 border-t border-border pt-2 field-label">{t("calc.power")} <span className="pixel ml-1 text-[0.7rem] text-yellow">{cmp.perf.power.toLocaleString("pt-BR")}</span></div>
                 </div>
               </div>
             </>

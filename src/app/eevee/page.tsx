@@ -6,6 +6,7 @@ import { itemIconUrl } from "@/lib/sprites";
 import { EeveeLab, type EvoNode } from "@/components/eevee-lab";
 import { ToolFrame } from "@/components/tool-frame";
 import { NavLab } from "@/components/nav-icons";
+import { ChevronRight } from "@/components/icons";
 import { T } from "@/components/locale-provider";
 
 export const metadata: Metadata = { title: "Laboratorio da Eevee" };
@@ -49,14 +50,14 @@ export default async function EeveePage() {
   });
 
   return (
-    <ToolFrame accent="#37d3e6" label="LAB" icon={<NavLab size={13} />}>
+    <ToolFrame accent="var(--cyan)" label="LAB" icon={<NavLab size={13} />}>
       <div className="flex flex-col gap-6">
         <div>
           <div className="eyebrow mb-2"><T k="eevee.eyebrow" /></div>
-          <h1 className="pixel text-xl" style={{ color: "#37d3e6" }}><T k="eevee.title" /></h1>
+          <h1 className="pixel text-xl" style={{ color: "var(--cyan)" }}><T k="eevee.title" /></h1>
           <p className="mt-3 max-w-2xl text-sm text-text-dim"><T k="eevee.desc" /></p>
-          <Link href={`/dex/${EEVEE_ID}`} className="mt-2 inline-block text-[0.7rem] uppercase tracking-wide text-cyan hover:underline">
-            <T k="eevee.backDex" /> ›
+          <Link href={`/dex/${EEVEE_ID}`} className="mt-2 inline-flex items-center gap-1 text-[0.7rem] uppercase tracking-wide text-cyan hover:underline">
+            <T k="eevee.backDex" /> <ChevronRight size={9} />
           </Link>
         </div>
         <EeveeLab eevee={{ pokeId: EEVEE_ID, name: eevee.name, t1: eevee.type1, t2: eevee.type2, bases: basesOf(eevee) }} evos={evos} />

@@ -18,8 +18,11 @@ import { StatBar } from "./stat-bar";
 import { Modal } from "./modal";
 import { Pagination } from "./pagination";
 import { ToggleButton } from "./toggle-button";
+import { SelectMenu } from "./select-menu";
+import { StatTile } from "./stat-tile";
+import { CloseButton } from "./icon-button";
 import { useT } from "./locale-provider";
-import { Star, Coin, Diamond } from "./icons";
+import { Star, Coin, Diamond, ChevronRight } from "./icons";
 
 // Cor de cada nota (genes, Quality ou preco): verde otimo, amarelo mediano, vermelho ruim.
 const GRADE_VAR: Record<Grade, string> = { great: "var(--green)", ok: "var(--yellow)", bad: "var(--red)" };
@@ -78,13 +81,9 @@ const STATS: readonly [string, keyof MarketDex][] = [
   ["SP.ATK", "baseSpAtk"], ["SP.DEF", "baseSpDef"], ["SPEED", "baseSpeed"],
 ] as const;
 
+// Mini-tile de numero do anuncio: rotulo + valor, no poco padrao (.well via StatTile).
 function Tile({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="rounded border border-border bg-[rgba(8,14,28,0.5)] px-3 py-2">
-      <div className="text-[0.55rem] uppercase tracking-wide text-text-dim">{label}</div>
-      <div className="mt-0.5 flex items-center gap-1 whitespace-nowrap text-sm font-bold tabular-nums">{children}</div>
-    </div>
-  );
+  return <StatTile label={label} value={<span className="flex items-center gap-1 whitespace-nowrap">{children}</span>} />;
 }
 
 // Card de um anuncio do mercado — reusado no consultor E dentro de cada Desejo (aba
@@ -104,7 +103,7 @@ export function MarketMonCard({ mon, onClick, right }: { mon: MarketMon; onClick
         className="card flex w-full items-center gap-3 p-3 text-left transition hover:border-[color:var(--border-strong)] hover:bg-surface-2"
         style={monG ? { borderLeftColor: GRADE_VAR[monG], borderLeftWidth: 3 } : undefined}
       >
-        <div className="relative flex h-14 w-14 shrink-0 items-center justify-center rounded bg-[rgba(8,14,28,0.6)]">
+        <div className="relative flex h-14 w-14 shrink-0 items-center justify-center rounded bg-[var(--well-bg)]">
           <Sprite src={spriteUrl(mon.speciesId, mon.shiny)} alt={mon.name} size={48} />
           {mon.shiny && <span className="absolute right-0.5 top-0.5 text-yellow"><Star size={11} /></span>}
         </div>
@@ -147,7 +146,7 @@ export function MarketMonModal({ mon, dex, onClose }: { mon: MarketMon; dex?: Ma
     <Modal onClose={onClose} className="w-full max-w-md gap-5 p-5">
         {/* Cabecalho */}
         <div className="flex items-center gap-4">
-          <div className="relative flex h-20 w-20 shrink-0 items-center justify-center rounded bg-[rgba(8,14,28,0.6)]">
+          <div className="relative flex h-20 w-20 shrink-0 items-center justify-center rounded bg-[var(--well-bg)]">
             <Sprite src={spriteUrl(mon.speciesId, mon.shiny)} alt={mon.name} size={72} />
             {mon.shiny && <span className="absolute right-1 top-1 text-yellow"><Star size={13} /></span>}
           </div>
@@ -163,7 +162,7 @@ export function MarketMonModal({ mon, dex, onClose }: { mon: MarketMon; dex?: Ma
               )}
             </div>
           </div>
-          <button type="button" onClick={onClose} aria-label="fechar" className="shrink-0 self-start rounded p-1 text-text-dim hover:bg-surface-2 hover:text-text">✕</button>
+          <CloseButton onClick={onClose} className="shrink-0 self-start" />
         </div>
 
         {/* Numeros reais do anuncio — 2 colunas fixas: cabem valores ate ~1 bilhao sem vazar */}
@@ -178,8 +177,8 @@ export function MarketMonModal({ mon, dex, onClose }: { mon: MarketMon; dex?: Ma
 
         {/* Veredito: genes (IV), Quality (Q) e preco (vale a pena). Quality manda na nota. */}
         {(genes || qual || deal) && (
-          <div className="flex flex-col gap-2 rounded border border-border bg-[rgba(8,14,28,0.5)] p-3">
-            <div className="pixel text-[0.62rem] text-purple">{t("account.market.verdict")}</div>
+          <div className="flex flex-col gap-2 rounded border border-border bg-[var(--well-bg)] p-3">
+            <div className="section-title text-purple">{t("account.market.verdict")}</div>
             {genes && (
               <div className="flex items-center justify-between gap-2 text-[0.72rem]">
                 <span className="text-text-dim">{t("account.market.genesLabel")}</span>
@@ -216,7 +215,7 @@ export function MarketMonModal({ mon, dex, onClose }: { mon: MarketMon; dex?: Ma
         {/* Stats base da especie */}
         {dex && (
           <div className="flex flex-col gap-2.5">
-            <div className="pixel text-[0.62rem] text-cyan">{t("cr.statsBase")}</div>
+            <div className="section-title text-cyan">{t("cr.statsBase")}</div>
             {STATS.map(([label, key], i) => (
               <StatBar key={key} iconIndex={i} label={label} value={dex[key] as number} best={(dex[key] as number) === best} />
             ))}
@@ -227,7 +226,7 @@ export function MarketMonModal({ mon, dex, onClose }: { mon: MarketMon; dex?: Ma
           </div>
         )}
 
-        <a href={`/dex/${mon.speciesId}`} className="btn btn-cyan self-start">{t("account.market.viewDex")} ›</a>
+        <a href={`/dex/${mon.speciesId}`} className="btn btn-cyan self-start">{t("account.market.viewDex")} <ChevronRight size={10} /></a>
     </Modal>
   );
 }
@@ -295,9 +294,9 @@ export function MarketAdvisor({
   }, [focus?.nonce]);
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-5">
       <div>
-        <h2 className="pixel text-[0.8rem] text-purple">{t("account.market.title")}</h2>
+        <h2 className="section-title text-purple">{t("account.market.title")}</h2>
         <p className="mt-2 max-w-2xl text-sm text-text-dim">{t("account.market.desc")}</p>
       </div>
       <div className="card z-20 flex flex-col gap-4 p-5">
@@ -305,7 +304,7 @@ export function MarketAdvisor({
           {/* Especie e Tipo sao mutuamente exclusivos: uma especie ja e de um tipo so.
               Escolher um zera o outro. */}
           <label className="flex flex-col gap-1 sm:col-span-2 lg:col-span-1">
-            <span className="text-[0.55rem] uppercase tracking-wide text-text-dim">{t("account.market.species")}</span>
+            <span className="field-label">{t("account.market.species")}</span>
             <PokemonCombobox
               creatures={creatures}
               value={species}
@@ -314,47 +313,62 @@ export function MarketAdvisor({
             />
           </label>
           <div className="flex flex-col gap-1">
-            <span className="text-[0.55rem] uppercase tracking-wide text-text-dim">{t("account.market.type")}</span>
+            <span className="field-label">{t("account.market.type")}</span>
             <TypeFilter value={type} onChange={(tp) => { setType(tp); if (tp) setSpecies(null); }} className="" />
           </div>
           <label className="flex flex-col gap-1">
-            <span className="text-[0.55rem] uppercase tracking-wide text-text-dim">{t("account.market.maxGold")}</span>
+            <span className="field-label">{t("account.market.maxGold")}</span>
             <input className="input" inputMode="numeric" placeholder="—" value={maxGold} onChange={(e) => setMaxGold(e.target.value)} />
           </label>
           <label className="flex flex-col gap-1">
-            <span className="text-[0.55rem] uppercase tracking-wide text-text-dim">{t("account.market.maxDiamonds")}</span>
+            <span className="field-label">{t("account.market.maxDiamonds")}</span>
             <input className="input" inputMode="numeric" placeholder="—" value={maxDiamonds} onChange={(e) => setMaxDiamonds(e.target.value)} />
           </label>
           <label className="flex flex-col gap-1">
-            <span className="text-[0.55rem] uppercase tracking-wide text-text-dim">{t("account.market.minQuality")}</span>
-            <select className="input" value={minQ} onChange={(e) => setMinQ(e.target.value)}>
-              <option value="">{t("account.market.any")}</option>
-              <option value="1.4">≥ 1.4</option>
-              <option value="1.8">≥ 1.8</option>
-              <option value="2.0">≥ 2.0</option>
-            </select>
+            <span className="field-label">{t("account.market.minQuality")}</span>
+            <SelectMenu
+              value={minQ}
+              onChange={setMinQ}
+              className=""
+              options={[
+                { value: "", label: t("account.market.any") },
+                { value: "1.4", label: "≥ 1.4" },
+                { value: "1.8", label: "≥ 1.8" },
+                { value: "2.0", label: "≥ 2.0" },
+              ]}
+            />
           </label>
           <label className="flex flex-col gap-1">
-            <span className="text-[0.55rem] uppercase tracking-wide text-text-dim">{t("account.market.minIv")}</span>
-            <select className="input" value={minIv} onChange={(e) => setMinIv(e.target.value)}>
-              <option value="">{t("account.market.any")}</option>
-              <option value="100">≥ 100</option>
-              <option value="150">≥ 150</option>
-            </select>
+            <span className="field-label">{t("account.market.minIv")}</span>
+            <SelectMenu
+              value={minIv}
+              onChange={setMinIv}
+              className=""
+              options={[
+                { value: "", label: t("account.market.any") },
+                { value: "100", label: "≥ 100" },
+                { value: "150", label: "≥ 150" },
+              ]}
+            />
           </label>
           <label className="flex flex-col gap-1">
-            <span className="text-[0.55rem] uppercase tracking-wide text-text-dim">{t("account.market.sort")}</span>
-            <select className="input" value={sort} onChange={(e) => setSort(e.target.value)}>
-              <option value="potential">{t("account.market.sort.potential")}</option>
-              <option value="quality">{t("account.market.sort.quality")}</option>
-              <option value="iv">{t("account.market.sort.iv")}</option>
-              <option value="power">{t("account.market.sort.power")}</option>
-              <option value="value">{t("account.market.sort.value")}</option>
-              <option value="price">{t("account.market.sort.price")}</option>
-            </select>
+            <span className="field-label">{t("account.market.sort")}</span>
+            <SelectMenu
+              value={sort}
+              onChange={setSort}
+              className=""
+              options={[
+                { value: "potential", label: t("account.market.sort.potential") },
+                { value: "quality", label: t("account.market.sort.quality") },
+                { value: "iv", label: t("account.market.sort.iv") },
+                { value: "power", label: t("account.market.sort.power") },
+                { value: "value", label: t("account.market.sort.value") },
+                { value: "price", label: t("account.market.sort.price") },
+              ]}
+            />
           </label>
           <div className="flex flex-col gap-1">
-            <span className="text-[0.55rem] uppercase tracking-wide text-text-dim">{t("alerts.f.filters")}</span>
+            <span className="field-label">{t("alerts.f.filters")}</span>
             <div className="flex flex-wrap items-center gap-2">
               <ToggleButton active={shiny} onClick={() => setShiny((s) => !s)} accent="yellow">
                 <Star size={13} /> {t("account.market.shiny")}
@@ -364,7 +378,7 @@ export function MarketAdvisor({
         </div>
         <div className="flex items-center justify-end gap-3">
           <button type="button" onClick={() => search()} disabled={busy} className="btn btn-cyan disabled:opacity-40">
-            {busy ? `${t("account.market.searching")}...` : `${t("account.market.search")} ›`}
+            {busy ? `${t("account.market.searching")}...` : <>{t("account.market.search")} <ChevronRight size={10} /></>}
           </button>
         </div>
       </div>

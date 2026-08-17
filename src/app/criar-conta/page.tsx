@@ -14,7 +14,7 @@ export default async function CriarContaPage() {
     <div className="mx-auto flex w-full max-w-md flex-col gap-6 py-8">
       <div className="text-center">
         <div className="eyebrow mb-2"><T k="auth.register.eyebrow" /></div>
-        <h1 className="pixel text-xl text-green"><T k="auth.register.title" /></h1>
+        <h1 className="pixel text-xl text-cyan"><T k="auth.register.title" /></h1>
         <p className="mt-3 text-sm text-text-dim"><T k="auth.register.desc" /></p>
       </div>
       <AuthForm mode="register" />

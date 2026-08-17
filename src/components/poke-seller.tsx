@@ -18,9 +18,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { ToggleButton } from "./toggle-button";
 import { Sprite } from "./sprite";
+import { StatTile } from "./stat-tile";
 import { spriteUrl } from "@/lib/sprites";
 import { useT } from "./locale-provider";
-import { Coin, Star } from "./icons";
+import { Coin, Star, Clock, Check, ChevronRight } from "./icons";
 import { RARITY_COLOR, RARITY_ORDER } from "@/lib/typing";
 import type { Rarity } from "@/lib/types";
 
@@ -108,7 +109,7 @@ function RarityBoxes({ selected, onToggle }: { selected: Rarity[]; onToggle: (r:
             className="chip inline-flex items-center gap-1.5 border transition"
             style={{ background: on ? color : "transparent", borderColor: color, color: on ? "#06111a" : color, opacity: on ? 1 : 0.5 }}
           >
-            <span className="w-2 text-center text-[0.6rem]">{on ? "✓" : "·"}</span>
+            <span className="inline-flex w-2 justify-center text-[0.6rem]">{on ? <Check size={9} /> : "·"}</span>
             {r}
           </button>
         );
@@ -165,14 +166,14 @@ export function PokeSeller() {
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <h2 className="pixel flex items-center gap-2 text-[0.8rem] text-yellow"><Coin size={14} /> {t("robo.pokes.title")}</h2>
+        <h2 className="section-title flex items-center gap-2 text-yellow"><Coin size={14} /> {t("robo.pokes.title")}</h2>
         <p className="mt-2 max-w-2xl text-sm text-text-dim">{t("robo.pokes.desc")}</p>
       </div>
 
       {/* travas configuraveis — sempre editaveis, salvam na hora */}
       <div className="card flex flex-col p-5">
         <div className="mb-1 flex items-center justify-between">
-          <h3 className="pixel text-[0.6rem] text-cyan">{t("robo.pokes.filters")}</h3>
+          <h3 className="section-title text-cyan">{t("robo.pokes.filters")}</h3>
           {saved && <span className="text-[0.66rem] font-semibold text-green">{t("robo.pokes.saved")}</span>}
         </div>
 
@@ -205,17 +206,17 @@ export function PokeSeller() {
           <div className="card flex flex-col gap-3 p-5">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="min-w-0">
-                <h3 className="pixel text-[0.6rem] text-yellow">{t("robo.auto.title")}</h3>
+                <h3 className="section-title text-yellow">{t("robo.auto.title")}</h3>
                 <p className="mt-1 text-[0.62rem] text-text-dim">{t("robo.auto.desc")}</p>
               </div>
               {on ? (
                 <button type="button" onClick={() => toggleAuto(false)} disabled={autoBusy} className="btn btn-ghost">{t("robo.auto.stop")}</button>
               ) : (
-                <button type="button" onClick={() => toggleAuto(true)} disabled={autoBusy || cfg.sellRarities.length === 0} className="btn btn-cyan disabled:opacity-40">{t("robo.auto.start")} ›</button>
+                <button type="button" onClick={() => toggleAuto(true)} disabled={autoBusy || cfg.sellRarities.length === 0} className="btn btn-cyan disabled:opacity-40">{t("robo.auto.start")} <ChevronRight size={10} /></button>
               )}
             </div>
             <div className="flex items-center gap-2 text-[0.72rem] font-semibold">
-              <span className="inline-block h-2 w-2 rounded-full" style={{ background: AUTO_COLOR[status] }} />
+              <span className={`inline-block h-2 w-2 rounded-full ${on ? "pulse-soft" : ""}`} style={{ background: AUTO_COLOR[status] }} />
               {t(`robo.auto.status.${status}`)}
             </div>
             {(status === "kicked" || status === "error") && (
@@ -225,18 +226,9 @@ export function PokeSeller() {
             )}
             {auto && (auto.soldTotal > 0 || auto.lastSweepAt) && (
               <div className="grid grid-cols-3 gap-2">
-                <div className="rounded border border-border p-2.5">
-                  <div className="text-[0.5rem] uppercase tracking-wide text-text-dim">{t("robo.auto.sold")}</div>
-                  <div className="mt-0.5 pixel text-[0.7rem] text-text">{fmt(auto.soldTotal)}</div>
-                </div>
-                <div className="rounded border border-border p-2.5">
-                  <div className="text-[0.5rem] uppercase tracking-wide text-text-dim">{t("robo.auto.gold")}</div>
-                  <div className="mt-0.5 pixel text-[0.7rem] text-yellow">{fmt(auto.goldTotal)}</div>
-                </div>
-                <div className="rounded border border-border p-2.5">
-                  <div className="text-[0.5rem] uppercase tracking-wide text-text-dim">{t("robo.auto.lastSweep")}</div>
-                  <div className="mt-0.5 pixel text-[0.7rem] text-text">{hhmm(auto.lastSweepAt)}</div>
-                </div>
+                <StatTile label={t("robo.auto.sold")} value={fmt(auto.soldTotal)} icon={<Coin size={11} className="text-text-dim" />} />
+                <StatTile label={t("robo.auto.gold")} value={fmt(auto.goldTotal)} accent="var(--yellow)" icon={<Coin size={11} />} />
+                <StatTile label={t("robo.auto.lastSweep")} value={hhmm(auto.lastSweepAt)} icon={<Clock size={11} className="text-text-dim" />} />
               </div>
             )}
             <p className="text-[0.58rem] leading-relaxed text-text-dim">{t("robo.auto.warn")}</p>
@@ -252,7 +244,7 @@ export function PokeSeller() {
         return (
           <div className="card flex flex-col gap-3 p-5">
             <div className="flex items-center justify-between gap-2">
-              <h3 className="pixel text-[0.6rem] text-cyan">{t("robo.auto.matches")}</h3>
+              <h3 className="section-title text-cyan">{t("robo.auto.matches")}</h3>
               {auto && auto.lastSold > 0 && <span className="text-[0.62rem] text-green">{t("robo.auto.justSold", { n: auto.lastSold })}</span>}
             </div>
             {matches.length === 0 ? (
@@ -260,8 +252,8 @@ export function PokeSeller() {
             ) : (
               <div className="grid max-h-96 gap-1.5 overflow-auto pr-1 sm:grid-cols-2">
                 {matches.map((p) => (
-                  <div key={p.id} className="flex items-center gap-2.5 rounded border border-border bg-[rgba(8,14,28,0.5)] p-2">
-                    <span className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded bg-[rgba(8,14,28,0.6)]">
+                  <div key={p.id} className="flex items-center gap-2.5 rounded border border-border bg-[var(--well-bg)] p-2">
+                    <span className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded bg-[var(--well-bg)]">
                       <Sprite src={spriteUrl(p.speciesId, p.shiny)} alt={p.name} size={34} />
                       {p.shiny && <span className="absolute right-0 top-0 text-yellow"><Star size={9} /></span>}
                     </span>

@@ -35,7 +35,7 @@ export function DropSeller({ itemIcons }: { itemIcons: Record<string, string> })
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <h2 className="pixel flex items-center gap-2 text-[0.8rem] text-yellow"><Coin size={14} /> {t("robo.sold.title")}</h2>
+        <h2 className="section-title flex items-center gap-2 text-yellow"><Coin size={14} /> {t("robo.sold.title")}</h2>
         <p className="mt-2 max-w-2xl text-sm text-text-dim">{t("robo.sold.desc")}</p>
       </div>
 
@@ -52,7 +52,7 @@ export function DropSeller({ itemIcons }: { itemIcons: Record<string, string> })
               {sold.map((i) => {
                 const icon = itemIcons[i.name.toLowerCase()];
                 return (
-                  <div key={i.itemId} className="flex items-center gap-2.5 rounded border border-border bg-[rgba(8,14,28,0.5)] p-2">
+                  <div key={i.itemId} className="flex items-center gap-2.5 rounded border border-border bg-[var(--well-bg)] p-2">
                     <span className="flex h-8 w-8 shrink-0 items-center justify-center">{icon ? <Sprite src={assetIconUrl(icon)} alt={i.name} size={26} /> : null}</span>
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-[0.75rem]">{i.name}</div>

@@ -18,6 +18,8 @@ import {
 import { Sprite } from "./sprite";
 import { TypeBadges } from "./badges";
 import { StatIcon } from "./stat-icons";
+import { Star, Plus, Minus, Close, ChevronRight } from "./icons";
+import { StatTile } from "./stat-tile";
 import { PokemonCombobox, type ComboCreature } from "./pokemon-combobox";
 import { useT } from "./locale-provider";
 
@@ -54,17 +56,6 @@ function loadSaved(): BreedMon[] {
   } catch {
     return [];
   }
-}
-
-// Estrela Shiny pixel.
-function ShinyStar({ size = 11 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 12 12" fill="currentColor" shapeRendering="crispEdges" style={{ imageRendering: "pixelated" }} aria-hidden="true">
-      {["....##....", "....##....", "...####...", ".########.", "..######..", ".########.", "..##..##..", ".##....##."].map((r, y) =>
-        [...r].map((c, x) => (c === "#" ? <rect key={`${x}-${y}`} x={x} y={y + 1} width={1} height={1} /> : null)),
-      )}
-    </svg>
-  );
 }
 
 // ---- rascunho editável de um dos pais ----
@@ -134,35 +125,35 @@ function ParentPanel({
       <div className="flex items-center justify-between">
         <span className="pixel text-[0.62rem]" style={{ color: accent }}>{label}</span>
         <div className="flex gap-1.5">
-          <button type="button" onClick={onSave} disabled={!complete} className="rounded border border-border px-2 py-1 text-[0.52rem] uppercase tracking-wide text-text-dim transition enabled:hover:border-[color:var(--green)] enabled:hover:text-green disabled:opacity-30">{t("breed.form.save")}</button>
-          <button type="button" onClick={onClear} className="rounded border border-border px-2 py-1 text-[0.52rem] uppercase tracking-wide text-text-dim transition hover:border-[color:var(--red)] hover:text-red">{t("breed.form.clear")}</button>
+          <button type="button" onClick={onSave} disabled={!complete} className="btn btn-ghost !px-2 !py-1 !text-[0.5rem] disabled:opacity-30">{t("breed.form.save")}</button>
+          <button type="button" onClick={onClear} className="btn btn-ghost !px-2 !py-1 !text-[0.5rem]">{t("breed.form.clear")}</button>
         </div>
       </div>
 
       <div className="flex gap-3">
-        <div className="relative flex h-16 w-16 shrink-0 items-center justify-center rounded bg-[rgba(8,14,28,0.6)]">
+        <div className="well !p-0 relative flex h-16 w-16 shrink-0 items-center justify-center">
           <Sprite src={draft.species ? spriteUrl(draft.species.pokeId, draft.shiny) : null} alt={draft.species?.name ?? ""} size={52} />
-          {draft.shiny && draft.species && <span className="absolute right-0.5 top-0.5 text-yellow"><ShinyStar size={11} /></span>}
+          {draft.shiny && draft.species && <span className="absolute right-0.5 top-0.5 text-yellow"><Star size={11} /></span>}
         </div>
         <div className="flex min-w-0 flex-1 flex-col gap-2">
           <PokemonCombobox creatures={creatures} value={draft.species} onSelect={(c) => set({ species: c })} placeholder={t("breed.form.pickSpecies")} />
           <div className="grid grid-cols-2 gap-2">
-            <input className="input !py-1.5 text-sm" value={draft.name} placeholder={draft.species?.name ?? t("breed.form.name")} onChange={(e) => set({ name: e.target.value })} />
-            <input className="input !py-1.5 text-sm" inputMode="decimal" value={draft.quality} placeholder={t("breed.form.quality")} onChange={(e) => set({ quality: e.target.value })} />
+            <input className="input" value={draft.name} placeholder={draft.species?.name ?? t("breed.form.name")} onChange={(e) => set({ name: e.target.value })} />
+            <input className="input" inputMode="decimal" value={draft.quality} placeholder={t("breed.form.quality")} onChange={(e) => set({ quality: e.target.value })} />
           </div>
         </div>
       </div>
 
       <div>
         <div className="mb-1.5 flex items-center justify-between">
-          <span className="text-[0.55rem] uppercase tracking-wide text-text-dim">{t("breed.form.ivs")}</span>
+          <span className="field-label">{t("breed.form.ivs")}</span>
           {total != null && <span className="text-[0.55rem] text-text-dim">{t("breed.ivLabel")} <span className="pixel text-[0.62rem] text-green">{total}</span>/{IV_MAX_TOTAL}</span>}
         </div>
         <div className="grid grid-cols-6 gap-1.5">
           {STAT_LABELS.map((lb, i) => (
             <label key={lb} className="flex flex-col items-center gap-0.5" title={lb}>
               <StatIcon index={i} size={10} />
-              <input className="input !px-1 !py-1 text-center text-[0.72rem]" inputMode="numeric" value={draft.ivs[i]} placeholder="0" onChange={(e) => setIv(i, e.target.value)} />
+              <input className="input input-sm !px-1 text-center" inputMode="numeric" value={draft.ivs[i]} placeholder="0" onChange={(e) => setIv(i, e.target.value)} />
             </label>
           ))}
         </div>
@@ -170,8 +161,8 @@ function ParentPanel({
 
       <div className="flex items-center justify-between">
         <label className="inline-flex cursor-pointer items-center gap-1.5 text-[0.68rem] text-text-dim">
-          <input type="checkbox" checked={draft.shiny} onChange={(e) => set({ shiny: e.target.checked })} className="h-3.5 w-3.5 accent-[color:var(--yellow)]" />
-          <span className="inline-flex items-center gap-1"><span className="text-yellow"><ShinyStar size={10} /></span>{t("breed.form.shiny")}</span>
+          <input type="checkbox" checked={draft.shiny} onChange={(e) => set({ shiny: e.target.checked })} className="h-4 w-4 accent-[color:var(--yellow)]" />
+          <span className="inline-flex items-center gap-1"><span className="text-yellow"><Star size={10} /></span>{t("breed.form.shiny")}</span>
         </label>
         {draft.species && <TypeBadges t1={draft.species.type1} t2={draft.species.type2} />}
       </div>
@@ -260,16 +251,16 @@ export function BreedTool({ creatures }: { creatures: BreedCreature[] }) {
   const evPhero = expectedGain("pheromone");
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-5">
       {/* ---- 1. Os dois pais ---- */}
       <section className="flex flex-col gap-4">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h2 className="pixel text-[0.8rem] text-green">{t("breed.parents.title")}</h2>
+            <h2 className="section-title text-green">{t("breed.parents.title")}</h2>
             <p className="mt-2 max-w-2xl text-sm text-text-dim">{t("breed.parents.desc")}</p>
           </div>
-          <button type="button" onClick={() => setRulesOpen((o) => !o)} className="rounded border border-border px-3 py-1.5 pixel text-[0.55rem] uppercase tracking-wide text-text-dim transition hover:border-[color:var(--border-strong)] hover:text-cyan">
-            {t("breed.rules.toggle")} {rulesOpen ? "−" : "+"}
+          <button type="button" onClick={() => setRulesOpen((o) => !o)} className="btn btn-ghost !px-3 !py-1.5 !text-[0.55rem]">
+            {t("breed.rules.toggle")} {rulesOpen ? <Minus size={10} /> : <Plus size={10} />}
           </button>
         </div>
 
@@ -277,7 +268,7 @@ export function BreedTool({ creatures }: { creatures: BreedCreature[] }) {
           <div className="card grid gap-2.5 p-4 sm:grid-cols-2">
             {["r1", "r2", "r3", "r4", "r5"].map((k) => (
               <p key={k} className="flex gap-2 text-[0.72rem] leading-relaxed text-text-dim">
-                <span className="text-cyan">›</span>
+                <span className="mt-0.5 shrink-0 text-cyan"><ChevronRight size={10} /></span>
                 <span>{t(`breed.rules.${k}`)}</span>
               </p>
             ))}
@@ -299,10 +290,10 @@ export function BreedTool({ creatures }: { creatures: BreedCreature[] }) {
             </div>
             <div className="flex flex-wrap gap-2">
               {saved.map((m) => (
-                <div key={m.id} className="flex items-center gap-2 rounded border border-border bg-[rgba(8,14,28,0.5)] px-2 py-1.5">
+                <div key={m.id} className="flex items-center gap-2 rounded border border-border bg-[var(--well-bg)] px-2 py-1.5">
                   <div className="relative flex h-8 w-8 items-center justify-center">
                     <Sprite src={spriteUrl(m.pokeId, m.shiny)} alt={m.name} size={30} />
-                    {m.shiny && <span className="absolute -right-0.5 -top-0.5 text-yellow"><ShinyStar size={8} /></span>}
+                    {m.shiny && <span className="absolute -right-0.5 -top-0.5 text-yellow"><Star size={8} /></span>}
                   </div>
                   <div className="text-[0.62rem] leading-tight">
                     <div className="max-w-[9rem] truncate font-semibold">{m.name}</div>
@@ -313,7 +304,7 @@ export function BreedTool({ creatures }: { creatures: BreedCreature[] }) {
                       <button type="button" onClick={() => loadInto("a", m)} className="rounded bg-surface-2 px-1.5 text-[0.5rem] text-cyan transition hover:brightness-125" title={t("breed.saved.toA")}>1</button>
                       <button type="button" onClick={() => loadInto("b", m)} className="rounded bg-surface-2 px-1.5 text-[0.5rem] text-purple transition hover:brightness-125" title={t("breed.saved.toB")}>2</button>
                     </div>
-                    <button type="button" onClick={() => removeSaved(m.id)} className="rounded px-1.5 text-[0.5rem] text-text-dim transition hover:text-red" title={t("breed.delete")}>×</button>
+                    <button type="button" onClick={() => removeSaved(m.id)} className="inline-flex justify-center rounded px-1.5 py-0.5 text-text-dim transition hover:text-red" title={t("breed.delete")}><Close size={10} /></button>
                   </div>
                 </div>
               ))}
@@ -324,12 +315,12 @@ export function BreedTool({ creatures }: { creatures: BreedCreature[] }) {
 
       {/* ---- 2. O ovo (resultado) ---- */}
       <section className="flex flex-col gap-4">
-        <h2 className="pixel text-[0.8rem] text-cyan">{t("breed.egg.title")}</h2>
+        <h2 className="section-title text-cyan">{t("breed.egg.title")}</h2>
 
         {/* modo + double stones */}
         <div className="grid gap-3 lg:grid-cols-[1fr_1fr_auto]">
           {([["free", t("breed.mode.free"), t("breed.mode.freeDesc"), evFree], ["pheromone", t("breed.mode.pheromone"), t("breed.mode.pheromoneDesc"), evPhero]] as const).map(([m, title, desc, ev]) => (
-            <button key={m} type="button" onClick={() => setMode(m)} className={`rounded-lg border p-3 text-left transition ${mode === m ? "border-[color:var(--cyan)] bg-surface-2" : "border-border hover:border-[color:var(--border-strong)]"}`}>
+            <button key={m} type="button" onClick={() => setMode(m)} className={`card p-3 text-left transition ${mode === m ? "border-[color:var(--cyan)] bg-surface-2" : "border-border hover:border-[color:var(--border-strong)]"}`}>
               <div className="flex items-center justify-between">
                 <span className="inline-flex items-center gap-2">
                   <span className={`inline-block h-3 w-3 rounded-full border ${mode === m ? "border-cyan bg-cyan" : "border-text-dim"}`} />
@@ -340,7 +331,7 @@ export function BreedTool({ creatures }: { creatures: BreedCreature[] }) {
               <p className="mt-1.5 pl-5 text-[0.62rem] leading-relaxed text-text-dim">{desc}</p>
             </button>
           ))}
-          <label className={`flex cursor-pointer items-start gap-2 rounded-lg border p-3 transition ${doubleStones ? "border-[color:var(--yellow)] bg-[rgba(244,210,74,0.06)]" : "border-border hover:border-[color:var(--border-strong)]"}`}>
+          <label className={`card flex cursor-pointer items-start gap-2 p-3 transition ${doubleStones ? "border-[color:var(--yellow)] bg-[rgba(244,210,74,0.06)]" : "border-border hover:border-[color:var(--border-strong)]"}`}>
             <input type="checkbox" checked={doubleStones} onChange={(e) => setDoubleStones(e.target.checked)} className="mt-0.5 h-4 w-4 accent-[color:var(--yellow)]" />
             <span>
               <span className="pixel text-[0.58rem] text-yellow">{t("breed.double")}</span>
@@ -359,17 +350,17 @@ export function BreedTool({ creatures }: { creatures: BreedCreature[] }) {
           <div className="card fadein flex flex-col gap-5 p-5">
             {/* topo: ovo + Quality */}
             <div className="grid gap-4 lg:grid-cols-[auto_1fr]">
-              <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-[color:var(--green)] p-4 sm:min-w-[190px]">
-                <div className="relative flex h-24 w-24 items-center justify-center rounded bg-[rgba(8,14,28,0.6)]">
+              <div className="card flex flex-col items-center justify-center gap-2 p-4 sm:min-w-[190px]" style={{ borderColor: "var(--green)" }}>
+                <div className="well !p-0 relative flex h-24 w-24 items-center justify-center">
                   <Sprite src={spriteUrl(monA.pokeId, egg.shinyGuaranteed)} alt={monA.species} size={84} />
-                  {egg.shinyGuaranteed && <span className="absolute right-1 top-1 text-yellow"><ShinyStar size={15} /></span>}
+                  {egg.shinyGuaranteed && <span className="absolute right-1 top-1 text-yellow"><Star size={15} /></span>}
                 </div>
                 <div className="text-center">
                   <div className="text-sm font-semibold">{monA.species}</div>
                   <TypeBadges t1={monA.type1} t2={monA.type2} />
                 </div>
                 {egg.shinyGuaranteed ? (
-                  <span className="chip" style={{ background: "var(--yellow)", color: "#3a2c00" }}><ShinyStar size={10} />{t("breed.egg.shinyGuar")}</span>
+                  <span className="chip" style={{ background: "var(--yellow)", color: "#3a2c00" }}><Star size={10} />{t("breed.egg.shinyGuar")}</span>
                 ) : egg.spontaneousShinyChance > 0 ? (
                   <span className="text-[0.6rem] text-yellow">{t("breed.egg.shinyChance")}</span>
                 ) : (
@@ -379,27 +370,18 @@ export function BreedTool({ creatures }: { creatures: BreedCreature[] }) {
 
               <div className="flex flex-col gap-4">
                 <div className="grid grid-cols-3 gap-3">
-                  <div className="rounded border border-border bg-[rgba(8,14,28,0.5)] px-3 py-2">
-                    <div className="text-[0.52rem] uppercase tracking-wide text-text-dim">{t("breed.egg.range")}</div>
-                    <div className="pixel mt-0.5 text-[0.7rem] text-cyan">{q3(egg.minQuality)}–{q3(egg.maxQuality)}</div>
-                  </div>
-                  <div className="rounded border border-border bg-[rgba(8,14,28,0.5)] px-3 py-2">
-                    <div className="text-[0.52rem] uppercase tracking-wide text-text-dim">{t("breed.egg.avg")}</div>
-                    <div className="pixel mt-0.5 text-[0.7rem] text-yellow">{q3(egg.expectedQuality)}</div>
-                  </div>
-                  <div className="rounded border border-border bg-[rgba(8,14,28,0.5)] px-3 py-2">
-                    <div className="text-[0.52rem] uppercase tracking-wide text-text-dim">{t("breed.egg.ivTotal")}</div>
-                    <div className="pixel mt-0.5 text-[0.7rem] text-green">{egg.ivTotal}<span className="text-text-dim">/{IV_MAX_TOTAL}</span></div>
-                  </div>
+                  <StatTile label={t("breed.egg.range")} accent="var(--cyan)" value={<>{q3(egg.minQuality)}–{q3(egg.maxQuality)}</>} />
+                  <StatTile label={t("breed.egg.avg")} accent="var(--yellow)" value={q3(egg.expectedQuality)} />
+                  <StatTile label={t("breed.egg.ivTotal")} accent="var(--green)" value={<>{egg.ivTotal}<span className="text-text-dim">/{IV_MAX_TOTAL}</span></>} />
                 </div>
                 {/* IVs herdados */}
                 <div>
-                  <div className="mb-2 text-[0.58rem] uppercase tracking-wide text-text-dim">{t("breed.egg.inherits", { name: (egg.fromParent === "a" ? monA : monB).name })}</div>
+                  <div className="field-label mb-2">{t("breed.egg.inherits", { name: (egg.fromParent === "a" ? monA : monB).name })}</div>
                   <div className="grid grid-cols-6 gap-2">
                     {egg.ivs.map((v, i) => {
                       const boosted = egg.doubleStoneEligible.includes(i);
                       return (
-                        <div key={i} className={`flex flex-col items-center rounded border py-1.5 ${boosted ? "border-yellow bg-[rgba(244,210,74,0.06)]" : "border-border bg-[rgba(8,14,28,0.5)]"}`} title={STAT_LABELS[i]}>
+                        <div key={i} className={`flex flex-col items-center rounded border py-1.5 ${boosted ? "border-yellow bg-[rgba(244,210,74,0.06)]" : "border-border bg-[var(--well-bg)]"}`} title={STAT_LABELS[i]}>
                           <StatIcon index={i} size={10} />
                           <span className={`text-[0.64rem] tabular-nums ${ivColor(v)}`}>{v}{boosted ? "+" : ""}</span>
                         </div>
@@ -424,14 +406,14 @@ export function BreedTool({ creatures }: { creatures: BreedCreature[] }) {
                 <h4 className="pixel text-[0.58rem] text-green">{t("breed.egg.stats")}</h4>
                 <label className="inline-flex items-center gap-2 text-[0.6rem] text-text-dim">
                   {t("breed.egg.level")}
-                  <input className="input !w-20 !py-1 text-center text-sm" inputMode="numeric" value={projLevel} onChange={(e) => setProjLevel(e.target.value)} />
+                  <input className="input input-sm w-20 text-center" inputMode="numeric" value={projLevel} onChange={(e) => setProjLevel(e.target.value)} />
                 </label>
               </div>
               {eggStats ? (
                 <>
                   <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
                     {STAT_LABELS.map((lb, i) => (
-                      <div key={lb} className="rounded border border-border bg-[rgba(8,14,28,0.5)] px-2 py-2 text-center">
+                      <div key={lb} className="well text-center">
                         <div className="inline-flex items-center gap-1 text-[0.5rem] uppercase tracking-wide text-text-dim"><StatIcon index={i} size={9} />{lb}</div>
                         <div className="pixel mt-0.5 text-[0.72rem] text-text">{eggStats.stats[i]}</div>
                       </div>
@@ -462,13 +444,13 @@ export function BreedTool({ creatures }: { creatures: BreedCreature[] }) {
       {/* ---- 3. Planejador de Quality (feature nossa) ---- */}
       <section className="flex flex-col gap-4">
         <div>
-          <h2 className="pixel text-[0.8rem] text-purple">{t("breed.plan.title")}</h2>
+          <h2 className="section-title text-purple">{t("breed.plan.title")}</h2>
           <p className="mt-2 max-w-2xl text-sm text-text-dim">{t("breed.plan.desc")}</p>
         </div>
         <div className="card flex flex-col gap-5 p-5">
           <div className="grid gap-3 sm:grid-cols-2">
-            <div className="rounded border border-border bg-[rgba(8,14,28,0.5)] px-3 py-2.5">
-              <div className="text-[0.55rem] uppercase tracking-wide text-text-dim">{t("breed.plan.base")}</div>
+            <div className="well">
+              <div className="field-label">{t("breed.plan.base")}</div>
               {planBase ? (
                 <div className="mt-0.5 flex items-center gap-2">
                   <Sprite src={spriteUrl(planBase.pokeId, planBase.shiny)} alt="" size={22} />
@@ -481,7 +463,7 @@ export function BreedTool({ creatures }: { creatures: BreedCreature[] }) {
               <div className="mt-1 text-[0.55rem] text-text-dim">{t("breed.plan.baseHint")}</div>
             </div>
             <label className="flex flex-col gap-1">
-              <span className="text-[0.55rem] uppercase tracking-wide text-text-dim">{t("breed.plan.target")}</span>
+              <span className="field-label">{t("breed.plan.target")}</span>
               <input className="input" inputMode="decimal" value={targetQ} placeholder="ex: 2.200" onChange={(e) => setTargetQ(e.target.value)} />
             </label>
           </div>
@@ -497,14 +479,14 @@ export function BreedTool({ creatures }: { creatures: BreedCreature[] }) {
                   const isFree = line.mode === "free";
                   const color = isFree ? "var(--cyan)" : "var(--purple)";
                   return (
-                    <div key={line.mode} className="rounded-lg border p-4" style={{ borderColor: color }}>
+                    <div key={line.mode} className="card p-4" style={{ borderColor: color }}>
                       <div className="mb-3 flex items-center justify-between">
                         <span className="pixel text-[0.6rem]" style={{ color }}>{isFree ? t("breed.mode.free") : t("breed.mode.pheromone")}</span>
                         <span className="text-[0.55rem] text-text-dim">{t("breed.plan.perStep")} +{line.maxStepGain.toFixed(3)}</span>
                       </div>
                       <div className="flex items-baseline gap-2">
                         <span className="pixel text-lg" style={{ color }}>{line.breeds}</span>
-                        <span className="text-[0.6rem] uppercase tracking-wide text-text-dim">{t("breed.plan.breeds")}</span>
+                        <span className="field-label">{t("breed.plan.breeds")}</span>
                       </div>
                       <div className="mt-3 flex flex-col gap-1 border-t border-border pt-2 text-[0.64rem] text-text-dim">
                         <span>{t("breed.plan.money")} <span className="pixel text-[0.66rem] text-yellow">R$ {line.money.toLocaleString("pt-BR")}</span></span>

@@ -5,9 +5,11 @@ import { assetIconUrl, skinSpriteUrl, skinName, spriteUrl } from "@/lib/sprites"
 import type { Account, AccountItem, ActivePoke } from "@/lib/game-account";
 import { Sprite } from "./sprite";
 import { LoadingBall } from "./loaders";
+import { Pokeball } from "./pokeball";
+import { StatTile } from "./stat-tile";
 import type { ComboCreature } from "./pokemon-combobox";
 import { useT } from "./locale-provider";
-import { Star } from "./icons";
+import { Star, Coin, Diamond, Skull, Xp, Check, ArrowDown, Infinity_, ChevronRight } from "./icons";
 
 const fmt = (n: number) => n.toLocaleString("pt-BR");
 const fmtDate = (s: string) => (s ? new Date(s).toLocaleDateString("pt-BR") : "—");
@@ -39,8 +41,8 @@ function Bookmarklet() {
     ref.current?.setAttribute("href", code);
   }, [t]);
   return (
-    <a ref={ref} href="/conta" onClick={(e) => e.preventDefault()} draggable className="btn btn-cyan inline-flex cursor-grab select-none" title={t("account.bm.drag")}>
-      ↧ {t("account.bm.btn")}
+    <a ref={ref} href="/conta" onClick={(e) => e.preventDefault()} draggable className="btn btn-cyan inline-flex cursor-grab select-none items-center gap-1.5" title={t("account.bm.drag")}>
+      <ArrowDown size={12} /> {t("account.bm.btn")}
     </a>
   );
 }
@@ -49,7 +51,7 @@ function ConnectForm({ expired }: { expired?: boolean }) {
   const t = useT();
   return (
     <div className="card p-5">
-      <h2 className="pixel text-[0.72rem] text-cyan">{t("account.connect.title")}</h2>
+      <h2 className="section-title text-cyan">{t("account.connect.title")}</h2>
       {expired && (
         <div className="mt-3 rounded border border-[color:var(--yellow)]/50 bg-[rgba(240,200,60,0.08)] px-3 py-2 text-[0.72rem] text-yellow">
           {t("account.expired")}
@@ -58,10 +60,10 @@ function ConnectForm({ expired }: { expired?: boolean }) {
       <p className="mt-3 text-sm text-text-dim">{t("account.connect.help")}</p>
 
       <div className="mt-4 rounded border border-[color:var(--cyan)]/40 bg-[rgba(57,139,240,0.06)] p-4">
-        <div className="pixel text-[0.6rem] text-cyan">{t("account.bm.title")}</div>
+        <div className="section-title text-cyan">{t("account.bm.title")}</div>
         <ol className="mt-2 flex flex-col gap-1 text-[0.7rem] leading-relaxed text-text-dim">
           {["s1", "s2", "s3"].map((s) => (
-            <li key={s} className="flex gap-2"><span className="text-cyan">›</span><span>{t(`account.bm.${s}`)}</span></li>
+            <li key={s} className="flex items-start gap-2"><span className="mt-0.5 inline-flex text-cyan"><ChevronRight size={8} /></span><span>{t(`account.bm.${s}`)}</span></li>
           ))}
         </ol>
         <div className="mt-3"><Bookmarklet /></div>
@@ -71,19 +73,16 @@ function ConnectForm({ expired }: { expired?: boolean }) {
   );
 }
 
-// --- blocos text-forward (rótulo escrito, sem ícone em cada coisa) ---
-function Stat({ label, value, color = "text-text" }: { label: string; value: React.ReactNode; color?: string }) {
-  return (
-    <div className="rounded border border-border bg-[rgba(8,14,28,0.5)] px-3 py-2">
-      <div className="text-[0.5rem] uppercase tracking-wide text-text-dim">{label}</div>
-      <div className={`mt-0.5 pixel text-[0.72rem] ${color}`}>{value}</div>
-    </div>
-  );
+// Mini-tile de stat: agora no poco padrao (.well via StatTile), com icone pixel opcional.
+// A cor do valor continua vindo por classe (`color`) pra preservar os spans internos.
+function Stat({ label, value, color = "text-text", icon }: { label: string; value: React.ReactNode; color?: string; icon?: React.ReactNode }) {
+  return <StatTile label={label} value={<span className={color}>{value}</span>} icon={icon} />;
 }
+// Linha rótulo/valor text-forward (config escrita, sem tile) — Treinador/Automação.
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between gap-3 border-b border-border/40 py-1.5 last:border-b-0">
-      <span className="text-[0.58rem] uppercase tracking-wide text-text-dim">{label}</span>
+      <span className="field-label">{label}</span>
       <span className="text-right text-[0.72rem] text-text">{value}</span>
     </div>
   );
@@ -92,7 +91,7 @@ function Section({ title, color, extra, children }: { title: string; color: stri
   return (
     <div className="card p-4">
       <div className="mb-3 flex items-center justify-between gap-2">
-        <h3 className={`pixel text-[0.6rem] ${color}`}>{title}</h3>
+        <h3 className={`section-title ${color}`}>{title}</h3>
         {extra}
       </div>
       {children}
@@ -115,7 +114,7 @@ function Overview({ account }: { account: Account }) {
       <div className="flex items-start gap-4">
         {skinUrl && (
           <div className="shrink-0 text-center">
-            <div className="flex h-[68px] w-[68px] items-center justify-center rounded-lg border border-[color:var(--cyan)]/40 bg-[rgba(8,14,28,0.6)]">
+            <div className="flex h-[68px] w-[68px] items-center justify-center rounded-lg border border-[color:var(--cyan)]/40 bg-[var(--well-bg)]">
               <Sprite src={skinUrl} alt={skin ?? "skin"} size={56} />
             </div>
             {skin && <div className="mt-1 w-[68px] text-[0.48rem] leading-tight text-text-dim">{skin}</div>}
@@ -128,11 +127,11 @@ function Overview({ account }: { account: Account }) {
             <span className="text-[0.55rem] uppercase tracking-wide text-text-dim">{t(`account.gender.${account.trainer.gender}`)}</span>
           </div>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
-            <Stat label={t("account.profile.level")} value={fmt(p.level)} color="text-cyan" />
-            <Stat label={t("account.profile.gold")} value={fmt(p.gold)} color="text-yellow" />
-            <Stat label={t("account.profile.diamonds")} value={fmt(p.diamonds)} color="text-cyan" />
-            <Stat label={t("account.profile.catches")} value={fmt(p.catches)} />
-            <Stat label={t("account.profile.pokedex")} value={<span className="text-green">{p.pokedexCount}<span className="text-text-dim">/{p.pokedexTotal}</span></span>} />
+            <Stat label={t("account.profile.level")} value={fmt(p.level)} color="text-cyan" icon={<Xp size={11} className="text-cyan" />} />
+            <Stat label={t("account.profile.gold")} value={fmt(p.gold)} color="text-yellow" icon={<Coin size={11} />} />
+            <Stat label={t("account.profile.diamonds")} value={fmt(p.diamonds)} color="text-cyan" icon={<Diamond size={11} className="text-cyan" />} />
+            <Stat label={t("account.profile.catches")} value={fmt(p.catches)} icon={<Pokeball size={11} />} />
+            <Stat label={t("account.profile.pokedex")} value={<span className="text-green">{p.pokedexCount}<span className="text-text-dim">/{p.pokedexTotal}</span></span>} icon={<Star size={11} className="text-green" />} />
             <Stat label={t("account.f.rank")} value={p.rank > 0 ? `#${fmt(p.rank)}` : "—"} />
           </div>
           {p.xpForNext > 0 && (
@@ -141,7 +140,7 @@ function Overview({ account }: { account: Account }) {
                 <span>XP · {t("account.profile.level")} {p.level}</span>
                 <span className="tabular-nums">{fmt(p.xpInLevel)} / {fmt(p.xpForNext)}</span>
               </div>
-              <div className="h-2 overflow-hidden rounded bg-[rgba(8,14,28,0.7)]">
+              <div className="h-2 overflow-hidden rounded bg-[var(--well-bg)]">
                 <div className="h-full rounded bg-[color:var(--green)]" style={{ width: `${xpPct}%` }} />
               </div>
             </div>
@@ -195,10 +194,10 @@ function StreakCard({ account }: { account: Account }) {
   return (
     <Section title={t("account.sec.streak")} color="text-yellow">
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-        <Stat label={t("account.f.streakPoints")} value={fmt(s.available)} color="text-yellow" />
-        <Stat label={t("account.f.streakKills")} value={fmt(s.totalKills)} />
-        <Stat label={t("account.f.streakBonus")} value={<span className="text-green">{pct(s.bonusExp + s.bonusLoot + s.bonusShiny)}</span>} />
-        <Stat label="EXP · Loot · Shiny" value={<span className="text-green">{pct(s.bonusExp)} · {pct(s.bonusLoot)} · {pct(s.bonusShiny)}</span>} />
+        <Stat label={t("account.f.streakPoints")} value={fmt(s.available)} color="text-yellow" icon={<Coin size={11} />} />
+        <Stat label={t("account.f.streakKills")} value={fmt(s.totalKills)} icon={<Skull size={11} className="text-text-dim" />} />
+        <Stat label={t("account.f.streakBonus")} value={<span className="text-green">{pct(s.bonusExp + s.bonusLoot + s.bonusShiny)}</span>} icon={<Xp size={11} className="text-green" />} />
+        <Stat label="EXP · Loot · Shiny" value={<span className="text-green">{pct(s.bonusExp)} · {pct(s.bonusLoot)} · {pct(s.bonusShiny)}</span>} icon={<Star size={11} className="text-green" />} />
       </div>
     </Section>
   );
@@ -219,7 +218,7 @@ function BreedingCard({ account }: { account: Account }) {
         <div className="mt-3 flex flex-wrap gap-2">
           {b.eggs.map((e) => (
             <span key={e.id} className="chip inline-flex items-center gap-1">
-              {e.name}{e.dexId ? ` · #${e.dexId}` : ""}{e.shiny && <span className="text-yellow"><Star size={9} /></span>}{e.ready && <span className="text-green">✓</span>}
+              {e.name}{e.dexId ? ` · #${e.dexId}` : ""}{e.shiny && <span className="text-yellow"><Star size={9} /></span>}{e.ready && <span className="text-green"><Check size={9} /></span>}
             </span>
           ))}
         </div>
@@ -234,7 +233,7 @@ function ItemsCard({ title, color, items }: { title: string; color: string; item
     <Section title={`${title} (${items.length})`} color={color}>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
         {items.map((it) => (
-          <div key={it.id} className="flex items-center gap-2 rounded border border-border bg-[rgba(8,14,28,0.5)] px-2 py-1.5">
+          <div key={it.id} className="flex items-center gap-2 rounded border border-border bg-[var(--well-bg)] px-2 py-1.5">
             <span className="flex h-8 w-8 shrink-0 items-center justify-center">
               <Sprite src={assetIconUrl(it.icon)} alt={it.name} size={26} />
             </span>
@@ -264,14 +263,14 @@ function BallsCard({ account }: { account: Account }) {
           return (
             <div
               key={b.id}
-              className={`flex items-center gap-2 rounded border border-border bg-[rgba(8,14,28,0.5)] px-2 py-1.5 ${owned ? "" : "opacity-45"}`}
+              className={`flex items-center gap-2 rounded border border-border bg-[var(--well-bg)] px-2 py-1.5 ${owned ? "" : "opacity-45"}`}
             >
               <span className="flex h-7 w-7 shrink-0 items-center justify-center">
                 <Sprite src={b.iconUrl ? assetIconUrl(b.iconUrl) : null} alt={b.name} size={22} />
               </span>
               <div className="min-w-0 text-[0.6rem] leading-tight">
                 <div className="truncate text-text">{b.name}</div>
-                <div className="tabular-nums text-text-dim">{b.infinite ? "∞" : `x${fmt(b.count)}`}</div>
+                <div className="tabular-nums text-text-dim">{b.infinite ? <Infinity_ size={13} /> : `x${fmt(b.count)}`}</div>
               </div>
             </div>
           );
@@ -284,8 +283,8 @@ function BallsCard({ account }: { account: Account }) {
 function TeamMon({ p }: { p: ActivePoke }) {
   const t = useT();
   return (
-    <div className="flex items-center gap-3 rounded border border-border bg-[rgba(8,14,28,0.5)] p-2.5">
-      <div className="relative flex h-14 w-14 shrink-0 items-center justify-center rounded bg-[rgba(8,14,28,0.6)]">
+    <div className="flex items-center gap-3 rounded border border-border bg-[var(--well-bg)] p-2.5">
+      <div className="relative flex h-14 w-14 shrink-0 items-center justify-center rounded bg-[var(--well-bg)]">
         <Sprite src={spriteUrl(p.speciesId, p.shiny)} alt={p.name} size={48} />
         {p.shiny && <span className="absolute right-0.5 top-0.5 text-yellow"><Star size={11} /></span>}
       </div>
@@ -373,7 +372,7 @@ export function AccountPanel({ creatures }: { creatures: ComboCreature[] }) {
   return (
     <div className="flex flex-col gap-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="pixel text-[0.72rem] text-green">{t("account.connected.title")}</h2>
+        <h2 className="section-title text-green">{t("account.connected.title")}</h2>
         <button type="button" onClick={disconnect} className="btn btn-ghost">{t("account.disconnect")}</button>
       </div>
       <Overview account={account} />

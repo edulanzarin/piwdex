@@ -16,10 +16,10 @@ export default async function DexPage() {
   for (const c of creatures) acq[c.pokeId] = db.acquisitionOf(c);
   return (
     <PokedexShell>
-      <div className="flex flex-col gap-5">
+      <div className="flex flex-col gap-6">
         <div>
           <div className="eyebrow mb-2"><T k="dex.eyebrow" /></div>
-          <h1 className="pixel text-lg text-text"><T k="dex.title" /></h1>
+          <h1 className="pixel text-xl text-cyan"><T k="dex.title" /></h1>
         </div>
         <DexBrowser creatures={ordered} acq={acq} />
       </div>

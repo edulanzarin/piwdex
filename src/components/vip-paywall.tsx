@@ -6,7 +6,7 @@
 
 import { useState } from "react";
 import { useT } from "./locale-provider";
-import { Star } from "./icons";
+import { Star, ChevronRight } from "./icons";
 
 const BENEFITS = ["vip.benefit.market", "vip.benefit.alerts", "vip.benefit.robot"] as const;
 
@@ -68,7 +68,7 @@ export function VipPaywall({ status }: { status: string | null }) {
             <div className="text-[0.6rem] text-text-dim">{t("vip.priceNote")}</div>
           </div>
           <button type="button" onClick={subscribe} disabled={busy} className="btn btn-cyan disabled:opacity-50">
-            {busy ? `${t("vip.subscribing")}...` : `${t("vip.subscribe")} ›`}
+            {busy ? `${t("vip.subscribing")}...` : <>{t("vip.subscribe")} <ChevronRight size={10} /></>}
           </button>
         </div>
         {err && <p className="text-[0.72rem] font-semibold text-red">{err}</p>}

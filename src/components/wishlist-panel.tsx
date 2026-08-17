@@ -16,12 +16,14 @@ import { LoadingBall } from "./loaders";
 import { Pagination } from "./pagination";
 import { PokemonCombobox, type ComboCreature } from "./pokemon-combobox";
 import { ToggleButton } from "./toggle-button";
+import { SelectMenu } from "./select-menu";
+import { CloseButton } from "./icon-button";
 import { TypeFilter } from "./type-filter";
 import { TypeIcon } from "./type-icon";
 import { TYPE_COLOR } from "@/lib/typing";
 import { MarketMonModal, MarketMonCard, type MarketDex } from "./market-advisor";
 import { useT, useTypeLabel } from "./locale-provider";
-import { Star, Heart } from "./icons";
+import { Star, Heart, ChevronRight } from "./icons";
 
 const fmt = (n: number) => n.toLocaleString("pt-BR");
 const numI = (s: string) => {
@@ -128,12 +130,12 @@ function NewWish({ creatures, onCreated }: { creatures: ComboCreature[]; onCreat
     }
   };
 
-  const lblCls = "text-[0.55rem] uppercase tracking-wide text-text-dim";
+  const lblCls = "field-label";
 
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <h2 className="pixel flex items-center gap-2 text-[0.8rem] text-cyan">
+        <h2 className="section-title flex items-center gap-2 text-cyan">
           <Heart size={14} className="text-pink" /> {t("wish.new.title")}
         </h2>
         <p className="mt-2 max-w-2xl text-sm text-text-dim">{t("wish.new.help")}</p>
@@ -159,19 +161,20 @@ function NewWish({ creatures, onCreated }: { creatures: ComboCreature[]; onCreat
           </label>
           <label className="flex flex-col gap-1">
             <span className={lblCls}>{t("alerts.f.minQuality")}</span>
-            <select className="input" value={minQ} onChange={(e) => setMinQ(e.target.value)}>
-              {qualityOpts.map((o) => (
-                <option key={o.value} value={o.value}>{o.label}</option>
-              ))}
-            </select>
+            <SelectMenu value={minQ} onChange={setMinQ} className="" options={qualityOpts} />
           </label>
           <label className="flex flex-col gap-1">
             <span className={lblCls}>{t("alerts.f.minIv")}</span>
-            <select className="input" value={minIv} onChange={(e) => setMinIv(e.target.value)}>
-              <option value="">{t("alerts.quality.any")}</option>
-              <option value="100">≥ 100</option>
-              <option value="150">≥ 150</option>
-            </select>
+            <SelectMenu
+              value={minIv}
+              onChange={setMinIv}
+              className=""
+              options={[
+                { value: "", label: t("alerts.quality.any") },
+                { value: "100", label: "≥ 100" },
+                { value: "150", label: "≥ 150" },
+              ]}
+            />
           </label>
           <div className="flex flex-col gap-1">
             <span className={lblCls}>{t("alerts.f.filters")}</span>
@@ -188,7 +191,7 @@ function NewWish({ creatures, onCreated }: { creatures: ComboCreature[]; onCreat
         <div className="flex items-center justify-between gap-3">
           <span className="text-[0.72rem] font-semibold text-red">{err ?? ""}</span>
           <button type="button" onClick={submit} disabled={busy} className="btn btn-cyan disabled:opacity-40">
-            {busy ? `${t("wish.new.saving")}...` : `${t("wish.new.save")} ›`}
+            {busy ? `${t("wish.new.saving")}...` : <>{t("wish.new.save")} <ChevronRight size={10} /></>}
           </button>
         </div>
       </div>
@@ -247,8 +250,8 @@ function WishBlock({
       <div className="flex items-center gap-3">
         {/* cabecalho clicavel = expande/recolhe */}
         <button type="button" onClick={onToggleExpand} className="flex min-w-0 flex-1 items-center gap-3 text-left" aria-expanded={expanded}>
-          <span className="text-[0.7rem] text-cyan" style={{ transform: expanded ? "rotate(90deg)" : "none", transition: "transform .15s" }}>›</span>
-          <div className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded bg-[rgba(8,14,28,0.6)]">
+          <span className="inline-flex text-cyan" style={{ transform: expanded ? "rotate(90deg)" : "none", transition: "transform .15s" }}><ChevronRight size={9} /></span>
+          <div className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded bg-[var(--well-bg)]">
             {!w.speciesId && w.type ? (
               <span className="flex h-7 w-7 items-center justify-center rounded" style={{ background: TYPE_COLOR[w.type as PokeType], color: "#fff" }}>
                 <TypeIcon type={w.type as PokeType} size={16} />
@@ -272,7 +275,7 @@ function WishBlock({
           <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ background: w.active ? "var(--green)" : "var(--text-dim)" }} />
           {t(w.active ? "alerts.on" : "alerts.off")}
         </ToggleButton>
-        <button type="button" onClick={onDelete} title={t("alerts.delete")} aria-label={t("alerts.delete")} className="text-text-dim transition hover:text-red">✕</button>
+        <CloseButton onClick={onDelete} title={t("alerts.delete")} />
       </div>
 
       {expanded &&
@@ -286,9 +289,7 @@ function WishBlock({
                     key={n.id}
                     mon={mon}
                     onClick={() => onOpen(mon)}
-                    right={
-                      <button type="button" onClick={() => onDismiss(n.id)} title={t("alerts.dismiss")} aria-label={t("alerts.dismiss")} className="rounded bg-[rgba(8,14,28,0.7)] px-1 text-text-dim transition hover:text-red">✕</button>
-                    }
+                    right={<CloseButton onClick={() => onDismiss(n.id)} title={t("alerts.dismiss")} />}
                   />
                 );
               })}
@@ -381,7 +382,7 @@ export function WishlistPanel({ creatures, dex, focusWishId }: { creatures: Comb
       />
 
       <div className="flex flex-col gap-3">
-        <h3 className="pixel flex items-center gap-2 text-[0.6rem] text-cyan">
+        <h3 className="section-title flex items-center gap-2 text-cyan">
           <Heart size={12} className="text-pink" /> {t("wish.list.title")}
         </h3>
         {wishes.status === "loading" ? (

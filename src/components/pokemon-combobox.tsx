@@ -6,6 +6,7 @@ import { spriteUrl } from "@/lib/sprites";
 import { TYPE_COLOR } from "@/lib/typing";
 import type { PokeType } from "@/lib/types";
 import { Sprite } from "./sprite";
+import { Close } from "./icons";
 import { useT } from "./locale-provider";
 
 export interface ComboCreature {
@@ -135,11 +136,11 @@ export function PokemonCombobox<T extends ComboCreature>({
         {value && (
           <button
             type="button"
-            className="text-text-dim hover:text-red text-sm"
+            className="text-text-dim hover:text-red"
             onClick={(e) => { e.stopPropagation(); onSelect(null); setQuery(""); }}
             aria-label="limpar"
           >
-            ×
+            <Close size={12} />
           </button>
         )}
       </div>

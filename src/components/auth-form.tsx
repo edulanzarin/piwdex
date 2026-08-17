@@ -28,16 +28,16 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
       <form action={formAction} className="flex flex-col gap-3">
         {mode === "register" && (
           <label className="flex flex-col gap-1">
-            <span className="text-[0.55rem] uppercase tracking-wide text-text-dim">{t("auth.f.name")}</span>
+            <span className="field-label">{t("auth.f.name")}</span>
             <input name="nome" type="text" autoComplete="name" className="input" />
           </label>
         )}
         <label className="flex flex-col gap-1">
-          <span className="text-[0.55rem] uppercase tracking-wide text-text-dim">{t("auth.f.email")}</span>
+          <span className="field-label">{t("auth.f.email")}</span>
           <input name="email" type="email" required autoComplete="email" className="input" />
         </label>
         <label className="flex flex-col gap-1">
-          <span className="text-[0.55rem] uppercase tracking-wide text-text-dim">{t("auth.f.senha")}</span>
+          <span className="field-label">{t("auth.f.senha")}</span>
           <input
             name="senha"
             type="password"

@@ -5,7 +5,7 @@ export default function Loading() {
     <div className="flex flex-col gap-6">
       <div>
         <div className="eyebrow mb-2">Indice reverso</div>
-        <h1 className="pixel text-xl text-text">Itens & drops</h1>
+        <h1 className="pixel text-xl text-green">Itens & drops</h1>
       </div>
       <div className="flex flex-col gap-3 sm:flex-row">
         <div className="skeleton h-10 w-full max-w-xs rounded" />

@@ -11,7 +11,8 @@ import { StatBar } from "@/components/stat-bar";
 import { CASINO_PRICE } from "@/lib/casino-prices";
 import { Sprite } from "@/components/sprite";
 import { HeroSprite } from "@/components/hero-sprite";
-import { Gold } from "@/components/icons";
+import { StatTile } from "@/components/stat-tile";
+import { Gold, Xp, ChevronLeft, ChevronRight } from "@/components/icons";
 import { Reveal } from "@/components/reveal";
 import { PokedexShell } from "@/components/pokedex-shell";
 import { T } from "@/components/locale-provider";
@@ -57,7 +58,7 @@ function pctLabel(p: number): string {
 }
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
-  return <h2 className="pixel mb-4 text-[0.72rem] text-cyan">{children}</h2>;
+  return <h2 className="section-title mb-4 text-cyan">{children}</h2>;
 }
 
 function EffRow({ titleKey, entries, emptyKey }: { titleKey: string; entries: TypeMult[]; emptyKey: string }) {
@@ -123,9 +124,9 @@ export default async function CreaturePage({
 
   return (
     <PokedexShell animate={false}>
-    <div className="flex flex-col gap-5">
-      <Link href="/dex" className="text-[0.7rem] text-text-dim hover:text-cyan uppercase tracking-wide">
-        ‹ <T k="cr.back" />
+    <div className="flex flex-col gap-6">
+      <Link href="/dex" className="inline-flex items-center gap-1 text-[0.7rem] text-text-dim hover:text-cyan uppercase tracking-wide">
+        <ChevronLeft size={10} /> <T k="cr.back" />
       </Link>
 
       {/* Cabecalho */}
@@ -150,10 +151,15 @@ export default async function CreaturePage({
 
           {/* grade de mini-stats — preenche o cabecalho com dado util */}
           <div className="mt-1 grid grid-cols-2 gap-2 sm:grid-cols-4">
-            <MiniStat label={<T k="cr.totalBase" />} value={<span className="text-cyan">{total}</span>} />
-            <MiniStat label={<T k="cr.huntLvl" />} value={c.huntLevel} />
-            <MiniStat label={<T k="cr.xp" />} value={c.experience.toLocaleString("pt-BR")} />
-            <MiniStat
+            <StatTile label={<T k="cr.totalBase" />} value={total} accent="var(--cyan)" />
+            <StatTile label={<T k="cr.huntLvl" />} value={c.huntLevel} accent="var(--cyan)" />
+            <StatTile
+              label={<T k="cr.xp" />}
+              value={c.experience.toLocaleString("pt-BR")}
+              icon={<Xp size={11} className="text-yellow" />}
+              accent="var(--cyan)"
+            />
+            <StatTile
               label={<T k={CASINO_PRICE[c.pokeId] ? "cr.casino" : "cr.value"} />}
               value={<Gold value={CASINO_PRICE[c.pokeId] ?? (c.sellValue > 0 ? c.sellValue : c.priceNpc)} />}
             />
@@ -166,7 +172,7 @@ export default async function CreaturePage({
           <SectionTitle><T k="cr.statsBase" /></SectionTitle>
           <p className="-mt-2 mb-4 text-[0.68rem] leading-relaxed text-text-dim">
             <T k="cr.statsHint" />{" "}
-            <Link href="/calc" className="text-cyan hover:underline"><T k="cr.statsHintLink" /> ›</Link>
+            <Link href="/calc" className="inline-flex items-center gap-1 text-cyan hover:underline"><T k="cr.statsHintLink" /> <ChevronRight size={9} /></Link>
           </p>
           <div className="flex flex-col gap-2.5">
             {STATS.map(([label, key], i) => (
@@ -208,8 +214,8 @@ export default async function CreaturePage({
             <SectionTitle><T k="cr.evolution" /></SectionTitle>
             <div className="flex flex-1 flex-col items-center justify-center gap-4 py-4 text-center">
               <p className="max-w-xs text-sm text-text-dim"><T k="eevee.branches" /></p>
-              <Link href="/eevee" className="btn" style={{ background: "var(--cyan)", color: "#06131a" }}>
-                <T k="eevee.open" /> ›
+              <Link href="/eevee" className="btn btn-cyan">
+                <T k="eevee.open" /> <ChevronRight size={10} />
               </Link>
             </div>
           </Reveal>
@@ -220,7 +226,7 @@ export default async function CreaturePage({
               {chain.map((stage, i) => (
                 <div key={stage.creature.pokeId} className="flex items-center gap-3">
                   {i > 0 && (
-                    <span className="pixel text-[0.55rem] text-text-dim">lvl {stage.evolveLevel ?? "?"} ›</span>
+                    <span className="pixel inline-flex items-center gap-1 text-[0.55rem] text-text-dim">lvl {stage.evolveLevel ?? "?"} <ChevronRight size={9} /></span>
                   )}
                   <Link
                     href={`/dex/${stage.creature.pokeId}`}
@@ -242,7 +248,7 @@ export default async function CreaturePage({
           {locations.length ? (
             <div className="flex flex-col gap-2">
               {locations.map((h) => (
-                <div key={h.slug} className="flex items-center gap-3 rounded border border-border bg-[rgba(8,14,28,0.5)] px-3 py-2">
+                <div key={h.slug} className="well flex items-center gap-3">
                   <span className="text-red"><MapPin size={18} /></span>
                   <div className="flex flex-col">
                     <span className="text-sm text-text">{h.name}</span>
@@ -287,7 +293,7 @@ export default async function CreaturePage({
                         <Link href={`/items/${item.id}`} className="flex items-center gap-2 text-cyan group-hover:underline">
                           <Sprite src={itemIconUrl(item)} alt="" size={22} />
                           {l.name}
-                          <span className="text-[0.6rem] text-text-dim opacity-0 transition group-hover:opacity-100">›</span>
+                          <span className="text-text-dim opacity-0 transition group-hover:opacity-100"><ChevronRight size={10} /></span>
                         </Link>
                       ) : (
                         <span className="flex items-center gap-2">{l.name}</span>
@@ -332,14 +338,5 @@ export default async function CreaturePage({
       </Reveal>
     </div>
     </PokedexShell>
-  );
-}
-
-function MiniStat({ label, value }: { label: React.ReactNode; value: React.ReactNode }) {
-  return (
-    <div className="rounded border border-border bg-[rgba(8,14,28,0.5)] px-3 py-2">
-      <div className="text-[0.55rem] uppercase tracking-wide text-text-dim">{label}</div>
-      <div className="mt-0.5 flex items-center gap-1 text-sm font-bold tabular-nums">{value}</div>
-    </div>
   );
 }

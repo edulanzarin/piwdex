@@ -10,7 +10,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useT } from "./locale-provider";
-import { Star } from "./icons";
+import { CloseButton } from "./icon-button";
+import { Star, ChevronRight } from "./icons";
 
 const HIDDEN = ["/vip", "/entrar", "/criar-conta", "/conectar"];
 
@@ -41,13 +42,13 @@ export function VipCta({ vip }: { vip: boolean }) {
           style={{ borderColor: "color-mix(in srgb, var(--yellow) 45%, transparent)", background: "rgba(240,200,60,0.05)" }}
         >
           <div className="min-w-0">
-            <div className="pixel flex items-center gap-2 text-[0.72rem] text-yellow">
+            <div className="section-title flex items-center gap-2 text-yellow">
               <Star size={13} /> {t("vipcta.title")}
             </div>
             <p className="mt-2 max-w-2xl text-[0.72rem] leading-relaxed text-text-dim">{t("vipcta.desc")}</p>
           </div>
-          <Link href="/vip" className="btn shrink-0" style={{ background: "var(--yellow)", color: "#3a2c00" }}>
-            {t("vipcta.btn")} ›
+          <Link href="/vip" className="btn btn-yellow shrink-0">
+            {t("vipcta.btn")} <ChevronRight size={10} />
           </Link>
         </div>
       </div>
@@ -58,20 +59,13 @@ export function VipCta({ vip }: { vip: boolean }) {
           <div className="container-page flex items-center gap-3 py-3">
             <Star size={14} className="shrink-0 text-yellow" />
             <div className="min-w-0 flex-1">
-              <div className="pixel text-[0.62rem] text-yellow">{t("vipcta.title")}</div>
+              <div className="section-title text-yellow">{t("vipcta.title")}</div>
               <p className="mt-0.5 hidden truncate text-[0.62rem] text-text-dim sm:block">{t("vipcta.desc")}</p>
             </div>
-            <Link href="/vip" className="btn shrink-0" style={{ background: "var(--yellow)", color: "#3a2c00" }}>
-              {t("vipcta.btn")} ›
+            <Link href="/vip" className="btn btn-yellow shrink-0">
+              {t("vipcta.btn")} <ChevronRight size={10} />
             </Link>
-            <button
-              type="button"
-              onClick={() => setDismissed(true)}
-              aria-label={t("robo.hunt.close")}
-              className="shrink-0 rounded p-1.5 text-text-dim transition hover:bg-surface-2 hover:text-text"
-            >
-              ✕
-            </button>
+            <CloseButton onClick={() => setDismissed(true)} title={t("robo.hunt.close")} className="shrink-0" />
           </div>
         </div>
       )}

@@ -15,16 +15,18 @@ import { AccountPanel } from "./account-panel";
 import type { HuntOption, DropOption } from "./hunt-analyzer";
 import type { ComboCreature } from "./pokemon-combobox";
 import { useT } from "./locale-provider";
-import { Coin, Heart, Bell } from "./icons";
-import { NavAccount, NavRobo } from "./nav-icons";
+import { Tabs } from "./tabs";
+import { Coin, Heart, Bell, Trainer, Robot } from "./icons";
 
 type Tab = "conta" | "mercado" | "desejos" | "alertas" | "robo";
+// Uma familia so de icone na fila de abas: todos pixel (Trainer/Coin/Heart/Bell/Robot),
+// nada de misturar com o set de LINHA da navegacao.
 const TABS: { key: Tab; Icon?: (p: { size?: number; className?: string }) => React.ReactNode; iconClass?: string }[] = [
-  { key: "conta", Icon: NavAccount },
+  { key: "conta", Icon: Trainer },
   { key: "mercado", Icon: Coin },
   { key: "desejos", Icon: Heart, iconClass: "text-pink" },
   { key: "alertas", Icon: Bell },
-  { key: "robo", Icon: NavRobo },
+  { key: "robo", Icon: Robot },
 ];
 const isTab = (v: string): v is Tab => TABS.some((tb) => tb.key === v);
 
@@ -56,19 +58,24 @@ export function VipTabs({ creatures, dex, hunts, itemIcons, lootByPoke }: { crea
     setTimeout(() => document.getElementById(`wish-${watchlistId}`)?.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
   };
 
+  // Abas migradas pro primitivo <Tabs> (acento amarelo VIP). O icone e o badge de
+  // nao-lidos viajam junto no item: icon = icone da aba, label = texto + badge.
+  const tabItems = TABS.map(({ key, Icon, iconClass }) => ({
+    key,
+    icon: Icon ? <Icon size={11} className={iconClass} /> : undefined,
+    label: (
+      <>
+        {t(`vip.tab.${key}`)}
+        {key === "alertas" && unread > 0 && (
+          <span className="rounded-full bg-cyan px-1.5 py-0.5 text-[0.5rem] text-[#06131a]">{unread}</span>
+        )}
+      </>
+    ),
+  }));
+
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap gap-1.5 border-b border-border pb-3">
-        {TABS.map(({ key, Icon, iconClass }) => (
-          <button key={key} type="button" onClick={() => go(key)} className={`tab inline-flex items-center gap-1.5 ${tab === key ? "tab-active" : ""}`}>
-            {Icon && <Icon size={11} className={iconClass} />}
-            {t(`vip.tab.${key}`)}
-            {key === "alertas" && unread > 0 && (
-              <span className="rounded-full bg-cyan px-1.5 py-0.5 text-[0.5rem] text-[#06131a]">{unread}</span>
-            )}
-          </button>
-        ))}
-      </div>
+      <Tabs tabs={tabItems} active={tab} onChange={(k) => go(k as Tab)} accent="var(--yellow)" />
 
       {tab === "conta" && <AccountPanel creatures={creatures} />}
       {tab === "mercado" && <MarketAdvisor creatures={creatures} dex={dex} />}
