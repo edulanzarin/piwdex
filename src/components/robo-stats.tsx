@@ -40,8 +40,10 @@ function Card({ title, color, icon, children }: { title: string; color: string; 
 export function RoboStats() {
   const t = useT();
   const d = useVipLive().totals;
-  // dolar por fonte (loot coletado vs vendas)
-  const goldMax = Math.max(1, d?.lootGold ?? 0, d?.itemsGold ?? 0, d?.pokesGold ?? 0);
+  // dolar RECEBIDO (so o que entrou de verdade: venda). O valor do loot coletado NAO
+  // entra aqui — ele vira venda depois; contar os dois duplicaria a mesma moeda.
+  const received = (d?.itemsGold ?? 0) + (d?.pokesGold ?? 0);
+  const goldMax = Math.max(1, d?.itemsGold ?? 0, d?.pokesGold ?? 0, d?.supplyGold ?? 0);
   // acervo por raridade (so as que existem, na ordem oficial)
   const rar = RARITY_ORDER.filter((r) => (d?.acervo.byRarity[r] ?? 0) > 0);
   const rarMax = Math.max(1, ...rar.map((r) => d!.acervo.byRarity[r]));
@@ -63,18 +65,24 @@ export function RoboStats() {
           <StatTile label={t("robo.stats.rareItems")} value={fmt(d?.rareItems ?? 0)} accent="var(--yellow)" icon={<Star size={11} className="text-yellow" />} />
           <StatTile label={t("robo.stats.xp")} value={fmt(d?.xpGained ?? 0)} accent="var(--cyan)" icon={<Xp size={11} className="text-cyan" />} />
         </div>
+        {/* valor do loot que dropou: INFORMATIVO — so vira dolar quando o robo vende */}
+        <p className="flex items-center gap-1.5 text-[0.6rem] text-text-dim">
+          <Coin size={9} />
+          {t("robo.stats.lootGoldHint", { v: fmt(d?.lootGold ?? 0) })}
+        </p>
       </Card>
 
-      {/* Dólar — de onde veio (loot coletado vs vendas) e o gasto em supply */}
+      {/* Dólar RECEBIDO — so venda gera dolar (loot coletado nao entra: duplicaria) */}
       <Card title={t("robo.stats.goldTitle")} color="text-green" icon={<Coin size={13} />}>
+        <p className="-mt-2 text-[0.6rem] leading-relaxed text-text-dim">{t("robo.stats.goldHint")}</p>
         <div className="flex flex-col gap-2.5">
-          <Bar label={t("robo.stats.src.loot")} value={d?.lootGold ?? 0} max={goldMax} color="var(--green)" />
-          <Bar label={t("robo.stats.src.items")} value={d?.itemsGold ?? 0} max={goldMax} color="var(--cyan)" />
+          <Bar label={t("robo.stats.src.items")} value={d?.itemsGold ?? 0} max={goldMax} color="var(--green)" />
           <Bar label={t("robo.stats.src.pokes")} value={d?.pokesGold ?? 0} max={goldMax} color="var(--yellow)" />
+          <Bar label={t("robo.stats.src.supply")} value={d?.supplyGold ?? 0} max={goldMax} color="var(--pink)" valueText={`-${fmt(d?.supplyGold ?? 0)}`} />
         </div>
         <div className="grid grid-cols-2 gap-2">
-          <StatTile label={t("robo.stats.lootGold")} value={fmt(d?.lootGold ?? 0)} accent="var(--green)" icon={<Coin size={11} />} />
-          <StatTile label={t("robo.stats.supply")} value={`-${fmt(d?.supplyGold ?? 0)}`} icon={<Coin size={11} className="text-text-dim" />} />
+          <StatTile label={t("robo.stats.received")} value={fmt(received)} accent="var(--green)" icon={<Coin size={11} />} />
+          <StatTile label={t("robo.stats.net")} value={fmt(received - (d?.supplyGold ?? 0))} accent={received - (d?.supplyGold ?? 0) >= 0 ? "var(--green)" : "var(--pink)"} icon={<Coin size={11} />} />
         </div>
       </Card>
 

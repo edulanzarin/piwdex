@@ -419,7 +419,8 @@ export function VipOverview({
               <StatTile label={t("vip.ov.tHunts")} value={fmt(totals.hunts)} icon={<Target size={11} className="text-cyan" />} hover />
               <StatTile label={t("vip.ov.tKills")} value={fmt(totals.kills)} icon={<Skull size={11} className="text-text-dim" />} hover />
               <StatTile label={t("vip.ov.tXp")} value={fmt(totals.xpGained)} accent="var(--cyan)" icon={<Xp size={11} className="text-cyan" />} hover />
-              <StatTile label={t("vip.ov.tGold")} value={fmt(totals.itemsGold + totals.pokesGold + totals.lootGold)} accent="var(--green)" icon={<Coin size={11} />} hover />
+              {/* so dolar RECEBIDO (vendas) — o valor do loot coletado vira venda depois, somar duplicaria */}
+              <StatTile label={t("vip.ov.tGold")} value={fmt(totals.itemsGold + totals.pokesGold)} accent="var(--green)" icon={<Coin size={11} />} hover />
               <StatTile label={t("vip.ov.tCaptures")} value={fmt(totals.captures)} icon={<Pokeball size={11} />} hover />
               <StatTile label={t("vip.ov.tAcervo")} value={fmt(totals.acervo?.total ?? 0)} accent="var(--blue)" icon={<Backpack size={11} className="text-blue" />} hover />
             </div>
