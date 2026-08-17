@@ -376,12 +376,32 @@ class GameSession {
 
   // Reaplica a automacao no campo VIVO sem reconectar: reenvia enter-hunt na MESMA conexao
   // pro jogo reler a autohelper (bola do auto-catch, bola shiny, pocao, bola selecionada).
-  // O jogo cacheia essa config ao entrar no campo — por isso trocar a bola "nao pegava" ate
-  // reconectar. Chamado pela rota /api/vip/auto quando a config muda com a hunt ligada.
-  // Retorna true se havia hunt viva pra reaplicar. NAO derruba a sessao (mesma conexao).
+  // Retorna true se havia hunt viva pra reaplicar.
+  // ATENCAO: isso REGREDIU no jogo — a autohelper agora vem no SNAPSHOT da conexao e o
+  // reenter nem sempre religa a config (bola trocada seguia a antiga). Pro caso critico
+  // (config mudou com hunt viva) use bounceLive(), que garante a releitura.
   refreshHunt(): boolean {
     if (this.ws && this.slug) { this.send({ type: "enter-hunt", slug: this.slug }); return true; }
     return false;
+  }
+
+  /** Reconecta a sessao VIVA na hora (bounce) pra o jogo reler a config do ZERO — a
+   *  autohelper vem no snapshot da conexao, entao so uma conexao nova garante a bola
+   *  certa. O rendimento atual e persistido ANTES (logSummary) porque o analyzer do
+   *  jogo zera ao reconectar — os totais de Estatisticas nao perdem nada. Retorna true
+   *  se havia sessao viva pra reciclar. */
+  bounceLive(): boolean {
+    if (!this.ws || !this.desiredOn) return false;
+    this.logSummary(); // persiste o acumulado deste trecho (o analyzer vai zerar)
+    const oldWs = this.ws;
+    this.gen++;        // handlers do socket velho morrem (nao disparam onGone/reconnect)
+    this.ws = null;
+    this.clearTimers();
+    try { oldWs.close(); } catch { /* ja caiu */ }
+    this.analyzer = null;
+    this.summaryLogged = false; // o proximo trecho gera o proprio resumo ao fechar
+    this.connect();    // reabre AGORA (snapshot novo -> autohelper nova; enter-hunt no open)
+    return true;
   }
 
   // Troca o pokemon ATIVO/LIDER (o que caca) na sessao VIVA: poke-summon na mesma conexao,
@@ -822,7 +842,7 @@ class GameSession {
 // SESSION_REV: bump SEMPRE que a classe ganhar/mudar metodo — no dev, o hot-reload
 // re-avalia o modulo mas a instancia antiga (prototype velho) fica presa no globalThis;
 // sem o rev, chamar um metodo novo dava "is not a function" ate reiniciar o server.
-const SESSION_REV = 2;
+const SESSION_REV = 3;
 const g = globalThis as unknown as { __piwSession?: GameSession; __piwSessionRev?: number };
 if (!g.__piwSession || g.__piwSessionRev !== SESSION_REV) {
   // silencia a instancia velha SEM persistir nada (stop() gravaria enabled=false no banco

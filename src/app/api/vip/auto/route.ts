@@ -58,10 +58,12 @@ export async function POST(req: Request) {
   if (!w) return NextResponse.json({ error: "game_unreachable" }, { status: 502 });
   if (!w.ok) return NextResponse.json({ error: "write_failed", status: w.status }, { status: 502 });
 
-  // Reaplica no campo VIVO (mesma sessao, sem reconectar): o jogo cacheia a autohelper ao
-  // entrar no campo, entao trocar a bola so pega depois de reenviar enter-hunt. Se nao houver
-  // hunt rodando, e no-op (a config ja foi gravada e valera no proximo enter-hunt).
-  gameSession.refreshHunt();
+  // Reaplica no campo VIVO: o jogo le a autohelper no SNAPSHOT da conexao — reenviar
+  // enter-hunt deixou de bastar (a bola trocada seguia a antiga). bounceLive() recicla a
+  // sessao na hora (fecha e reabre o socket): snapshot novo = config nova, garantido. O
+  // rendimento do trecho atual e persistido antes (nada se perde nas Estatisticas). Sem
+  // sessao viva e no-op — a config gravada vale no proximo connect.
+  gameSession.bounceLive();
 
   // Re-le o estado completo (a resposta do auto-helper pode vir parcial).
   let tokens = w.tokens;
