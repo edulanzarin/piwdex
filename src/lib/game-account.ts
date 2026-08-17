@@ -199,6 +199,23 @@ export interface Account {
     bonusLoot: number;
     bonusShiny: number;
   };
+  // battle pass + pontos de atividade (characters/me — mapeado por HAR ago/2026)
+  pass: {
+    points: number;
+    premium: boolean;
+    claimed: number;        // recompensas free resgatadas
+    claimedPremium: number; // recompensas premium resgatadas
+  };
+  points: {
+    pictures: number;   // fotos tiradas (photo hunt)
+    pokelog: number;
+    boss: number;
+    stylist: number;
+    engineer: number;
+    professor: number;
+    adventurer: number;
+    nightmare: number;  // nightmare level
+  };
   breeding: {
     unlocked: boolean;
     usedSlots: number;
@@ -289,6 +306,22 @@ export function normalizeAccount(parts: AccountParts): Account {
         bonusShiny: num(b.shiny),
       };
     })(),
+    pass: {
+      points: num(c.battlePassPoints),
+      premium: Boolean(c.battlePassPremium),
+      claimed: Array.isArray(c.battlePassClaimed) ? c.battlePassClaimed.length : 0,
+      claimedPremium: Array.isArray(c.battlePassClaimedPremium) ? c.battlePassClaimedPremium.length : 0,
+    },
+    points: {
+      pictures: num(c.picturesTaken),
+      pokelog: num(c.pokelogPoints),
+      boss: num(c.bossPoints),
+      stylist: num(c.stylistPoints),
+      engineer: num(c.engineerPoints),
+      professor: num(c.professorPoints),
+      adventurer: num(c.adventurerPoints),
+      nightmare: num(c.nightmareLevel),
+    },
     breeding: {
       unlocked: Boolean(breeding.unlocked),
       usedSlots: num(breeding.usedSlots),

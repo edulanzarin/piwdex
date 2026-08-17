@@ -199,6 +199,44 @@ function StreakCard({ account }: { account: Account }) {
   );
 }
 
+// Battle pass + pontos de atividade (characters/me). O passe some se a conta nunca pontuou;
+// dos pontos, so aparecem os != 0 (a maioria das contas nao toca em todos os modos).
+function BattlePassCard({ account }: { account: Account }) {
+  const t = useT();
+  const bp = account.pass;
+  const pts = account.points;
+  const activities: { key: string; value: number }[] = [
+    { key: "pictures", value: pts.pictures },
+    { key: "pokelog", value: pts.pokelog },
+    { key: "boss", value: pts.boss },
+    { key: "stylist", value: pts.stylist },
+    { key: "engineer", value: pts.engineer },
+    { key: "professor", value: pts.professor },
+    { key: "adventurer", value: pts.adventurer },
+    { key: "nightmare", value: pts.nightmare },
+  ].filter((a) => a.value !== 0);
+  if (bp.points === 0 && !bp.premium && activities.length === 0) return null;
+  return (
+    <Section title={t("account.sec.pass")} color="text-purple">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <Stat label={t("account.f.passPoints")} value={fmt(bp.points)} color="text-purple" icon={<Star size={11} className="text-purple" />} />
+        <Stat label={t("account.f.passTier")} value={bp.premium
+          ? <span className="text-yellow">{t("account.f.passPremium")}</span>
+          : <span className="text-text-dim">{t("account.f.passFree")}</span>} />
+        <Stat label={t("account.f.passClaimed")} value={<span>{fmt(bp.claimed)}<span className="text-text-dim"> + {fmt(bp.claimedPremium)} premium</span></span>} />
+        <Stat label={t("account.f.passTotal")} value={fmt(bp.claimed + bp.claimedPremium)} />
+      </div>
+      {activities.length > 0 && (
+        <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {activities.map((a) => (
+            <Stat key={a.key} label={t(`account.f.pts.${a.key}`)} value={fmt(a.value)} />
+          ))}
+        </div>
+      )}
+    </Section>
+  );
+}
+
 function BreedingCard({ account }: { account: Account }) {
   const t = useT();
   const b = account.breeding;
@@ -374,6 +412,7 @@ export function AccountPanel({ creatures }: { creatures: ComboCreature[] }) {
       <TrainerCard account={account} />
       <AutomationCard account={account} nameById={nameById} />
       <StreakCard account={account} />
+      <BattlePassCard account={account} />
       <BreedingCard account={account} />
       <div className="grid gap-5 lg:grid-cols-2">
         <ItemsCard title={t("account.sec.inventory")} color="text-green" items={account.inventory} />
