@@ -144,7 +144,7 @@ export function PokeSeller() {
     } finally { setAutoBusy(false); }
   };
 
-  // "Vender agora": dispara uma varredura na hora (ignora o intervalo de 1h)
+  // "Vender agora": dispara uma varredura imediata (a venda ja acontece assim que coleta)
   const sellNow = async () => {
     setAutoBusy(true);
     try {

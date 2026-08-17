@@ -85,3 +85,29 @@ export async function fetchActivePokes(tokens: Tokens, knownShard?: number | nul
   }
   return scanShards(token, 7000);
 }
+
+// Troca o pokemon ATIVO/LIDER via poke-summon numa conexao ONE-SHOT (abre, manda, fecha).
+// So usar quando NAO ha sessao de hunt viva — com hunt rodando, o single-session derrubaria
+// a caca, entao o caller manda pelo socket vivo (gameSession.summonActive). Resolve true
+// quando o jogo confirma (echo poke-summon ou pokes atualizado).
+export function summonPoke(tokens: Tokens, shard: number, pokeId: string, timeoutMs = 6000): Promise<boolean> {
+  const token = tokens.access;
+  return new Promise((resolve) => {
+    let settled = false;
+    let ws: WebSocket;
+    const done = (v: boolean) => { if (settled) return; settled = true; try { ws.close(); } catch { /* noop */ } resolve(v); };
+    try {
+      ws = new WebSocket(`${WS_BASE}/ws${shard}?token=${encodeURIComponent(token)}`);
+    } catch { resolve(false); return; }
+    const to = setTimeout(() => done(false), timeoutMs);
+    ws.addEventListener("open", () => { try { ws.send(JSON.stringify({ type: "poke-summon", pokeId })); } catch { /* noop */ } });
+    ws.addEventListener("message", (ev: MessageEvent) => {
+      try {
+        const j = JSON.parse(typeof ev.data === "string" ? ev.data : "") as { type?: string };
+        if (j?.type === "poke-summon") { clearTimeout(to); done(true); }
+      } catch { /* frame nao-json */ }
+    });
+    ws.addEventListener("close", () => { clearTimeout(to); done(false); });
+    ws.addEventListener("error", () => { clearTimeout(to); done(false); });
+  });
+}

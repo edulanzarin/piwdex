@@ -30,7 +30,9 @@ const UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Geck
 const ANALYZER_MS = 2000; // poll do analyzer (e keepalive da hunt)
 const POKES_MS = 20000;   // poll da lista de pokemon (venda + keepalive)
 const DROPS_MS = 30000;   // varredura de venda de drops
-const SELL_EVERY_MS = 60 * 60 * 1000; // venda de pokemon roda 1x por hora (ou no "Vender agora")
+// A venda de pokemon vende ASSIM QUE COLETA (a cada varredura de pokes que tenha match),
+// igual a de drops — sem throttle de 1h. Sem alerta por venda (poluia o feed): o vendido
+// aparece nos paineis "Itens/Pokemon vendidos" e no totalizador de Estatisticas.
 // auto-compra de consumiveis: reabastece 1x/h as bolas da automacao quando ficam baixas.
 const BUY_EVERY_MS = 60 * 60 * 1000;
 const BALL_FLOOR = 100;   // abaixo disso, repoe
@@ -98,8 +100,6 @@ class GameSession {
   private recentKills: KillLog[] = [];
   private soldItems: SoldItem[] = [];
   private poke: PokeSellSub = { on: false, soldBySpecies: {} };
-  private lastPokeSellAt = 0; // ultima venda de pokemon (throttle de 1h)
-  private forceSell = false;  // "Vender agora" forca a proxima varredura
   private recordedIds = new Set<string>(); // ids ja gravados no acervo (evita rescrever no banco)
   private gen = 0; // geracao do socket: invalida os handlers de um socket antigo no reconnect
   private baselineIds: Set<string> | null = null; // ids que voce JA tinha ao ligar (colecao antiga)
@@ -158,7 +158,6 @@ class GameSession {
     this.ctx(userId, tokens, shard, onTokens);
     this.pokeCfg = cfg;
     this.poke.on = true;
-    this.lastPokeSellAt = 0; // a primeira varredura vende logo; depois e de 1h em 1h
     this.baselineIds = null; // refaz a base: a conta atual nao entra no acervo, so novas capturas
     this.applyOrConnect(false);
   }
@@ -176,6 +175,24 @@ class GameSession {
     if (!this.ws) { this.connect(); return; }
     if (this.slug && reenter) this.send({ type: "enter-hunt", slug: this.slug });
     this.refreshTimers();
+  }
+
+  // Reaplica a automacao no campo VIVO sem reconectar: reenvia enter-hunt na MESMA conexao
+  // pro jogo reler a autohelper (bola do auto-catch, bola shiny, pocao, bola selecionada).
+  // O jogo cacheia essa config ao entrar no campo — por isso trocar a bola "nao pegava" ate
+  // reconectar. Chamado pela rota /api/vip/auto quando a config muda com a hunt ligada.
+  // Retorna true se havia hunt viva pra reaplicar. NAO derruba a sessao (mesma conexao).
+  refreshHunt(): boolean {
+    if (this.ws && this.slug) { this.send({ type: "enter-hunt", slug: this.slug }); return true; }
+    return false;
+  }
+
+  // Troca o pokemon ATIVO/LIDER (o que caca) na sessao VIVA: poke-summon na mesma conexao,
+  // sem reconectar (single-session: abrir outro socket derrubaria a hunt). Retorna true se
+  // havia conexao viva pra mandar. Sem conexao, o caller faz um one-shot (game-ws.summonPoke).
+  summonActive(pokeId: string): boolean {
+    if (this.ws && this.status === "running") { this.send({ type: "poke-summon", pokeId }); return true; }
+    return false;
   }
 
   private connect() {
@@ -280,25 +297,21 @@ class GameSession {
           else this.soldItems.unshift({ itemId: s.itemId, name: it?.name ?? `#${s.itemId}`, qty: s.qty, gold, at: Date.now() });
         }
         if (this.soldItems.length > 30) this.soldItems.length = 30;
-        if (this.userId && qtyTotal > 0) {
-          void logRobotEvent(this.userId, { kind: "item-sold", title: `Vendeu ${qtyTotal} itens`, body: `+$${Math.round(goldTotal)}`, data: { count: qtyTotal, gold: goldTotal } });
-          void addRobotSales(this.userId, { itemsCount: qtyTotal, itemsGold: goldTotal }); // totalizador cumulativo
-        }
+        // sem alerta por venda (poluia o feed): o vendido ja aparece em "Itens vendidos" e
+        // no totalizador de Estatisticas. So acumula o totalizador cumulativo.
+        if (this.userId && qtyTotal > 0) void addRobotSales(this.userId, { itemsCount: qtyTotal, itemsGold: goldTotal });
       }
     } catch { /* proxima varredura tenta */ } finally { this.sellingDrops = false; }
   }
 
   // Uma VARREDURA de venda de pokemon: le a lista viva da conta, aplica as travas e vende
-  // os que batem (REST). Nunca time/lider/starter/shiny (filterSellable). Roda 1x por hora
-  // (throttle) ou quando o usuario clica "Vender agora" (forceSell) — evita gastar servidor
-  // vendendo a cada poll. O poll de pokes-get (20s) segue so como keepalive.
+  // os que batem (REST). Nunca time/lider/starter/shiny (filterSellable). Vende ASSIM QUE
+  // COLETA — roda a cada resposta de pokes-get (~20s) que tenha match, igual a venda de
+  // drops. Sem throttle de 1h: assim o capturado nao fica em limbo (nem vendido nem no
+  // acervo). O lock sellingPokes evita varreduras sobrepostas.
   private async sellPokesSweep(list: unknown[]) {
     if (this.sellingPokes || !this.tokens || !this.pokeCfg) return;
-    const now = Date.now();
-    if (!this.forceSell && now - this.lastPokeSellAt < SELL_EVERY_MS) return; // ainda nao e hora
     this.sellingPokes = true;
-    this.forceSell = false;
-    this.lastPokeSellAt = now;
     try {
       const all = normalizeActivePokes(list);
       const data = await getData();
@@ -318,19 +331,17 @@ class GameSession {
             cur.count += 1; cur.gold += p.sellValue;
             this.poke.soldBySpecies[p.speciesId] = cur;
           }
-          if (this.userId) {
-            void logRobotEvent(this.userId, { kind: "poke-sold", title: `Vendeu ${sold} pokemon`, body: `+$${Math.round(gold)}`, data: { count: sold, gold } });
-            void addRobotSales(this.userId, { pokesCount: sold, pokesGold: gold }); // totalizador cumulativo
-          }
+          // sem alerta por venda (o vendido aparece em "Pokemon vendidos" e em Estatisticas).
+          if (this.userId) void addRobotSales(this.userId, { pokesCount: sold, pokesGold: gold });
         }
       }
     } catch { /* proxima varredura tenta */ } finally { this.sellingPokes = false; }
   }
 
-  // "Vender agora": forca a proxima resposta de pokes-get a vender (ignora o throttle de 1h).
+  // "Vender agora": dispara uma varredura imediata (pede a lista agora; a venda ja acontece
+  // a cada varredura, entao isso so antecipa a proxima).
   sellNow() {
     if (!this.pokeCfg) return;
-    this.forceSell = true;
     this.send({ type: "pokes-get" });
   }
 

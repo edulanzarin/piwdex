@@ -68,7 +68,7 @@ export function PokeCaught({ creatures }: { creatures: ComboCreature[] }) {
   const firstRun = useRef(true);
   useEffect(() => { if (firstRun.current) { firstRun.current = false; return; } setPage(0); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [species, type, rarity, ivMin, qMin, shiny, sort]);
   // busca ao mudar filtro/pagina + poll em tempo real
-  useEffect(() => { load(); const id = setInterval(load, 8000); return () => clearInterval(id); }, [load]);
+  useEffect(() => { load(); const id = setInterval(load, 5000); return () => clearInterval(id); }, [load]);
 
   const clear = async () => {
     if (clearing) return;

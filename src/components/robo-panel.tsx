@@ -121,6 +121,20 @@ export function RoboPanel() {
   };
   useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
 
+  // tempo real: atualiza SO a contagem de bolas (cai enquanto a caca gasta) sem tocar a
+  // edicao em andamento — nunca sobrescreve o draft nem o baseline (isso e o Confirmar).
+  useEffect(() => {
+    const id = setInterval(async () => {
+      if (document.hidden) return;
+      try {
+        const res = await fetch("/api/vip/auto", { cache: "no-store" });
+        const j = (await res.json().catch(() => ({}))) as { auto?: Auto; balls?: Ball[] };
+        if (res.ok && j.balls) setSt((cur) => (cur.s === "ok" ? { ...cur, balls: j.balls! } : cur));
+      } catch {}
+    }, 10000);
+    return () => clearInterval(id);
+  }, []);
+
   if (st.s === "loading") return <div className="card p-6"><LoadingBall label={t("robo.loading")} /></div>;
   if (st.s === "error") {
     const msg = st.code === "not_connected" || st.code === "expired" ? t("robo.connect") : t("robo.error");

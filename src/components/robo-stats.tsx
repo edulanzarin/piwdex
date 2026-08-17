@@ -23,7 +23,7 @@ export function RoboStats() {
       if (j && "itemsCount" in j) setTot(j);
     } catch {}
   }, []);
-  useEffect(() => { load(); const id = setInterval(load, 8000); return () => clearInterval(id); }, [load]);
+  useEffect(() => { load(); const id = setInterval(load, 5000); return () => clearInterval(id); }, [load]);
 
   return (
     <div className="flex flex-col gap-5">

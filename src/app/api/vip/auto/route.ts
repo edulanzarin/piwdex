@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { getGameLink, updateGameTokens, markGameLinkExpired } from "@/lib/game-link";
 import { readAuto, applyAuto, AUTO_FIELDS, type AutoField } from "@/lib/game-auto";
+import { gameSession } from "@/lib/game-hunt-session";
 
 export const runtime = "nodejs";
 
@@ -56,6 +57,11 @@ export async function POST(req: Request) {
   const w = await applyAuto(c.tokens, { [field]: value }).catch(() => null);
   if (!w) return NextResponse.json({ error: "game_unreachable" }, { status: 502 });
   if (!w.ok) return NextResponse.json({ error: "write_failed", status: w.status }, { status: 502 });
+
+  // Reaplica no campo VIVO (mesma sessao, sem reconectar): o jogo cacheia a autohelper ao
+  // entrar no campo, entao trocar a bola so pega depois de reenviar enter-hunt. Se nao houver
+  // hunt rodando, e no-op (a config ja foi gravada e valera no proximo enter-hunt).
+  gameSession.refreshHunt();
 
   // Re-le o estado completo (a resposta do auto-helper pode vir parcial).
   let tokens = w.tokens;
