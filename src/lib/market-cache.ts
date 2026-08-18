@@ -5,22 +5,26 @@
 
 import { gameFetch, type Tokens } from "./game-auth";
 import { getData } from "./data";
-import { normalizeMarketMons, type MarketMon } from "./game-account";
+import { normalizeMarketMons, normalizeMarketItems, type MarketMon, type MarketItem } from "./game-account";
 import { buildPriceModel, monCeiling, type PriceItem, type PriceModel } from "./market-value";
 
-let cache: { at: number; mons: MarketMon[] } | null = null;
+let cache: { at: number; mons: MarketMon[]; items: MarketItem[] } | null = null;
 const TTL = 60_000;
 
-export async function loadMarket(tokens: Tokens): Promise<{ mons?: MarketMon[]; status: number; tokens: Tokens; changed: boolean }> {
-  if (cache && Date.now() - cache.at < TTL) return { mons: cache.mons, status: 200, tokens, changed: false };
+export async function loadMarket(tokens: Tokens): Promise<{ mons?: MarketMon[]; items?: MarketItem[]; status: number; tokens: Tokens; changed: boolean }> {
+  if (cache && Date.now() - cache.at < TTL) return { mons: cache.mons, items: cache.items, status: 200, tokens, changed: false };
   const r = await gameFetch("/api/game/market", tokens);
   if (!r.res.ok) return { status: r.res.status, tokens: r.tokens, changed: r.changed };
   const raw = await r.res.json().catch(() => null);
   const { creatures } = await getData();
   const mons = normalizeMarketMons(raw, creatures);
-  cache = { at: Date.now(), mons };
-  return { mons, status: 200, tokens: r.tokens, changed: r.changed };
+  const items = normalizeMarketItems(raw);
+  cache = { at: Date.now(), mons, items };
+  return { mons, items, status: 200, tokens: r.tokens, changed: r.changed };
 }
+
+/** Invalida o cache (depois de uma COMPRA: quantidade/anuncio mudaram de verdade). */
+export function bustMarketCache(): void { cache = null; }
 
 // Regua de preco do mercado INTEIRO (mediana de preco-por-teto por especie+moeda, com
 // fallback global) + teto por anuncio. Ver o motor em market-value.ts.

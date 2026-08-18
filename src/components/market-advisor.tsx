@@ -5,6 +5,7 @@
 // Cada card abre um modal com os stats base da especie (vindos do catalogo via `dex`).
 
 import { useEffect, useState } from "react";
+import { assetIconUrl } from "@/lib/sprites";
 import { spriteUrl } from "@/lib/sprites";
 import type { MarketMon, Currency } from "@/lib/game-account";
 import type { PokeType, Rarity } from "@/lib/types";
@@ -21,10 +22,11 @@ import { Field, ShinyToggle } from "./filter-field";
 import { SelectMenu } from "./select-menu";
 import { StatTile } from "./stat-tile";
 import { CloseButton } from "./icon-button";
+import { useToast } from "./toast";
 import { useT } from "./locale-provider";
 import { Panel } from "./ui/panel";
 import { EmptyState } from "./ui/feed";
-import { Star, Coin, Diamond, ChevronRight, Dollar } from "./icons";
+import { Star, Coin, Diamond, ChevronRight, Dollar, Loot, Check } from "./icons";
 
 // Cor de cada nota (genes, Quality ou preco): verde otimo, amarelo mediano, vermelho ruim.
 const GRADE_VAR: Record<Grade, string> = { great: "var(--green)", ok: "var(--yellow)", bad: "var(--red)" };
@@ -131,8 +133,100 @@ export function MarketMonCard({ mon, onClick, right }: { mon: MarketMon; onClick
   );
 }
 
-export function MarketMonModal({ mon, dex, onClose }: { mon: MarketMon; dex?: MarketDex; onClose: () => void }) {
+// Uma pilha de item do mercado, como a API /api/market?kind=items devolve.
+export interface MarketItemRow {
+  listingId: string;
+  kind: string;
+  refId: number;
+  name: string;
+  icon: string; // caminho do catalogo local (assetIconUrl resolve)
+  category: string;
+  quantity: number;
+  price: number; // UNITARIO
+  currency: Currency;
+  belowNpc: boolean;
+  sellers: number;
+  npcPrice?: number | null;
+}
+
+// POST de compra (rota VIP reconfere anuncio e preco antes de gastar). Devolve msg de erro
+// legivel ou null no sucesso.
+async function postBuy(body: Record<string, unknown>, t: (k: string, v?: Record<string, string | number>) => string): Promise<string | null> {
+  try {
+    const r = await fetch("/api/vip/market-buy", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    if (r.ok) return null;
+    const j = (await r.json().catch(() => ({}))) as { error?: string };
+    if (j.error === "price_changed" || j.error === "listing_gone") return t("market.buy.gone");
+    if (j.error === "not_enough") return t("market.buy.notEnough");
+    return t("market.buy.refused");
+  } catch { return t("toast.err"); }
+}
+
+/** Modal de compra de uma PILHA de item: quantidade + total, confirmacao explicita. */
+export function BuyItemModal({ item, onClose, onBought }: { item: MarketItemRow; onClose: () => void; onBought?: () => void }) {
   const t = useT();
+  const toast = useToast();
+  const [qty, setQty] = useState(1);
+  const [busy, setBusy] = useState(false);
+  const clamp = (n: number) => Math.min(item.quantity, Math.max(1, Math.floor(n) || 1));
+  const total = item.price * clamp(qty);
+  const confirm = async () => {
+    if (busy) return;
+    setBusy(true);
+    const err = await postBuy({ kind: "item", refId: item.refId, price: item.price, currency: item.currency, quantity: clamp(qty) }, t);
+    setBusy(false);
+    if (err) { toast.error(err); return; }
+    toast.success(t("market.buy.ok"));
+    onBought?.();
+    onClose();
+  };
+  return (
+    <Modal onClose={onClose} className="w-full max-w-sm gap-4 p-5">
+      <div className="flex items-center gap-3">
+        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded bg-[var(--well-bg)]">
+          {item.icon ? <Sprite src={assetIconUrl(item.icon)} alt={item.name} size={36} /> : <Loot size={22} />}
+        </span>
+        <div className="min-w-0 flex-1">
+          <h3 className="truncate pixel text-[1rem] text-text">{item.name}</h3>
+          <div className="text-[0.78rem] text-text-dim">
+            <Price currency={item.currency} value={item.price} size={11} /> {t("market.it.unit")} · x{fmt(item.quantity)}
+          </div>
+        </div>
+        <CloseButton onClick={onClose} className="shrink-0 self-start" />
+      </div>
+      <label className="flex flex-col gap-1">
+        <span className="field-label">{t("market.buy.qty")}</span>
+        <input type="number" min={1} max={item.quantity} value={qty}
+          onChange={(e) => setQty(clamp(Number(e.target.value)))} className="input" />
+      </label>
+      <div className="flex items-center justify-between rounded border border-border bg-[var(--well-bg)] px-3 py-2">
+        <span className="field-label">{t("market.buy.total")}</span>
+        <span className="pixel text-[1.05rem]"><Price currency={item.currency} value={total} size={13} /></span>
+      </div>
+      <button type="button" onClick={() => void confirm()} disabled={busy} className="btn btn-green disabled:opacity-40">
+        <Check size={11} /> {busy ? "…" : t("market.buy.confirm")}
+      </button>
+    </Modal>
+  );
+}
+
+export function MarketMonModal({ mon, dex, onClose, onBought }: { mon: MarketMon; dex?: MarketDex; onClose: () => void; onBought?: () => void }) {
+  const t = useT();
+  const toast = useToast();
+  // compra em duas etapas: botao -> confirmacao explicita com o preco
+  const [confirming, setConfirming] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const buyable = mon.price > 0 && mon.listingId !== "" && mon.listingId !== "chat-link";
+  const doBuy = async () => {
+    if (busy) return;
+    setBusy(true);
+    const err = await postBuy({ kind: "pokemon", id: mon.listingId, price: mon.price, currency: mon.currency }, t);
+    setBusy(false);
+    if (err) { toast.error(err); setConfirming(false); return; }
+    toast.success(t("market.buy.ok"));
+    onBought?.();
+    onClose();
+  };
   const total = dex
     ? dex.baseHp + dex.baseAtk + dex.baseDef + dex.baseSpAtk + dex.baseSpDef + dex.baseSpeed
     : null;
@@ -239,8 +333,50 @@ export function MarketMonModal({ mon, dex, onClose }: { mon: MarketMon; dex?: Ma
           </div>
         )}
 
-        <a href={`/dex/${mon.speciesId}`} className="btn btn-cyan self-start">{t("account.market.viewDex")} <ChevronRight size={10} /></a>
+        <div className="flex flex-wrap items-center gap-2">
+          {buyable && !confirming && (
+            <button type="button" onClick={() => setConfirming(true)} className="btn btn-green">
+              {t("market.buy.for")} <Price currency={mon.currency} value={mon.price} size={11} />
+            </button>
+          )}
+          {buyable && confirming && (
+            <>
+              <button type="button" onClick={() => void doBuy()} disabled={busy} className="btn btn-green disabled:opacity-40">
+                <Check size={11} /> {busy ? "…" : t("market.buy.confirm")}
+              </button>
+              <button type="button" onClick={() => setConfirming(false)} disabled={busy} className="btn btn-ghost disabled:opacity-40">{t("market.buy.cancel")}</button>
+            </>
+          )}
+          <a href={`/dex/${mon.speciesId}`} className="btn btn-cyan ms-auto">{t("account.market.viewDex")} <ChevronRight size={10} /></a>
+        </div>
     </Modal>
+  );
+}
+
+/** Card de uma pilha de item do mercado: icone + nome + categoria, preco unitario,
+ *  estoque/vendedores e o botao Comprar. */
+function MarketItemCard({ item, onBuy }: { item: MarketItemRow; onBuy: () => void }) {
+  const t = useT();
+  return (
+    <div className="card flex items-center gap-3 p-3">
+      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded bg-[var(--well-bg)]">
+        {item.icon ? <Sprite src={assetIconUrl(item.icon)} alt={item.name} size={34} /> : <Loot size={20} />}
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-1.5">
+          <span className="pixel truncate text-[1rem]">{item.name}</span>
+          <span className="text-[0.72rem] uppercase text-text-dim">{item.category}</span>
+        </div>
+        <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[0.8rem] text-text-dim">
+          <span className="pixel text-[0.95rem] text-text"><Price currency={item.currency} value={item.price} size={11} /> <span className="text-text-dim">{t("market.it.unit")}</span></span>
+          <span>x{fmt(item.quantity)}</span>
+          <span>{t("market.it.sellers", { n: item.sellers })}</span>
+          {item.npcPrice != null && item.npcPrice > 0 && <span>NPC {fmt(item.npcPrice)}</span>}
+          {item.belowNpc && <span className="chip" style={{ background: "var(--green)", color: "#052012" }}>{t("account.market.belowNpc")}</span>}
+        </div>
+      </div>
+      <button type="button" onClick={onBuy} className="btn btn-green shrink-0">{t("market.buy")}</button>
+    </div>
   );
 }
 
@@ -254,6 +390,7 @@ export function MarketAdvisor({
   focus?: { speciesId: number; nonce: number } | null; // pulo vindo de um alerta clicado
 }) {
   const t = useT();
+  const [tab, setTab] = useState<"pokemon" | "items">("pokemon");
   const [species, setSpecies] = useState<ComboCreature | null>(null);
   const [type, setType] = useState<PokeType | "">("");
   const [maxGold, setMaxGold] = useState("");
@@ -266,6 +403,29 @@ export function MarketAdvisor({
   const [mons, setMons] = useState<MarketMon[] | null>(null);
   const [selected, setSelected] = useState<MarketMon | null>(null);
   const [page, setPage] = useState(0);
+  // ---- aba ITENS ----
+  const [itQ, setItQ] = useState("");
+  const [itCat, setItCat] = useState("");
+  const [itSort, setItSort] = useState("price");
+  const [itBelowNpc, setItBelowNpc] = useState(false);
+  const [itBusy, setItBusy] = useState(false);
+  const [itRows, setItRows] = useState<MarketItemRow[] | null>(null);
+  const [itPage, setItPage] = useState(0);
+  const [buyItem, setBuyItem] = useState<MarketItemRow | null>(null);
+
+  const searchItems = async () => {
+    setItBusy(true);
+    try {
+      const p = new URLSearchParams({ kind: "items", sort: itSort });
+      if (itQ.trim()) p.set("q", itQ.trim());
+      if (itCat) p.set("cat", itCat);
+      if (itBelowNpc) p.set("belowNpc", "1");
+      const res = await fetch(`/api/market?${p.toString()}`, { cache: "no-store" });
+      const j = (await res.json().catch(() => ({}))) as { items?: MarketItemRow[] };
+      setItRows(j.items ?? []);
+      setItPage(0);
+    } catch { setItRows([]); setItPage(0); } finally { setItBusy(false); }
+  };
 
   const PAGE_SIZE = 12;
   const pageCount = mons ? Math.max(1, Math.ceil(mons.length / PAGE_SIZE)) : 1;
@@ -308,10 +468,74 @@ export function MarketAdvisor({
 
   return (
     <div className="flex flex-col gap-5">
-      <div>
-        <h2 className="section-title text-purple">{t("account.market.title")}</h2>
-        <p className="mt-2 max-w-2xl text-sm text-text-dim">{t("account.market.desc")}</p>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 className="section-title text-purple">{t("account.market.title")}</h2>
+          <p className="mt-2 max-w-2xl text-sm text-text-dim">{t("account.market.desc")}</p>
+        </div>
+        {/* abas: pokemon | itens — mesmo mercado do jogo, duas vitrines */}
+        <div className="flex gap-1">
+          <button type="button" onClick={() => setTab("pokemon")} className={`tab ${tab === "pokemon" ? "tab-active" : ""}`}>{t("market.tab.pokemon")}</button>
+          <button type="button" onClick={() => { setTab("items"); if (itRows == null) void searchItems(); }} className={`tab ${tab === "items" ? "tab-active" : ""}`}>{t("market.tab.items")}</button>
+        </div>
       </div>
+
+      {tab === "items" ? (() => {
+        const IT_PAGE = 14;
+        const itPages = itRows ? Math.max(1, Math.ceil(itRows.length / IT_PAGE)) : 1;
+        const itPaged = itRows ? itRows.slice(itPage * IT_PAGE, itPage * IT_PAGE + IT_PAGE) : [];
+        return (
+          <>
+            <Panel icon={<Loot size={12} />} accent="var(--green)" title={t("robo.caught.filters")} className="z-20 p-5" bodyClassName="gap-4">
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <label className="flex flex-col gap-1">
+                  <span className="field-label">{t("market.it.q")}</span>
+                  <input className="input" value={itQ} onChange={(e) => setItQ(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") void searchItems(); }} placeholder={t("market.it.qPh")} />
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span className="field-label">{t("market.it.cat")}</span>
+                  <SelectMenu value={itCat} onChange={setItCat} className="" options={[
+                    { value: "", label: t("market.it.anyCat") },
+                    { value: "Items", label: "Items" },
+                    { value: "Stones", label: "Stones" },
+                    { value: "Poke Balls", label: "Poke Balls" },
+                    { value: "Diamonds", label: "Diamonds" },
+                  ]} />
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span className="field-label">{t("account.market.sort")}</span>
+                  <SelectMenu value={itSort} onChange={setItSort} className="" options={[
+                    { value: "price", label: t("market.it.sort.price") },
+                    { value: "recent", label: t("market.it.sort.recent") },
+                    { value: "qty", label: t("market.it.sort.qty") },
+                  ]} />
+                </label>
+                <Field label={t("alerts.f.filters")}>
+                  <ToggleChip active={itBelowNpc} onClick={() => setItBelowNpc((v) => !v)} label={t("account.market.belowNpc")} />
+                </Field>
+              </div>
+              <div className="flex items-center justify-end">
+                <button type="button" onClick={() => void searchItems()} disabled={itBusy} className="btn btn-green disabled:opacity-40">
+                  {itBusy ? `${t("account.market.searching")}...` : <>{t("account.market.search")} <ChevronRight size={10} /></>}
+                </button>
+              </div>
+            </Panel>
+
+            {itBusy ? (
+              <div className="card p-6"><LoadingBall label={t("account.market.searching")} /></div>
+            ) : itRows == null ? null : itRows.length === 0 ? (
+              <div className="card p-4"><EmptyState message={t("account.market.empty")} /></div>
+            ) : (
+              <div className="grid gap-2 lg:grid-cols-2">
+                {itPaged.map((i) => <MarketItemCard key={`${i.refId}:${i.currency}:${i.price}`} item={i} onBuy={() => setBuyItem(i)} />)}
+              </div>
+            )}
+            {itRows && itRows.length > IT_PAGE && <Pagination page={itPage} pageCount={itPages} onPage={setItPage} />}
+            {buyItem && <BuyItemModal item={buyItem} onClose={() => setBuyItem(null)} onBought={() => void searchItems()} />}
+          </>
+        );
+      })() : (
+      <>
       <Panel icon={<Dollar size={12} />} accent="var(--purple)" title={t("robo.caught.filters")} className="z-20 p-5" bodyClassName="gap-4">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {/* Especie e Tipo sao mutuamente exclusivos: uma especie ja e de um tipo so.
@@ -407,7 +631,21 @@ export function MarketAdvisor({
         {t("account.market.legend")} {t("account.market.hint")}
       </div>
 
-      {selected && <MarketMonModal mon={selected} dex={dex?.[selected.speciesId]} onClose={() => setSelected(null)} />}
+      {selected && <MarketMonModal mon={selected} dex={dex?.[selected.speciesId]} onClose={() => setSelected(null)} onBought={() => void search()} />}
+      </>
+      )}
     </div>
+  );
+}
+
+// chip liga/desliga simples (filtro booleano), no dialeto dos toggles do site
+function ToggleChip({ active, onClick, label }: { active: boolean; onClick: () => void; label: string }) {
+  return (
+    <button type="button" onClick={onClick} aria-pressed={active}
+      className={`chip inline-flex items-center gap-1.5 border transition ${active ? "" : "opacity-50"}`}
+      style={{ background: active ? "var(--green)" : "transparent", borderColor: "var(--green)", color: active ? "#052012" : "var(--green)" }}>
+      <span className="inline-flex w-2 justify-center">{active ? <Check size={9} /> : "·"}</span>
+      {label}
+    </button>
   );
 }

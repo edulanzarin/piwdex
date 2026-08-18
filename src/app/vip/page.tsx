@@ -36,6 +36,10 @@ export default async function VipPage({ searchParams }: { searchParams: Promise<
   // itemId do field-kill nao bate com o id dos dados, mas o nome do drop bate.
   const itemIcons: Record<string, string> = {};
   for (const it of items) itemIcons[it.name.toLowerCase()] = it.icon;
+  // catalogo enxuto de itens pro seletor de desejo de item (mercado de jogadores)
+  const marketItems = [...items]
+    .map((it) => ({ id: it.id, name: it.name, icon: it.icon }))
+    .sort((a, b) => a.name.localeCompare(b.name));
   const slim: ComboCreature[] = creatures
     .map((c) => ({ pokeId: c.pokeId, name: c.name, type1: c.type1, type2: c.type2 }))
     .sort((a, b) => a.name.localeCompare(b.name));
@@ -94,7 +98,7 @@ export default async function VipPage({ searchParams }: { searchParams: Promise<
             <h1 className="pixel text-3xl" style={{ color: ACCENT }}><T k="vip.active.title" /></h1>
           </div>
 
-          <VipShell creatures={slim} dex={dex} hunts={huntOptions} itemIcons={itemIcons} lootByPoke={lootByPoke} />
+          <VipShell creatures={slim} dex={dex} hunts={huntOptions} itemIcons={itemIcons} lootByPoke={lootByPoke} marketItems={marketItems} />
         </div>
       </ToolFrame>
     </div>

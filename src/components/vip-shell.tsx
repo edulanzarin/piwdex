@@ -54,6 +54,7 @@ export interface VipShellProps {
   hunts: HuntOption[];
   itemIcons: Record<string, string>;
   lootByPoke: Record<number, DropOption[]>;
+  marketItems: { id: number; name: string; icon: string }[]; // catalogo pro desejo de item
 }
 
 export function VipShell(props: VipShellProps) {
@@ -66,7 +67,7 @@ export function VipShell(props: VipShellProps) {
   );
 }
 
-function VipShellInner({ creatures, dex, hunts, itemIcons, lootByPoke }: VipShellProps) {
+function VipShellInner({ creatures, dex, hunts, itemIcons, lootByPoke, marketItems }: VipShellProps) {
   const t = useT();
   const { events, alerts, account } = useVipLive();
   const [sec, setSec] = useState<Section>("painel");
@@ -163,8 +164,8 @@ function VipShellInner({ creatures, dex, hunts, itemIcons, lootByPoke }: VipShel
           {sec === "mercado" && <MarketAdvisor creatures={creatures} dex={dex} />}
           {sec === "desejos" && (
             <div className="flex flex-col gap-6">
-              <AlertsInbox onJumpToWish={jumpToWish} />
-              <WishlistPanel creatures={creatures} dex={dex} focusWishId={focusWish} />
+              <AlertsInbox onJumpToWish={jumpToWish} itemIcons={itemIcons} />
+              <WishlistPanel creatures={creatures} items={marketItems} dex={dex} focusWishId={focusWish} />
             </div>
           )}
           {sec === "alertas" && (

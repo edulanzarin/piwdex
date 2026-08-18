@@ -78,3 +78,16 @@ export const sellItems = (t: Tokens, items: { itemId: number; qty: number }[]) =
 export interface SellPokesResult { sold: number; goldGained: number; gold: number }
 export const sellPokes = (t: Tokens, pokeIds: string[]) =>
   send<SellPokesResult>("/api/game/pokemon/sell", t, { pokeIds });
+
+// COMPRA no mercado de jogadores. Endpoint e formatos extraidos do cliente oficial do
+// jogo (chunk 43p_190ghnt4r.js): POST /api/game/market/action com
+//   { action:"buy", id, quantity:1 }                            -> anuncio unico (pokemon)
+//   { action:"buy-stack", kind, refId, price, currency,
+//     quantity, ids }                                           -> pilha de itens
+// price/currency no corpo funcionam de trava: preco mudou = o jogo recusa. GASTA moeda
+// de verdade — so a rota VIP com confirmacao chama isto.
+export type MarketBuyPayload =
+  | { action: "buy"; id: string; quantity: 1 }
+  | { action: "buy-stack"; kind: string; refId: number; price: number; currency: string; quantity: number; ids: string[] };
+export const marketAction = (t: Tokens, payload: MarketBuyPayload) =>
+  send("/api/game/market/action", t, payload);

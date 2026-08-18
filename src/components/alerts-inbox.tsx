@@ -7,7 +7,7 @@
 // seu icone/cor. Leitura pura: os dados chegam pelo stream ao vivo (useVipLive).
 
 import { useMemo } from "react";
-import { spriteUrl } from "@/lib/sprites";
+import { spriteUrl, assetIconUrl } from "@/lib/sprites";
 import { Sprite } from "./sprite";
 import { LoadingBall } from "./loaders";
 import { useT } from "./locale-provider";
@@ -20,6 +20,7 @@ interface Group {
   watchlistId: string;
   label: string | null;
   speciesId: number;
+  itemIcon: string | null; // desejo de ITEM: icone do catalogo (name -> icon)
   total: number;
   unread: number;
 }
@@ -37,7 +38,9 @@ function SummaryCard({ g, onOpen, t }: { g: Group; onOpen: () => void; t: (k: st
       }}
     >
       <div className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded bg-[var(--well-bg)]">
-        <Sprite src={g.speciesId ? spriteUrl(g.speciesId) : null} alt={name} size={40} />
+        {g.itemIcon
+          ? <Sprite src={assetIconUrl(g.itemIcon)} alt={name} size={34} />
+          : <Sprite src={g.speciesId ? spriteUrl(g.speciesId) : null} alt={name} size={40} />}
         {g.unread > 0 && <span className="pulse-soft absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-green" />}
       </div>
       <div className="min-w-0 flex-1">
@@ -52,7 +55,7 @@ function SummaryCard({ g, onOpen, t }: { g: Group; onOpen: () => void; t: (k: st
   );
 }
 
-export function AlertsInbox({ onJumpToWish }: { onJumpToWish?: (watchlistId: string) => void }) {
+export function AlertsInbox({ onJumpToWish, itemIcons }: { onJumpToWish?: (watchlistId: string) => void; itemIcons?: Record<string, string> }) {
   const t = useT();
   const { alerts, applyAlerts } = useVipLive();
   const notifications = alerts?.notifications ?? [];
@@ -67,6 +70,7 @@ export function AlertsInbox({ onJumpToWish }: { onJumpToWish?: (watchlistId: str
         watchlistId: wid,
         label: (d.wishLabel as string) ?? null,
         speciesId: Number(d.speciesId ?? 0),
+        itemIcon: d.kind === "item" ? (itemIcons?.[String(d.name ?? "").toLowerCase()] ?? null) : null,
         total: 0,
         unread: 0,
       };
@@ -75,7 +79,7 @@ export function AlertsInbox({ onJumpToWish }: { onJumpToWish?: (watchlistId: str
       m.set(wid, g);
     }
     return [...m.values()].sort((a, b) => b.unread - a.unread || b.total - a.total);
-  }, [notifications]);
+  }, [notifications, itemIcons]);
 
   const markAll = async () => {
     // otimista: preenche readAt local e zera o contador; o stream confirma depois

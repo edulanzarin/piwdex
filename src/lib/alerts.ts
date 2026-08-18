@@ -10,13 +10,15 @@
 //    apaga por cascade (watchlist_id ON DELETE CASCADE).
 
 import { query, queryOne } from "./db";
-import type { MarketMon, Currency } from "./game-account";
+import type { MarketMon, MarketItem, Currency } from "./game-account";
 
 export type NotifKind = "snipe";
 
 export interface Watchlist {
   id: string;
   userId: string;
+  kind: "pokemon" | "item"; // o que a busca vigia
+  itemId: number | null;    // refId do item (kind item)
   speciesId: number | null;
   type: string | null; // tipo (exclusivo com speciesId)
   currency: Currency | null;
@@ -56,6 +58,8 @@ export interface NewNotif {
 interface WatchRow {
   id: string;
   user_id: string;
+  kind: string | null;
+  item_id: number | null;
   species_id: number | null;
   type: string | null;
   currency: string | null;
@@ -72,6 +76,8 @@ interface WatchRow {
 const toWatch = (r: WatchRow): Watchlist => ({
   id: r.id,
   userId: r.user_id,
+  kind: r.kind === "item" ? "item" : "pokemon",
+  itemId: r.item_id,
   speciesId: r.species_id,
   type: r.type,
   currency: r.currency === "GOLD" || r.currency === "DIAMONDS" ? r.currency : null,
@@ -86,7 +92,7 @@ const toWatch = (r: WatchRow): Watchlist => ({
 });
 
 const WATCH_COLS =
-  "id, user_id, species_id, type, currency, max_price, min_quality, min_iv, shiny_only, below_fair, active, label, criado_em";
+  "id, user_id, kind, item_id, species_id, type, currency, max_price, min_quality, min_iv, shiny_only, below_fair, active, label, criado_em";
 
 export async function listWatchlistsByUser(userId: string): Promise<Watchlist[]> {
   const rows = await query<WatchRow>(
@@ -99,7 +105,7 @@ export async function listWatchlistsByUser(userId: string): Promise<Watchlist[]>
 // Todas as watchlists ativas de usuarios VIP com vinculo de jogo ativo (o que o worker varre).
 export async function listActiveWatchlists(): Promise<Watchlist[]> {
   const rows = await query<WatchRow>(
-    `SELECT w.id, w.user_id, w.species_id, w.currency, w.max_price, w.min_quality,
+    `SELECT w.id, w.user_id, w.kind, w.item_id, w.species_id, w.currency, w.max_price, w.min_quality,
             w.type, w.min_iv, w.shiny_only, w.below_fair, w.active, w.label, w.criado_em
        FROM watchlists w
        JOIN users u      ON u.id = w.user_id
@@ -110,6 +116,8 @@ export async function listActiveWatchlists(): Promise<Watchlist[]> {
 }
 
 export interface WatchInput {
+  kind: "pokemon" | "item";
+  itemId: number | null;
   speciesId: number | null;
   type: string | null;
   currency: Currency | null;
@@ -124,11 +132,13 @@ export interface WatchInput {
 export async function createWatchlist(userId: string, w: WatchInput): Promise<Watchlist> {
   const row = await queryOne<WatchRow>(
     `INSERT INTO watchlists
-       (user_id, species_id, type, currency, max_price, min_quality, min_iv, shiny_only, below_fair, label)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+       (user_id, kind, item_id, species_id, type, currency, max_price, min_quality, min_iv, shiny_only, below_fair, label)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
      RETURNING ${WATCH_COLS}`,
     [
       userId,
+      w.kind,
+      w.itemId,
       w.speciesId,
       w.type,
       w.currency,
@@ -242,6 +252,7 @@ type ScoredMon = MarketMon;
 
 // Um anuncio casa a watchlist? (todos os criterios definidos precisam bater)
 function monMatches(w: Watchlist, m: ScoredMon): boolean {
+  if (w.kind !== "pokemon") return false;
   if (w.speciesId != null && m.speciesId !== w.speciesId) return false;
   if (w.type != null && m.type1 !== w.type && m.type2 !== w.type) return false;
   if (w.currency != null && m.currency !== w.currency) return false;
@@ -251,6 +262,54 @@ function monMatches(w: Watchlist, m: ScoredMon): boolean {
   if (w.minIv != null && (m.ivTotal == null || m.ivTotal < w.minIv)) return false;
   if (w.belowFair && !(m.fairPrice != null && m.price < m.fairPrice)) return false;
   return true;
+}
+
+// Um anuncio de ITEM casa a watchlist de item? maxPrice compara o preco UNITARIO;
+// belowFair vira "abaixo do NPC" (o justo de item e o preco de loja).
+function itemMatches(w: Watchlist, i: MarketItem): boolean {
+  if (w.kind !== "item") return false;
+  if (w.itemId != null && i.refId !== w.itemId) return false;
+  if (w.currency != null && i.currency !== w.currency) return false;
+  if (w.maxPrice != null && i.price > w.maxPrice) return false;
+  if (w.belowFair && !i.belowNpc) return false;
+  return true;
+}
+
+// Casa as watchlists de ITEM contra as pilhas do mercado. dedup por (watchlist, item,
+// preco): a MESMA pilha re-listada no mesmo preco nao re-alerta; preco novo alerta.
+export function matchItemSnipes(watchlists: Watchlist[], items: MarketItem[]): NewNotif[] {
+  const out: NewNotif[] = [];
+  for (const w of watchlists) {
+    if (w.kind !== "item") continue;
+    for (const i of items) {
+      if (!itemMatches(w, i)) continue;
+      const coin = i.currency === "DIAMONDS" ? "diamantes" : "ouro";
+      out.push({
+        userId: w.userId,
+        kind: "snipe",
+        dedupKey: `snipe-item:${w.id}:${i.refId}:${i.currency}:${i.price}`,
+        watchlistId: w.id,
+        title: `${i.quantity}x ${i.name} por ${i.price.toLocaleString("pt-BR")} ${coin} cada${i.belowNpc ? " (abaixo do NPC)" : ""}`,
+        body: `${i.sellers} vendedor${i.sellers > 1 ? "es" : ""} · ${i.category}`,
+        data: {
+          kind: "item",
+          itemId: i.refId,
+          itemKind: i.kind,
+          name: i.name,
+          icon: i.icon,
+          category: i.category,
+          quantity: i.quantity,
+          price: i.price,
+          currency: i.currency,
+          belowNpc: i.belowNpc,
+          listingId: i.listingId,
+          watchlistId: w.id,
+          wishLabel: w.label,
+        },
+      });
+    }
+  }
+  return out;
 }
 
 // Casa as watchlists ativas contra o mercado inteiro. dedup por (watchlist, anuncio):

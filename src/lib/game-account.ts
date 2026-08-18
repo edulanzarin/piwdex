@@ -372,6 +372,54 @@ export interface MarketMon {
   fairPrice?: number | null; // preco justo estimado (motor de valor, preenchido pela API)
 }
 
+// Anuncio de ITEM do mercado (kind item/diamonds): o jogo agrega anuncios iguais numa
+// pilha — `ids` sao os anuncios individuais, `quantity` o total disponivel, `price` o
+// preco UNITARIO. `refId` e o itemId do catalogo (0 pra diamantes).
+export interface MarketItem {
+  listingId: string;
+  ids: string[];
+  kind: string; // "item" | "diamonds"
+  refId: number;
+  name: string;
+  icon: string; // nome de arquivo cru do jogo (o catalogo local resolve o caminho bom)
+  category: string; // Items | Stones | Poke Balls | Diamonds
+  quantity: number;
+  price: number;
+  currency: Currency;
+  belowNpc: boolean;
+  sellers: number;
+  at: string;
+  npcPrice?: number | null; // preco NPC do catalogo local (comparativo), preenchido pela API
+}
+
+// Extrai os anuncios de ITEM (e diamantes) do /api/game/market.
+export function normalizeMarketItems(raw: unknown): MarketItem[] {
+  const listings = (raw as { listings?: unknown })?.listings;
+  if (!Array.isArray(listings)) return [];
+  const out: MarketItem[] = [];
+  for (const l of listings) {
+    const o = l as Record<string, unknown>;
+    const kind = str(o.kind).toLowerCase();
+    if (kind === "pokemon") continue;
+    out.push({
+      listingId: str(o.id),
+      ids: Array.isArray(o.ids) ? (o.ids as unknown[]).map((x) => String(x)) : [str(o.id)],
+      kind,
+      refId: num(o.refId),
+      name: str(o.name),
+      icon: str(o.icon),
+      category: str(o.category),
+      quantity: num(o.quantity, 1),
+      price: num(o.price),
+      currency: str(o.currency).toUpperCase() === "DIAMONDS" ? "DIAMONDS" : "GOLD",
+      belowNpc: Boolean(o.belowNpc),
+      sellers: num(o.sellers, 1),
+      at: str(o.at),
+    });
+  }
+  return out;
+}
+
 // Extrai os anuncios de POKEMON do /api/game/market, com os stats que o jogo ja fornece.
 export function normalizeMarketMons(raw: unknown, creatures: Creature[]): MarketMon[] {
   const listings = (raw as { listings?: unknown })?.listings;

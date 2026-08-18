@@ -6,8 +6,8 @@
 // aba Alertas; aqui e o detalhe. A watchlist (CRUD) continua via fetch; os achados
 // chegam AO VIVO pelo stream (useVipLive) — pokemon novo aparece sem F5.
 
-import { useEffect, useMemo, useState } from "react";
-import { spriteUrl } from "@/lib/sprites";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { spriteUrl, assetIconUrl } from "@/lib/sprites";
 import type { Watchlist } from "@/lib/alerts";
 import type { Currency, MarketMon } from "@/lib/game-account";
 import type { PokeType } from "@/lib/types";
@@ -22,9 +22,9 @@ import { CloseButton } from "./icon-button";
 import { TypeFilter } from "./type-filter";
 import { TypeIcon } from "./type-icon";
 import { TYPE_COLOR } from "@/lib/typing";
-import { MarketMonModal, MarketMonCard, type MarketDex } from "./market-advisor";
+import { MarketMonModal, MarketMonCard, BuyItemModal, type MarketDex, type MarketItemRow } from "./market-advisor";
 import { useT, useTypeLabel } from "./locale-provider";
-import { Star, Heart, ChevronRight } from "./icons";
+import { Star, Heart, ChevronRight, Loot, Caret } from "./icons";
 import { useVipLive, type LiveNotification } from "./vip-live";
 
 const fmt = (n: number) => n.toLocaleString("pt-BR");
@@ -32,6 +32,96 @@ const numI = (s: string) => {
   const v = parseInt(s.replace(/\D/g, ""), 10);
   return Number.isFinite(v) ? v : null;
 };
+
+// Item do catalogo pro seletor de desejo de item.
+export interface WishItem { id: number; name: string; icon: string }
+
+// Remonta a pilha de item a partir do alerta (pro card do achado e pra COMPRA).
+function itemFromNotif(n: LiveNotification, iconOf: (id: number) => string): MarketItemRow {
+  const d = (n.data ?? {}) as Record<string, unknown>;
+  return {
+    listingId: String(d.listingId ?? n.id),
+    kind: String(d.itemKind ?? "item"),
+    refId: Number(d.itemId ?? 0),
+    name: String(d.name ?? "?"),
+    icon: iconOf(Number(d.itemId ?? 0)) || String(d.icon ?? ""),
+    category: String(d.category ?? ""),
+    quantity: Number(d.quantity ?? 1),
+    price: Number(d.price ?? 0),
+    currency: d.currency === "DIAMONDS" ? "DIAMONDS" : "GOLD",
+    belowNpc: Boolean(d.belowNpc),
+    sellers: 1,
+  };
+}
+
+// Seletor de item leve: input com dropdown filtrado (mesmo padrao do BallSelect).
+function ItemPicker({ items, value, onSelect, placeholder }: { items: WishItem[]; value: WishItem | null; onSelect: (i: WishItem | null) => void; placeholder: string }) {
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState("");
+  const box = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e: MouseEvent) => { if (box.current && !box.current.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [open]);
+  const needle = q.trim().toLowerCase();
+  const filtered = needle ? items.filter((i) => i.name.toLowerCase().includes(needle)).slice(0, 30) : items.slice(0, 30);
+  return (
+    <div ref={box} className="relative">
+      <button type="button" onClick={() => setOpen((o) => !o)} className="input flex w-full items-center justify-between gap-2">
+        <span className="flex min-w-0 items-center gap-2">
+          {value?.icon && <Sprite src={assetIconUrl(value.icon)} alt="" size={18} />}
+          <span className={`truncate ${value ? "" : "text-text-dim"}`}>{value?.name ?? placeholder}</span>
+        </span>
+        <span className="inline-flex text-cyan"><Caret size={9} /></span>
+      </button>
+      {open && (
+        <div className="card fadein absolute z-30 mt-1 w-full p-1" style={{ background: "var(--surface-solid)" }}>
+          <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder={placeholder} className="input input-sm mb-1" />
+          <div className="max-h-56 overflow-auto">
+            {value && (
+              <button type="button" onClick={() => { onSelect(null); setOpen(false); }} className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm text-text-dim hover:bg-surface-2">
+                {placeholder}
+              </button>
+            )}
+            {filtered.map((i) => (
+              <button key={i.id} type="button" onClick={() => { onSelect(i); setOpen(false); setQ(""); }}
+                className={`flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm hover:bg-surface-2 ${value?.id === i.id ? "bg-surface-2" : ""}`}>
+                {i.icon && <Sprite src={assetIconUrl(i.icon)} alt="" size={18} />}
+                <span className="min-w-0 flex-1 truncate">{i.name}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Card de um ACHADO de item dentro do desejo: icone + qtd + preco unitario + comprar.
+function ItemMatchCard({ item, onBuy, right }: { item: MarketItemRow; onBuy: () => void; right?: React.ReactNode }) {
+  const t = useT();
+  return (
+    <div className="relative">
+      <div className="card flex w-full items-center gap-3 p-3">
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded bg-[var(--well-bg)]">
+          {item.icon ? <Sprite src={assetIconUrl(item.icon)} alt={item.name} size={34} /> : <Loot size={20} />}
+        </span>
+        <div className="min-w-0 flex-1">
+          <span className="pixel block truncate text-[1rem]">{item.name}</span>
+          <div className="mt-0.5 flex flex-wrap items-center gap-x-3 text-[0.8rem] text-text-dim">
+            <span className="pixel text-[0.95rem] text-text">{item.price.toLocaleString("pt-BR")} <span className="text-text-dim">{item.currency === "DIAMONDS" ? "dia" : "$"} {t("market.it.unit")}</span></span>
+            <span>x{item.quantity.toLocaleString("pt-BR")}</span>
+            {item.belowNpc && <span className="chip" style={{ background: "var(--green)", color: "#052012" }}>{t("account.market.belowNpc")}</span>}
+          </div>
+        </div>
+        <button type="button" onClick={onBuy} className="btn btn-green mr-7 shrink-0">{t("market.buy")}</button>
+      </div>
+      {right && <div className="absolute right-2 top-2 z-10">{right}</div>}
+    </div>
+  );
+}
 
 // Remonta o MarketMon a partir do que o worker gravou no alerta (pra abrir o modal).
 function monFromNotif(n: LiveNotification, name: string): MarketMon {
@@ -58,7 +148,7 @@ function monFromNotif(n: LiveNotification, name: string): MarketMon {
 
 // ---- formulario de novo desejo ----
 
-function NewWish({ creatures, onCreated }: { creatures: ComboCreature[]; onCreated: (w: Watchlist) => void }) {
+function NewWish({ creatures, items, onCreated }: { creatures: ComboCreature[]; items: WishItem[]; onCreated: (w: Watchlist) => void }) {
   const t = useT();
   const typeLabel = useTypeLabel();
   const qualityOpts = [
@@ -69,6 +159,8 @@ function NewWish({ creatures, onCreated }: { creatures: ComboCreature[]; onCreat
     { value: "1.8", label: "≥ 1.8" },
     { value: "2.0", label: "≥ 2.0" },
   ];
+  const [kind, setKind] = useState<"pokemon" | "item">("pokemon");
+  const [item, setItem] = useState<WishItem | null>(null);
   const [species, setSpecies] = useState<ComboCreature | null>(null);
   const [type, setType] = useState<PokeType | "">("");
   const [maxGold, setMaxGold] = useState("");
@@ -93,17 +185,27 @@ function NewWish({ creatures, onCreated }: { creatures: ComboCreature[]; onCreat
       currency = "DIAMONDS";
       maxPrice = dmd;
     }
-    const body = {
-      speciesId: species?.pokeId ?? null,
-      type: species ? null : type || null,
-      currency,
-      maxPrice,
-      minQuality: minQ ? Number(minQ) : null,
-      minIv: numI(minIv),
-      shinyOnly: shiny,
-      belowFair,
-      label: species?.name ?? (type ? typeLabel(type) : null),
-    };
+    const body = kind === "item"
+      ? {
+          kind: "item",
+          itemId: item?.id ?? null,
+          currency,
+          maxPrice,
+          belowFair,
+          label: item?.name ?? null,
+        }
+      : {
+          kind: "pokemon",
+          speciesId: species?.pokeId ?? null,
+          type: species ? null : type || null,
+          currency,
+          maxPrice,
+          minQuality: minQ ? Number(minQ) : null,
+          minIv: numI(minIv),
+          shinyOnly: shiny,
+          belowFair,
+          label: species?.name ?? (type ? typeLabel(type) : null),
+        };
     setBusy(true);
     try {
       const res = await fetch("/api/vip/watchlist", {
@@ -115,6 +217,7 @@ function NewWish({ creatures, onCreated }: { creatures: ComboCreature[]; onCreat
       if (res.ok && j.watchlist) {
         onCreated(j.watchlist);
         setSpecies(null);
+        setItem(null);
         setType("");
         setMaxGold("");
         setMaxDia("");
@@ -136,14 +239,46 @@ function NewWish({ creatures, onCreated }: { creatures: ComboCreature[]; onCreat
 
   return (
     <div className="flex flex-col gap-4">
-      <div>
-        <h2 className="section-title flex items-center gap-2 text-cyan">
-          <Heart size={14} className="text-pink" /> {t("wish.new.title")}
-        </h2>
-        <p className="mt-2 max-w-2xl text-sm text-text-dim">{t("wish.new.help")}</p>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 className="section-title flex items-center gap-2 text-cyan">
+            <Heart size={14} className="text-pink" /> {t("wish.new.title")}
+          </h2>
+          <p className="mt-2 max-w-2xl text-sm text-text-dim">{t("wish.new.help")}</p>
+        </div>
+        {/* desejo de POKEMON ou de ITEM — mesmo sniper, criterios diferentes */}
+        <div className="flex gap-1">
+          <button type="button" onClick={() => setKind("pokemon")} className={`tab ${kind === "pokemon" ? "tab-active" : ""}`}>{t("market.tab.pokemon")}</button>
+          <button type="button" onClick={() => setKind("item")} className={`tab ${kind === "item" ? "tab-active" : ""}`}>{t("market.tab.items")}</button>
+        </div>
       </div>
       <div className="card z-20 flex flex-col gap-4 p-5">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {kind === "item" ? (
+            <>
+              <label className="flex flex-col gap-1 sm:col-span-2">
+                <span className={lblCls}>{t("wish.item")}</span>
+                <ItemPicker items={items} value={item} onSelect={setItem} placeholder={t("wish.item.any")} />
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className={lblCls}>{t("wish.item.maxGold")}</span>
+                <input className="input" inputMode="numeric" placeholder="—" value={maxGold} onChange={(e) => setMaxGold(e.target.value)} />
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className={lblCls}>{t("wish.item.maxDia")}</span>
+                <input className="input" inputMode="numeric" placeholder="—" value={maxDia} onChange={(e) => setMaxDia(e.target.value)} />
+              </label>
+              <div className="flex flex-col gap-1">
+                <span className={lblCls}>{t("alerts.f.filters")}</span>
+                <div className="flex flex-wrap items-center gap-2">
+                  <ToggleButton active={belowFair} onClick={() => setBelowFair((v) => !v)} accent="green">
+                    {t("account.market.belowNpc")}
+                  </ToggleButton>
+                </div>
+              </div>
+            </>
+          ) : (
+          <>
           {/* Especie e Tipo sao exclusivos: uma especie ja e de um tipo so. */}
           <label className="flex flex-col gap-1 sm:col-span-2 lg:col-span-1">
             <span className={lblCls}>{t("alerts.f.species")}</span>
@@ -187,6 +322,8 @@ function NewWish({ creatures, onCreated }: { creatures: ComboCreature[]; onCreat
               </ToggleButton>
             </div>
           </div>
+          </>
+          )}
         </div>
         <div className="flex items-center justify-between gap-3">
           <span className="text-[0.92rem] font-semibold text-red">{err ?? ""}</span>
@@ -203,11 +340,11 @@ function NewWish({ creatures, onCreated }: { creatures: ComboCreature[]; onCreat
 
 function wishSummary(w: Watchlist, t: (k: string) => string): string {
   const parts: string[] = [];
-  if (w.maxPrice != null) parts.push(`≤ ${fmt(w.maxPrice)} ${w.currency === "DIAMONDS" ? t("alerts.coin.dia") : t("alerts.coin.gold")}`);
+  if (w.maxPrice != null) parts.push(`≤ ${fmt(w.maxPrice)} ${w.currency === "DIAMONDS" ? t("alerts.coin.dia") : t("alerts.coin.gold")}${w.kind === "item" ? ` ${t("market.it.unit")}` : ""}`);
   if (w.minQuality != null) parts.push(`Q ≥ ${w.minQuality}`);
   if (w.minIv != null) parts.push(`IV ≥ ${w.minIv}`);
   if (w.shinyOnly) parts.push("shiny");
-  if (w.belowFair) parts.push(t("alerts.f.belowFair").toLowerCase());
+  if (w.belowFair) parts.push((w.kind === "item" ? t("account.market.belowNpc") : t("alerts.f.belowFair")).toLowerCase());
   return parts.join(" · ") || t("alerts.any");
 }
 
@@ -227,6 +364,8 @@ function WishBlock({
   onOpen,
   onDismiss,
   nameOf,
+  itemIconOf,
+  onBuyItem,
   t,
 }: {
   w: Watchlist;
@@ -238,6 +377,8 @@ function WishBlock({
   onOpen: (mon: MarketMon) => void;
   onDismiss: (id: string) => void;
   nameOf: (speciesId: number) => string;
+  itemIconOf: (itemId: number) => string;
+  onBuyItem: (item: MarketItemRow) => void;
   t: (k: string) => string;
 }) {
   const [page, setPage] = useState(0);
@@ -252,7 +393,11 @@ function WishBlock({
         <button type="button" onClick={onToggleExpand} className="flex min-w-0 flex-1 items-center gap-3 text-left" aria-expanded={expanded}>
           <span className="inline-flex text-cyan" style={{ transform: expanded ? "rotate(90deg)" : "none", transition: "transform .15s" }}><ChevronRight size={9} /></span>
           <div className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded bg-[var(--well-bg)]">
-            {!w.speciesId && w.type ? (
+            {w.kind === "item" ? (
+              w.itemId != null && itemIconOf(w.itemId)
+                ? <Sprite src={assetIconUrl(itemIconOf(w.itemId))} alt={w.label ?? "item"} size={32} />
+                : <Loot size={20} />
+            ) : !w.speciesId && w.type ? (
               <span className="flex h-7 w-7 items-center justify-center rounded" style={{ background: TYPE_COLOR[w.type as PokeType], color: "#fff" }}>
                 <TypeIcon type={w.type as PokeType} size={16} />
               </span>
@@ -283,6 +428,17 @@ function WishBlock({
           <div className="mt-3 flex flex-col gap-2">
             <div className="grid gap-2 lg:grid-cols-2">
               {paged.map((n) => {
+                if (((n.data ?? {}) as Record<string, unknown>).kind === "item") {
+                  const it = itemFromNotif(n, itemIconOf);
+                  return (
+                    <ItemMatchCard
+                      key={n.id}
+                      item={it}
+                      onBuy={() => onBuyItem(it)}
+                      right={<CloseButton onClick={() => onDismiss(n.id)} title={t("alerts.dismiss")} />}
+                    />
+                  );
+                }
                 const mon = monFromNotif(n, nameOf(Number((n.data ?? {}).speciesId ?? 0)));
                 return (
                   <MarketMonCard
@@ -307,13 +463,18 @@ function WishBlock({
 
 type Load<T> = { status: "loading" } | { status: "error" } | { status: "ok"; data: T };
 
-export function WishlistPanel({ creatures, dex, focusWishId }: { creatures: ComboCreature[]; dex: Record<number, MarketDex>; focusWishId?: string | null }) {
+export function WishlistPanel({ creatures, items, dex, focusWishId }: { creatures: ComboCreature[]; items: WishItem[]; dex: Record<number, MarketDex>; focusWishId?: string | null }) {
   const t = useT();
   const { alerts, applyAlerts } = useVipLive();
   const [wishes, setWishes] = useState<Load<Watchlist[]>>({ status: "loading" });
   // achados vem AO VIVO do stream; o CRUD da watchlist continua por fetch proprio
   const matches = useMemo(() => alerts?.notifications ?? [], [alerts]);
   const [selected, setSelected] = useState<MarketMon | null>(null);
+  const [buyItem, setBuyItem] = useState<MarketItemRow | null>(null);
+  const itemIconOf = useMemo(() => {
+    const m = new Map(items.map((i) => [i.id, i.icon]));
+    return (id: number) => m.get(id) ?? "";
+  }, [items]);
   // acordeao: um desejo aberto por vez. Ja abre no desejo que veio do resumo (Alertas).
   const [expandedId, setExpandedId] = useState<string | null>(focusWishId ?? null);
 
@@ -379,6 +540,7 @@ export function WishlistPanel({ creatures, dex, focusWishId }: { creatures: Comb
     <div className="flex flex-col gap-5">
       <NewWish
         creatures={creatures}
+        items={items}
         onCreated={(w) => setWishes((s) => (s.status === "ok" ? { status: "ok", data: [w, ...s.data] } : s))}
       />
 
@@ -406,6 +568,8 @@ export function WishlistPanel({ creatures, dex, focusWishId }: { creatures: Comb
               onDelete={() => remove(w.id)}
               onOpen={open}
               onDismiss={dismiss}
+              itemIconOf={itemIconOf}
+              onBuyItem={setBuyItem}
             />
           ))
         )}
@@ -418,6 +582,7 @@ export function WishlistPanel({ creatures, dex, focusWishId }: { creatures: Comb
           onClose={() => setSelected(null)}
         />
       )}
+      {buyItem && <BuyItemModal item={buyItem} onClose={() => setBuyItem(null)} />}
     </div>
   );
 }

@@ -40,6 +40,34 @@ export async function GET(req: Request) {
   }
   if (!loaded.mons) return NextResponse.json({ connected: true, error: "game_unreachable" }, { status: 502 });
 
+  // ---- MERCADO DE ITENS (kind=items): pilhas de item/bola/diamante, preco unitario ----
+  if (q.get("kind") === "items") {
+    const data = await getData();
+    const search = (q.get("q") ?? "").trim().toLowerCase();
+    const cat = q.get("cat") ?? "";
+    const curr = q.get("currency") ?? "";
+    const iSort = q.get("sort") ?? "price";
+    let items = loaded.items ?? [];
+    if (search) items = items.filter((i) => i.name.toLowerCase().includes(search));
+    if (cat) items = items.filter((i) => i.category === cat);
+    if (curr) items = items.filter((i) => i.currency === curr);
+    if (q.get("belowNpc") === "1") items = items.filter((i) => i.belowNpc);
+    const iRank = (a: typeof items[number], b: typeof items[number]) => {
+      switch (iSort) {
+        case "recent": return Date.parse(b.at) - Date.parse(a.at);
+        case "qty": return b.quantity - a.quantity;
+        default: return a.price - b.price; // price (unitario, mais barato primeiro)
+      }
+    };
+    items = [...items].sort(iRank).slice(0, 150).map((i) => ({
+      ...i,
+      npcPrice: i.refId > 0 ? (data.getItem(i.refId)?.npcPrice ?? null) : null,
+      icon: i.refId > 0 ? (data.getItem(i.refId)?.icon ?? i.icon) : i.icon,
+    }));
+    if (loaded.changed) await updateGameTokens(session.user.id, loaded.tokens);
+    return NextResponse.json({ connected: true, items, total: (loaded.items ?? []).length });
+  }
+
   // Motor de preco justo: teto de Power por bicho (independe do nivel) + regua do mercado
   // INTEIRO (todas as especies), pra "ta caro?" nao depender do punhado filtrado.
   const { creatures } = await getData();

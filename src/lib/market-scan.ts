@@ -4,11 +4,12 @@
 
 import { gameFetch, type Tokens } from "./game-auth";
 import { getData } from "./data";
-import { normalizeMarketMons, type MarketMon } from "./game-account";
+import { normalizeMarketMons, normalizeMarketItems, type MarketMon, type MarketItem } from "./game-account";
 import { monCeiling, buildPriceModel, fairPriceOf, type PriceItem } from "./market-value";
 
 export interface ScoredMarket {
   mons: MarketMon[]; // cada um com fairPrice preenchido
+  items: MarketItem[]; // pilhas de item (pro sniper de desejos de item)
   tokens: Tokens;
   changed: boolean;
 }
@@ -32,5 +33,5 @@ export async function fetchScoredMarket(initial: Tokens): Promise<ScoredMarket |
   const model = buildPriceModel(mons.map(toItem));
   const scored = mons.map((m) => ({ ...m, fairPrice: fairPriceOf(toItem(m), model) }));
 
-  return { mons: scored, tokens: r.tokens, changed: r.changed };
+  return { mons: scored, items: normalizeMarketItems(raw), tokens: r.tokens, changed: r.changed };
 }

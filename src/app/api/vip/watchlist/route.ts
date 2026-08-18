@@ -40,25 +40,32 @@ export async function POST(req: Request) {
   const currency: Currency | null =
     body.currency === "GOLD" || body.currency === "DIAMONDS" ? body.currency : null;
 
-  const speciesId = numOrNull(body.speciesId);
+  const kind: "pokemon" | "item" = body.kind === "item" ? "item" : "pokemon";
+  const speciesId = kind === "pokemon" ? numOrNull(body.speciesId) : null;
+  const itemId = kind === "item" ? numOrNull(body.itemId) : null;
   // tipo e especie sao exclusivos: se veio especie, ignora o tipo.
-  const type = speciesId == null && typeof body.type === "string" && body.type.trim() ? body.type.trim() : null;
+  const type = kind === "pokemon" && speciesId == null && typeof body.type === "string" && body.type.trim() ? body.type.trim() : null;
 
   const input: WatchInput = {
+    kind,
+    itemId,
     speciesId,
     type,
     currency,
     maxPrice: numOrNull(body.maxPrice),
-    minQuality: numOrNull(body.minQuality),
-    minIv: numOrNull(body.minIv),
-    shinyOnly: Boolean(body.shinyOnly),
+    // criterios de bicho nao se aplicam a item
+    minQuality: kind === "pokemon" ? numOrNull(body.minQuality) : null,
+    minIv: kind === "pokemon" ? numOrNull(body.minIv) : null,
+    shinyOnly: kind === "pokemon" && Boolean(body.shinyOnly),
     belowFair: Boolean(body.belowFair),
     label: typeof body.label === "string" && body.label.trim() ? body.label.trim().slice(0, 60) : null,
   };
 
-  // Precisa de pelo menos UM criterio — senao alerta em tudo.
+  // Precisa de pelo menos UM criterio — senao alerta em tudo. Desejo de item exige o item.
+  if (kind === "item" && input.itemId == null) return NextResponse.json({ error: "no_criteria" }, { status: 400 });
   const hasCriterion =
     input.speciesId != null ||
+    input.itemId != null ||
     input.type != null ||
     input.maxPrice != null ||
     input.minQuality != null ||

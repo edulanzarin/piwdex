@@ -7,7 +7,7 @@
 
 import { getGameLink, updateGameTokens } from "./game-link";
 import { fetchScoredMarket } from "./market-scan";
-import { listActiveWatchlists, matchSnipes, insertNotifications, type NewNotif } from "./alerts";
+import { listActiveWatchlists, matchSnipes, matchItemSnipes, insertNotifications, type NewNotif } from "./alerts";
 
 export interface ScanResult {
   watchlists: number;
@@ -21,20 +21,23 @@ export async function runSniperScan(): Promise<ScanResult> {
 
   // Mercado e global: puxa UMA vez, com o token de qualquer VIP que tenha watchlist.
   const watchers = [...new Set(watchlists.map((w) => w.userId))];
-  let mons = null;
+  let market = null;
   for (const uid of watchers) {
     const link = await getGameLink(uid);
     if (!link || link.status === "expired") continue;
     const sm = await fetchScoredMarket(link.tokens).catch(() => null);
     if (sm) {
       if (sm.changed) await updateGameTokens(uid, sm.tokens);
-      mons = sm.mons;
+      market = sm;
       break;
     }
   }
-  if (!mons) return { watchlists: watchlists.length, candidates: 0, inserted: 0 };
+  if (!market) return { watchlists: watchlists.length, candidates: 0, inserted: 0 };
 
-  const notifs: NewNotif[] = matchSnipes(watchlists, mons);
+  const notifs: NewNotif[] = [
+    ...matchSnipes(watchlists, market.mons),
+    ...matchItemSnipes(watchlists, market.items),
+  ];
   const inserted = await insertNotifications(notifs);
   return { watchlists: watchlists.length, candidates: notifs.length, inserted };
 }
