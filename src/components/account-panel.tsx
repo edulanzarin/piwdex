@@ -10,6 +10,7 @@ import { Pokeball } from "./pokeball";
 import { StatTile } from "./stat-tile";
 import type { ComboCreature } from "./pokemon-combobox";
 import { useT } from "./locale-provider";
+import { Panel } from "./ui/panel";
 import { Star, Coin, Diamond, Skull, Xp, Check, ArrowDown, Infinity_, ChevronRight } from "./icons";
 
 const fmt = (n: number) => n.toLocaleString("pt-BR");
@@ -86,15 +87,12 @@ function Row({ label, value }: { label: string; value: React.ReactNode }) {
     </div>
   );
 }
+// secao da Conta: Panel primitivo (titulo colorido + slot a direita)
 function Section({ title, color, extra, children }: { title: string; color: string; extra?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <div className="card p-4">
-      <div className="mb-3 flex items-center justify-between gap-2">
-        <h3 className={`section-title ${color}`}>{title}</h3>
-        {extra}
-      </div>
+    <Panel title={<span className={color}>{title}</span>} right={extra}>
       {children}
-    </div>
+    </Panel>
   );
 }
 const OnOff = ({ on }: { on: boolean }) => {

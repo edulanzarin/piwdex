@@ -53,8 +53,7 @@ export default async function EeveePage() {
     <ToolFrame accent="var(--cyan)" label="LAB" icon={<NavLab size={13} />}>
       <div className="flex flex-col gap-6">
         <div>
-          <div className="eyebrow mb-2"><T k="eevee.eyebrow" /></div>
-          <h1 className="pixel text-xl" style={{ color: "var(--cyan)" }}><T k="eevee.title" /></h1>
+          <h1 className="pixel text-3xl" style={{ color: "var(--cyan)" }}><T k="eevee.title" /></h1>
           <p className="mt-3 max-w-2xl text-sm text-text-dim"><T k="eevee.desc" /></p>
           <Link href={`/dex/${EEVEE_ID}`} className="mt-2 inline-flex items-center gap-1 text-[0.9rem] uppercase tracking-wide text-cyan hover:underline">
             <T k="eevee.backDex" /> <ChevronRight size={9} />

@@ -12,6 +12,7 @@ import { Sprite } from "./sprite";
 import { LoadingBall } from "./loaders";
 import { useT } from "./locale-provider";
 import { Bell, ChevronRight } from "./icons";
+import { Panel } from "./ui/panel";
 import { useVipLive } from "./vip-live";
 
 // Um desejo com achados, agregado pro resumo.
@@ -43,7 +44,7 @@ function SummaryCard({ g, onOpen, t }: { g: Group; onOpen: () => void; t: (k: st
         <div className="field-label flex items-center gap-1 text-green">
           <Bell size={9} /> {t("alerts.kind.snipe")}
         </div>
-        <div className="mt-0.5 text-sm font-semibold text-text">{t("alerts.found", { n: g.total, name })}</div>
+        <div className="mt-0.5 pixel text-[1rem] text-text">{t("alerts.found", { n: g.total, name })}</div>
         {g.unread > 0 && <div className="mt-0.5 text-[0.82rem] text-green">{t("alerts.newCount", { n: g.unread })}</div>}
       </div>
       <span className="inline-flex shrink-0 items-center gap-1 text-[0.8rem] text-cyan">{t("alerts.see")} <ChevronRight size={10} /></span>
@@ -86,20 +87,11 @@ export function AlertsInbox({ onJumpToWish }: { onJumpToWish?: (watchlistId: str
 
   return (
     <div className="flex flex-col gap-4">
-      <div>
-        <h2 className="section-title flex items-center gap-2 text-green">
-          <Bell size={15} /> {t("alerts.inbox.title")}
-          {totalUnread > 0 && <span className="rounded-full bg-cyan px-1.5 py-0.5 text-[0.7rem] text-[#06131a]">{totalUnread}</span>}
-        </h2>
-        <p className="mt-2 max-w-2xl text-sm text-text-dim">{t("alerts.inbox.desc")}</p>
-      </div>
-
-      <div className="card p-4">
-        {totalUnread > 0 && (
-          <div className="mb-3 flex justify-end">
-            <button type="button" onClick={markAll} className="btn btn-ghost">{t("alerts.markAll")}</button>
-          </div>
-        )}
+      <Panel
+        icon={<Bell size={12} />} accent="var(--green)"
+        title={<span className="text-green">{t("alerts.inbox.title")}{totalUnread > 0 ? ` (${totalUnread})` : ""}</span>}
+        right={totalUnread > 0 ? <button type="button" onClick={markAll} className="btn btn-ghost">{t("alerts.markAll")}</button> : undefined}
+      >
         {alerts == null ? (
           <LoadingBall label={t("alerts.loading")} />
         ) : groups.length === 0 ? (
@@ -114,7 +106,7 @@ export function AlertsInbox({ onJumpToWish }: { onJumpToWish?: (watchlistId: str
             ))}
           </div>
         )}
-      </div>
+      </Panel>
     </div>
   );
 }

@@ -20,8 +20,7 @@ export default async function ContaPage() {
   return (
     <div className="mx-auto flex w-full max-w-md flex-col gap-6 py-8">
       <div className="text-center">
-        <div className="eyebrow mb-2"><T k="conta.eyebrow" /></div>
-        <h1 className="pixel text-xl text-cyan"><T k="conta.title" /></h1>
+        <h1 className="pixel text-3xl text-cyan"><T k="conta.title" /></h1>
         <p className="mt-3 text-sm text-text-dim"><T k="conta.desc" /></p>
       </div>
       <AccountSettings email={u.email} nome={u.nome} vip={u.vip} />

@@ -55,8 +55,7 @@ export function VipPaywall({ status }: { status: string | null }) {
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-6 py-4">
       <div className="text-center">
-        <div className="eyebrow mb-2">{t("vip.eyebrow")}</div>
-        <h1 className="pixel text-xl text-yellow sm:text-2xl">{t("vip.paywall.title")}</h1>
+        <h1 className="pixel text-3xl text-yellow sm:text-2xl">{t("vip.paywall.title")}</h1>
         <p className="mx-auto mt-3 max-w-md text-sm text-text-dim">{t("vip.paywall.desc")}</p>
       </div>
 

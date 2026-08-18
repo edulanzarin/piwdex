@@ -22,7 +22,9 @@ import { SelectMenu } from "./select-menu";
 import { StatTile } from "./stat-tile";
 import { CloseButton } from "./icon-button";
 import { useT } from "./locale-provider";
-import { Star, Coin, Diamond, ChevronRight } from "./icons";
+import { Panel } from "./ui/panel";
+import { EmptyState } from "./ui/feed";
+import { Star, Coin, Diamond, ChevronRight, Dollar } from "./icons";
 
 // Cor de cada nota (genes, Quality ou preco): verde otimo, amarelo mediano, vermelho ruim.
 const GRADE_VAR: Record<Grade, string> = { great: "var(--green)", ok: "var(--yellow)", bad: "var(--red)" };
@@ -109,7 +111,7 @@ export function MarketMonCard({ mon, onClick, right }: { mon: MarketMon; onClick
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
-            <span className="truncate text-sm font-semibold">{mon.name}</span>
+            <span className="pixel truncate text-[1rem]">{mon.name}</span>
             <span className="text-[0.78rem] text-text-dim">Lv.{mon.level}</span>
           </div>
           <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[0.82rem] text-text-dim">
@@ -310,7 +312,7 @@ export function MarketAdvisor({
         <h2 className="section-title text-purple">{t("account.market.title")}</h2>
         <p className="mt-2 max-w-2xl text-sm text-text-dim">{t("account.market.desc")}</p>
       </div>
-      <div className="card z-20 flex flex-col gap-4 p-5">
+      <Panel icon={<Dollar size={12} />} accent="var(--purple)" title={t("robo.caught.filters")} className="z-20 p-5" bodyClassName="gap-4">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {/* Especie e Tipo sao mutuamente exclusivos: uma especie ja e de um tipo so.
               Escolher um zera o outro. */}
@@ -387,12 +389,12 @@ export function MarketAdvisor({
             {busy ? `${t("account.market.searching")}...` : <>{t("account.market.search")} <ChevronRight size={10} /></>}
           </button>
         </div>
-      </div>
+      </Panel>
 
       {busy ? (
         <div className="card p-6"><LoadingBall label={t("account.market.searching")} /></div>
       ) : mons == null ? null : mons.length === 0 ? (
-        <div className="card p-6 text-center text-sm text-text-dim">{t("account.market.empty")}</div>
+        <div className="card p-4"><EmptyState message={t("account.market.empty")} /></div>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {paged.map((m) => (
@@ -401,8 +403,9 @@ export function MarketAdvisor({
         </div>
       )}
       {mons && mons.length > PAGE_SIZE && <Pagination page={page} pageCount={pageCount} onPage={setPage} />}
-      <p className="text-[0.8rem] italic text-text-dim">{t("account.market.legend")}</p>
-      <p className="text-[0.8rem] italic text-text-dim">{t("account.market.hint")}</p>
+      <div className="rounded border border-border bg-[var(--well-bg)] px-3 py-2 text-[0.8rem] leading-relaxed text-text-dim">
+        {t("account.market.legend")} {t("account.market.hint")}
+      </div>
 
       {selected && <MarketMonModal mon={selected} dex={dex?.[selected.speciesId]} onClose={() => setSelected(null)} />}
     </div>

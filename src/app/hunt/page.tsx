@@ -95,8 +95,7 @@ export default async function HuntPage() {
     <ToolFrame accent="var(--yellow)" label="HUNT" icon={<NavHunt size={13} />}>
       <div className="flex flex-col gap-6">
         <div>
-          <div className="eyebrow mb-2"><T k="hunt.eyebrow" /></div>
-          <h1 className="pixel text-xl" style={{ color: "var(--yellow)" }}><T k="hunt.title" /></h1>
+          <h1 className="pixel text-3xl" style={{ color: "var(--yellow)" }}><T k="hunt.title" /></h1>
           <p className="mt-3 max-w-2xl text-sm text-text-dim">
             <T k="hunt.route.desc" />
           </p>

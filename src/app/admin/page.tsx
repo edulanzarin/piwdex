@@ -25,8 +25,7 @@ export default async function AdminPage() {
       <ToolFrame accent={ACCENT} label="ADMIN" icon={<Gear size={13} />}>
         <div className="flex flex-col gap-5">
           <div>
-            <div className="eyebrow mb-2">Painel interno</div>
-            <h1 className="pixel text-xl" style={{ color: ACCENT }}>Contas do PIWdex</h1>
+            <h1 className="pixel text-3xl" style={{ color: ACCENT }}>Contas do PIWdex</h1>
           </div>
           <AdminDashboard users={users} />
         </div>

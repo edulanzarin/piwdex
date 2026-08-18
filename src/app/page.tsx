@@ -53,7 +53,6 @@ export default async function Home() {
     <div className="flex flex-col gap-6">
       {/* Hero */}
       <section className="card overflow-hidden p-6 sm:p-10 lg:p-12">
-        <div className="eyebrow mb-4"><T k="home.eyebrow" /></div>
         <h1 className="pixel text-lg leading-[1.5] text-text break-words sm:text-3xl lg:text-4xl">
           <T k="home.heroPre" /> <span style={{ color: "var(--cyan)" }}><T k="home.heroMid" /></span> <T k="home.heroDo" />{" "}
           <span style={{ color: "var(--green)" }}>Poke Idle World</span>.

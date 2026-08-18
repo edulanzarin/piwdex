@@ -24,8 +24,7 @@ export default async function BreedPage() {
     <ToolFrame accent="var(--pink)" label="BREEDING" icon={<NavBreed size={13} />}>
       <div className="flex flex-col gap-6">
         <div>
-          <div className="eyebrow mb-2"><T k="breed.eyebrow" /></div>
-          <h1 className="pixel inline-flex flex-wrap items-center gap-2 text-xl" style={{ color: "var(--pink)" }}>
+          <h1 className="pixel inline-flex flex-wrap items-center gap-2 text-3xl" style={{ color: "var(--pink)" }}>
             <T k="breed.title" />
             <span className="chip" style={{ background: "var(--pink)", color: "#2a0a12" }}><T k="breed.alpha" /></span>
           </h1>

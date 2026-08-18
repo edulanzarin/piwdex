@@ -263,7 +263,7 @@ function WishBlock({
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
-              <span className="truncate text-sm font-semibold">{w.label ?? (w.speciesId ? `#${w.speciesId}` : t("alerts.anySpecies"))}</span>
+              <span className="pixel truncate text-[1rem]">{w.label ?? (w.speciesId ? `#${w.speciesId}` : t("alerts.anySpecies"))}</span>
               {matches.length > 0 && (
                 <span className="rounded-full bg-green px-1.5 py-0.5 text-[0.7rem] font-bold text-[#052012]">{matches.length}</span>
               )}

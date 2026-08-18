@@ -91,8 +91,7 @@ export default async function VipPage({ searchParams }: { searchParams: Promise<
       <ToolFrame accent={ACCENT} label="VIP" icon={<Star size={13} />}>
         <div className="flex flex-col gap-5">
           <div>
-            <div className="eyebrow mb-2"><T k="vip.eyebrow" /></div>
-            <h1 className="pixel text-xl" style={{ color: ACCENT }}><T k="vip.active.title" /></h1>
+            <h1 className="pixel text-3xl" style={{ color: ACCENT }}><T k="vip.active.title" /></h1>
           </div>
 
           <VipShell creatures={slim} dex={dex} hunts={huntOptions} itemIcons={itemIcons} lootByPoke={lootByPoke} />

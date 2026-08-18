@@ -14,8 +14,7 @@ export default async function ItemsPage() {
     <ToolFrame accent="var(--green)" label="ITENS" icon={<NavItems size={13} />}>
       <div className="flex flex-col gap-6">
         <div>
-          <div className="eyebrow mb-2"><T k="items.eyebrow" /></div>
-          <h1 className="pixel text-xl" style={{ color: "var(--green)" }}><T k="items.title" /></h1>
+          <h1 className="pixel text-3xl" style={{ color: "var(--green)" }}><T k="items.title" /></h1>
           <p className="mt-3 text-sm text-text-dim">
             <TB k="items.subtitle" bKey="items.subtitleB" />
           </p>
