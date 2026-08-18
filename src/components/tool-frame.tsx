@@ -1,9 +1,10 @@
 import type { CSSProperties } from "react";
 
 /**
- * Envolve o conteudo de uma pagina de ferramenta num "aparelho" neon tematizavel
- * (casca colorida com lente, leds, label e telinha com scanlines). Mesma linguagem
- * do aparelho Pokedex, mas a cor vem do acento de cada ferramenta (--dev).
+ * Container padrao das paginas de ferramenta: moldura neon tematizavel (--dev) com uma
+ * faixa fina de rotulo e o corpo com scanlines sutis. A casca de "aparelho" (lente,
+ * leds, corpo colorido) ficou EXCLUSIVA da Pokedex (/dex, classes pkdx-*) — pedido do
+ * Eduardo: o resto tem container, mas nao o aparelho.
  */
 export function ToolFrame({
   accent,
@@ -17,23 +18,17 @@ export function ToolFrame({
   children: React.ReactNode;
 }) {
   return (
-    <div className="device" style={{ "--dev": accent } as CSSProperties}>
-      <div className="device-body">
-        <div className="device-topbar">
-          <span className="device-lens" />
-          <span className="device-led" style={{ background: "#ff5555" }} />
-          <span className="device-led" style={{ background: "#f4d24a" }} />
-          <span className="device-led" style={{ background: "#35e08e" }} />
-          <span className="device-label pixel text-[0.58rem] sm:text-[0.62rem]">
-            {icon}
-            {label}
-          </span>
-        </div>
-        <div className="device-screen">
-          <span className="pkdx-scan" aria-hidden />
-          <div className="relative z-[1]">{children}</div>
-        </div>
+    <section className="tool-shell" style={{ "--dev": accent } as CSSProperties}>
+      <header className="tool-head">
+        <span className="tool-head-label pixel">
+          {icon}
+          {label}
+        </span>
+      </header>
+      <div className="tool-body">
+        <span className="pkdx-scan" aria-hidden />
+        <div className="relative z-[1]">{children}</div>
       </div>
-    </div>
+    </section>
   );
 }
