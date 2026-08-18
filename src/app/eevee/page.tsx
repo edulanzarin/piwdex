@@ -55,7 +55,7 @@ export default async function EeveePage() {
         <div>
           <h1 className="pixel text-3xl" style={{ color: "var(--cyan)" }}><T k="eevee.title" /></h1>
           <p className="mt-3 max-w-2xl text-sm text-text-dim"><T k="eevee.desc" /></p>
-          <Link href={`/dex/${EEVEE_ID}`} className="mt-2 inline-flex items-center gap-1 text-[0.9rem] uppercase tracking-wide text-cyan hover:underline">
+          <Link href={`/dex/${EEVEE_ID}`} className="mt-2 inline-flex items-center gap-1 text-base uppercase tracking-wide text-cyan hover:underline">
             <T k="eevee.backDex" /> <ChevronRight size={9} />
           </Link>
         </div>

@@ -102,10 +102,10 @@ export function PokemonCombobox<T extends ComboCreature>({
                 >
                   <Sprite src={spriteUrl(c.pokeId)} alt="" size={32} />
                   <span className="flex-1 text-sm">{c.name}</span>
-                  <span className="text-[0.75rem] text-text-dim">#{String(c.pokeId).padStart(3, "0")}</span>
+                  <span className="text-xs text-text-dim">#{String(c.pokeId).padStart(3, "0")}</span>
                   <span className="flex gap-1">
                     {[c.type1, c.type2].filter(Boolean).map((t) => (
-                      <span key={t} className="chip !text-[0.7rem] !px-1.5" style={{ background: TYPE_COLOR[t as PokeType], color: "#fff" }}>{t}</span>
+                      <span key={t} className="chip text-xs px-1.5" style={{ background: TYPE_COLOR[t as PokeType], color: "#fff" }}>{t}</span>
                     ))}
                   </span>
                 </button>

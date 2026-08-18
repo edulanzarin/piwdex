@@ -17,7 +17,7 @@ export function Pagination({ page, pageCount, onPage }: { page: number; pageCoun
       >
         <ChevronLeft size={11} />
       </button>
-      <span className="text-[0.9rem] uppercase tracking-wide text-text-dim">{t("hunt.page", { a: page + 1, b: pageCount })}</span>
+      <span className="text-base uppercase tracking-wide text-text-dim">{t("hunt.page", { a: page + 1, b: pageCount })}</span>
       <button
         type="button"
         className="btn btn-ghost disabled:opacity-40"

@@ -49,7 +49,7 @@ export function TeamLive({ dex, onManage }: { dex?: Record<number, MarketDex>; o
         <Trainer size={13} className="text-yellow" />
         <h3 className="section-title flex-1">{t("vip.team.title")}</h3>
         {live ? (
-          <span className="inline-flex items-center gap-1.5 text-[0.75rem] uppercase text-green">
+          <span className="inline-flex items-center gap-1.5 text-xs uppercase text-green">
             <span className="hud-led pulse-soft" style={{ "--led": "var(--green)" } as React.CSSProperties} />
             {t("vip.ov.live")}
           </span>
@@ -59,7 +59,7 @@ export function TeamLive({ dex, onManage }: { dex?: Record<number, MarketDex>; o
       </div>
 
       {!leader ? (
-        <p className="py-3 text-center text-[0.88rem] text-text-dim">{t("vip.team.empty")}</p>
+        <p className="py-3 text-center text-base text-text-dim">{t("vip.team.empty")}</p>
       ) : (
         <>
           {/* lider em destaque — clique abre os stats reais */}
@@ -76,13 +76,13 @@ export function TeamLive({ dex, onManage }: { dex?: Record<number, MarketDex>; o
             </span>
             <span className="min-w-0 flex-1">
               <span className="flex flex-wrap items-baseline gap-2">
-                <span className="pixel text-[1rem] text-yellow">{leader.name}</span>
-                <span className="pixel text-[0.82rem] text-text">Lv{hunt?.fighterLevel && hunt.fighterLevel > leader.level ? hunt.fighterLevel : leader.level}</span>
+                <span className="pixel text-base text-yellow">{leader.name}</span>
+                <span className="pixel text-sm text-text">Lv{hunt?.fighterLevel && hunt.fighterLevel > leader.level ? hunt.fighterLevel : leader.level}</span>
                 {leader.shiny && <span className="chip" style={{ background: "var(--yellow)", color: "#3a2c00" }}>shiny</span>}
                 {leaderRarity && <RarityBadge rarity={leaderRarity} />}
               </span>
               <span className="mt-1.5 block"><HpBar hp={leader.hp} maxHp={leader.maxHp} /></span>
-              <span className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5 text-[0.8rem] tabular-nums text-text-dim">
+              <span className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5 text-sm tabular-nums text-text-dim">
                 <span className="inline-flex items-center gap-1 text-cyan"><Xp size={9} />{fmt(leader.power)} {t("vip.team.power")}</span>
                 <span>IV {leader.ivTotal}</span>
                 <span>Q {leader.quality.toFixed(3)}</span>
@@ -105,8 +105,8 @@ export function TeamLive({ dex, onManage }: { dex?: Record<number, MarketDex>; o
                     <Sprite src={spriteUrl(p.speciesId, p.shiny)} alt={p.name} size={30} />
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[0.86rem] text-text">{p.name}</span>
-                    <span className="block text-[0.75rem] tabular-nums text-text-dim">Lv{p.level} · {fmt(p.power)}</span>
+                    <span className="block truncate text-base text-text">{p.name}</span>
+                    <span className="block text-xs tabular-nums text-text-dim">Lv{p.level} · {fmt(p.power)}</span>
                     <HpBar hp={p.hp} maxHp={p.maxHp} />
                   </span>
                 </button>

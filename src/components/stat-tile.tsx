@@ -33,7 +33,7 @@ export function StatTile({
       {/* valor longo (ex.: preco de 1 bilhao) quebra em vez de estourar o tile */}
       <span
         key={live ? String(value) : undefined}
-        className={`pixel min-w-0 text-[1.1rem] tabular-nums [overflow-wrap:anywhere] ${live ? "tick-glow" : ""}`}
+        className={`pixel min-w-0 text-lg tabular-nums [overflow-wrap:anywhere] ${live ? "tick-glow" : ""}`}
         style={accent ? ({ color: accent, "--accent": accent } as CSSProperties) : undefined}
       >
         {value}

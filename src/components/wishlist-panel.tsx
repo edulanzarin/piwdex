@@ -109,9 +109,9 @@ function ItemMatchCard({ item, onBuy, right }: { item: MarketItemRow; onBuy: () 
           {item.icon ? <Sprite src={assetIconUrl(item.icon)} alt={item.name} size={34} /> : <Loot size={20} />}
         </span>
         <div className="min-w-0 flex-1">
-          <span className="pixel block truncate text-[1rem]">{item.name}</span>
-          <div className="mt-0.5 flex flex-wrap items-center gap-x-3 text-[0.8rem] text-text-dim">
-            <span className="pixel text-[0.95rem] text-text">{item.price.toLocaleString("pt-BR")} <span className="text-text-dim">{item.currency === "DIAMONDS" ? "dia" : "$"} {t("market.it.unit")}</span></span>
+          <span className="pixel block truncate text-base">{item.name}</span>
+          <div className="mt-0.5 flex flex-wrap items-center gap-x-3 text-sm text-text-dim">
+            <span className="pixel text-base text-text">{item.price.toLocaleString("pt-BR")} <span className="text-text-dim">{item.currency === "DIAMONDS" ? "dia" : "$"} {t("market.it.unit")}</span></span>
             <span>x{item.quantity.toLocaleString("pt-BR")}</span>
             {item.belowNpc && <span className="chip" style={{ background: "var(--green)", color: "#052012" }}>{t("account.market.belowNpc")}</span>}
           </div>
@@ -327,7 +327,7 @@ function NewWish({ creatures, items, onCreated }: { creatures: ComboCreature[]; 
           )}
         </div>
         <div className="flex items-center justify-between gap-3">
-          <span className="text-[0.92rem] font-semibold text-red">{err ?? ""}</span>
+          <span className="text-base text-red">{err ?? ""}</span>
           <button type="button" onClick={submit} disabled={busy} className="btn btn-cyan disabled:opacity-40">
             {busy ? `${t("wish.new.saving")}...` : <>{t("wish.new.save")} <ChevronRight size={10} /></>}
           </button>
@@ -411,12 +411,12 @@ function WishBlock({
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
-              <span className="pixel truncate text-[1rem]">{w.label ?? (w.speciesId ? `#${w.speciesId}` : t("alerts.anySpecies"))}</span>
+              <span className="pixel truncate text-base">{w.label ?? (w.speciesId ? `#${w.speciesId}` : t("alerts.anySpecies"))}</span>
               {matches.length > 0 && (
-                <span className="rounded-full bg-green px-1.5 py-0.5 text-[0.7rem] font-bold text-[#052012]">{matches.length}</span>
+                <span className="rounded-full bg-green px-1.5 py-0.5 text-xs text-[#052012]">{matches.length}</span>
               )}
             </div>
-            <div className="truncate text-[0.82rem] text-text-dim">{wishSummary(w, t)}</div>
+            <div className="truncate text-sm text-text-dim">{wishSummary(w, t)}</div>
           </div>
         </button>
         <ToggleButton active={w.active} onClick={() => onToggle(!w.active)} accent="green" title={t(w.active ? "alerts.pause" : "alerts.resume")}>
@@ -457,7 +457,7 @@ function WishBlock({
             {matches.length > MATCH_PAGE && <Pagination page={safePage} pageCount={pageCount} onPage={setPage} />}
           </div>
         ) : (
-          <p className="mt-3 text-[0.86rem] text-text-dim">{w.active ? t("wish.noMatches") : t("wish.paused")}</p>
+          <p className="mt-3 text-base text-text-dim">{w.active ? t("wish.noMatches") : t("wish.paused")}</p>
         ))}
     </div>
   );
@@ -555,9 +555,9 @@ export function WishlistPanel({ creatures, items, dex, focusWishId }: { creature
         {wishes.status === "loading" ? (
           <div className="card p-4"><LoadingBall label={t("alerts.loading")} /></div>
         ) : wishes.status === "error" ? (
-          <div className="card p-4"><p className="text-[0.92rem] text-text-dim">{t("alerts.error")}</p></div>
+          <div className="card p-4"><p className="text-base text-text-dim">{t("alerts.error")}</p></div>
         ) : wishes.data.length === 0 ? (
-          <div className="card p-4"><p className="text-[0.92rem] text-text-dim">{t("wish.list.empty")}</p></div>
+          <div className="card p-4"><p className="text-base text-text-dim">{t("wish.list.empty")}</p></div>
         ) : (
           wishes.data.map((w) => (
             <WishBlock

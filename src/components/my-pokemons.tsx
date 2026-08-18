@@ -131,12 +131,12 @@ export function MyPokemons({ dex }: { dex?: Record<number, MarketDex> }) {
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-1.5">
-                      <span className="truncate text-[0.95rem] font-semibold text-text">{p.name}</span>
-                      <span className="pixel shrink-0 text-[0.75rem] text-text-dim">Lv{p.level}</span>
+                      <span className="truncate text-base text-text">{p.name}</span>
+                      <span className="pixel shrink-0 text-xs text-text-dim">Lv{p.level}</span>
                       {isLeader && <span className="chip" style={{ background: "var(--yellow)", color: "#3a2c00" }}>{t("account.team.leader")}</span>}
                       {rar && <RarityBadge rarity={rar} />}
                     </div>
-                    <div className="mt-0.5 flex flex-wrap gap-x-2.5 text-[0.8rem] tabular-nums text-text-dim">
+                    <div className="mt-0.5 flex flex-wrap gap-x-2.5 text-sm tabular-nums text-text-dim">
                       <span className="inline-flex items-center gap-1 text-cyan"><Xp size={9} />{fmt(p.power)}</span>
                       <span>IV <span className={ivColor(p.ivTotal)}>{p.ivTotal}</span></span>
                       <span>Q <span className="text-cyan">{p.quality.toFixed(2)}</span></span>
@@ -174,11 +174,11 @@ export function MyPokemons({ dex }: { dex?: Record<number, MarketDex> }) {
       <Panel
         icon={<Backpack size={12} />}
         accent="var(--cyan)"
-        title={<>{t("vip.team.boxTitle")}{boxList && <span className="ms-2 pixel text-[0.8rem] text-text-dim">{boxList.length}</span>}</>}
+        title={<>{t("vip.team.boxTitle")}{boxList && <span className="ms-2 pixel text-sm text-text-dim">{boxList.length}</span>}</>}
         className="p-5"
         bodyClassName="gap-3"
       >
-        {teamFull && <p className="text-[0.86rem] text-yellow">{t("vip.team.teamFull")}</p>}
+        {teamFull && <p className="text-base text-yellow">{t("vip.team.teamFull")}</p>}
         <div className="flex flex-wrap items-center gap-2">
           <input value={boxQ} onChange={(e) => setBoxQ(e.target.value)} placeholder={t("vip.team.boxSearch")} className="input max-w-xs flex-1" />
           <SelectMenu value={boxSort} onChange={setBoxSort} className="" options={[
@@ -193,7 +193,7 @@ export function MyPokemons({ dex }: { dex?: Record<number, MarketDex> }) {
         {boxErr === "not_connected" ? (
           <EmptyState message={t("vip.poke.connectFirst")} />
         ) : boxErr === "err" ? (
-          <p className="py-8 text-center text-[0.95rem] text-red">{t("toast.err")}</p>
+          <p className="py-8 text-center text-base text-red">{t("toast.err")}</p>
         ) : boxList === null ? (
           <div className="py-6"><LoadingBall label={t("vip.poke.loading")} /></div>
         ) : !boxShown || boxShown.length === 0 ? (
@@ -216,11 +216,11 @@ export function MyPokemons({ dex }: { dex?: Record<number, MarketDex> }) {
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className="flex flex-wrap items-center gap-1.5">
-                        <span className="truncate text-[0.95rem] font-semibold text-text">{p.name}</span>
-                        <span className="pixel shrink-0 text-[0.75rem] text-text-dim">Lv{p.level}</span>
+                        <span className="truncate text-base text-text">{p.name}</span>
+                        <span className="pixel shrink-0 text-xs text-text-dim">Lv{p.level}</span>
                         {rar && <RarityBadge rarity={rar} />}
                       </span>
-                      <span className="mt-0.5 flex flex-wrap gap-x-2.5 text-[0.82rem] tabular-nums text-text-dim">
+                      <span className="mt-0.5 flex flex-wrap gap-x-2.5 text-sm tabular-nums text-text-dim">
                         <span>IV <span className={ivColor(p.ivTotal)}>{p.ivTotal}</span></span>
                         <span>Q <span className="text-cyan">{p.quality.toFixed(2)}</span></span>
                       </span>
@@ -250,10 +250,10 @@ export function MyPokemons({ dex }: { dex?: Record<number, MarketDex> }) {
               <Sprite src={spriteUrl(confirm.poke.speciesId, confirm.poke.shiny)} alt={confirm.poke.name} size={40} />
             </span>
             <div className="min-w-0 flex-1">
-              <p className="text-[0.98rem] text-text">
+              <p className="text-base text-text">
                 {t(confirm.action === "store" ? "vip.team.confirmStore" : "vip.team.confirmWithdraw", { name: confirm.poke.name })}
               </p>
-              <p className="mt-1 text-[0.8rem] text-text-dim">{t("vip.team.confirmNote")}</p>
+              <p className="mt-1 text-sm text-text-dim">{t("vip.team.confirmNote")}</p>
             </div>
           </div>
           <div className="mt-4 flex justify-end gap-2">

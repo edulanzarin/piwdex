@@ -20,10 +20,10 @@ export function StatBar({
   const pct = max > 0 ? Math.min(100, (value / max) * 100) : 0;
   return (
     <div className="flex items-center gap-3">
-      <div className="flex w-16 shrink-0 items-center gap-1.5 text-[0.78rem] uppercase tracking-wide text-text-dim">
+      <div className="flex w-16 shrink-0 items-center gap-1.5 text-sm uppercase tracking-wide text-text-dim">
         <StatIcon index={iconIndex} size={12} />{label}
       </div>
-      <div className={`w-9 shrink-0 text-right text-sm font-bold tabular-nums ${best ? "text-yellow" : ""}`}>{value}</div>
+      <div className={`w-9 shrink-0 text-right text-sm tabular-nums ${best ? "text-yellow" : ""}`}>{value}</div>
       <div className="statbar flex-1">
         <div className="statbar-fill" style={{ width: `${pct}%`, background: `hsl(${hueFor(pct)} 68% 48%)` }} />
       </div>
@@ -42,7 +42,7 @@ export function StatCompareRow({
 }) {
   const pct = max > 0 ? Math.min(100, (value / max) * 100) : 0;
   return (
-    <div className="flex items-center gap-2 text-[0.92rem]">
+    <div className="flex items-center gap-2 text-base">
       <span className="inline-flex w-14 shrink-0 items-center gap-1 text-text-dim">
         <StatIcon index={iconIndex} size={11} />{label}
       </span>

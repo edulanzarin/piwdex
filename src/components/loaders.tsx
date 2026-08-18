@@ -38,7 +38,7 @@ export function LoadingBall({ label = "Carregando" }: { label?: string }) {
   return (
     <div className="flex flex-col items-center justify-center gap-4 py-20">
       <Pokeball size={64} className="wiggle" />
-      <div className="pixel text-[0.8rem] text-text-dim">{label}...</div>
+      <div className="pixel text-sm text-text-dim">{label}...</div>
     </div>
   );
 }

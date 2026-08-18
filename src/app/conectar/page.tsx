@@ -51,13 +51,13 @@ export default function ConectarPage() {
         {status === "working" && <LoadingBall label={t("connect.working")} />}
         {status === "ok" && (
           <>
-            <div className="pixel text-[0.9rem] text-green">{t("connect.ok")}</div>
+            <div className="pixel text-base text-green">{t("connect.ok")}</div>
             <p className="mt-2 text-sm text-text-dim">{t("connect.redirect")}</p>
           </>
         )}
         {status === "error" && (
           <>
-            <div className="pixel text-[0.9rem] text-red">{t("connect.failed")}</div>
+            <div className="pixel text-base text-red">{t("connect.failed")}</div>
             <p className="mt-2 text-sm text-text-dim">{err}</p>
             <a href="/vip#conta" className="btn btn-cyan mt-4 inline-block">{t("connect.back")}</a>
           </>

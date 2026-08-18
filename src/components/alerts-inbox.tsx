@@ -47,10 +47,10 @@ function SummaryCard({ g, onOpen, t }: { g: Group; onOpen: () => void; t: (k: st
         <div className="field-label flex items-center gap-1 text-green">
           <Bell size={9} /> {t("alerts.kind.snipe")}
         </div>
-        <div className="mt-0.5 pixel text-[1rem] text-text">{t("alerts.found", { n: g.total, name })}</div>
-        {g.unread > 0 && <div className="mt-0.5 text-[0.82rem] text-green">{t("alerts.newCount", { n: g.unread })}</div>}
+        <div className="mt-0.5 pixel text-base text-text">{t("alerts.found", { n: g.total, name })}</div>
+        {g.unread > 0 && <div className="mt-0.5 text-sm text-green">{t("alerts.newCount", { n: g.unread })}</div>}
       </div>
-      <span className="inline-flex shrink-0 items-center gap-1 text-[0.8rem] text-cyan">{t("alerts.see")} <ChevronRight size={10} /></span>
+      <span className="inline-flex shrink-0 items-center gap-1 text-sm text-cyan">{t("alerts.see")} <ChevronRight size={10} /></span>
     </button>
   );
 }
@@ -101,7 +101,7 @@ export function AlertsInbox({ onJumpToWish, itemIcons }: { onJumpToWish?: (watch
         ) : groups.length === 0 ? (
           <div className="flex flex-col items-center gap-3 py-8 text-center">
             <span className="text-text-dim/50"><Bell size={40} /></span>
-            <p className="max-w-sm text-[0.92rem] leading-relaxed text-text-dim">{t("alerts.inbox.empty")}</p>
+            <p className="max-w-sm text-base leading-relaxed text-text-dim">{t("alerts.inbox.empty")}</p>
           </div>
         ) : (
           <div className="grid gap-2">

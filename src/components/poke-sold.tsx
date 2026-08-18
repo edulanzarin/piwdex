@@ -31,7 +31,7 @@ export function PokeSold() {
 
       <div className="card p-4">
         {sold.length === 0 ? (
-          <p className="text-[0.92rem] text-text-dim">{on ? t("robo.pokesold.waiting") : t("robo.pokesold.empty")}</p>
+          <p className="text-base text-text-dim">{on ? t("robo.pokesold.waiting") : t("robo.pokesold.empty")}</p>
         ) : (
           <div className="grid gap-1.5 sm:grid-cols-2">
             {sold.map((p) => (
@@ -44,9 +44,9 @@ export function PokeSold() {
                     <span className="truncate text-sm">{p.name}</span>
                     <RarityBadge rarity={p.rarity as Rarity} />
                   </div>
-                  <div className="text-[0.82rem] text-text-dim">×{fmt(p.count)}</div>
+                  <div className="text-sm text-text-dim">×{fmt(p.count)}</div>
                 </div>
-                <span className="inline-flex shrink-0 items-center gap-1 text-[0.9rem] text-green tabular-nums"><Coin size={10} />{fmt(p.gold)}</span>
+                <span className="inline-flex shrink-0 items-center gap-1 text-base text-green tabular-nums"><Coin size={10} />{fmt(p.gold)}</span>
               </div>
             ))}
           </div>

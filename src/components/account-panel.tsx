@@ -57,7 +57,7 @@ function ConnectForm({ expired }: { expired?: boolean }) {
     <div className="card p-5">
       <h2 className="section-title text-cyan">{t("account.connect.title")}</h2>
       {expired && (
-        <div className="mt-3 rounded border border-[color:var(--yellow)]/50 bg-[rgba(240,200,60,0.08)] px-3 py-2 text-[0.92rem] text-yellow">
+        <div className="mt-3 rounded border border-[color:var(--yellow)]/50 bg-[rgba(240,200,60,0.08)] px-3 py-2 text-base text-yellow">
           {t("account.expired")}
         </div>
       )}
@@ -65,13 +65,13 @@ function ConnectForm({ expired }: { expired?: boolean }) {
 
       <div className="mt-4 rounded border border-[color:var(--cyan)]/40 bg-[rgba(57,139,240,0.06)] p-4">
         <div className="section-title text-cyan">{t("account.bm.title")}</div>
-        <ol className="mt-2 flex flex-col gap-1 text-[0.9rem] leading-relaxed text-text-dim">
+        <ol className="mt-2 flex flex-col gap-1 text-base leading-relaxed text-text-dim">
           {["s1", "s2", "s3"].map((s) => (
             <li key={s} className="flex items-start gap-2"><span className="mt-0.5 inline-flex text-cyan"><ChevronRight size={8} /></span><span>{t(`account.bm.${s}`)}</span></li>
           ))}
         </ol>
         <div className="mt-3"><Bookmarklet /></div>
-        <p className="mt-2 text-[0.78rem] leading-relaxed text-text-dim">{t("account.bm.note")}</p>
+        <p className="mt-2 text-sm leading-relaxed text-text-dim">{t("account.bm.note")}</p>
       </div>
     </div>
   );
@@ -87,7 +87,7 @@ function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between gap-3 border-b border-border/40 py-1.5 last:border-b-0">
       <span className="field-label">{label}</span>
-      <span className="text-right text-[0.92rem] text-text">{value}</span>
+      <span className="text-right text-base text-text">{value}</span>
     </div>
   );
 }
@@ -118,14 +118,14 @@ function Overview({ account }: { account: Account }) {
             <div className="flex h-[68px] w-[68px] items-center justify-center rounded-lg border border-[color:var(--cyan)]/40 bg-[var(--well-bg)]">
               <Sprite src={skinUrl} alt={skin ?? "skin"} size={56} />
             </div>
-            {skin && <div className="mt-1 w-[68px] text-[0.7rem] leading-tight text-text-dim">{skin}</div>}
+            {skin && <div className="mt-1 w-[68px] text-xs leading-tight text-text-dim">{skin}</div>}
           </div>
         )}
         <div className="min-w-0 flex-1">
           <div className="mb-3 flex flex-wrap items-center gap-2">
-            <span className="pixel text-[1rem] text-green">{p.name}</span>
+            <span className="pixel text-base text-green">{p.name}</span>
             {account.trainer.vip && <span className="chip" style={{ background: "var(--yellow)", color: "#3a2c00" }}>VIP</span>}
-            <span className="text-[0.75rem] uppercase tracking-wide text-text-dim">{t(`account.gender.${account.trainer.gender}`)}</span>
+            <span className="text-xs uppercase tracking-wide text-text-dim">{t(`account.gender.${account.trainer.gender}`)}</span>
           </div>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
             <Stat label={t("account.profile.level")} value={fmt(p.level)} color="text-cyan" icon={<Xp size={11} className="text-cyan" />} />
@@ -137,7 +137,7 @@ function Overview({ account }: { account: Account }) {
           </div>
           {p.xpForNext > 0 && (
             <div className="mt-3">
-              <div className="mb-1 flex justify-between text-[0.75rem] text-text-dim">
+              <div className="mb-1 flex justify-between text-xs text-text-dim">
                 <span>XP · {t("account.profile.level")} {p.level}</span>
                 <span className="tabular-nums">{fmt(p.xpInLevel)} / {fmt(p.xpForNext)}</span>
               </div>
@@ -276,7 +276,7 @@ function ItemsCard({ title, color, items }: { title: string; color: string; item
             <span className="flex h-8 w-8 shrink-0 items-center justify-center">
               <Sprite src={assetIconUrl(it.icon)} alt={it.name} size={26} />
             </span>
-            <div className="min-w-0 text-[0.8rem] leading-tight">
+            <div className="min-w-0 text-sm leading-tight">
               <div className="truncate">{it.name}</div>
               <div className="tabular-nums text-text-dim">x{fmt(it.quantity)}</div>
             </div>
@@ -307,7 +307,7 @@ function BallsCard({ account }: { account: Account }) {
               <span className="flex h-7 w-7 shrink-0 items-center justify-center">
                 <Sprite src={b.iconUrl ? assetIconUrl(b.iconUrl) : null} alt={b.name} size={22} />
               </span>
-              <div className="min-w-0 text-[0.8rem] leading-tight">
+              <div className="min-w-0 text-sm leading-tight">
                 <div className="truncate text-text">{b.name}</div>
                 <div className="tabular-nums text-text-dim">{b.infinite ? <Infinity_ size={13} /> : `x${fmt(b.count)}`}</div>
               </div>
@@ -329,12 +329,12 @@ function TeamMon({ p, rarity, onStats }: { p: ActivePoke; rarity?: Rarity; onSta
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
-          <span className="truncate text-sm font-semibold">{p.name}</span>
+          <span className="truncate text-sm">{p.name}</span>
           {p.leader && <span className="chip" style={{ background: "var(--green)", color: "#052012" }}>{t("account.team.leader")}</span>}
           {rarity && <RarityBadge rarity={rarity} />}
         </div>
-        <div className="text-[0.78rem] text-text-dim">Lv.{p.level}</div>
-        <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[0.82rem] text-text-dim">
+        <div className="text-sm text-text-dim">Lv.{p.level}</div>
+        <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-sm text-text-dim">
           <span>{t("account.col.power")} <span className="text-yellow">{fmt(p.power)}</span></span>
           <span>{t("account.col.iv")} <span className={ivColor(p.ivTotal)}>{p.ivTotal}</span>/192</span>
           <span>{t("account.col.quality")} <span className="text-cyan">{p.quality.toFixed(3)}</span></span>
@@ -371,7 +371,7 @@ function ActiveTeamCard({ initial, dex }: { initial: TeamSnapshot | null; dex?: 
   if (!initial || initial.list.length === 0) {
     return (
       <Section title={t("account.sec.team")} color="text-green">
-        <p className="text-[0.92rem] leading-relaxed text-text-dim">{t("account.team.snapshotEmpty")}</p>
+        <p className="text-base leading-relaxed text-text-dim">{t("account.team.snapshotEmpty")}</p>
       </Section>
     );
   }
@@ -380,7 +380,7 @@ function ActiveTeamCard({ initial, dex }: { initial: TeamSnapshot | null; dex?: 
       title={t("account.sec.team")}
       color="text-green"
       extra={
-        <span className="text-[0.75rem] text-text-dim">
+        <span className="text-xs text-text-dim">
           {t("account.team.total").replace("{n}", fmt(initial.total))}
           {hhmm(initial.at) && ` · ${hhmm(initial.at)}`}
         </span>

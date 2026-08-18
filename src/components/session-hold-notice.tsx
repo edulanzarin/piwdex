@@ -17,7 +17,7 @@ export function SessionHoldNotice() {
 
   return (
     <div
-      className="flex items-center gap-2.5 rounded-md border border-[color:var(--yellow)]/50 bg-[rgba(240,200,60,0.08)] px-3 py-2 text-[0.88rem] leading-relaxed text-yellow"
+      className="flex items-center gap-2.5 rounded-md border border-[color:var(--yellow)]/50 bg-[rgba(240,200,60,0.08)] px-3 py-2 text-base leading-relaxed text-yellow"
       role="status"
     >
       <Signal size={13} className="shrink-0" />

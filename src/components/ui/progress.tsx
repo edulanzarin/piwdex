@@ -23,7 +23,7 @@ export function ProgressBar({
         <span className="hud-fill block" style={{ width: `${width}%`, background: color }} />
       </div>
       {(leftLabel || rightLabel) && (
-        <div className="flex justify-between text-[0.78rem] tabular-nums text-text-dim">
+        <div className="flex justify-between text-sm tabular-nums text-text-dim">
           <span>{leftLabel}</span>
           <span>{rightLabel}</span>
         </div>

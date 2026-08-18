@@ -54,7 +54,7 @@ export function ItemsBrowser({ items }: { items: Item[] }) {
         />
       </div>
 
-      <div className="text-[0.9rem] text-text-dim uppercase tracking-wide">{t("items.count", { n: filtered.length })}</div>
+      <div className="text-base text-text-dim uppercase tracking-wide">{t("items.count", { n: filtered.length })}</div>
 
       {filtered.length === 0 ? (
         <div className="card p-10 text-center text-text-dim">{t("items.empty")}</div>
@@ -68,11 +68,11 @@ export function ItemsBrowser({ items }: { items: Item[] }) {
               </span>
               <div className="min-w-0 flex-1">
                 <div className="truncate text-sm font-medium">{i.name}</div>
-                <div className="text-[0.85rem] text-text-dim uppercase tracking-wide">
+                <div className="text-sm text-text-dim uppercase tracking-wide">
                   {i.category}
                   {i.rare ? <> · {t("items.rare")}</> : ""}
                 </div>
-                <div className="mt-0.5 flex items-center gap-1 text-[0.9rem] text-green">
+                <div className="mt-0.5 flex items-center gap-1 text-base text-green">
                   <Gold value={i.npcPrice} />
                 </div>
               </div>

@@ -20,11 +20,11 @@ function Bar({ label, value, max, color, valueText }: { label: React.ReactNode; 
   const pctW = max > 0 ? Math.max(value > 0 ? 3 : 0, (value / max) * 100) : 0; // piso de 3% pra barra nao sumir
   return (
     <div className="flex items-center gap-3">
-      <span className="w-28 shrink-0 truncate text-[0.86rem] text-text-dim">{label}</span>
+      <span className="w-28 shrink-0 truncate text-base text-text-dim">{label}</span>
       <div className="h-2.5 flex-1 overflow-hidden rounded-sm bg-[var(--well-bg)]">
         <div className="h-full rounded-sm transition-[width] duration-500" style={{ width: `${pctW}%`, background: color }} />
       </div>
-      <span className="w-20 shrink-0 pixel text-right text-[0.82rem] tabular-nums" style={{ color }}>{valueText ?? fmt(value)}</span>
+      <span className="w-20 shrink-0 pixel text-right text-sm tabular-nums" style={{ color }}>{valueText ?? fmt(value)}</span>
     </div>
   );
 }
@@ -67,7 +67,7 @@ export function RoboStats() {
           <StatTile live label={t("robo.stats.xp")} value={fmt(d?.xpGained ?? 0)} accent="var(--cyan)" icon={<Xp size={11} className="text-cyan" />} />
         </div>
         {/* valor do loot que dropou: INFORMATIVO — so vira dolar quando o robo vende */}
-        <p className="flex items-center gap-1.5 text-[0.8rem] text-text-dim">
+        <p className="flex items-center gap-1.5 text-sm text-text-dim">
           <Coin size={9} />
           {t("robo.stats.lootGoldHint", { v: fmt(d?.lootGold ?? 0) })}
         </p>
@@ -75,7 +75,7 @@ export function RoboStats() {
 
       {/* Dólar RECEBIDO — so venda gera dolar (loot coletado nao entra: duplicaria) */}
       <Card title={t("robo.stats.goldTitle")} accent="var(--green)" icon={<Coin size={13} />}>
-        <p className="-mt-2 text-[0.8rem] leading-relaxed text-text-dim">{t("robo.stats.goldHint")}</p>
+        <p className="-mt-2 text-sm leading-relaxed text-text-dim">{t("robo.stats.goldHint")}</p>
         <div className="flex flex-col gap-2.5">
           <Bar label={t("robo.stats.src.items")} value={d?.itemsGold ?? 0} max={goldMax} color="var(--green)" />
           <Bar label={t("robo.stats.src.pokes")} value={d?.pokesGold ?? 0} max={goldMax} color="var(--yellow)" />
@@ -109,7 +109,7 @@ export function RoboStats() {
             {rar.map((r) => <Bar key={r} label={r} value={d!.acervo.byRarity[r]} max={rarMax} color={RARITY_COLOR[r]} />)}
           </div>
         ) : (
-          <p className="text-[0.86rem] text-text-dim">{t("robo.stats.acervoEmpty")}</p>
+          <p className="text-base text-text-dim">{t("robo.stats.acervoEmpty")}</p>
         )}
       </Card>
     </div>

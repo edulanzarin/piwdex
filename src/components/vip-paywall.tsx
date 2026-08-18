@@ -59,7 +59,7 @@ export function VipPaywall({ status }: { status: string | null }) {
         <p className="mx-auto mt-3 max-w-md text-sm text-text-dim">{t("vip.paywall.desc")}</p>
       </div>
 
-      {banner && <div className={`rounded border px-4 py-2 text-[0.95rem] ${banner.cls}`}>{t(banner.k)}</div>}
+      {banner && <div className={`rounded border px-4 py-2 text-base ${banner.cls}`}>{t(banner.k)}</div>}
 
       {/* HERO do robo — o carro-chefe, ja pronto */}
       <div
@@ -74,13 +74,13 @@ export function VipPaywall({ status }: { status: string | null }) {
             <div className="section-title mb-1 flex items-center gap-2 text-yellow">
               <Star size={12} /> {t("vip.hero.badge")}
             </div>
-            <h2 className="pixel text-[0.95rem] leading-snug text-yellow sm:text-base">{t("vip.hero.robot.title")}</h2>
-            <p className="mt-2 text-[0.98rem] leading-relaxed text-text-dim">{t("vip.hero.robot.desc")}</p>
+            <h2 className="pixel text-base leading-snug text-yellow sm:text-base">{t("vip.hero.robot.title")}</h2>
+            <p className="mt-2 text-base leading-relaxed text-text-dim">{t("vip.hero.robot.desc")}</p>
           </div>
         </div>
         <div className="mt-4 flex flex-wrap gap-1.5">
           {ROBOT_CHIPS.map((k) => (
-            <span key={k} className="chip border border-[color:var(--yellow)]/40 text-[0.8rem]" style={{ color: "var(--yellow)" }}>
+            <span key={k} className="chip border border-[color:var(--yellow)]/40 text-sm" style={{ color: "var(--yellow)" }}>
               {t(k)}
             </span>
           ))}
@@ -92,7 +92,7 @@ export function VipPaywall({ status }: { status: string | null }) {
         <div className="section-title text-cyan">{t("vip.included")}</div>
         <ul className="flex flex-col gap-3">
           {FEATURES.map(({ Icon, k }) => (
-            <li key={k} className="flex items-start gap-3 text-[1.02rem]">
+            <li key={k} className="flex items-start gap-3 text-base">
               <span className="mt-0.5 shrink-0 text-cyan"><Icon size={14} /></span>
               <span className="leading-relaxed">{t(k)}</span>
             </li>
@@ -102,13 +102,13 @@ export function VipPaywall({ status }: { status: string | null }) {
         <div className="flex items-end justify-between gap-3 border-t border-border pt-4">
           <div>
             <div className="pixel text-lg text-yellow">{t("vip.price")}</div>
-            <div className="text-[0.8rem] text-text-dim">{t("vip.priceNote")}</div>
+            <div className="text-sm text-text-dim">{t("vip.priceNote")}</div>
           </div>
           <button type="button" onClick={subscribe} disabled={busy} className="btn btn-yellow disabled:opacity-50">
             {busy ? `${t("vip.subscribing")}...` : <>{t("vip.subscribe")} <ChevronRight size={10} /></>}
           </button>
         </div>
-        {err && <p className="text-[0.92rem] font-semibold text-red">{err}</p>}
+        {err && <p className="text-base text-red">{err}</p>}
       </div>
     </div>
   );

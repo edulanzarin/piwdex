@@ -54,10 +54,10 @@ export function MonStatsSection({
               max={Math.max(...values)} best={stats[k] === Math.max(...values)} />
           ))}
       <div className="mt-1 flex items-center justify-between border-t border-border pt-2 text-sm">
-        <span className="text-[0.82rem] uppercase tracking-wide text-text-dim">{t("cr.total")}</span>
+        <span className="text-sm uppercase tracking-wide text-text-dim">{t("cr.total")}</span>
         <strong className="tabular-nums text-cyan">{total.toLocaleString("pt-BR")}</strong>
       </div>
-      {canCompare && <p className="text-[0.75rem] leading-relaxed text-text-dim">{t("mon.stats.hint")}</p>}
+      {canCompare && <p className="text-xs leading-relaxed text-text-dim">{t("mon.stats.hint")}</p>}
     </div>
   );
 }
@@ -96,8 +96,8 @@ export function PokeStatsModal({
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <h3 className="truncate pixel text-[0.9rem] text-text">{poke.name}</h3>
-            <span className="text-[0.82rem] text-text-dim">Lv.{poke.level}</span>
+            <h3 className="truncate pixel text-base text-text">{poke.name}</h3>
+            <span className="text-sm text-text-dim">Lv.{poke.level}</span>
           </div>
           {dex && (
             <div className="mt-2 flex flex-wrap items-center gap-1.5">
@@ -110,7 +110,7 @@ export function PokeStatsModal({
       </div>
       <div className="grid grid-cols-3 gap-2">
         <StatTile label={t("account.col.power")} value={<span className="text-yellow">{fmt(poke.power)}</span>} />
-        <StatTile label={t("account.col.iv")} value={<><span className={poke.ivTotal >= 150 ? "text-green" : poke.ivTotal >= 100 ? "text-yellow" : "text-text"}>{poke.ivTotal}</span><span className="text-[0.82rem] text-text-dim">/192</span></>} />
+        <StatTile label={t("account.col.iv")} value={<><span className={poke.ivTotal >= 150 ? "text-green" : poke.ivTotal >= 100 ? "text-yellow" : "text-text"}>{poke.ivTotal}</span><span className="text-sm text-text-dim">/192</span></>} />
         <StatTile label={t("account.col.quality")} value={<span className="text-cyan">{poke.quality.toFixed(3)}</span>} />
       </div>
       <MonStatsSection stats={poke.stats} bases={bases} level={poke.level} quality={poke.quality} />

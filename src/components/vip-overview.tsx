@@ -188,9 +188,9 @@ export function VipOverview({
       >
         <Led color={troubled ? "var(--red)" : LED[status]} pulse={connected || status === "connecting" || !!hunt?.reconnecting} />
         <Robot size={14} className={connected ? "text-green" : "text-text-dim"} />
-        <span className="pixel text-[1.05rem]" style={{ color: heroColor }}>{statusLabel}</span>
+        <span className="pixel text-lg" style={{ color: heroColor }}>{statusLabel}</span>
         {holdOpen && <span className="chip" style={{ background: "var(--green)", color: "#052012" }}>{t("vip.ov.keepAlive")}</span>}
-        <span className="hidden flex-wrap items-center gap-x-3 text-[0.82rem] text-text-dim sm:flex">
+        <span className="hidden flex-wrap items-center gap-x-3 text-sm text-text-dim sm:flex">
           {connected && hunt?.since && <span className="inline-flex items-center gap-1"><Clock size={10} />{hm(Math.floor((Date.now() - hunt.since) / 1000))}</span>}
           {prof && <span className="inline-flex items-center gap-1"><Signal size={10} className={connected ? "text-green" : ""} />{prof.name}</span>}
           {hunt?.mode && hunt.mode !== "manual" && hunting && (
@@ -254,11 +254,11 @@ export function VipOverview({
                   </span>
                 )}
                 <div className="min-w-0 flex-1">
-                  <div className="pixel truncate text-[0.95rem] text-cyan">{huntOpt.name}</div>
-                  <div className="text-[0.8rem] text-text-dim">Lv{huntOpt.level} · {huntOpt.area}</div>
+                  <div className="pixel truncate text-base text-cyan">{huntOpt.name}</div>
+                  <div className="text-sm text-text-dim">Lv{huntOpt.level} · {huntOpt.area}</div>
                 </div>
                 {a && (
-                  <div className="shrink-0 text-right text-[0.82rem] tabular-nums">
+                  <div className="shrink-0 text-right text-sm tabular-nums">
                     <div className="inline-flex items-center gap-1 text-cyan"><Xp size={9} />{fmt(a.xpPerHour)}/h</div>
                     <div className="inline-flex items-center gap-1 text-green"><Coin size={9} />{fmt(a.goldPerHour)}/h</div>
                   </div>
@@ -281,12 +281,12 @@ export function VipOverview({
             {lv ? (
               <>
                 <div className="flex items-baseline gap-2">
-                  <span className="pixel text-[0.95rem] text-purple">{lv.name}</span>
-                  <span className="pixel text-[1rem] text-text">{lv.currentLevel}<span className="text-text-dim"> / {lv.targetLevel}</span></span>
+                  <span className="pixel text-base text-purple">{lv.name}</span>
+                  <span className="pixel text-base text-text">{lv.currentLevel}<span className="text-text-dim"> / {lv.targetLevel}</span></span>
                 </div>
                 <ProgressBar pct={lvPct} color="var(--purple)" />
                 {currentStep && !lv.done && (
-                  <div className="text-[0.8rem] text-text-dim">
+                  <div className="text-sm text-text-dim">
                     {t("vip.ov.planStep")}: <span className="text-text">{currentStep.huntName}</span> ({currentStep.from}-{currentStep.to}) · ~{fmt(currentStep.xpH)} XP/h
                   </div>
                 )}
@@ -317,8 +317,8 @@ export function VipOverview({
                           {b.iconUrl ? <Sprite src={b.iconUrl} alt={b.name} size={24} /> : <Pokeball size={18} />}
                         </span>
                         <span className="min-w-0 flex-1">
-                          <span className="block truncate text-[0.78rem] text-text-dim">{b.name}</span>
-                          <span key={b.count} className={`pixel tick-glow block text-[0.9rem] tabular-nums ${low ? "text-red" : "text-text"}`}>
+                          <span className="block truncate text-sm text-text-dim">{b.name}</span>
+                          <span key={b.count} className={`pixel tick-glow block text-base tabular-nums ${low ? "text-red" : "text-text"}`}>
                             {b.infinite ? "∞" : fmt(b.count)}
                           </span>
                         </span>
@@ -337,7 +337,7 @@ export function VipOverview({
           {prof && (
             <Panel
               icon={<Xp size={12} />} accent="var(--cyan)" title={t("vip.res.progress")}
-              right={<span className="pixel text-[0.95rem] text-yellow">Lv{prof.level}</span>}
+              right={<span className="pixel text-base text-yellow">Lv{prof.level}</span>}
               className="w-full"
             >
               <ProgressBar pct={xpPct} color="var(--cyan)" leftLabel={`${fmt(prof.xpInLevel)} XP`} rightLabel={`${fmt(prof.xpForNext)} XP`} />
@@ -388,9 +388,9 @@ export function VipOverview({
                     right={
                       <>
                         {isCatch ? (
-                          <span className="text-[0.8rem] font-semibold text-green">{t("robo.hunt.caught")}</span>
+                          <span className="text-sm text-green">{t("robo.hunt.caught")}</span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 text-[0.82rem] text-cyan"><Xp size={9} />{fmt(k.xp)}</span>
+                          <span className="inline-flex items-center gap-1 text-sm text-cyan"><Xp size={9} />{fmt(k.xp)}</span>
                         )}
                         {!isCatch && k.loot.slice(0, 3).map((l, j) => {
                           const icon = itemIcons[l.name.toLowerCase()];
@@ -419,7 +419,7 @@ export function VipOverview({
                   leading={<span className="flex h-6 w-6 items-center justify-center rounded bg-surface-2">{EVENT_ICON[ev.kind] ?? <Chart size={11} className="text-text-dim" />}</span>}
                   title={ev.title}
                   sub={ev.body ?? undefined}
-                  right={<span className="text-[0.75rem] text-text-dim">{ago(ev.createdAt)}</span>}
+                  right={<span className="text-xs text-text-dim">{ago(ev.createdAt)}</span>}
                 />
               ))}
             </div>

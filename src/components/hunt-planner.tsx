@@ -55,8 +55,8 @@ function HuntRowModal({ row, onClose }: { row: HuntRow; onClose: () => void }) {
           <Sprite src={spriteUrl(row.pokeId)} alt={row.name} size={72} />
         </div>
         <div className="min-w-0 flex-1">
-          <div className="text-[0.75rem] text-text-dim">#{String(row.pokeId).padStart(3, "0")}</div>
-          <h3 className="truncate pixel text-[0.9rem] text-text">{row.name}</h3>
+          <div className="text-xs text-text-dim">#{String(row.pokeId).padStart(3, "0")}</div>
+          <h3 className="truncate pixel text-base text-text">{row.name}</h3>
           <div className="mt-2 flex flex-wrap items-center gap-1.5">
             <TypeBadges t1={row.type1} t2={row.type2} />
             <span className="chip" style={{ background: "var(--surface-2)", color: "var(--text)" }}>lvl {row.huntLevel}</span>
@@ -99,7 +99,7 @@ function HuntRowModal({ row, onClose }: { row: HuntRow; onClose: () => void }) {
       </div>
 
       {/* Onde cacar + melhor drop */}
-      <div className="flex flex-col gap-2 text-[0.92rem]">
+      <div className="flex flex-col gap-2 text-base">
         <div className="flex items-start gap-2">
           <span className="w-14 shrink-0 pt-0.5 field-label">{t("hunt.col.where")}</span>
           <span className="text-text">{row.areas.map(area).join(", ")} · {t("hunt.spots", { n: row.spotCount })}</span>
@@ -211,7 +211,7 @@ export function EconomyTable({ rows, areas }: { rows: HuntRow[]; areas: string[]
         </div>
       </div>
 
-      <div className="text-[0.9rem] uppercase tracking-wide text-text-dim">{t("hunt.count", { n: filtered.length })}</div>
+      <div className="text-base uppercase tracking-wide text-text-dim">{t("hunt.count", { n: filtered.length })}</div>
 
       {filtered.length === 0 ? (
         <div className="card p-10 text-center text-text-dim">{t("hunt.empty")}</div>
@@ -220,7 +220,7 @@ export function EconomyTable({ rows, areas }: { rows: HuntRow[]; areas: string[]
         <div className="card overflow-x-auto p-0">
           <table className="w-full min-w-[46rem] text-sm">
             <thead>
-              <tr className="border-b border-border text-left text-[0.8rem] uppercase tracking-wide text-text-dim">
+              <tr className="border-b border-border text-left text-sm uppercase tracking-wide text-text-dim">
                 <th className="px-4 py-3">{t("hunt.col.pokemon")}</th>
                 <th className="px-4 py-3">{t("hunt.col.where")}</th>
                 <th className="px-4 py-3 text-right">{t("hunt.col.xp")}</th>
@@ -252,16 +252,16 @@ export function EconomyTable({ rows, areas }: { rows: HuntRow[]; areas: string[]
                   <td className="px-4 py-2.5">
                     <div className="flex flex-col gap-0.5">
                       <span className="text-text">{r.areas.map(area).join(", ")}</span>
-                      <span className="text-[0.84rem] uppercase tracking-wide text-text-dim">
+                      <span className="text-sm uppercase tracking-wide text-text-dim">
                         lvl {r.huntLevel} · {t("hunt.spots", { n: r.spotCount })}
                       </span>
                     </div>
                   </td>
                   <td className="px-4 py-2.5 text-right">
-                    <div className="tabular-nums font-bold text-text">{r.xp.toLocaleString("pt-BR")}</div>
+                    <div className="tabular-nums text-text">{r.xp.toLocaleString("pt-BR")}</div>
                   </td>
                   <td className="px-4 py-2.5 text-right">
-                    <div className="inline-flex items-center justify-end gap-1 tabular-nums font-bold text-text">
+                    <div className="inline-flex items-center justify-end gap-1 tabular-nums text-text">
                       <Gold value={r.gold} />
                     </div>
                   </td>
@@ -270,7 +270,7 @@ export function EconomyTable({ rows, areas }: { rows: HuntRow[]; areas: string[]
                       <span className="inline-flex items-center gap-2">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={r.topDrop.icon} alt="" width={20} height={20} className="shrink-0 [image-rendering:pixelated]" />
-                        <span className="text-[0.98rem] text-text-dim">{r.topDrop.name}</span>
+                        <span className="text-base text-text-dim">{r.topDrop.name}</span>
                       </span>
                     ) : (
                       <span className="text-text-dim">—</span>
@@ -294,7 +294,7 @@ export function EconomyTable({ rows, areas }: { rows: HuntRow[]; areas: string[]
       </>
       )}
 
-      <p className="text-[0.86rem] leading-relaxed text-text-dim">{t("hunt.note")}</p>
+      <p className="text-base leading-relaxed text-text-dim">{t("hunt.note")}</p>
 
       {sel && <HuntRowModal row={sel} onClose={() => setSel(null)} />}
     </div>

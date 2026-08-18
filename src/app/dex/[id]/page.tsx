@@ -64,7 +64,7 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 function EffRow({ titleKey, entries, emptyKey }: { titleKey: string; entries: TypeMult[]; emptyKey: string }) {
   return (
     <div className="grid grid-cols-[7.5rem_1fr] items-start gap-x-3 gap-y-1">
-      <span className="pt-1 text-[0.88rem] uppercase tracking-wide text-text-dim"><T k={titleKey} /></span>
+      <span className="pt-1 text-base uppercase tracking-wide text-text-dim"><T k={titleKey} /></span>
       {entries.length ? (
         <div className="flex flex-wrap gap-1.5">
           {entries.map((e) => (
@@ -125,7 +125,7 @@ export default async function CreaturePage({
   return (
     <PokedexShell animate={false}>
     <div className="flex flex-col gap-6">
-      <Link href="/dex" className="inline-flex items-center gap-1 text-[0.9rem] text-text-dim hover:text-cyan uppercase tracking-wide">
+      <Link href="/dex" className="inline-flex items-center gap-1 text-base text-text-dim hover:text-cyan uppercase tracking-wide">
         <ChevronLeft size={10} /> <T k="cr.back" />
       </Link>
 
@@ -133,7 +133,7 @@ export default async function CreaturePage({
       <div className="card flex flex-col gap-6 p-6 sm:flex-row sm:items-center">
         <HeroSprite pokeId={c.pokeId} name={c.name} />
         <div className="flex flex-1 flex-col gap-3">
-          <div className="pixel text-[0.82rem] text-text-dim">#{String(c.pokeId).padStart(3, "0")}</div>
+          <div className="pixel text-sm text-text-dim">#{String(c.pokeId).padStart(3, "0")}</div>
           <h1 className="pixel text-lg text-text">{c.name}</h1>
           <div className="flex flex-wrap items-center gap-2">
             <TypeBadges t1={c.type1} t2={c.type2} />
@@ -170,7 +170,7 @@ export default async function CreaturePage({
       <div className="grid gap-5 lg:grid-cols-2">
         <Reveal className="card p-5">
           <SectionTitle><T k="cr.statsBase" /></SectionTitle>
-          <p className="-mt-2 mb-4 text-[0.88rem] leading-relaxed text-text-dim">
+          <p className="-mt-2 mb-4 text-base leading-relaxed text-text-dim">
             <T k="cr.statsHint" />{" "}
             <Link href="/calc" className="inline-flex items-center gap-1 text-cyan hover:underline"><T k="cr.statsHintLink" /> <ChevronRight size={9} /></Link>
           </p>
@@ -179,11 +179,11 @@ export default async function CreaturePage({
               <StatBar key={key} iconIndex={i} label={label} value={c[key]} best={c[key] === bestStat} />
             ))}
             <div className="mt-2 flex justify-between border-t border-border pt-2 text-sm">
-              <span className="text-text-dim uppercase tracking-wide text-[0.9rem]"><T k="cr.total" /></span>
+              <span className="text-text-dim uppercase tracking-wide text-base"><T k="cr.total" /></span>
               <strong className="tabular-nums text-cyan">{total}</strong>
             </div>
             {bestMove && bestMove.power > 0 && (
-              <div className="mt-1 flex items-center justify-between text-[0.9rem] text-text-dim">
+              <div className="mt-1 flex items-center justify-between text-base text-text-dim">
                 <span><T k="cr.bestMove" /></span>
                 <span className="text-text">{bestMove.name} <span className="text-yellow">{bestMove.power}</span></span>
               </div>
@@ -193,14 +193,14 @@ export default async function CreaturePage({
 
         <Reveal className="card p-5">
           <SectionTitle><T k="cr.combat" /></SectionTitle>
-          <div className="mb-2 text-[0.8rem] uppercase tracking-wide text-text-dim"><T k="cr.defenseSub" /></div>
+          <div className="mb-2 text-sm uppercase tracking-wide text-text-dim"><T k="cr.defenseSub" /></div>
           <div className="flex flex-col gap-3 text-sm">
             <EffRow titleKey="cr.takesMore" entries={weak} emptyKey="cr.noWeak" />
             <EffRow titleKey="cr.takesLess" entries={resist} emptyKey="cr.noResist" />
             <EffRow titleKey="cr.immune" entries={immune} emptyKey="cr.immuneEmpty" />
           </div>
           <div className="my-4 border-t border-border" />
-          <div className="mb-2 text-[0.8rem] uppercase tracking-wide text-text-dim"><T k="cr.attackSub" /></div>
+          <div className="mb-2 text-sm uppercase tracking-wide text-text-dim"><T k="cr.attackSub" /></div>
           <div className="flex flex-col gap-3 text-sm">
             <EffRow titleKey="cr.stab" entries={stab} emptyKey="cr.immuneEmpty" />
             <EffRow titleKey="cr.strongVs" entries={offensive} emptyKey="cr.noStrong" />
@@ -226,7 +226,7 @@ export default async function CreaturePage({
               {chain.map((stage, i) => (
                 <div key={stage.creature.pokeId} className="flex items-center gap-3">
                   {i > 0 && (
-                    <span className="pixel inline-flex items-center gap-1 text-[0.75rem] text-text-dim">lvl {stage.evolveLevel ?? "?"} <ChevronRight size={9} /></span>
+                    <span className="pixel inline-flex items-center gap-1 text-xs text-text-dim">lvl {stage.evolveLevel ?? "?"} <ChevronRight size={9} /></span>
                   )}
                   <Link
                     href={`/dex/${stage.creature.pokeId}`}
@@ -235,7 +235,7 @@ export default async function CreaturePage({
                     }`}
                   >
                     <Sprite src={spriteUrl(stage.creature.pokeId)} alt={stage.creature.name} size={68} />
-                    <span className="text-[0.92rem]">{stage.creature.name}</span>
+                    <span className="text-base">{stage.creature.name}</span>
                   </Link>
                 </div>
               ))}
@@ -252,7 +252,7 @@ export default async function CreaturePage({
                   <span className="text-red"><MapPin size={18} /></span>
                   <div className="flex flex-col">
                     <span className="text-sm text-text">{h.name}</span>
-                    <span className="text-[0.88rem] uppercase tracking-wide text-text-dim">{h.area}</span>
+                    <span className="text-base uppercase tracking-wide text-text-dim">{h.area}</span>
                   </div>
                   {h.level ? (
                     <span className="chip ml-auto" style={{ background: "var(--surface-2)", color: "var(--text)" }}>lvl {h.level}</span>
@@ -276,7 +276,7 @@ export default async function CreaturePage({
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-[0.82rem] uppercase tracking-wide text-text-dim">
+              <tr className="text-left text-sm uppercase tracking-wide text-text-dim">
                 <th className="pb-2 font-medium"><T k="col.item" /></th>
                 <th className="pb-2 font-medium"><T k="col.qty" /></th>
                 <th className="pb-2 text-right font-medium"><T k="col.chance" /></th>
@@ -314,7 +314,7 @@ export default async function CreaturePage({
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-[0.82rem] uppercase tracking-wide text-text-dim">
+              <tr className="text-left text-sm uppercase tracking-wide text-text-dim">
                 <th className="pb-2 font-medium"><T k="col.name" /></th>
                 <th className="pb-2 font-medium"><T k="col.type" /></th>
                 <th className="pb-2 font-medium"><T k="col.cat" /></th>

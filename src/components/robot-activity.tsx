@@ -84,7 +84,7 @@ export function RobotActivity() {
                 flash={idx === 0}
                 leading={<span className="flex h-6 w-6 items-center justify-center">{r.icon}</span>}
                 title={<span className={r.tone ?? "text-text"}>{r.text}</span>}
-                right={<span className="tabular-nums text-[0.75rem] text-text-dim">{when(e.createdAt)}</span>}
+                right={<span className="tabular-nums text-xs text-text-dim">{when(e.createdAt)}</span>}
               />
             );
           })}

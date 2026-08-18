@@ -13,7 +13,7 @@ export function PokedexShell({ children }: { children: React.ReactNode; animate?
           <span className="pkdx-led" style={{ background: "#ff5555" }} />
           <span className="pkdx-led" style={{ background: "#f4d24a" }} />
           <span className="pkdx-led" style={{ background: "#35e08e" }} />
-          <span className="pixel ml-auto text-[0.8rem] text-white/70">POKEDEX</span>
+          <span className="pixel ml-auto text-sm text-white/70">POKEDEX</span>
         </div>
         <div className="pkdx-screen">
           <span className="pkdx-scan" aria-hidden />

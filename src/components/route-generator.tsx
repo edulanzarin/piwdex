@@ -116,7 +116,7 @@ export function RouteGenerator({ species, enemies }: { species: Species[]; enemi
         <div className="mt-5 border-t border-border pt-4">
           <div className="mb-2 flex items-center justify-between gap-2">
             <span className="field-label">{t("hunt.route.statsOpt")}</span>
-            {picked && <button type="button" className="btn btn-ghost !py-1 !text-[0.7rem]" onClick={fillBase}>{t("hunt.route.useBase")}</button>}
+            {picked && <button type="button" className="btn btn-ghost btn-sm" onClick={fillBase}>{t("hunt.route.useBase")}</button>}
           </div>
           <div className="grid grid-cols-3 gap-2.5">
             {STAT_LABELS.map((lb, i) => (
@@ -126,10 +126,10 @@ export function RouteGenerator({ species, enemies }: { species: Species[]; enemi
           {(ivInfo.total != null || ivInfo.power != null) && (
             <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-2">
               {ivInfo.total != null && (
-                <span className="text-[0.82rem] uppercase tracking-wide text-text-dim">{t("hunt.route.ivTotal")} <span className="pixel ml-1 text-[0.9rem] text-green">{ivInfo.total.toFixed(1)}</span></span>
+                <span className="text-sm uppercase tracking-wide text-text-dim">{t("hunt.route.ivTotal")} <span className="pixel ml-1 text-base text-green">{ivInfo.total.toFixed(1)}</span></span>
               )}
               {ivInfo.power != null && (
-                <span className="text-[0.82rem] uppercase tracking-wide text-text-dim">{t("hunt.route.power")} <span className="pixel ml-1 text-[0.9rem] text-yellow">{ivInfo.power.toLocaleString("pt-BR")}</span></span>
+                <span className="text-sm uppercase tracking-wide text-text-dim">{t("hunt.route.power")} <span className="pixel ml-1 text-base text-yellow">{ivInfo.power.toLocaleString("pt-BR")}</span></span>
               )}
             </div>
           )}
@@ -187,17 +187,17 @@ export function RouteGenerator({ species, enemies }: { species: Species[]; enemi
             const est = step.est;
             return (
               <div key={`${step.from}-${e.pokeId}`} className="card flex flex-col gap-4 p-4 lg:flex-row lg:items-center">
-                <span className="pixel text-[0.82rem] text-cyan lg:w-24 lg:shrink-0">{t("hunt.route.band", { a: step.from, b: step.to })}</span>
+                <span className="pixel text-sm text-cyan lg:w-24 lg:shrink-0">{t("hunt.route.band", { a: step.from, b: step.to })}</span>
 
                 <div className="flex flex-1 items-center gap-3 border-t border-border/50 pt-3 lg:border-l lg:border-t-0 lg:pl-4 lg:pt-0">
-                  <span className="text-[0.78rem] uppercase tracking-wide text-text-dim">{t("hunt.route.hunt")}</span>
+                  <span className="text-sm uppercase tracking-wide text-text-dim">{t("hunt.route.hunt")}</span>
                   <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded bg-[var(--well-bg)]">
                     <Sprite src={spriteUrl(e.pokeId)} alt={e.name} size={34} />
                   </span>
                   <span className="flex flex-col gap-1">
                     <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
                       <span className="text-text">{e.name}</span>
-                      <span className="text-[0.78rem] uppercase tracking-wide text-text-dim">{e.areas.map(area).join(", ")} · lvl {e.huntLevel}</span>
+                      <span className="text-sm uppercase tracking-wide text-text-dim">{e.areas.map(area).join(", ")} · lvl {e.huntLevel}</span>
                     </span>
                     <TypeBadges t1={e.t1} t2={e.t2} />
                   </span>
@@ -207,27 +207,27 @@ export function RouteGenerator({ species, enemies }: { species: Species[]; enemi
                   <span className="chip inline-flex items-center gap-1" style={{ background: TYPE_COLOR[est.moveName], color: "#fff" }}>
                     <TypeIcon type={est.moveName} size={11} /> {typeLabel(est.moveName)}
                   </span>
-                  <span className={`pixel text-[0.9rem] ${est.eff >= 2 ? "text-green" : est.eff > 1 ? "text-cyan" : "text-text-dim"}`}>{effLabel(est.eff)}</span>
+                  <span className={`pixel text-base ${est.eff >= 2 ? "text-green" : est.eff > 1 ? "text-cyan" : "text-text-dim"}`}>{effLabel(est.eff)}</span>
                 </div>
 
                 <div className="grid grid-cols-3 gap-3 border-t border-border/50 pt-3 text-right lg:w-56 lg:shrink-0 lg:border-l lg:border-t-0 lg:pl-4 lg:pt-0">
                   <div className="flex flex-col items-end gap-0.5">
-                    <span className="text-[0.7rem] uppercase tracking-wide text-text-dim">{t("hunt.col.kosh")}</span>
-                    <span className="tabular-nums text-sm font-bold text-cyan">{compact(est.kosH)}</span>
+                    <span className="text-xs uppercase tracking-wide text-text-dim">{t("hunt.col.kosh")}</span>
+                    <span className="tabular-nums text-sm text-cyan">{compact(est.kosH)}</span>
                   </div>
                   <div className="flex flex-col items-end gap-0.5">
-                    <span className="inline-flex items-center gap-1 text-[0.7rem] uppercase tracking-wide text-text-dim"><StatIcon index={0} size={9} />{t("hunt.col.xph")}</span>
-                    <span className="tabular-nums text-sm font-bold text-green">{compact(est.xpH)}</span>
+                    <span className="inline-flex items-center gap-1 text-xs uppercase tracking-wide text-text-dim"><StatIcon index={0} size={9} />{t("hunt.col.xph")}</span>
+                    <span className="tabular-nums text-sm text-green">{compact(est.xpH)}</span>
                   </div>
                   <div className="flex flex-col items-end gap-0.5">
-                    <span className="text-[0.7rem] uppercase tracking-wide text-text-dim">{t("hunt.col.goldh")}</span>
-                    <span className="inline-flex items-center gap-1 tabular-nums text-sm font-bold text-green"><Coin />{compact(est.goldH)}</span>
+                    <span className="text-xs uppercase tracking-wide text-text-dim">{t("hunt.col.goldh")}</span>
+                    <span className="inline-flex items-center gap-1 tabular-nums text-sm text-green"><Coin />{compact(est.goldH)}</span>
                   </div>
                 </div>
               </div>
             );
           })}
-          <p className="mt-1 text-[0.82rem] leading-relaxed text-text-dim">{t("hunt.route.estimate")}</p>
+          <p className="mt-1 text-sm leading-relaxed text-text-dim">{t("hunt.route.estimate")}</p>
         </div>
       )}
     </div>
