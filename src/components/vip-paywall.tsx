@@ -1,14 +1,24 @@
 "use client";
 
-// Paywall do VIP: lista o que destrava, preco e botao Assinar. O botao chama
-// /api/vip/checkout, que devolve a URL do Mercado Pago (ou, em dev sem credencial,
-// libera direto e devolve /vip?status=test). Banner de status pelo ?status da volta.
+// Paywall do VIP: o ROBO e o heroi (ja esta pronto — caca/venda/compra no automatico,
+// cerebro de hunt, analyzer ao vivo). Card de destaque no topo + lista do que vem junto,
+// preco e botao Assinar. O botao chama /api/vip/checkout, que devolve a URL do Mercado
+// Pago (PIX). Banner de status pelo ?status da volta.
 
 import { useState } from "react";
 import { useT } from "./locale-provider";
-import { Star, ChevronRight } from "./icons";
+import { Star, ChevronRight, Robot, Brain, Chart, Coin, Signal } from "./icons";
 
-const BENEFITS = ["vip.benefit.market", "vip.benefit.alerts", "vip.benefit.robot"] as const;
+// o que vem junto do robo (bullets da lista). Icone + chave de texto.
+const FEATURES: { Icon: (p: { size?: number; className?: string }) => React.ReactNode; k: string }[] = [
+  { Icon: Brain, k: "vip.feat.brain" },
+  { Icon: Chart, k: "vip.feat.analyzer" },
+  { Icon: Coin, k: "vip.feat.market" },
+  { Icon: Signal, k: "vip.feat.alerts" },
+];
+
+// chips do heroi: o que o robo faz sozinho
+const ROBOT_CHIPS = ["vip.chip.247", "vip.chip.catch", "vip.chip.sell", "vip.chip.buy", "vip.chip.pickhunt", "vip.chip.level"] as const;
 
 // classes estaticas (Tailwind nao ve string interpolada).
 const BANNERS: Record<string, { cls: string; k: string }> = {
@@ -43,21 +53,49 @@ export function VipPaywall({ status }: { status: string | null }) {
   const banner = status ? BANNERS[status] : null;
 
   return (
-    <div className="mx-auto flex max-w-lg flex-col gap-6 py-4">
+    <div className="mx-auto flex max-w-2xl flex-col gap-6 py-4">
       <div className="text-center">
         <div className="eyebrow mb-2">{t("vip.eyebrow")}</div>
-        <h1 className="pixel text-xl text-yellow">{t("vip.paywall.title")}</h1>
-        <p className="mt-3 text-sm text-text-dim">{t("vip.paywall.desc")}</p>
+        <h1 className="pixel text-xl text-yellow sm:text-2xl">{t("vip.paywall.title")}</h1>
+        <p className="mx-auto mt-3 max-w-md text-sm text-text-dim">{t("vip.paywall.desc")}</p>
       </div>
 
       {banner && <div className={`rounded border px-4 py-2 text-[0.75rem] ${banner.cls}`}>{t(banner.k)}</div>}
 
+      {/* HERO do robo — o carro-chefe, ja pronto */}
+      <div
+        className="glow-pulse card relative overflow-hidden p-6"
+        style={{ "--accent": "var(--yellow)", borderColor: "color-mix(in srgb, var(--yellow) 55%, transparent)", background: "rgba(240,200,60,0.06)" } as React.CSSProperties}
+      >
+        <div className="flex items-start gap-4">
+          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg border border-[color:var(--yellow)]/50 bg-[var(--well-bg)] text-yellow">
+            <Robot size={40} />
+          </div>
+          <div className="min-w-0">
+            <div className="section-title mb-1 flex items-center gap-2 text-yellow">
+              <Star size={12} /> {t("vip.hero.badge")}
+            </div>
+            <h2 className="pixel text-[0.95rem] leading-snug text-yellow sm:text-base">{t("vip.hero.robot.title")}</h2>
+            <p className="mt-2 text-[0.78rem] leading-relaxed text-text-dim">{t("vip.hero.robot.desc")}</p>
+          </div>
+        </div>
+        <div className="mt-4 flex flex-wrap gap-1.5">
+          {ROBOT_CHIPS.map((k) => (
+            <span key={k} className="chip border border-[color:var(--yellow)]/40 text-[0.6rem]" style={{ color: "var(--yellow)" }}>
+              {t(k)}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      {/* o que mais vem junto */}
       <div className="card flex flex-col gap-4 p-6">
-        <ul className="flex flex-col gap-2.5">
-          {BENEFITS.map((k) => (
-            <li key={k} className="flex items-start gap-2.5 text-sm">
-              <span className="mt-0.5 text-yellow"><Star size={12} /></span>
-              <span>{t(k)}</span>
+        <div className="section-title text-cyan">{t("vip.included")}</div>
+        <ul className="flex flex-col gap-3">
+          {FEATURES.map(({ Icon, k }) => (
+            <li key={k} className="flex items-start gap-3 text-[0.82rem]">
+              <span className="mt-0.5 shrink-0 text-cyan"><Icon size={14} /></span>
+              <span className="leading-relaxed">{t(k)}</span>
             </li>
           ))}
         </ul>
@@ -67,7 +105,7 @@ export function VipPaywall({ status }: { status: string | null }) {
             <div className="pixel text-lg text-yellow">{t("vip.price")}</div>
             <div className="text-[0.6rem] text-text-dim">{t("vip.priceNote")}</div>
           </div>
-          <button type="button" onClick={subscribe} disabled={busy} className="btn btn-cyan disabled:opacity-50">
+          <button type="button" onClick={subscribe} disabled={busy} className="btn btn-yellow disabled:opacity-50">
             {busy ? `${t("vip.subscribing")}...` : <>{t("vip.subscribe")} <ChevronRight size={10} /></>}
           </button>
         </div>
