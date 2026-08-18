@@ -60,18 +60,17 @@ export function SiteNav({ user }: { user: NavUser | null }) {
         </Link>
 
         <div className="flex items-center gap-2 sm:gap-3">
-          {/* Chamariz VIP: brilha na nav sticky (aparece na entrada e segue o scroll).
-              So pra quem NAO e VIP; ja-VIP nao ve. */}
-          {!user?.vip && (
-            <Link
-              href="/vip"
-              title={t("vipcta.btn")}
-              className="glow-pulse inline-flex shrink-0 items-center gap-1.5 rounded-md border border-[color:var(--yellow)] bg-[color:var(--yellow)]/12 px-2.5 py-1.5 pixel text-[0.58rem] text-yellow transition hover:bg-[color:var(--yellow)]/22"
-              style={{ "--accent": "var(--yellow)" } as React.CSSProperties}
-            >
-              <Star size={10} /> VIP
-            </Link>
-          )}
+          {/* Botao VIP na nav sticky (aparece na entrada, segue o scroll, desktop+mobile).
+              Nao-VIP: convite dourado pulsante -> paywall. VIP: entrada da area (cockpit),
+              sem pulso. Sempre visivel: pra o VIP e o caminho pro cockpit. */}
+          <Link
+            href="/vip"
+            title={user?.vip ? t("vip.eyebrow") : t("vipcta.btn")}
+            className={`inline-flex shrink-0 items-center gap-1.5 rounded-md border border-[color:var(--yellow)] px-2.5 py-1.5 pixel text-[0.58rem] text-yellow transition ${user?.vip ? "bg-[color:var(--yellow)]/20 hover:bg-[color:var(--yellow)]/30" : "glow-pulse bg-[color:var(--yellow)]/12 hover:bg-[color:var(--yellow)]/22"}`}
+            style={{ "--accent": "var(--yellow)" } as React.CSSProperties}
+          >
+            <Star size={10} /> VIP
+          </Link>
           {/* Desktop: icones com tooltip */}
           <nav className="hidden items-center gap-1 sm:flex">
             {TABS.map(({ key, href, Icon }) => {
