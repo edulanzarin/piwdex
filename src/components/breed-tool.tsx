@@ -14,6 +14,7 @@ import {
   planQuality,
   projectEgg,
   round3,
+  tiersFor,
 } from "@/lib/breeding";
 import { Sprite } from "./sprite";
 import { TypeBadges } from "./badges";
@@ -131,7 +132,7 @@ function ParentPanel({
       </div>
 
       <div className="flex gap-3">
-        <div className="well !p-0 relative flex h-16 w-16 shrink-0 items-center justify-center">
+        <div className="relative flex h-16 w-16 shrink-0 items-center justify-center rounded border border-border bg-[var(--well-bg)]">
           <Sprite src={draft.species ? spriteUrl(draft.species.pokeId, draft.shiny) : null} alt={draft.species?.name ?? ""} size={52} />
           {draft.shiny && draft.species && <span className="absolute right-0.5 top-0.5 text-yellow"><Star size={11} /></span>}
         </div>
@@ -147,20 +148,23 @@ function ParentPanel({
       <div>
         <div className="mb-1.5 flex items-center justify-between">
           <span className="field-label">{t("breed.form.ivs")}</span>
-          {total != null && <span className="text-xs text-text-dim">{t("breed.ivLabel")} <span className="pixel text-sm text-green">{total}</span>/{IV_MAX_TOTAL}</span>}
+          {/* slot permanente: total incompleto vira placeholder, nao some */}
+          <span className="text-xs text-text-dim">
+            {t("breed.ivLabel")} <span className={`pixel text-sm ${total != null ? "text-green" : "slot-empty"}`}>{total ?? "—"}</span>/{IV_MAX_TOTAL}
+          </span>
         </div>
-        <div className="grid grid-cols-6 gap-1.5">
+        <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-6">
           {STAT_LABELS.map((lb, i) => (
             <label key={lb} className="flex flex-col items-center gap-0.5" title={lb}>
               <StatIcon index={i} size={10} />
-              <input className="input input-sm !px-1 text-center" inputMode="numeric" value={draft.ivs[i]} placeholder="0" onChange={(e) => setIv(i, e.target.value)} />
+              <input className="input input-sm text-center" inputMode="numeric" value={draft.ivs[i]} placeholder="0" onChange={(e) => setIv(i, e.target.value)} />
             </label>
           ))}
         </div>
       </div>
 
       <div className="flex items-center justify-between">
-        <label className="inline-flex cursor-pointer items-center gap-1.5 text-base text-text-dim">
+        <label className="inline-flex min-h-9 cursor-pointer items-center gap-1.5 text-base text-text-dim">
           <input type="checkbox" checked={draft.shiny} onChange={(e) => set({ shiny: e.target.checked })} className="h-4 w-4 accent-[color:var(--yellow)]" />
           <span className="inline-flex items-center gap-1"><span className="text-yellow"><Star size={10} /></span>{t("breed.form.shiny")}</span>
         </label>
@@ -171,21 +175,29 @@ function ParentPanel({
 }
 
 // ---------- Barra de distribuição de Quality ----------
-function OutcomeBars({ outcomes }: { outcomes: { gain: number; prob: number; quality: number; capped: boolean }[] }) {
+// quality null = sem ovo ainda: a barra e as probabilidades sao constantes do modo,
+// entao a linha rende igual e so o Q vira placeholder (mesmas dimensoes).
+function OutcomeBars({ outcomes }: { outcomes: { gain: number; prob: number; quality: number | null; capped: boolean }[] }) {
   const t = useT();
   const maxProb = Math.max(...outcomes.map((o) => o.prob));
   return (
     <div className="flex flex-col gap-1.5">
       {outcomes.map((o) => (
-        <div key={o.gain} className="flex items-center gap-2.5 text-base">
-          <span className="w-14 shrink-0 pixel text-sm text-green">+{o.gain.toFixed(3)}</span>
+        <div key={o.gain} className="flex items-center gap-2 text-base sm:gap-2.5">
+          <span className="pixel w-12 shrink-0 text-sm text-green sm:w-14">+{o.gain.toFixed(3)}</span>
           <div className="statbar h-2.5 flex-1">
             <div className="statbar-fill" style={{ width: `${(o.prob / maxProb) * 100}%`, background: "var(--cyan)" }} />
           </div>
           <span className="w-9 shrink-0 text-right tabular-nums text-text-dim">{(o.prob * 100).toFixed(0)}%</span>
-          <span className="w-24 shrink-0 text-right tabular-nums">
-            <span className="text-text">Q {q3(o.quality)}</span>
-            {o.capped && <span className="ml-1 text-xs text-red">{t("breed.egg.capped")}</span>}
+          <span className="w-16 shrink-0 text-right tabular-nums sm:w-24">
+            {o.quality != null ? (
+              <>
+                <span className={o.capped ? "text-red" : "text-text"}>Q {q3(o.quality)}</span>
+                {o.capped && <span className="ml-1 hidden text-xs text-red sm:inline">{t("breed.egg.capped")}</span>}
+              </>
+            ) : (
+              <span className="slot-empty">Q —</span>
+            )}
           </span>
         </div>
       ))}
@@ -250,6 +262,28 @@ export function BreedTool({ creatures }: { creatures: BreedCreature[] }) {
   const evFree = expectedGain("free");
   const evPhero = expectedGain("pheromone");
 
+  // por que ainda nao ha ovo (fica invisivel quando o ovo existe, reservando a altura)
+  const compatMsg = !compat.ok && compat.reasons[0] !== "breed.invalid.fill"
+    ? compat.reasons.map((r) => t(r.replace("invalid", "compat"))).join(" ")
+    : t("breed.compat.fill");
+
+  // IVs herdados: sem ovo a grade fica com placeholder no mesmo formato
+  const eggIvs: (number | null)[] = egg ? egg.ivs : Array<number | null>(6).fill(null);
+
+  // distribuicao: sem ovo, monta as linhas so com as constantes do modo escolhido
+  const outcomeRows = egg
+    ? egg.outcomes
+    : tiersFor(mode).map((tier) => ({ gain: tier.gain, prob: tier.prob, quality: null, capped: false }));
+
+  // linha de status do planejador: um estado por vez, sempre no mesmo slot
+  const planStatus = !plan
+    ? { text: t("breed.plan.needParent"), cls: "text-text-dim" }
+    : plan.reached
+    ? { text: t("breed.plan.reached"), cls: "text-green" }
+    : plan.cap != null && plan.effectiveTarget < plan.target - 1e-9
+    ? { text: t("breed.plan.overCap", { cap: q3(plan.cap) }), cls: "text-red" }
+    : { text: t("breed.plan.estimate"), cls: "italic text-text-dim" };
+
   return (
     <div className="flex flex-col gap-5">
       {/* ---- 1. Os dois pais ---- */}
@@ -281,36 +315,37 @@ export function BreedTool({ creatures }: { creatures: BreedCreature[] }) {
           <ParentPanel label={t("breed.parentB")} accent="var(--purple)" creatures={creatures} draft={b} onChange={setB} onSave={() => saveDraft(b)} onClear={() => setB(emptyDraft())} />
         </div>
 
-        {/* coleção salva */}
-        {loaded && saved.length > 0 && (
-          <div className="card p-4">
-            <div className="mb-2 flex items-center justify-between">
-              <span className="pixel text-sm text-text-dim">{t("breed.saved.title")}</span>
-              <span className="text-xs text-text-dim">{saved.length}</span>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {saved.map((m) => (
-                <div key={m.id} className="flex items-center gap-2 rounded border border-border bg-[var(--well-bg)] px-2 py-1.5">
-                  <div className="relative flex h-8 w-8 items-center justify-center">
+        {/* colecao salva: card sempre presente; sem itens o trilho mostra placeholder */}
+        <div className="card p-4">
+          <div className="mb-2 flex items-center justify-between">
+            <span className="pixel text-sm text-text-dim">{t("breed.saved.title")}</span>
+            <span className="text-xs tabular-nums text-text-dim">{saved.length}</span>
+          </div>
+          {/* trilho rolavel de altura fixa: chips nao quebram linha nem mudam a altura */}
+          <div className="flex min-h-[3.4rem] flex-nowrap items-center gap-2 overflow-x-auto">
+            {loaded && saved.length > 0 ? (
+              saved.map((m) => (
+                <div key={m.id} className="flex shrink-0 items-center gap-2 rounded border border-border bg-[var(--well-bg)] px-2 py-1">
+                  <div className="relative flex h-8 w-8 shrink-0 items-center justify-center">
                     <Sprite src={spriteUrl(m.pokeId, m.shiny)} alt={m.name} size={30} />
                     {m.shiny && <span className="absolute -right-0.5 -top-0.5 text-yellow"><Star size={8} /></span>}
                   </div>
                   <div className="text-sm leading-tight">
-                    <div className="max-w-[9rem] truncate">{m.name}</div>
+                    <div className="max-w-[7rem] truncate">{m.name}</div>
                     <div className="text-text-dim">Q{q3(m.quality)} · IV{ivTotal(m.ivs)}</div>
                   </div>
-                  <div className="ml-1 flex flex-col gap-0.5">
-                    <div className="flex gap-0.5">
-                      <button type="button" onClick={() => loadInto("a", m)} className="rounded bg-surface-2 px-1.5 text-xs text-cyan transition hover:brightness-125" title={t("breed.saved.toA")}>1</button>
-                      <button type="button" onClick={() => loadInto("b", m)} className="rounded bg-surface-2 px-1.5 text-xs text-purple transition hover:brightness-125" title={t("breed.saved.toB")}>2</button>
-                    </div>
-                    <button type="button" onClick={() => removeSaved(m.id)} className="inline-flex justify-center rounded px-1.5 py-0.5 text-text-dim transition hover:text-red" title={t("breed.delete")}><Close size={10} /></button>
+                  <div className="flex items-center gap-1">
+                    <button type="button" onClick={() => loadInto("a", m)} className="flex h-9 w-9 items-center justify-center rounded bg-surface-2 text-sm text-cyan transition hover:brightness-125" title={t("breed.saved.toA")}>1</button>
+                    <button type="button" onClick={() => loadInto("b", m)} className="flex h-9 w-9 items-center justify-center rounded bg-surface-2 text-sm text-purple transition hover:brightness-125" title={t("breed.saved.toB")}>2</button>
+                    <button type="button" onClick={() => removeSaved(m.id)} className="flex h-9 w-9 items-center justify-center rounded text-text-dim transition hover:text-red" title={t("breed.delete")}><Close size={10} /></button>
                   </div>
                 </div>
-              ))}
-            </div>
+              ))
+            ) : (
+              <span className="slot-empty text-sm">—</span>
+            )}
           </div>
-        )}
+        </div>
       </section>
 
       {/* ---- 2. O ovo (resultado) ---- */}
@@ -340,105 +375,106 @@ export function BreedTool({ creatures }: { creatures: BreedCreature[] }) {
           </label>
         </div>
 
-        {!egg || !monA || !monB ? (
-          <div className="card p-6 text-center text-sm text-text-dim">
-            {!compat.ok && compat.reasons[0] === "breed.invalid.fill"
-              ? t("breed.compat.fill")
-              : compat.reasons.map((r) => t(r.replace("invalid", "compat"))).join(" ")}
-          </div>
-        ) : (
-          <div className="card fadein flex flex-col gap-5 p-5">
-            {/* topo: ovo + Quality */}
-            <div className="grid gap-4 lg:grid-cols-[auto_1fr]">
-              <div className="card flex flex-col items-center justify-center gap-2 p-4 sm:min-w-[190px]" style={{ borderColor: "var(--green)" }}>
-                <div className="well !p-0 relative flex h-24 w-24 items-center justify-center">
-                  <Sprite src={spriteUrl(monA.pokeId, egg.shinyGuaranteed)} alt={monA.species} size={84} />
-                  {egg.shinyGuaranteed && <span className="absolute right-1 top-1 text-yellow"><Star size={15} /></span>}
+        {/* card do ovo SEMPRE renderizado: sem ovo cada slot vira placeholder — o
+            resultado preenche os mesmos lugares, nada empurra o formulario */}
+        <div className="card flex flex-col gap-5 p-5">
+          {/* motivo de nao haver ovo: invisivel quando o ovo existe (altura reservada) */}
+          <p className={`text-sm text-text-dim ${egg ? "invisible" : ""}`}>{compatMsg}</p>
+
+          {/* topo: ovo + Quality */}
+          <div className="grid gap-4 lg:grid-cols-[auto_1fr]">
+            <div className="card flex flex-col items-center justify-center gap-2 p-4 lg:min-w-[190px]" style={{ borderColor: egg ? "var(--green)" : undefined }}>
+              <div className="relative flex h-24 w-24 items-center justify-center rounded border border-border bg-[var(--well-bg)]">
+                <Sprite src={monA ? spriteUrl(monA.pokeId, egg?.shinyGuaranteed ?? false) : null} alt={monA?.species ?? ""} size={84} />
+                {egg?.shinyGuaranteed && <span className="absolute right-1 top-1 text-yellow"><Star size={15} /></span>}
+              </div>
+              <div className="text-center">
+                <div className={`text-sm ${monA ? "" : "slot-empty"}`}>{monA ? monA.species : "—"}</div>
+                <div className="flex min-h-[1.35rem] items-center justify-center">
+                  {monA ? <TypeBadges t1={monA.type1} t2={monA.type2} /> : <span className="slot-empty text-sm">—</span>}
                 </div>
-                <div className="text-center">
-                  <div className="text-sm">{monA.species}</div>
-                  <TypeBadges t1={monA.type1} t2={monA.type2} />
-                </div>
-                {egg.shinyGuaranteed ? (
+              </div>
+              {/* selo de shiny: um estado por vez, sempre no mesmo slot */}
+              <span className="flex h-7 items-center">
+                {egg?.shinyGuaranteed ? (
                   <span className="chip" style={{ background: "var(--yellow)", color: "#3a2c00" }}><Star size={10} />{t("breed.egg.shinyGuar")}</span>
-                ) : egg.spontaneousShinyChance > 0 ? (
+                ) : egg && egg.spontaneousShinyChance > 0 ? (
                   <span className="text-sm text-yellow">{t("breed.egg.shinyChance")}</span>
                 ) : (
-                  <span className="text-sm text-text-dim">{t("breed.egg.normal")}</span>
+                  <span className={`text-sm ${egg ? "text-text-dim" : "slot-empty"}`}>{egg ? t("breed.egg.normal") : "—"}</span>
+                )}
+              </span>
+            </div>
+
+            <div className="flex flex-col gap-4">
+              <div className="grid gap-3 sm:grid-cols-3">
+                <StatTile label={t("breed.egg.range")} accent="var(--cyan)" value={egg ? <>{q3(egg.minQuality)}–{q3(egg.maxQuality)}</> : <span className="slot-empty">—</span>} />
+                <StatTile label={t("breed.egg.avg")} accent="var(--yellow)" value={egg ? q3(egg.expectedQuality) : <span className="slot-empty">—</span>} />
+                <StatTile label={t("breed.egg.ivTotal")} accent="var(--green)" value={egg ? <>{egg.ivTotal}<span className="text-text-dim">/{IV_MAX_TOTAL}</span></> : <span className="slot-empty">—/{IV_MAX_TOTAL}</span>} />
+              </div>
+              {/* IVs herdados */}
+              <div>
+                <div className="field-label mb-2">{t("breed.egg.inherits", { name: egg ? (egg.fromParent === "a" ? monA! : monB!).name : "—" })}</div>
+                <div className="grid grid-cols-6 gap-1.5 sm:gap-2">
+                  {eggIvs.map((v, i) => {
+                    const boosted = egg?.doubleStoneEligible.includes(i) ?? false;
+                    return (
+                      <div key={i} className={`flex flex-col items-center rounded border py-1.5 ${boosted ? "border-yellow bg-[rgba(244,210,74,0.06)]" : "border-border bg-[var(--well-bg)]"}`} title={STAT_LABELS[i]}>
+                        <StatIcon index={i} size={10} />
+                        <span className={`text-sm tabular-nums ${v != null ? ivColor(v) : "slot-empty"}`}>{v != null ? `${v}${boosted ? "+" : ""}` : "—"}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+                {/* nota do Double Stones: aparece pela escolha do usuario; valor em slot */}
+                {doubleStones && (
+                  <p className={`mt-2 text-sm ${egg && egg.doubleStoneEligible.length > 0 ? "text-text-dim" : "slot-empty"}`}>
+                    {egg && egg.doubleStoneEligible.length > 0 ? t("breed.egg.doubleBoost", { stats: egg.doubleStoneEligible.map((i) => STAT_LABELS[i]).join(", ") }) : "—"}
+                  </p>
                 )}
               </div>
-
-              <div className="flex flex-col gap-4">
-                <div className="grid grid-cols-3 gap-3">
-                  <StatTile label={t("breed.egg.range")} accent="var(--cyan)" value={<>{q3(egg.minQuality)}–{q3(egg.maxQuality)}</>} />
-                  <StatTile label={t("breed.egg.avg")} accent="var(--yellow)" value={q3(egg.expectedQuality)} />
-                  <StatTile label={t("breed.egg.ivTotal")} accent="var(--green)" value={<>{egg.ivTotal}<span className="text-text-dim">/{IV_MAX_TOTAL}</span></>} />
-                </div>
-                {/* IVs herdados */}
-                <div>
-                  <div className="field-label mb-2">{t("breed.egg.inherits", { name: (egg.fromParent === "a" ? monA : monB).name })}</div>
-                  <div className="grid grid-cols-6 gap-2">
-                    {egg.ivs.map((v, i) => {
-                      const boosted = egg.doubleStoneEligible.includes(i);
-                      return (
-                        <div key={i} className={`flex flex-col items-center rounded border py-1.5 ${boosted ? "border-yellow bg-[rgba(244,210,74,0.06)]" : "border-border bg-[var(--well-bg)]"}`} title={STAT_LABELS[i]}>
-                          <StatIcon index={i} size={10} />
-                          <span className={`text-sm tabular-nums ${ivColor(v)}`}>{v}{boosted ? "+" : ""}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                  {egg.doubleStoneEligible.length > 0 && <p className="mt-2 text-sm text-text-dim">{t("breed.egg.doubleBoost", { stats: egg.doubleStoneEligible.map((i) => STAT_LABELS[i]).join(", ") })}</p>}
-                </div>
-              </div>
-            </div>
-
-            {/* distribuição de Quality */}
-            <div className="border-t border-border pt-4">
-              <h4 className="pixel mb-3 text-sm text-cyan">{t("breed.egg.roll")}</h4>
-              <OutcomeBars outcomes={egg.outcomes} />
-              {egg.anyCapped && <p className="mt-2.5 text-sm text-red">{t("breed.egg.capWarn")}</p>}
-            </div>
-
-            {/* STATS REAIS DO OVO — feature nossa (liga na engine de stats) */}
-            <div className="border-t border-border pt-4">
-              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                <h4 className="pixel text-sm text-green">{t("breed.egg.stats")}</h4>
-                <label className="inline-flex items-center gap-2 text-sm text-text-dim">
-                  {t("breed.egg.level")}
-                  <input className="input input-sm w-20 text-center" inputMode="numeric" value={projLevel} onChange={(e) => setProjLevel(e.target.value)} />
-                </label>
-              </div>
-              {eggStats ? (
-                <>
-                  <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
-                    {STAT_LABELS.map((lb, i) => (
-                      <div key={lb} className="well text-center">
-                        <div className="inline-flex items-center gap-1 text-xs uppercase tracking-wide text-text-dim"><StatIcon index={i} size={9} />{lb}</div>
-                        <div className="pixel mt-0.5 text-base text-text">{eggStats.stats[i]}</div>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="mt-3 flex items-center gap-2">
-                    <span className="text-sm uppercase tracking-wide text-text-dim">{t("breed.egg.power")}</span>
-                    <span className="pixel text-base text-yellow">{eggStats.power.toLocaleString("pt-BR")}</span>
-                  </div>
-                  <p className="mt-2 text-sm text-text-dim">{t("breed.egg.statsHint")}</p>
-                </>
-              ) : (
-                <p className="text-base text-text-dim">{t("breed.egg.statsNeedLevel")}</p>
-              )}
-            </div>
-
-            {/* custo de um breed */}
-            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-border pt-4 text-base">
-              <span className="text-text-dim">{t("breed.egg.cost")}:</span>
-              <span className="text-text-dim">{t("breed.egg.money")} <span className="pixel text-base text-yellow">R$ {egg.cost.money.toLocaleString("pt-BR")}</span></span>
-              <span className="text-text-dim">{t("breed.egg.stones")} <span className="pixel text-base text-cyan">{egg.cost.stones}</span>{egg.cost.types === 2 ? <span className="text-text-dim"> ({egg.cost.stonesPerType}+{egg.cost.stonesPerType})</span> : null}</span>
-              {egg.cost.pheromones > 0 && <span className="text-text-dim">{t("breed.egg.pheromones")} <span className="pixel text-base text-purple">{egg.cost.pheromones}</span></span>}
             </div>
           </div>
-        )}
+
+          {/* distribuição de Quality */}
+          <div className="border-t border-border pt-4">
+            <h4 className="pixel mb-3 text-sm text-cyan">{t("breed.egg.roll")}</h4>
+            <OutcomeBars outcomes={outcomeRows} />
+            <p className={`mt-2.5 text-sm ${egg?.anyCapped ? "text-red" : "slot-empty"}`}>{egg?.anyCapped ? t("breed.egg.capWarn") : "—"}</p>
+          </div>
+
+          {/* STATS REAIS DO OVO — feature nossa (liga na engine de stats) */}
+          <div className="border-t border-border pt-4">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <h4 className="pixel text-sm text-green">{t("breed.egg.stats")}</h4>
+              <label className="inline-flex min-h-9 items-center gap-2 text-sm text-text-dim">
+                {t("breed.egg.level")}
+                <input className="input input-sm w-20 text-center" inputMode="numeric" value={projLevel} onChange={(e) => setProjLevel(e.target.value)} />
+              </label>
+            </div>
+            <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+              {STAT_LABELS.map((lb, i) => (
+                <div key={lb} className="well text-center">
+                  <div className="inline-flex items-center gap-1 text-xs uppercase tracking-wide text-text-dim"><StatIcon index={i} size={9} />{lb}</div>
+                  <div className={`pixel mt-0.5 text-base ${eggStats ? "text-text" : "slot-empty"}`}>{eggStats ? eggStats.stats[i] : "—"}</div>
+                </div>
+              ))}
+            </div>
+            <div className="mt-3 flex items-center gap-2">
+              <span className="text-sm uppercase tracking-wide text-text-dim">{t("breed.egg.power")}</span>
+              <span className={`pixel text-base ${eggStats ? "text-yellow" : "slot-empty"}`}>{eggStats ? eggStats.power.toLocaleString("pt-BR") : "—"}</span>
+            </div>
+            <p className="mt-2 text-sm text-text-dim">{egg && !eggStats ? t("breed.egg.statsNeedLevel") : t("breed.egg.statsHint")}</p>
+          </div>
+
+          {/* custo de um breed */}
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-border pt-4 text-base">
+            <span className="text-text-dim">{t("breed.egg.cost")}:</span>
+            <span className="text-text-dim">{t("breed.egg.money")} <span className={`pixel text-base ${egg ? "text-yellow" : "slot-empty"}`}>{egg ? `R$ ${egg.cost.money.toLocaleString("pt-BR")}` : "—"}</span></span>
+            <span className="text-text-dim">{t("breed.egg.stones")} <span className={`pixel text-base ${egg ? "text-cyan" : "slot-empty"}`}>{egg ? egg.cost.stones : "—"}</span>{egg && egg.cost.types === 2 ? <span className="text-text-dim"> ({egg.cost.stonesPerType}+{egg.cost.stonesPerType})</span> : null}</span>
+            {mode === "pheromone" && <span className="text-text-dim">{t("breed.egg.pheromones")} <span className={`pixel text-base ${egg ? "text-purple" : "slot-empty"}`}>{egg ? egg.cost.pheromones : "—"}</span></span>}
+          </div>
+        </div>
       </section>
 
       {/* ---- 3. Planejador de Quality (feature nossa) ---- */}
@@ -458,7 +494,7 @@ export function BreedTool({ creatures }: { creatures: BreedCreature[] }) {
                   <span className="truncate text-sm text-text-dim">{planBase.name}</span>
                 </div>
               ) : (
-                <div className="pixel mt-0.5 text-base text-text-dim">—</div>
+                <div className="pixel mt-0.5 text-base slot-empty">—</div>
               )}
               <div className="mt-1 text-xs text-text-dim">{t("breed.plan.baseHint")}</div>
             </div>
@@ -468,47 +504,40 @@ export function BreedTool({ creatures }: { creatures: BreedCreature[] }) {
             </label>
           </div>
 
-          {!plan ? (
-            <p className="text-base text-text-dim">{t("breed.plan.needParent")}</p>
-          ) : plan.reached ? (
-            <p className="text-base text-green">{t("breed.plan.reached")}</p>
-          ) : (
-            <>
-              <div className="grid gap-3 sm:grid-cols-2">
-                {[plan.free, plan.pheromone].map((line) => {
-                  const isFree = line.mode === "free";
-                  const color = isFree ? "var(--cyan)" : "var(--purple)";
-                  return (
-                    <div key={line.mode} className="card p-4" style={{ borderColor: color }}>
-                      <div className="mb-3 flex items-center justify-between">
-                        <span className="pixel text-sm" style={{ color }}>{isFree ? t("breed.mode.free") : t("breed.mode.pheromone")}</span>
-                        <span className="text-xs text-text-dim">{t("breed.plan.perStep")} +{line.maxStepGain.toFixed(3)}</span>
-                      </div>
-                      <div className="flex items-baseline gap-2">
-                        <span className="pixel text-lg" style={{ color }}>{line.breeds}</span>
-                        <span className="field-label">{t("breed.plan.breeds")}</span>
-                      </div>
-                      <div className="mt-3 flex flex-col gap-1 border-t border-border pt-2 text-sm text-text-dim">
-                        <span>{t("breed.plan.money")} <span className="pixel text-base text-yellow">R$ {line.money.toLocaleString("pt-BR")}</span></span>
-                        <span>{t("breed.egg.stones")} <span className="pixel text-base text-cyan">{line.stones.toLocaleString("pt-BR")}</span></span>
-                        {line.pheromones > 0 && <span>{t("breed.egg.pheromones")} <span className="pixel text-base text-purple">{line.pheromones.toLocaleString("pt-BR")}</span></span>}
-                      </div>
-                      {(line.orphanRisk || line.capWaste) && (
-                        <div className="mt-3 flex flex-col gap-1.5">
-                          {line.orphanRisk && <p className="rounded border-l-2 border-yellow bg-[rgba(244,210,74,0.06)] px-2 py-1.5 text-sm leading-relaxed text-text-dim">{t("breed.plan.orphan")}</p>}
-                          {line.capWaste && <p className="rounded border-l-2 border-red bg-[rgba(255,90,90,0.06)] px-2 py-1.5 text-sm leading-relaxed text-text-dim">{t("breed.plan.capWaste")}</p>}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-              {plan.cap != null && plan.effectiveTarget < plan.target - 1e-9 && (
-                <p className="text-sm text-red">{t("breed.plan.overCap", { cap: q3(plan.cap) })}</p>
-              )}
-              <p className="text-sm italic text-text-dim">{t("breed.plan.estimate")}</p>
-            </>
-          )}
+          {/* linha de status do plano: um estado por vez, mesmo slot */}
+          <p className={`min-h-[1.35rem] text-sm ${planStatus.cls}`}>{planStatus.text}</p>
+
+          {/* os dois modos SEMPRE renderizados: sem plano os numeros viram placeholder */}
+          <div className="grid gap-3 sm:grid-cols-2">
+            {(["free", "pheromone"] as const).map((m) => {
+              const line = plan && !plan.reached ? (m === "free" ? plan.free : plan.pheromone) : null;
+              const color = m === "free" ? "var(--cyan)" : "var(--purple)";
+              const tiers = tiersFor(m);
+              const maxStep = line ? line.maxStepGain : tiers[tiers.length - 1].gain;
+              return (
+                <div key={m} className="card p-4" style={{ borderColor: color }}>
+                  <div className="mb-3 flex items-center justify-between">
+                    <span className="pixel text-sm" style={{ color }}>{m === "free" ? t("breed.mode.free") : t("breed.mode.pheromone")}</span>
+                    <span className="text-xs text-text-dim">{t("breed.plan.perStep")} +{maxStep.toFixed(3)}</span>
+                  </div>
+                  <div className="flex items-baseline gap-2">
+                    <span className={`pixel text-lg ${line ? "" : "slot-empty"}`} style={line ? { color } : undefined}>{line ? line.breeds : "—"}</span>
+                    <span className="field-label">{t("breed.plan.breeds")}</span>
+                  </div>
+                  <div className="mt-3 flex flex-col gap-1 border-t border-border pt-2 text-sm text-text-dim">
+                    <span>{t("breed.plan.money")} <span className={`pixel text-base ${line ? "text-yellow" : "slot-empty"}`}>{line ? `R$ ${line.money.toLocaleString("pt-BR")}` : "—"}</span></span>
+                    <span>{t("breed.egg.stones")} <span className={`pixel text-base ${line ? "text-cyan" : "slot-empty"}`}>{line ? line.stones.toLocaleString("pt-BR") : "—"}</span></span>
+                    {m === "pheromone" && <span>{t("breed.egg.pheromones")} <span className={`pixel text-base ${line ? "text-purple" : "slot-empty"}`}>{line ? line.pheromones.toLocaleString("pt-BR") : "—"}</span></span>}
+                  </div>
+                  {/* riscos: sempre renderizados; invisiveis quando nao se aplicam (altura reservada) */}
+                  <div className="mt-3 flex flex-col gap-1.5">
+                    <p className={`rounded border-l-2 border-yellow bg-[rgba(244,210,74,0.06)] px-2 py-1.5 text-sm leading-relaxed text-text-dim ${line?.orphanRisk ? "" : "invisible"}`}>{t("breed.plan.orphan")}</p>
+                    <p className={`rounded border-l-2 border-red bg-[rgba(255,90,90,0.06)] px-2 py-1.5 text-sm leading-relaxed text-text-dim ${line?.capWaste ? "" : "invisible"}`}>{t("breed.plan.capWaste")}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </section>
     </div>

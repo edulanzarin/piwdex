@@ -24,11 +24,12 @@ export default async function BreedPage() {
     <ToolFrame accent="var(--pink)" label="BREEDING" icon={<NavBreed size={13} />}>
       <div className="flex flex-col gap-6">
         <div>
-          <h1 className="pixel inline-flex flex-wrap items-center gap-2 text-3xl" style={{ color: "var(--pink)" }}>
+          <p className="eyebrow"><T k="breed.eyebrow" /></p>
+          <h1 className="pixel mt-1 inline-flex flex-wrap items-center gap-2 text-3xl" style={{ color: "var(--pink)" }}>
             <T k="breed.title" />
             <span className="chip" style={{ background: "var(--pink)", color: "#2a0a12" }}><T k="breed.alpha" /></span>
           </h1>
-          <p className="mt-3 max-w-2xl text-sm text-text-dim"><T k="breed.desc" /></p>
+          <p className="mt-3 max-w-2xl text-base text-text-dim"><T k="breed.desc" /></p>
         </div>
         <BreedTool creatures={slim} />
       </div>

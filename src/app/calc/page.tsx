@@ -34,8 +34,9 @@ export default async function CalcPage() {
     <ToolFrame accent="var(--purple)" label="CALCULADORA" icon={<NavCalc size={13} />}>
       <div className="flex flex-col gap-6">
         <div>
-          <h1 className="pixel text-3xl" style={{ color: "var(--purple)" }}><T k="calc.title" /></h1>
-          <p className="mt-3 max-w-2xl text-sm text-text-dim">
+          <p className="eyebrow"><T k="calc.eyebrow" /></p>
+          <h1 className="pixel mt-1 text-3xl" style={{ color: "var(--purple)" }}><T k="calc.title" /></h1>
+          <p className="mt-3 max-w-2xl text-base text-text-dim">
             <T k="calc.desc" />
           </p>
         </div>

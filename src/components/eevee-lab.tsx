@@ -7,7 +7,6 @@ import type { PokeType } from "@/lib/types";
 import { STAT_LABELS, estimateIvs, projectAll } from "@/lib/stats";
 import { Sprite } from "./sprite";
 import { TypeBadges } from "./badges";
-import { LoadingBall } from "./loaders";
 import { StatIcon } from "./stat-icons";
 import { StatCompareRow } from "./stat-bar";
 import { Star, ChevronRight } from "./icons";
@@ -76,8 +75,24 @@ function StatIn({ label, value, onChange, iconIndex }: { label: string; value: s
 const IV_MAX = 32;
 const ivColor = (v: number) => (v > IV_MAX ? "text-red" : v >= 26 ? "text-green" : v >= 14 ? "text-yellow" : "text-red");
 
+// Linha de comparacao vazia: MESMAS larguras/altura da StatCompareRow, valores em
+// placeholder — o resultado preenche sem mudar nada de lugar.
+function CompareRowEmpty({ label, iconIndex }: { label: string; iconIndex: number }) {
+  return (
+    <div className="flex items-center gap-2 text-base">
+      <span className="inline-flex w-14 shrink-0 items-center gap-1 text-text-dim">
+        <StatIcon index={iconIndex} size={11} />{label}
+      </span>
+      <div className="statbar flex-1" />
+      <span className="slot-empty w-10 shrink-0 text-right tabular-nums">—</span>
+      <span className="slot-empty w-11 shrink-0 text-right tabular-nums">—</span>
+    </div>
+  );
+}
+
 // Card no formato do Pokedex (sprite + #id + nome + tipos) + pedra + stats.
 // Os stats aparecem SEMPRE (com ??? antes de calcular) pro card nao mudar de tamanho.
+// A grade de stats empilha em 1 coluna abaixo de sm pra caber em 360px (2 cards lado a lado).
 function EvoNodeCard({ evo, compact }: { evo: NodeData; compact?: boolean }) {
   const maxIdx = evo.stats ? evo.stats.indexOf(Math.max(...evo.stats)) : -1;
   return (
@@ -97,7 +112,7 @@ function EvoNodeCard({ evo, compact }: { evo: NodeData; compact?: boolean }) {
           {evo.stoneName}
         </span>
       )}
-      <div className="mt-0.5 grid w-full grid-cols-2 gap-x-3 gap-y-0.5 border-t border-border/60 pt-2">
+      <div className="mt-0.5 grid w-full grid-cols-1 gap-x-3 gap-y-0.5 border-t border-border/60 pt-2 sm:grid-cols-2">
         {STAT_LABELS.map((lb, i) => (
           <div key={lb} className="flex justify-between text-sm">
             <span className="inline-flex items-center gap-1 text-text-dim"><StatIcon index={i} size={9} />{lb}</span>
@@ -167,6 +182,9 @@ export function EeveeLab({ eevee, evos }: { eevee: { pokeId: number; name: strin
     return { evo, seu, perf };
   }, [result, selEvo, evos, qual]);
 
+  // evolucao escolhida (independe do resultado — o cabecalho do card usa sempre)
+  const evoSel = evos.find((e) => e.pokeId === selEvo) ?? evos[0] ?? null;
+
   return (
     <div className="flex flex-col gap-5">
       {/* Formulario em cima */}
@@ -188,22 +206,22 @@ export function EeveeLab({ eevee, evos }: { eevee: { pokeId: number; name: strin
 
         <div className="mt-5 border-t border-border pt-4">
           <span className="field-label">{t("eevee.statsLabel")}</span>
-          <div className="mt-2 grid grid-cols-3 gap-2.5">
+          <div className="mt-2 grid grid-cols-2 gap-2.5 sm:grid-cols-3">
             {STAT_LABELS.map((lb, i) => (
               <StatIn key={lb} iconIndex={i} label={lb} value={stats[i]} onChange={(v) => setStat(i, v)} />
             ))}
           </div>
 
           <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="min-h-[1.1rem]">
-              {result && (
-                <span className="flex flex-wrap gap-x-3 gap-y-0.5 text-sm text-text-dim">
-                  {STAT_LABELS.map((lb, i) => (
-                    <span key={lb} className="inline-flex items-center gap-1"><StatIcon index={i} size={9} />{lb} <span className={result.ivs[i] > 32 ? "text-red" : "text-text"}>{result.ivs[i].toFixed(0)}</span></span>
-                  ))}
+            {/* IVs por stat: slots permanentes — placeholder ate calcular */}
+            <span className="flex flex-wrap gap-x-3 gap-y-0.5 text-sm text-text-dim">
+              {STAT_LABELS.map((lb, i) => (
+                <span key={lb} className="inline-flex items-center gap-1">
+                  <StatIcon index={i} size={9} />{lb}{" "}
+                  <span className={result ? (result.ivs[i] > IV_MAX ? "text-red" : "text-text") : "slot-empty"}>{result ? result.ivs[i].toFixed(0) : "—"}</span>
                 </span>
-              )}
-            </div>
+              ))}
+            </span>
             <button
               type="button"
               onClick={calc}
@@ -213,21 +231,20 @@ export function EeveeLab({ eevee, evos }: { eevee: { pokeId: number; name: strin
               {computing ? `${t("eevee.calcing")}...` : <>{t("eevee.calc")} <ChevronRight size={10} /></>}
             </button>
           </div>
-          {result && (
-            <div className="mt-4 flex flex-col gap-2 border-t border-border pt-3">
-              <div className="flex flex-wrap items-center gap-x-6 gap-y-1">
-                <span className="field-label">
-                  {t("eevee.ivTotal")} <span className="pixel ml-1 text-base text-green">{result.ivTotal.toFixed(0)}<span className="text-text-dim">/192</span></span>
-                </span>
-                <span className="field-label">
-                  {t("calc.ivUsage")} <span className="pixel ml-1 text-base text-cyan">{Math.round((result.ivTotal / 192) * 100)}%</span>
-                </span>
-              </div>
-              <div className="statbar">
-                <div className="statbar-fill" style={{ width: `${Math.min(100, (result.ivTotal / 192) * 100)}%`, background: "var(--green)" }} />
-              </div>
+          {/* IV total + aproveitamento: bloco fixo, valores em placeholder ate calcular */}
+          <div className="mt-4 flex flex-col gap-2 border-t border-border pt-3">
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-1">
+              <span className="field-label">
+                {t("eevee.ivTotal")} <span className={`pixel ml-1 text-base ${result ? "text-green" : "slot-empty"}`}>{result ? <>{result.ivTotal.toFixed(0)}<span className="text-text-dim">/192</span></> : "—/192"}</span>
+              </span>
+              <span className="field-label">
+                {t("calc.ivUsage")} <span className={`pixel ml-1 text-base ${result ? "text-cyan" : "slot-empty"}`}>{result ? `${Math.round((result.ivTotal / 192) * 100)}%` : "—"}</span>
+              </span>
             </div>
-          )}
+            <div className="statbar">
+              <div className="statbar-fill" style={{ width: `${result ? Math.min(100, (result.ivTotal / 192) * 100) : 0}%`, background: "var(--green)" }} />
+            </div>
+          </div>
           {result && result.ivs.some((v) => v > 32) && (
             <p className="mt-2 text-sm leading-relaxed text-red">{t("eevee.ivOver")}</p>
           )}
@@ -251,121 +268,124 @@ export function EeveeLab({ eevee, evos }: { eevee: { pokeId: number; name: strin
 
       {tab === "comparar" ? (
         <div className="card p-5">
-          {!result || !cmp ? (
-            <p className="text-sm text-text-dim">{t("eevee.compareEmpty")}</p>
-          ) : (
-            <>
-              <h2 className="section-title mb-1 text-yellow">{t("calc.compare")}</h2>
-              <p className="mb-3 text-sm leading-relaxed text-text-dim">{t("eevee.compareHint")}</p>
-              <div className="mb-4 flex flex-wrap gap-2">
-                {evos.map((e) => (
-                  <button key={e.pokeId} type="button" onClick={() => setSelEvo(e.pokeId)}
-                    className={`inline-flex items-center gap-1.5 rounded border px-2.5 py-1 text-base transition ${selEvo === e.pokeId ? "border-[color:var(--cyan)] bg-surface-2 text-cyan" : "border-border text-text-dim hover:text-text"}`}>
-                    <Sprite src={spriteUrl(e.pokeId)} alt={e.name} size={18} /> {e.name}
-                  </button>
+          <h2 className="section-title mb-1 text-yellow">{t("calc.compare")}</h2>
+          {/* dica ou pedido de calculo: um estado por vez no mesmo slot */}
+          <p className="mb-3 min-h-[1.35rem] text-sm leading-relaxed text-text-dim">
+            {cmp ? t("eevee.compareHint") : t("eevee.compareEmpty")}
+          </p>
+          <div className="mb-4 flex flex-wrap gap-2">
+            {evos.map((e) => (
+              <button key={e.pokeId} type="button" onClick={() => setSelEvo(e.pokeId)}
+                className={`inline-flex min-h-10 items-center gap-1.5 rounded border px-2.5 text-base transition ${selEvo === e.pokeId ? "border-[color:var(--cyan)] bg-surface-2 text-cyan" : "border-border text-text-dim hover:text-text"}`}>
+                <Sprite src={spriteUrl(e.pokeId)} alt={e.name} size={18} /> {e.name}
+              </button>
+            ))}
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {/* Seu {evo} — linhas em placeholder ate calcular */}
+            <div className="card p-4" style={{ borderColor: "var(--cyan)" }}>
+              <div className="mb-3 flex items-center justify-between">
+                <span className="inline-flex items-center gap-1.5 pixel text-sm text-cyan">
+                  {evoSel && <Sprite src={spriteUrl(evoSel.pokeId)} alt="" size={18} />}
+                  {t("calc.compareYou", { name: evoSel?.name ?? "—" })}
+                </span>
+                <span className={`text-sm tabular-nums ${result ? "text-text-dim" : "slot-empty"}`}>{result ? `${result.ivTotal.toFixed(0)}/192 · ${Math.round((result.ivTotal / 192) * 100)}%` : "—/192"}</span>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                {STAT_LABELS.map((lb, i) => (
+                  cmp && result
+                    ? <StatCompareRow key={lb} label={lb} iconIndex={i} value={cmp.seu.stats[i]} max={cmp.perf.stats[i]} iv={result.ivs[i]} ivClass={ivColor(result.ivs[i])} />
+                    : <CompareRowEmpty key={lb} label={lb} iconIndex={i} />
                 ))}
               </div>
-              <div className="grid gap-4 sm:grid-cols-2">
-                {/* Seu {evo} */}
-                <div className="card p-4" style={{ borderColor: "var(--cyan)" }}>
-                  <div className="mb-3 flex items-center justify-between">
-                    <span className="inline-flex items-center gap-1.5 pixel text-sm text-cyan"><Sprite src={spriteUrl(cmp.evo.pokeId)} alt="" size={18} />{t("calc.compareYou", { name: cmp.evo.name })}</span>
-                    <span className="text-sm tabular-nums text-text-dim">{result.ivTotal.toFixed(0)}/192 · {Math.round((result.ivTotal / 192) * 100)}%</span>
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    {STAT_LABELS.map((lb, i) => (
-                      <StatCompareRow key={lb} label={lb} iconIndex={i} value={cmp.seu.stats[i]} max={cmp.perf.stats[i]} iv={result.ivs[i]} ivClass={ivColor(result.ivs[i])} />
-                    ))}
-                  </div>
-                  <div className="mt-3 border-t border-border pt-2 field-label">{t("calc.power")} <span className="pixel ml-1 text-base text-yellow">{cmp.seu.power.toLocaleString("pt-BR")}</span></div>
-                </div>
-                {/* Perfeito {evo} */}
-                <div className="card p-4" style={{ borderColor: "var(--green)" }}>
-                  <div className="mb-3 flex items-center justify-between">
-                    <span className="inline-flex items-center gap-1.5 pixel text-sm text-green"><Sprite src={spriteUrl(cmp.evo.pokeId)} alt="" size={18} />{t("calc.comparePerfect")}</span>
-                    <span className="text-sm tabular-nums text-text-dim">192/192 · 100%</span>
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    {STAT_LABELS.map((lb, i) => (
-                      <StatCompareRow key={lb} label={lb} iconIndex={i} value={cmp.perf.stats[i]} max={cmp.perf.stats[i]} iv={IV_MAX} ivClass="text-green" />
-                    ))}
-                  </div>
-                  <div className="mt-3 border-t border-border pt-2 field-label">{t("calc.power")} <span className="pixel ml-1 text-base text-yellow">{cmp.perf.power.toLocaleString("pt-BR")}</span></div>
-                </div>
+              <div className="mt-3 border-t border-border pt-2 field-label">{t("calc.power")} <span className={`pixel ml-1 text-base ${cmp ? "text-yellow" : "slot-empty"}`}>{cmp ? cmp.seu.power.toLocaleString("pt-BR") : "—"}</span></div>
+            </div>
+            {/* Perfeito {evo} */}
+            <div className="card p-4" style={{ borderColor: "var(--green)" }}>
+              <div className="mb-3 flex items-center justify-between">
+                <span className="inline-flex items-center gap-1.5 pixel text-sm text-green">
+                  {evoSel && <Sprite src={spriteUrl(evoSel.pokeId)} alt="" size={18} />}
+                  {t("calc.comparePerfect")}
+                </span>
+                <span className="text-sm tabular-nums text-text-dim">192/192 · 100%</span>
               </div>
-            </>
-          )}
+              <div className="flex flex-col gap-1.5">
+                {STAT_LABELS.map((lb, i) => (
+                  cmp
+                    ? <StatCompareRow key={lb} label={lb} iconIndex={i} value={cmp.perf.stats[i]} max={cmp.perf.stats[i]} iv={IV_MAX} ivClass="text-green" />
+                    : <CompareRowEmpty key={lb} label={lb} iconIndex={i} />
+                ))}
+              </div>
+              <div className="mt-3 border-t border-border pt-2 field-label">{t("calc.power")} <span className={`pixel ml-1 text-base ${cmp ? "text-yellow" : "slot-empty"}`}>{cmp ? cmp.perf.power.toLocaleString("pt-BR") : "—"}</span></div>
+            </div>
+          </div>
         </div>
       ) : (
-      /* Aba Estrela — sempre visivel (stats como ??? ate calcular) */
+      /* Aba Estrela — sempre visivel (stats como ??? ate calcular; o card e o skeleton) */
       <div className="card overflow-x-auto p-4 md:p-8">
-        {computing ? (
-          <LoadingBall label={t("eevee.calcing")} />
-        ) : (
-          <>
-            {/* Desktop grande: estrela radial (tamanho fixo; abaixo de lg vai pro grid) */}
-            <div className="relative mx-auto hidden lg:block" style={{ width: STAR, height: STAR }}>
-              <svg viewBox="0 0 100 100" className="absolute inset-0 h-full w-full" aria-hidden>
-                {POS.map((p, i) => (
-                  <g key={i}>
-                    <line x1={CENTER.x} y1={CENTER.y} x2={p.x} y2={p.y} stroke="var(--border-strong)" strokeWidth={0.35} />
-                    {chevrons(p).map((pts, k) => (
-                      <polyline key={k} points={pts} fill="none" stroke="var(--cyan)" strokeWidth={0.7} strokeLinecap="round" strokeLinejoin="round" opacity={0.75} />
-                    ))}
-                  </g>
+        {/* Desktop grande: estrela radial (tamanho fixo; abaixo de lg vai pro grid) */}
+        <div className="relative mx-auto hidden lg:block" style={{ width: STAR, height: STAR }}>
+          <svg viewBox="0 0 100 100" className="absolute inset-0 h-full w-full" aria-hidden>
+            {POS.map((p, i) => (
+              <g key={i}>
+                <line x1={CENTER.x} y1={CENTER.y} x2={p.x} y2={p.y} stroke="var(--border-strong)" strokeWidth={0.35} />
+                {chevrons(p).map((pts, k) => (
+                  <polyline key={k} points={pts} fill="none" stroke="var(--cyan)" strokeWidth={0.7} strokeLinecap="round" strokeLinejoin="round" opacity={0.75} />
                 ))}
-              </svg>
-              <Link href={`/dex/${eevee.pokeId}`} className="card card-link absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-2 p-3 text-center ring-1 ring-[color:var(--border-strong)]" style={{ left: `${CENTER.x}%`, top: `${CENTER.y}%`, width: NODE_W }}>
-                <Sprite src={spriteUrl(eevee.pokeId)} alt={eevee.name} size={56} />
-                <div>
-                  <div className="text-xs text-text-dim">#{String(eevee.pokeId).padStart(3, "0")}</div>
-                  <div className="text-sm leading-tight">{eevee.name}</div>
-                </div>
-                <TypeBadges t1={eevee.t1} t2={eevee.t2} />
-                {result && <span className="text-xs uppercase tracking-wide text-cyan">{t("eevee.atLevel", { n: result.target })}</span>}
-                <div className="mt-0.5 grid w-full grid-cols-2 gap-x-3 gap-y-0.5 border-t border-border/60 pt-2">
-                  {STAT_LABELS.map((lb, i) => (
-                    <div key={lb} className="flex justify-between text-sm">
-                      <span className="inline-flex items-center gap-1 text-text-dim"><StatIcon index={i} size={9} />{lb}</span>
-                      <span className={`tabular-nums ${eStats ? (i === eMax ? "text-green" : "text-text") : "text-text-dim"}`}>{eStats ? eStats[i] : "???"}</span>
-                    </div>
-                  ))}
-                </div>
-              </Link>
-              {nodes.slice(0, 5).map((evo, i) => (
-                <div key={evo.pokeId} className="absolute -translate-x-1/2 -translate-y-1/2" style={{ left: `${POS[i].x}%`, top: `${POS[i].y}%` }}>
-                  <EvoNodeCard evo={evo} />
+              </g>
+            ))}
+          </svg>
+          <Link href={`/dex/${eevee.pokeId}`} className="card card-link absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-2 p-3 text-center ring-1 ring-[color:var(--border-strong)]" style={{ left: `${CENTER.x}%`, top: `${CENTER.y}%`, width: NODE_W }}>
+            <Sprite src={spriteUrl(eevee.pokeId)} alt={eevee.name} size={56} />
+            <div>
+              <div className="text-xs text-text-dim">#{String(eevee.pokeId).padStart(3, "0")}</div>
+              <div className="text-sm leading-tight">{eevee.name}</div>
+            </div>
+            <TypeBadges t1={eevee.t1} t2={eevee.t2} />
+            {/* nivel projetado: slot permanente pro card nao mudar de altura */}
+            <span className={`text-xs uppercase tracking-wide ${result ? "text-cyan" : "slot-empty"}`}>{result ? t("eevee.atLevel", { n: result.target }) : "—"}</span>
+            <div className="mt-0.5 grid w-full grid-cols-1 gap-x-3 gap-y-0.5 border-t border-border/60 pt-2 sm:grid-cols-2">
+              {STAT_LABELS.map((lb, i) => (
+                <div key={lb} className="flex justify-between text-sm">
+                  <span className="inline-flex items-center gap-1 text-text-dim"><StatIcon index={i} size={9} />{lb}</span>
+                  <span className={`tabular-nums ${eStats ? (i === eMax ? "text-green" : "text-text") : "text-text-dim"}`}>{eStats ? eStats[i] : "???"}</span>
                 </div>
               ))}
             </div>
-
-            {/* Telas menores: Eevee no topo + grid */}
-            <div className="flex flex-col gap-3 lg:hidden">
-              <Link href={`/dex/${eevee.pokeId}`} className="card card-link col-span-2 flex flex-col items-center gap-2 p-3 text-center ring-1 ring-[color:var(--border-strong)]">
-                <Sprite src={spriteUrl(eevee.pokeId)} alt={eevee.name} size={48} />
-                <div>
-                  <div className="text-xs text-text-dim">#{String(eevee.pokeId).padStart(3, "0")}</div>
-                  <div className="text-sm leading-tight">{eevee.name}</div>
-                </div>
-                <TypeBadges t1={eevee.t1} t2={eevee.t2} />
-                {result && <span className="text-xs uppercase tracking-wide text-cyan">{t("eevee.atLevel", { n: result.target })}</span>}
-                <div className="mt-0.5 grid w-full max-w-[220px] grid-cols-2 gap-x-3 gap-y-0.5 border-t border-border/60 pt-2">
-                  {STAT_LABELS.map((lb, i) => (
-                    <div key={lb} className="flex justify-between text-sm">
-                      <span className="inline-flex items-center gap-1 text-text-dim"><StatIcon index={i} size={9} />{lb}</span>
-                      <span className={`tabular-nums ${eStats ? (i === eMax ? "text-green" : "text-text") : "text-text-dim"}`}>{eStats ? eStats[i] : "???"}</span>
-                    </div>
-                  ))}
-                </div>
-              </Link>
-              <div className="grid grid-cols-2 gap-3">
-                {nodes.map((evo) => (
-                  <EvoNodeCard key={evo.pokeId} evo={evo} compact />
-                ))}
-              </div>
+          </Link>
+          {nodes.slice(0, 5).map((evo, i) => (
+            <div key={evo.pokeId} className="absolute -translate-x-1/2 -translate-y-1/2" style={{ left: `${POS[i].x}%`, top: `${POS[i].y}%` }}>
+              <EvoNodeCard evo={evo} />
             </div>
-          </>
-        )}
+          ))}
+        </div>
+
+        {/* Telas menores: Eevee no topo + grid (2 colunas cabem em 360px porque os
+            stats dos cards empilham em 1 coluna abaixo de sm) */}
+        <div className="flex flex-col gap-3 lg:hidden">
+          <Link href={`/dex/${eevee.pokeId}`} className="card card-link flex flex-col items-center gap-2 p-3 text-center ring-1 ring-[color:var(--border-strong)]">
+            <Sprite src={spriteUrl(eevee.pokeId)} alt={eevee.name} size={48} />
+            <div>
+              <div className="text-xs text-text-dim">#{String(eevee.pokeId).padStart(3, "0")}</div>
+              <div className="text-sm leading-tight">{eevee.name}</div>
+            </div>
+            <TypeBadges t1={eevee.t1} t2={eevee.t2} />
+            <span className={`text-xs uppercase tracking-wide ${result ? "text-cyan" : "slot-empty"}`}>{result ? t("eevee.atLevel", { n: result.target }) : "—"}</span>
+            <div className="mt-0.5 grid w-full max-w-[220px] grid-cols-1 gap-x-3 gap-y-0.5 border-t border-border/60 pt-2 sm:grid-cols-2">
+              {STAT_LABELS.map((lb, i) => (
+                <div key={lb} className="flex justify-between text-sm">
+                  <span className="inline-flex items-center gap-1 text-text-dim"><StatIcon index={i} size={9} />{lb}</span>
+                  <span className={`tabular-nums ${eStats ? (i === eMax ? "text-green" : "text-text") : "text-text-dim"}`}>{eStats ? eStats[i] : "???"}</span>
+                </div>
+              ))}
+            </div>
+          </Link>
+          <div className="grid grid-cols-2 gap-3">
+            {nodes.map((evo) => (
+              <EvoNodeCard key={evo.pokeId} evo={evo} compact />
+            ))}
+          </div>
+        </div>
       </div>
       )}
     </div>
