@@ -19,6 +19,7 @@ import { StatBar } from "./stat-bar";
 import { Modal } from "./modal";
 import { Pagination } from "./pagination";
 import { Field, ShinyToggle } from "./filter-field";
+import { ToggleButton } from "./toggle-button";
 import { SelectMenu } from "./select-menu";
 import { StatTile } from "./stat-tile";
 import { CloseButton } from "./icon-button";
@@ -406,6 +407,7 @@ export function MarketAdvisor({
   // ---- aba ITENS ----
   const [itQ, setItQ] = useState("");
   const [itCat, setItCat] = useState("");
+  const [itCurrency, setItCurrency] = useState("");
   const [itSort, setItSort] = useState("price");
   const [itBelowNpc, setItBelowNpc] = useState(false);
   const [itBusy, setItBusy] = useState(false);
@@ -419,6 +421,7 @@ export function MarketAdvisor({
       const p = new URLSearchParams({ kind: "items", sort: itSort });
       if (itQ.trim()) p.set("q", itQ.trim());
       if (itCat) p.set("cat", itCat);
+      if (itCurrency) p.set("currency", itCurrency);
       if (itBelowNpc) p.set("belowNpc", "1");
       const res = await fetch(`/api/market?${p.toString()}`, { cache: "no-store" });
       const j = (await res.json().catch(() => ({}))) as { items?: MarketItemRow[] };
@@ -487,7 +490,7 @@ export function MarketAdvisor({
         return (
           <>
             <Panel icon={<Loot size={12} />} accent="var(--green)" title={t("robo.caught.filters")} className="z-20 p-5" bodyClassName="gap-4">
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
                 <label className="flex flex-col gap-1">
                   <span className="field-label">{t("market.it.q")}</span>
                   <input className="input" value={itQ} onChange={(e) => setItQ(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") void searchItems(); }} placeholder={t("market.it.qPh")} />
@@ -503,6 +506,14 @@ export function MarketAdvisor({
                   ]} />
                 </label>
                 <label className="flex flex-col gap-1">
+                  <span className="field-label">{t("market.it.currency")}</span>
+                  <SelectMenu value={itCurrency} onChange={setItCurrency} className="" options={[
+                    { value: "", label: t("market.it.anyCurrency") },
+                    { value: "GOLD", label: t("market.it.gold") },
+                    { value: "DIAMONDS", label: t("market.it.diamonds") },
+                  ]} />
+                </label>
+                <label className="flex flex-col gap-1">
                   <span className="field-label">{t("account.market.sort")}</span>
                   <SelectMenu value={itSort} onChange={setItSort} className="" options={[
                     { value: "price", label: t("market.it.sort.price") },
@@ -511,7 +522,9 @@ export function MarketAdvisor({
                   ]} />
                 </label>
                 <Field label={t("alerts.f.filters")}>
-                  <ToggleChip active={itBelowNpc} onClick={() => setItBelowNpc((v) => !v)} label={t("account.market.belowNpc")} />
+                  <ToggleButton active={itBelowNpc} onClick={() => setItBelowNpc((v) => !v)} accent="green">
+                    {t("account.market.belowNpc")}
+                  </ToggleButton>
                 </Field>
               </div>
               <div className="flex items-center justify-end">
@@ -638,14 +651,3 @@ export function MarketAdvisor({
   );
 }
 
-// chip liga/desliga simples (filtro booleano), no dialeto dos toggles do site
-function ToggleChip({ active, onClick, label }: { active: boolean; onClick: () => void; label: string }) {
-  return (
-    <button type="button" onClick={onClick} aria-pressed={active}
-      className={`chip inline-flex items-center gap-1.5 border transition ${active ? "" : "opacity-50"}`}
-      style={{ background: active ? "var(--green)" : "transparent", borderColor: "var(--green)", color: active ? "#052012" : "var(--green)" }}>
-      <span className="inline-flex w-2 justify-center">{active ? <Check size={9} /> : "·"}</span>
-      {label}
-    </button>
-  );
-}

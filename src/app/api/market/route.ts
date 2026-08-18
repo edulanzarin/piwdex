@@ -56,7 +56,12 @@ export async function GET(req: Request) {
       switch (iSort) {
         case "recent": return Date.parse(b.at) - Date.parse(a.at);
         case "qty": return b.quantity - a.quantity;
-        default: return a.price - b.price; // price (unitario, mais barato primeiro)
+        default: {
+          // "mais barato": moedas NAO se comparam (1 diamante nao e mais barato que 100
+          // de ouro) — agrupa ouro primeiro, cada grupo do menor pro maior preco unitario
+          if (a.currency !== b.currency) return a.currency === "GOLD" ? -1 : 1;
+          return a.price - b.price;
+        }
       }
     };
     items = [...items].sort(iRank).slice(0, 150).map((i) => ({
