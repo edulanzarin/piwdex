@@ -29,10 +29,12 @@ function ToolCard({
       className="card card-link flex items-center gap-5 p-6 sm:gap-6 sm:p-8"
     >
       {icon && <span className="shrink-0">{icon}</span>}
-      <div className="flex min-w-0 flex-col gap-2.5">
+      {/* coluna estica na altura do card (auto-rows-fr na grade) e o CTA ancora embaixo:
+          todos os cards da fileira ficam com a mesma altura e botoes alinhados */}
+      <div className="flex min-w-0 flex-1 flex-col gap-2.5 self-stretch">
         <h2 className="pixel text-xl" style={{ color }}><T k={titleKey} /></h2>
         <p className="text-sm text-text-dim leading-relaxed"><T k={descKey} /></p>
-        <span className="btn mt-1 self-start whitespace-nowrap" style={{ background: color, color: ctaText }}>
+        <span className="btn mt-auto self-start whitespace-nowrap" style={{ background: color, color: ctaText }}>
           <T k={ctaKey} /> <ChevronRight size={10} />
         </span>
       </div>
@@ -53,7 +55,7 @@ export default async function Home() {
     <div className="flex flex-col gap-6">
       {/* Hero */}
       <section className="card overflow-hidden p-6 sm:p-10 lg:p-12">
-        <h1 className="pixel text-lg leading-[1.5] text-text break-words sm:text-3xl lg:text-4xl">
+        <h1 className="pixel text-xl leading-snug text-text break-words sm:text-2xl md:text-3xl lg:text-4xl">
           <T k="home.heroPre" /> <span style={{ color: "var(--cyan)" }}><T k="home.heroMid" /></span> <T k="home.heroDo" />{" "}
           <span style={{ color: "var(--green)" }}>Poke Idle World</span>.
         </h1>
@@ -68,8 +70,8 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* Ferramentas */}
-      <section className="grid gap-4 sm:grid-cols-2">
+      {/* Ferramentas: 1 col no celular, 2 no sm+; auto-rows-fr iguala a altura dos cards */}
+      <section className="grid grid-cols-1 gap-4 sm:auto-rows-fr sm:grid-cols-2">
         <ToolCard
           titleKey="home.card1.title"
           descKey="home.card1.desc"

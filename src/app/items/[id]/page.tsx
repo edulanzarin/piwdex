@@ -5,6 +5,8 @@ import { getData } from "@/lib/data";
 import { itemIconUrl } from "@/lib/sprites";
 import { Sprite } from "@/components/sprite";
 import { DropSourcesTable } from "@/components/drop-sources-table";
+import { ToolFrame } from "@/components/tool-frame";
+import { NavItems } from "@/components/nav-icons";
 import { Gold, ChevronLeft } from "@/components/icons";
 import { T } from "@/components/locale-provider";
 
@@ -37,6 +39,8 @@ export default async function ItemPage({
   const sources = dropSourcesOf(item.name);
 
   return (
+    // mesma moldura verde da lista /items: a ficha nao e uma pagina "solta" da ferramenta
+    <ToolFrame accent="var(--green)" label="ITENS" icon={<NavItems size={13} />}>
     <div className="flex flex-col gap-5">
       <Link href="/items" className="inline-flex items-center gap-1 text-base text-text-dim hover:text-cyan uppercase tracking-wide">
         <ChevronLeft size={10} /> <T k="item.back" />
@@ -46,8 +50,8 @@ export default async function ItemPage({
         <span className="well flex h-20 w-20 shrink-0 items-center justify-center">
           <Sprite src={itemIconUrl(item)} alt={item.name} size={48} />
         </span>
-        <div className="flex flex-col gap-2">
-          <h1 className="pixel text-base text-text">{item.name}</h1>
+        <div className="flex min-w-0 flex-col gap-2">
+          <h1 className="pixel text-2xl break-words text-text">{item.name}</h1>
           <div className="flex flex-wrap items-center gap-2 text-sm text-text-dim">
             <span className="chip" style={{ background: "var(--surface-2)", color: "var(--text)" }}>{item.category}</span>
             {item.rare && <span className="text-yellow text-base uppercase"><T k="items.rare" /></span>}
@@ -85,5 +89,6 @@ export default async function ItemPage({
         )}
       </section>
     </div>
+    </ToolFrame>
   );
 }

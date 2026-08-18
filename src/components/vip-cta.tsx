@@ -35,17 +35,19 @@ export function VipCta({ vip }: { vip: boolean }) {
           </div>
           <p className="mt-2 max-w-2xl text-base leading-relaxed text-text-dim">{t("vipcta.desc")}</p>
         </div>
-        <div className="flex shrink-0 flex-wrap items-center gap-2">
+        {/* degrau mobile: botoes empilhados em largura cheia (alvo de toque folgado),
+            lado a lado so a partir do sm — sem flex-wrap mudando a altura */}
+        <div className="flex w-full shrink-0 flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
           <a
             href={REF_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="btn btn-ghost"
+            className="btn btn-ghost w-full sm:w-auto"
             title={t("vipcta.playHint")}
           >
             {t("vipcta.play")} <ChevronRight size={10} />
           </a>
-          <Link href="/vip" className="btn btn-yellow">
+          <Link href="/vip" className="btn btn-yellow w-full sm:w-auto">
             {t("vipcta.btn")} <ChevronRight size={10} />
           </Link>
         </div>

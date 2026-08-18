@@ -75,7 +75,7 @@ export function DexBrowser({ creatures, acq }: { creatures: Creature[]; acq: Rec
         <div className="card p-10 text-center text-text-dim">{t("dex.empty")}</div>
       ) : (
         <>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
             {paged.map((c) => (
               <CreatureCard key={c.pokeId} creature={c} acq={acq[c.pokeId]} />
             ))}

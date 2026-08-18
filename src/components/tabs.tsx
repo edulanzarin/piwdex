@@ -27,7 +27,9 @@ export function Tabs({
   className?: string;
 }) {
   return (
-    <div className={`flex flex-wrap gap-1.5 border-b border-border pb-3 ${className}`}>
+    // trilho rolavel na horizontal: fila de abas que nao cabe ROLA, nunca quebra
+    // linha (altura da barra e fixa em qualquer largura)
+    <div className={`flex flex-nowrap gap-1.5 overflow-x-auto border-b border-border pb-3 ${className}`}>
       {tabs.map((tb) => {
         const on = tb.key === active;
         return (
@@ -36,7 +38,7 @@ export function Tabs({
             type="button"
             onClick={() => onChange(tb.key)}
             aria-pressed={on}
-            className={`tab inline-flex items-center gap-1.5 active:translate-y-px ${on ? "tab-active" : ""}`}
+            className={`tab inline-flex min-h-9 shrink-0 items-center gap-1.5 whitespace-nowrap active:translate-y-px ${on ? "tab-active" : ""}`}
             style={on ? ({ color: accent, borderColor: accent } as CSSProperties) : undefined}
           >
             {tb.icon}

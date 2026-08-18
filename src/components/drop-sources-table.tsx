@@ -44,11 +44,11 @@ export function DropSourcesTable({ sources }: { sources: DropRow[] }) {
         <table className="w-full text-sm">
           <thead>
             <tr className="text-left text-sm uppercase tracking-wide text-text-dim">
-              <th className="pb-2 font-medium">{t("col.pokemon")}</th>
-              <th className="pb-2 font-medium">{t("col.types")}</th>
-              <th className="pb-2 text-right font-medium">{t("col.huntLvl")}</th>
-              <th className="pb-2 text-right font-medium">{t("col.qty")}</th>
-              <th className="pb-2 text-right font-medium">{t("col.chance")}</th>
+              <th className="pb-2 font-normal">{t("col.pokemon")}</th>
+              <th className="pb-2 font-normal">{t("col.types")}</th>
+              <th className="pb-2 text-right font-normal">{t("col.huntLvl")}</th>
+              <th className="pb-2 text-right font-normal">{t("col.qty")}</th>
+              <th className="pb-2 text-right font-normal">{t("col.chance")}</th>
             </tr>
           </thead>
           <tbody>

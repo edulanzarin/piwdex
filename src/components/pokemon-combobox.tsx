@@ -92,20 +92,21 @@ export function PokemonCombobox<T extends ComboCreature>({
             {results.length === 0 ? (
               <div className="p-4 text-center text-sm text-text-dim">{tr("dex.empty")}</div>
             ) : (
+              // linha de ALTURA FIXA (h-11 >= 40px de toque): nome trunca, o resto nao encolhe
               results.map((c, i) => (
                 <button
                   key={c.pokeId}
                   type="button"
                   onMouseDown={(e) => { e.preventDefault(); choose(c); }}
                   onMouseEnter={() => setHi(i)}
-                  className={`flex w-full items-center gap-3 px-3 py-2 text-left ${i === hi ? "bg-surface-2" : ""}`}
+                  className={`flex h-11 w-full items-center gap-3 px-3 text-left ${i === hi ? "bg-surface-2" : ""}`}
                 >
-                  <Sprite src={spriteUrl(c.pokeId)} alt="" size={32} />
-                  <span className="flex-1 text-sm">{c.name}</span>
-                  <span className="text-xs text-text-dim">#{String(c.pokeId).padStart(3, "0")}</span>
-                  <span className="flex gap-1">
+                  <Sprite src={spriteUrl(c.pokeId)} alt="" size={32} className="shrink-0" />
+                  <span className="min-w-0 flex-1 truncate text-sm">{c.name}</span>
+                  <span className="shrink-0 text-xs text-text-dim">#{String(c.pokeId).padStart(3, "0")}</span>
+                  <span className="flex shrink-0 gap-1">
                     {[c.type1, c.type2].filter(Boolean).map((t) => (
-                      <span key={t} className="chip text-xs px-1.5" style={{ background: TYPE_COLOR[t as PokeType], color: "#fff" }}>{t}</span>
+                      <span key={t} className="chip" style={{ background: TYPE_COLOR[t as PokeType], color: "#fff" }}>{t}</span>
                     ))}
                   </span>
                 </button>
@@ -134,9 +135,10 @@ export function PokemonCombobox<T extends ComboCreature>({
           }}
         />
         {value && (
+          // alvo de toque de 40px sem engordar o input (margem negativa compensa)
           <button
             type="button"
-            className="text-text-dim hover:text-red"
+            className="icon-btn -my-2 -me-2 h-9 w-9 shrink-0 hover:text-red"
             onClick={(e) => { e.stopPropagation(); onSelect(null); setQuery(""); }}
             aria-label="limpar"
           >

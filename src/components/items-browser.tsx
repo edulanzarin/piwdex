@@ -60,15 +60,15 @@ export function ItemsBrowser({ items }: { items: Item[] }) {
         <div className="card p-10 text-center text-text-dim">{t("items.empty")}</div>
       ) : (
         <>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
           {paged.map((i) => (
             <Link key={i.id} href={`/items/${i.id}`} className="card card-link flex items-center gap-3 p-3">
               <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded bg-[var(--well-bg)]">
                 <Sprite src={itemIconUrl(i)} alt={i.name} size={30} />
               </span>
               <div className="min-w-0 flex-1">
-                <div className="truncate text-sm font-medium">{i.name}</div>
-                <div className="text-sm text-text-dim uppercase tracking-wide">
+                <div className="truncate text-sm">{i.name}</div>
+                <div className="truncate text-sm text-text-dim uppercase tracking-wide">
                   {i.category}
                   {i.rare ? <> · {t("items.rare")}</> : ""}
                 </div>

@@ -8,9 +8,10 @@ import { Close } from "./icons";
 
 type HoverAccent = "red" | "cyan" | "text";
 
+// utilities vencem a camada components sem precisar de important
 const HOVER: Record<HoverAccent, string> = {
-  red: "hover:!text-red",
-  cyan: "hover:!text-cyan",
+  red: "hover:text-red",
+  cyan: "hover:text-cyan",
   text: "",
 };
 
@@ -33,7 +34,7 @@ export function IconButton({
       onClick={onClick}
       title={title}
       aria-label={title}
-      className={`icon-btn ${HOVER[hover]} ${className}`}
+      className={`icon-btn h-9 w-9 shrink-0 ${HOVER[hover]} ${className}`}
     >
       {children}
     </button>

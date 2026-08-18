@@ -19,11 +19,17 @@ function SubmitBtn({ label, loading }: { label: string; loading: string }) {
   );
 }
 
-// linha de sucesso inline (verde, com check) — o /conta vive fora do ToastProvider
-function Ok({ children }: { children: React.ReactNode }) {
+// linha de status do form (erro vermelho / sucesso verde com check) — o /conta vive fora
+// do ToastProvider. SLOT reservado: existe sempre com min-h, entao a mensagem aparecer/
+// sumir nao empurra o formulario.
+function StatusLine({ error, ok }: { error: string | null; ok: string | null }) {
   return (
-    <p className="inline-flex items-center gap-1.5 text-base text-green">
-      <Check size={11} /> {children}
+    <p className="min-h-5 text-sm">
+      {error ? (
+        <span className="text-red">{error}</span>
+      ) : ok ? (
+        <span className="inline-flex items-center gap-1.5 text-green"><Check size={11} /> {ok}</span>
+      ) : null}
     </p>
   );
 }
@@ -61,8 +67,7 @@ export function AccountSettings({ email, nome, vip }: { email: string; nome: str
           <span className="field-label">{t("conta.f.name")}</span>
           <input name="nome" type="text" defaultValue={nome ?? ""} maxLength={40} autoComplete="name" className="input" placeholder={t("conta.f.namePh")} />
         </label>
-        {errText(nameState) && <p className="text-base text-red">{errText(nameState)}</p>}
-        {nameState?.ok && <Ok>{t("conta.name.saved")}</Ok>}
+        <StatusLine error={errText(nameState)} ok={nameState?.ok ? t("conta.name.saved") : null} />
         <SubmitBtn label={t("conta.name.btn")} loading={t("conta.saving")} />
       </form>
 
@@ -81,8 +86,7 @@ export function AccountSettings({ email, nome, vip }: { email: string; nome: str
           <span className="field-label">{t("conta.f.confirm")}</span>
           <input name="confirma" type="password" required minLength={6} autoComplete="new-password" className="input" />
         </label>
-        {errText(passState) && <p className="text-base text-red">{errText(passState)}</p>}
-        {passState?.ok && <Ok>{t("conta.pass.saved")}</Ok>}
+        <StatusLine error={errText(passState)} ok={passState?.ok ? t("conta.pass.saved") : null} />
         <SubmitBtn label={t("conta.pass.btn")} loading={t("conta.saving")} />
       </form>
 

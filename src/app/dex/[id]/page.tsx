@@ -62,8 +62,9 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 }
 
 function EffRow({ titleKey, entries, emptyKey }: { titleKey: string; entries: TypeMult[]; emptyKey: string }) {
+  // degrau mobile: rotulo em cima das pills no celular, coluna fixa so a partir do sm
   return (
-    <div className="grid grid-cols-[7.5rem_1fr] items-start gap-x-3 gap-y-1">
+    <div className="grid grid-cols-1 items-start gap-x-3 gap-y-1 sm:grid-cols-[7.5rem_1fr]">
       <span className="pt-1 text-base uppercase tracking-wide text-text-dim"><T k={titleKey} /></span>
       {entries.length ? (
         <div className="flex flex-wrap gap-1.5">
@@ -134,7 +135,7 @@ export default async function CreaturePage({
         <HeroSprite pokeId={c.pokeId} name={c.name} />
         <div className="flex flex-1 flex-col gap-3">
           <div className="pixel text-sm text-text-dim">#{String(c.pokeId).padStart(3, "0")}</div>
-          <h1 className="pixel text-lg text-text">{c.name}</h1>
+          <h1 className="pixel text-2xl text-text">{c.name}</h1>
           <div className="flex flex-wrap items-center gap-2">
             <TypeBadges t1={c.type1} t2={c.type2} />
             <AcqBadge kind={acq} />
@@ -208,7 +209,9 @@ export default async function CreaturePage({
         </Reveal>
       </div>
 
-      <div className={`grid gap-5 ${chain.length > 1 || isEevee ? "lg:grid-cols-2" : ""}`}>
+      {/* estrutura ESTAVEL entre fichas irmas: sempre 2 colunas no lg, a celula de
+          evolucao existe sempre — linha unica vira o "estado" dela (nao some do grid) */}
+      <div className="grid gap-5 lg:grid-cols-2">
         {isEevee ? (
           <Reveal className="card flex flex-col p-5">
             <SectionTitle><T k="cr.evolution" /></SectionTitle>
@@ -219,7 +222,7 @@ export default async function CreaturePage({
               </Link>
             </div>
           </Reveal>
-        ) : chain.length > 1 && (
+        ) : (
           <Reveal className="card flex flex-col p-5">
             <SectionTitle><T k="cr.evolution" /></SectionTitle>
             <div className="flex flex-1 flex-wrap items-center justify-center gap-3">
@@ -277,9 +280,9 @@ export default async function CreaturePage({
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-sm uppercase tracking-wide text-text-dim">
-                <th className="pb-2 font-medium"><T k="col.item" /></th>
-                <th className="pb-2 font-medium"><T k="col.qty" /></th>
-                <th className="pb-2 text-right font-medium"><T k="col.chance" /></th>
+                <th className="pb-2 font-normal"><T k="col.item" /></th>
+                <th className="pb-2 font-normal"><T k="col.qty" /></th>
+                <th className="pb-2 text-right font-normal"><T k="col.chance" /></th>
               </tr>
             </thead>
             <tbody>
@@ -315,11 +318,11 @@ export default async function CreaturePage({
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-sm uppercase tracking-wide text-text-dim">
-                <th className="pb-2 font-medium"><T k="col.name" /></th>
-                <th className="pb-2 font-medium"><T k="col.type" /></th>
-                <th className="pb-2 font-medium"><T k="col.cat" /></th>
-                <th className="pb-2 text-right font-medium"><T k="col.power" /></th>
-                <th className="pb-2 text-right font-medium"><T k="col.lvl" /></th>
+                <th className="pb-2 font-normal"><T k="col.name" /></th>
+                <th className="pb-2 font-normal"><T k="col.type" /></th>
+                <th className="pb-2 font-normal"><T k="col.cat" /></th>
+                <th className="pb-2 text-right font-normal"><T k="col.power" /></th>
+                <th className="pb-2 text-right font-normal"><T k="col.lvl" /></th>
               </tr>
             </thead>
             <tbody>

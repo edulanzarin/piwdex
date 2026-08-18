@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { Sprite } from "./sprite";
+import { ToggleButton } from "./toggle-button";
+import { Star } from "./icons";
 import { spriteUrl } from "@/lib/sprites";
 import { useT } from "./locale-provider";
 
@@ -34,15 +36,15 @@ export function HeroSprite({ pokeId, name, size = 132 }: { pokeId: number; name:
         </span>
         <Sprite key={src} src={src} alt={name} size={size - 16} />
       </div>
-      <button
+      {/* mesmo dialeto de toggle do resto do site (forma sancionada, alvo >= 40px) */}
+      <ToggleButton
+        active={shiny}
         onClick={() => setShiny((s) => !s)}
-        className="chip transition"
-        style={{ background: shiny ? "var(--yellow)" : "var(--surface-2)", color: shiny ? "#3a2c00" : "var(--text)" }}
-        title={shiny ? "Ver forma normal" : "Ver forma shiny"}
+        accent="yellow"
+        title={shiny ? t("cr.seeNormal") : t("cr.seeShiny")}
       >
-        <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ background: shiny ? "#3a2c00" : "var(--yellow)" }} />
-        {shiny ? t("cr.seeNormal") : t("cr.seeShiny")}
-      </button>
+        <Star size={12} /> {shiny ? t("cr.seeNormal") : t("cr.seeShiny")}
+      </ToggleButton>
     </div>
   );
 }

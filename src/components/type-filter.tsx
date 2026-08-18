@@ -81,7 +81,7 @@ export function TypeFilter({
           <button
             type="button"
             onClick={() => choose("")}
-            className={`flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm hover:bg-surface-2 ${value === "" ? "bg-surface-2" : ""}`}
+            className={`flex min-h-9 w-full items-center gap-2 rounded px-2 text-left text-sm hover:bg-surface-2 ${value === "" ? "bg-surface-2" : ""}`}
           >
             <span className="flex h-4 w-4 items-center justify-center rounded border border-border text-xs text-text-dim">•</span>
             {t("dex.allTypes")}
@@ -91,7 +91,7 @@ export function TypeFilter({
               key={pt}
               type="button"
               onClick={() => choose(pt)}
-              className={`flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm hover:bg-surface-2 ${value === pt ? "bg-surface-2" : ""}`}
+              className={`flex min-h-9 w-full items-center gap-2 rounded px-2 text-left text-sm hover:bg-surface-2 ${value === pt ? "bg-surface-2" : ""}`}
             >
               <span className="flex h-4 w-4 items-center justify-center rounded" style={{ background: TYPE_COLOR[pt], color: "#fff" }}>
                 <TypeIcon type={pt} size={10} />

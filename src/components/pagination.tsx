@@ -17,7 +17,8 @@ export function Pagination({ page, pageCount, onPage }: { page: number; pageCoun
       >
         <ChevronLeft size={11} />
       </button>
-      <span className="text-base uppercase tracking-wide text-text-dim">{t("hunt.page", { a: page + 1, b: pageCount })}</span>
+      {/* largura minima + tabular-nums: o rotulo nao dança quando o numero de digitos muda */}
+      <span className="min-w-[7rem] text-center text-base uppercase tracking-wide text-text-dim tabular-nums">{t("hunt.page", { a: page + 1, b: pageCount })}</span>
       <button
         type="button"
         className="btn btn-ghost disabled:opacity-40"
