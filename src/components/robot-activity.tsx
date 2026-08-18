@@ -54,6 +54,9 @@ export function RobotActivity() {
         return { icon: <Signal size={13} className="text-green" />, text: e.title, tone: "text-green" };
       case "goal":
         return { icon: <Flag size={13} className="text-purple" />, text: e.title, tone: "text-purple" };
+      case "error":
+        // falha operacional (venda/compra que nao rodou) — o corpo diz o motivo
+        return { icon: <Skull size={13} className="text-red" />, text: e.body ? `${e.title} — ${e.body}` : e.title, tone: "text-red" };
       default:
         return { icon: null, text: e.title };
     }

@@ -16,9 +16,7 @@ import { WishlistPanel } from "./wishlist-panel";
 import { AlertsInbox } from "./alerts-inbox";
 import { RobotActivity } from "./robot-activity";
 import { AccountPanel } from "./account-panel";
-import { RoboPanel } from "./robo-panel";
-import { PokeSeller } from "./poke-seller";
-import { ConsumablesBuyer } from "./consumables-buyer";
+import { ConfigPanel } from "./config-panel";
 import { DropSeller } from "./drop-seller";
 import { PokeSold } from "./poke-sold";
 import { PokeCaught } from "./poke-caught";
@@ -159,13 +157,7 @@ function VipShellInner({ creatures, dex, hunts, itemIcons, lootByPoke }: VipShel
             </div>
           )}
           {sec === "chat" && <ChatPanel creatures={creatures} dex={dex} />}
-          {sec === "config" && (
-            <div className="flex flex-col gap-8">
-              <RoboPanel />
-              <PokeSeller />
-              <ConsumablesBuyer />
-            </div>
-          )}
+          {sec === "config" && <ConfigPanel />}
           {sec === "capturados" && <PokeCaught creatures={creatures} />}
           {sec === "estatisticas" && <RoboStats />}
           {sec === "mercado" && <MarketAdvisor creatures={creatures} dex={dex} />}
