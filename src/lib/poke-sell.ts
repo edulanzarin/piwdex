@@ -10,8 +10,11 @@ import type { ActivePoke } from "./game-account";
 export interface PokeSellConfig {
   sellRarities: Rarity[]; // raridades que PODEM ser vendidas (o resto nunca)
   keepShiny: boolean; // nunca vender shiny
-  maxIv: number; // 0..192, so vende IV total <= maxIv
-  maxQuality: number; // decimal, so vende quality <= maxQuality
+  maxIv: number; // 0..192, IV total <= maxIv marca pra venda
+  maxQuality: number; // decimal, quality <= maxQuality marca pra venda
+  // Pra FICAR NA CONTA o pokemon tem que passar das DUAS travas (IV > maxIv E quality >
+  // maxQuality). Basta falhar numa delas pra ser vendido — trava e filtro de excelencia,
+  // nao de "bom em algum eixo" (decisao do Eduardo, ago/2026).
 }
 
 // Como a config e SALVA no banco (robot_sessions.poke_sell_cfg): as travas + o interruptor.
@@ -59,6 +62,7 @@ export function filterSellable(
     .filter((p) => !(cfg.keepShiny && p.shiny))
     .map((p) => ({ ...p, rarity: rarityOf(p.speciesId) }))
     .filter((p) => cfg.sellRarities.includes(p.rarity))
-    .filter((p) => p.ivTotal <= cfg.maxIv && p.quality <= cfg.maxQuality)
+    // vende se falhar em QUALQUER trava; so escapa quem passa das duas (IV E qualidade)
+    .filter((p) => p.ivTotal <= cfg.maxIv || p.quality <= cfg.maxQuality)
     .sort((a, b) => a.quality - b.quality || a.ivTotal - b.ivTotal);
 }
