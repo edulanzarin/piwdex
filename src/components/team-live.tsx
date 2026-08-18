@@ -9,13 +9,15 @@
 
 import { useMemo, useState } from "react";
 import { useVipLive, type LiveTeamPoke } from "./vip-live";
-import { Star, Xp, Check, Trainer, Backpack, Plus } from "./icons";
+import { Star, Xp, Check, Trainer, Backpack, Plus, Chart } from "./icons";
 import { Sprite } from "./sprite";
 import { spriteUrl } from "@/lib/sprites";
 import { useToast } from "./toast";
 import { useT } from "./locale-provider";
 import { Modal } from "./modal";
 import { CloseButton } from "./icon-button";
+import { PokeStatsModal } from "./mon-stats";
+import type { MarketDex } from "./market-advisor";
 
 const fmt = (n: number) => Math.round(n).toLocaleString("pt-BR");
 
@@ -29,12 +31,14 @@ function HpBar({ hp, maxHp }: { hp: number; maxHp: number }) {
   );
 }
 
-export function TeamLive() {
+export function TeamLive({ dex }: { dex?: Record<number, MarketDex> }) {
   const t = useT();
   const toast = useToast();
   const { hunt, account, applyHunt } = useVipLive();
   const [busyId, setBusyId] = useState<string | null>(null);
   const [failId, setFailId] = useState<string | null>(null);
+  // stats reais de UM pokemon seu (lider, time ou box) — modal so de leitura
+  const [statsPoke, setStatsPoke] = useState<LiveTeamPoke | null>(null);
   // box <-> time (muta a conta: sempre passa pelo modal de confirmacao)
   const [confirm, setConfirm] = useState<{ action: "store" | "withdraw"; poke: LiveTeamPoke } | null>(null);
   const [moveBusy, setMoveBusy] = useState(false);
@@ -97,6 +101,11 @@ export function TeamLive() {
   };
 
   const teamFull = team.length >= 6;
+  // stats base da especie (catalogo) -> barra "vs perfeito" + IV por stat no modal
+  const basesOf = (p: LiveTeamPoke): number[] | null => {
+    const d = dex?.[p.speciesId];
+    return d ? [d.baseHp, d.baseAtk, d.baseDef, d.baseSpAtk, d.baseSpDef, d.baseSpeed] : null;
+  };
   const boxShown = useMemo(() => {
     if (!boxList) return null;
     const needle = boxQ.trim().toLowerCase();
@@ -142,6 +151,16 @@ export function TeamLive() {
                 <span>Q {leader.quality.toFixed(3)}</span>
               </div>
             </div>
+            {leader.stats && (
+              <button
+                type="button"
+                onClick={() => setStatsPoke(leader)}
+                title={t("vip.team.viewStats")}
+                className="shrink-0 self-start rounded border border-border p-1.5 text-text-dim transition hover:border-[color:var(--cyan)]/60 hover:text-cyan"
+              >
+                <Chart size={11} />
+              </button>
+            )}
           </div>
 
           {/* resto do time: clique = virar o lider (summon na mesma sessao); a mochila
@@ -176,6 +195,16 @@ export function TeamLive() {
                         {fail ? <span className="text-red">{t("vip.team.retry")}</span> : busy ? "…" : <span className="inline-flex items-center gap-1 text-yellow"><Check size={9} />{t("vip.team.use")}</span>}
                       </span>
                     </button>
+                    {p.stats && (
+                      <button
+                        type="button"
+                        onClick={() => setStatsPoke(p)}
+                        title={t("vip.team.viewStats")}
+                        className="shrink-0 rounded border border-border p-1.5 text-text-dim opacity-0 transition hover:border-[color:var(--cyan)]/60 hover:text-cyan group-hover:opacity-100"
+                      >
+                        <Chart size={11} />
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={() => setConfirm({ action: "store", poke: p })}
@@ -220,28 +249,43 @@ export function TeamLive() {
             ) : (
               <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                 {boxShown.map((p) => (
-                  <button
+                  <div
                     key={p.id}
-                    type="button"
-                    onClick={() => setConfirm({ action: "withdraw", poke: p })}
-                    disabled={moveBusy || teamFull}
-                    className="flex items-center gap-3 rounded border border-border bg-[var(--well-bg)] p-2.5 text-left transition hover:border-[color:var(--cyan)]/60 hover:bg-surface-2 disabled:opacity-40"
+                    className="group flex items-center gap-2 rounded border border-border bg-[var(--well-bg)] p-2.5 transition hover:border-[color:var(--cyan)]/60 hover:bg-surface-2"
                   >
-                    <span className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded bg-surface-2">
-                      <Sprite src={spriteUrl(p.speciesId, p.shiny)} alt={p.name} size={40} />
-                      {p.shiny && <span className="absolute -right-1 -top-1 text-yellow"><Star size={10} /></span>}
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="flex items-baseline gap-1.5">
-                        <span className="truncate text-[0.95rem] font-semibold text-text">{p.name}</span>
-                        <span className="pixel shrink-0 text-[0.75rem] text-text-dim">Lv{p.level}</span>
+                    <button
+                      type="button"
+                      onClick={() => setConfirm({ action: "withdraw", poke: p })}
+                      disabled={moveBusy || teamFull}
+                      title={t("vip.team.confirmWithdraw", { name: p.name })}
+                      className="flex min-w-0 flex-1 items-center gap-3 text-left disabled:opacity-40"
+                    >
+                      <span className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded bg-surface-2">
+                        <Sprite src={spriteUrl(p.speciesId, p.shiny)} alt={p.name} size={40} />
+                        {p.shiny && <span className="absolute -right-1 -top-1 text-yellow"><Star size={10} /></span>}
                       </span>
-                      <span className="mt-0.5 flex gap-2.5 text-[0.82rem] tabular-nums text-text-dim">
-                        <span>IV <span className="text-text">{p.ivTotal}</span></span>
-                        <span>Q <span className="text-cyan">{p.quality.toFixed(2)}</span></span>
+                      <span className="min-w-0 flex-1">
+                        <span className="flex items-baseline gap-1.5">
+                          <span className="truncate text-[0.95rem] font-semibold text-text">{p.name}</span>
+                          <span className="pixel shrink-0 text-[0.75rem] text-text-dim">Lv{p.level}</span>
+                        </span>
+                        <span className="mt-0.5 flex gap-2.5 text-[0.82rem] tabular-nums text-text-dim">
+                          <span>IV <span className="text-text">{p.ivTotal}</span></span>
+                          <span>Q <span className="text-cyan">{p.quality.toFixed(2)}</span></span>
+                        </span>
                       </span>
-                    </span>
-                  </button>
+                    </button>
+                    {p.stats && (
+                      <button
+                        type="button"
+                        onClick={() => setStatsPoke(p)}
+                        title={t("vip.team.viewStats")}
+                        className="shrink-0 rounded border border-border p-1.5 text-text-dim transition hover:border-[color:var(--cyan)]/60 hover:text-cyan"
+                      >
+                        <Chart size={11} />
+                      </button>
+                    )}
+                  </div>
                 ))}
               </div>
             )}
@@ -270,6 +314,11 @@ export function TeamLive() {
             </button>
           </div>
         </Modal>
+      )}
+
+      {/* stats reais do pokemon clicado (leitura pura — nao muta nada) */}
+      {statsPoke && (
+        <PokeStatsModal poke={statsPoke} bases={basesOf(statsPoke)} onClose={() => setStatsPoke(null)} />
       )}
     </div>
   );

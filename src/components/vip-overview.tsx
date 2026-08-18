@@ -14,6 +14,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useVipLive, type LiveStatus } from "./vip-live";
 import type { HuntOption } from "./hunt-analyzer";
+import type { MarketDex } from "./market-advisor";
 import { TeamLive } from "./team-live";
 import { StatTile } from "./stat-tile";
 import { Panel } from "./ui/panel";
@@ -72,11 +73,12 @@ function useCountdown(untilMs: number | null): number | null {
 }
 
 export function VipOverview({
-  hunts, creatures, itemIcons, onGo,
+  hunts, creatures, itemIcons, dex, onGo,
 }: {
   hunts: HuntOption[];
   creatures: { pokeId: number; name: string }[];
   itemIcons: Record<string, string>;
+  dex?: Record<number, MarketDex>; // stats base por especie (modal de stats do time/box)
   onGo: (section: string) => void;
 }) {
   const t = useT();
@@ -240,7 +242,7 @@ export function VipOverview({
       {/* ===== linha principal: time · hunt+plano · progresso — colunas de MESMA altura,
              vazios em linha compacta (nada de caixa em branco) ===== */}
       <div className="grid items-stretch gap-4 lg:grid-cols-12">
-        <div className="flex lg:col-span-4 [&>*]:w-full"><TeamLive /></div>
+        <div className="flex lg:col-span-4 [&>*]:w-full"><TeamLive dex={dex} /></div>
 
         <div className="flex flex-col gap-4 lg:col-span-4">
           <Panel icon={<Target size={12} />} accent="var(--cyan)" title={t("vip.ov.hunt")} live={hunting} className={huntOpt ? "flex-1" : ""}>

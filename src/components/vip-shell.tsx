@@ -148,7 +148,7 @@ function VipShellInner({ creatures, dex, hunts, itemIcons, lootByPoke, marketIte
         {/* conteudo da secao — rise-in a cada troca */}
         <div key={sec} className="rise-in min-w-0 flex-1">
           {sec === "painel" && (
-            <VipOverview hunts={hunts} creatures={creatures} itemIcons={itemIcons} onGo={(s) => go(s as Section)} />
+            <VipOverview hunts={hunts} creatures={creatures} itemIcons={itemIcons} dex={dex} onGo={(s) => go(s as Section)} />
           )}
           {sec === "hunt" && (
             <div className="flex flex-col gap-8">
