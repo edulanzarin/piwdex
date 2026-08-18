@@ -701,6 +701,7 @@ const pt: Dict = {
 
   // secoes da area VIP (navegacao lateral)
   "vip.sec.painel": "Painel",
+  "vip.sec.pokemons": "Meus Pokemons",
   "vip.sec.hunt": "Hunt",
   "vip.sec.chat": "Chat",
   "vip.sec.config": "Configuracoes",
@@ -804,6 +805,11 @@ const pt: Dict = {
   "vip.team.confirm": "Confirmar",
   "vip.team.cancel": "Cancelar",
   "vip.team.viewStats": "Ver stats",
+  "vip.poke.title": "Meus Pokemons",
+  "vip.poke.desc": "Seu time e seu box num lugar so: veja stats reais e raridade, troque o lider e mova pokemons entre o time e o box.",
+  "vip.poke.reload": "Atualizar",
+  "vip.poke.loading": "Carregando o box",
+  "vip.poke.connectFirst": "Conecte sua conta do jogo (secao Conta) pra ver seus pokemons.",
 
   // recursos
   "vip.res.progress": "Progresso do treinador",

@@ -242,7 +242,7 @@ export function VipOverview({
       {/* ===== linha principal: time · hunt+plano · progresso — colunas de MESMA altura,
              vazios em linha compacta (nada de caixa em branco) ===== */}
       <div className="grid items-stretch gap-4 lg:grid-cols-12">
-        <div className="flex lg:col-span-4 [&>*]:w-full"><TeamLive dex={dex} /></div>
+        <div className="flex lg:col-span-4 [&>*]:w-full"><TeamLive dex={dex} onManage={() => onGo("pokemons")} /></div>
 
         <div className="flex flex-col gap-4 lg:col-span-4">
           <Panel icon={<Target size={12} />} accent="var(--cyan)" title={t("vip.ov.hunt")} live={hunting} className={huntOpt ? "flex-1" : ""}>

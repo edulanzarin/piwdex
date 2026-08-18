@@ -16,6 +16,8 @@ import { WishlistPanel } from "./wishlist-panel";
 import { AlertsInbox } from "./alerts-inbox";
 import { RobotActivity } from "./robot-activity";
 import { AccountPanel } from "./account-panel";
+import { MyPokemons } from "./my-pokemons";
+import { Pokeball } from "./pokeball";
 import { ConfigPanel } from "./config-panel";
 import { DropSeller } from "./drop-seller";
 import { PokeSold } from "./poke-sold";
@@ -29,11 +31,12 @@ import { useT } from "./locale-provider";
 import { Star, Dollar, Heart, Bell, Trainer, Target, Chart, Backpack, ChevronRight, Gear, Bubble } from "./icons";
 
 type Section =
-  | "painel" | "hunt" | "chat" | "config" | "capturados" | "estatisticas"
+  | "painel" | "pokemons" | "hunt" | "chat" | "config" | "capturados" | "estatisticas"
   | "mercado" | "desejos" | "alertas" | "conta";
 
 const SECTIONS: { key: Section; accent: string; Icon: (p: { size?: number; className?: string }) => React.ReactNode }[] = [
   { key: "painel", accent: "var(--yellow)", Icon: Star },
+  { key: "pokemons", accent: "var(--red)", Icon: Pokeball },
   { key: "hunt", accent: "var(--cyan)", Icon: Target },
   { key: "chat", accent: "var(--green)", Icon: Bubble },
   { key: "config", accent: "var(--blue)", Icon: Gear },
@@ -150,6 +153,7 @@ function VipShellInner({ creatures, dex, hunts, itemIcons, lootByPoke, marketIte
           {sec === "painel" && (
             <VipOverview hunts={hunts} creatures={creatures} itemIcons={itemIcons} dex={dex} onGo={(s) => go(s as Section)} />
           )}
+          {sec === "pokemons" && <MyPokemons dex={dex} />}
           {sec === "hunt" && (
             <div className="flex flex-col gap-8">
               <HuntAnalyzer hunts={hunts} creatures={creatures} itemIcons={itemIcons} lootByPoke={lootByPoke} />
@@ -180,7 +184,7 @@ function VipShellInner({ creatures, dex, hunts, itemIcons, lootByPoke, marketIte
               <RobotActivity />
             </div>
           )}
-          {sec === "conta" && <AccountPanel creatures={creatures} />}
+          {sec === "conta" && <AccountPanel creatures={creatures} dex={dex} />}
         </div>
       </div>
     </div>
