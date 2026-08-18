@@ -72,6 +72,12 @@ type Channel = (typeof CHANNELS)[number];
 const CH_COLOR: Record<Channel, string> = { world: "var(--cyan)", trade: "var(--green)", help: "var(--yellow)" };
 
 const hhmm = (ms: number) => new Date(ms).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+// intervalo do anuncio (segundos) -> rotulo humano: "90s" -> "1min 30s", "600" -> "10min"
+const fmtEvery = (s: number): string => {
+  if (s < 60) return `${s}s`;
+  const m = Math.floor(s / 60), r = s % 60;
+  return r ? `${m}min ${r}s` : `${m}min`;
+};
 
 export function ChatPanel({ creatures, dex }: { creatures: { pokeId: number; name: string }[]; dex: Record<number, MarketDex> }) {
   const t = useT();
@@ -88,7 +94,7 @@ export function ChatPanel({ creatures, dex }: { creatures: { pokeId: number; nam
   const [cooldownLeft, setCooldownLeft] = useState(0);
   // anuncio automatico (draft local; o efetivo vem do stream)
   const [annText, setAnnText] = useState("");
-  const [annEvery, setAnnEvery] = useState("10");
+  const [annEvery, setAnnEvery] = useState("600"); // segundos
   const [annChannel, setAnnChannel] = useState<Channel>("world");
   const [annBusy, setAnnBusy] = useState(false);
   const seeded = useRef(false);
@@ -131,7 +137,7 @@ export function ChatPanel({ creatures, dex }: { creatures: { pokeId: number; nam
     seeded.current = true;
     if (chat.announce) {
       setAnnText(chat.announce.text);
-      setAnnEvery(String(chat.announce.everyMin));
+      setAnnEvery(String(chat.announce.everySec));
       setAnnChannel(chat.announce.channel);
     }
   }, [chat]);
@@ -179,7 +185,7 @@ export function ChatPanel({ creatures, dex }: { creatures: { pokeId: number; nam
   const saveAnnounce = async (on: boolean) => {
     setAnnBusy(true);
     try {
-      const r = await post({ action: "announce", on, text: annText.trim(), everyMin: Number(annEvery) || 10, channel: annChannel });
+      const r = await post({ action: "announce", on, text: annText.trim(), everySec: Number(annEvery) || 600, channel: annChannel });
       if (r.ok) { if (on) toast.success(t("toast.annOn")); else toast.info(t("toast.annOff")); }
       else toast.error(t("toast.err"));
     } finally { setAnnBusy(false); }
@@ -288,7 +294,8 @@ export function ChatPanel({ creatures, dex }: { creatures: { pokeId: number; nam
           <div className="grid grid-cols-2 gap-2">
             <div>
               <div className="field-label mb-1">{t("vip.chat.annEvery")}</div>
-              <input value={annEvery} onChange={(e) => setAnnEvery(e.target.value.replace(/\D/g, ""))} inputMode="numeric" className="input" />
+              <input value={annEvery} onChange={(e) => setAnnEvery(e.target.value.replace(/\D/g, ""))} inputMode="numeric" className="input" placeholder="600" />
+              <div className="mt-1 text-[0.55rem] text-text-dim">{fmtEvery(Number(annEvery) || 0)} · {t("vip.chat.annFloor")}</div>
             </div>
             <div>
               <div className="field-label mb-1">{t("vip.chat.annChannel")}</div>
@@ -307,7 +314,7 @@ export function ChatPanel({ creatures, dex }: { creatures: { pokeId: number; nam
             </button>
           )}
           {ann?.on && (
-            <p className="text-[0.58rem] text-text-dim">{t("vip.chat.annRunning", { n: ann.everyMin, c: t(`vip.chat.ch.${ann.channel}`) })}</p>
+            <p className="text-[0.58rem] text-text-dim">{t("vip.chat.annRunning", { n: fmtEvery(ann.everySec), c: t(`vip.chat.ch.${ann.channel}`) })}</p>
           )}
         </div>
       </div>

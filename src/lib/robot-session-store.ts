@@ -22,8 +22,18 @@ export interface LevelingGoal {
 export interface AnnounceCfg {
   on: boolean;
   text: string;
-  everyMin: number;                    // intervalo entre envios (min)
+  everySec: number;                    // intervalo entre envios (segundos)
   channel: "world" | "trade" | "help"; // canal do chat do jogo
+}
+
+// anuncios salvos antes eram em MINUTOS (everyMin). Converte pro novo campo em segundos
+// pra config antiga no banco nao quebrar. Piso de 60s (anti-flood do chat do jogo).
+function normalizeAnnounce(a: (AnnounceCfg & { everyMin?: number }) | null): AnnounceCfg | null {
+  if (!a) return null;
+  const sec = typeof a.everySec === "number" ? a.everySec
+    : typeof a.everyMin === "number" ? a.everyMin * 60
+    : 600;
+  return { on: !!a.on, text: String(a.text ?? ""), everySec: Math.max(60, Math.round(sec)), channel: a.channel ?? "world" };
 }
 
 export interface RobotDesired {
@@ -62,7 +72,7 @@ function fromRow(r: Row): RobotDesired {
     pokeSellCfg: r.poke_sell_cfg,
     autobuy: r.autobuy,
     leveling: r.leveling,
-    announce: r.announce,
+    announce: normalizeAnnounce(r.announce),
     lastStatus: r.last_status,
     lastError: r.last_error,
   };

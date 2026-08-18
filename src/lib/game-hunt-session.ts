@@ -66,7 +66,7 @@ const CONTESTED_LIMIT = 3;     // chutes-rapidos seguidos ate ceder e pausar
 // desconhecidos exposto na UI (modo descoberta: da pra calibrar olhando o frame real).
 const CHAT_MAX = 20;    // mensagens no ring: so as N ultimas ficam (a 21a derruba a mais velha)
 const DEBUG_MAX = 30;   // frames desconhecidos no ring
-const ANNOUNCE_MIN_MS = 60_000; // piso do intervalo do anuncio automatico
+const ANNOUNCE_MIN_MS = 60_000; // piso do intervalo do anuncio (= anti-flood do chat do jogo)
 const CHAT_COOLDOWN_MS = 60_000; // anti-flood do chat do jogo (~1 msg/min) — barra no servidor
 // frames que a sessao conhece (trata ou ignora de proposito) — o resto vira "descoberta"
 const KNOWN_FRAMES = new Set([
@@ -344,7 +344,7 @@ class GameSession {
     this.announce = cfg; // guarda mesmo desligado (a UI mantem o texto)
     if (this.announceTimer) { clearInterval(this.announceTimer); this.announceTimer = null; }
     if (cfg?.on && cfg.text.trim()) {
-      const every = Math.max(ANNOUNCE_MIN_MS, Math.round(cfg.everyMin * 60_000));
+      const every = Math.max(ANNOUNCE_MIN_MS, Math.round(cfg.everySec * 1000));
       this.announceTimer = setInterval(() => {
         if (this.announce?.on) void this.sendChat(this.announce.text, this.announce.channel);
       }, every);

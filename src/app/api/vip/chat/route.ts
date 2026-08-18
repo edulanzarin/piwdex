@@ -9,7 +9,7 @@ export const runtime = "nodejs";
 // Chat do jogo pela sessao que o robo segura. GET le o estado (mensagens + anuncio +
 // frames desconhecidos do modo descoberta); POST:
 //   send     {text, channel}                    — manda mensagem (precisa da sessao viva)
-//   announce {on, text, everyMin, channel}      — anuncio automatico (persistido)
+//   announce {on, text, everySec, channel}      — anuncio automatico (persistido)
 
 const CHANNELS = new Set(["world", "trade", "help"]);
 
@@ -52,10 +52,11 @@ export async function POST(req: Request) {
   if (b.action === "announce") {
     const on = b.on === true;
     const text = typeof b.text === "string" ? b.text.trim().slice(0, 300) : "";
-    const everyMin = Math.min(120, Math.max(1, Math.round(Number(b.everyMin) || 10)));
+    // intervalo em SEGUNDOS: piso 60 (anti-flood do chat), teto 3600 (1h), default 600
+    const everySec = Math.min(3600, Math.max(60, Math.round(Number(b.everySec) || 600)));
     const channel = typeof b.channel === "string" && CHANNELS.has(b.channel) ? (b.channel as AnnounceCfg["channel"]) : "world";
     if (on && !text) return NextResponse.json({ error: "no_text" }, { status: 400 });
-    const cfg: AnnounceCfg = { on, text, everyMin, channel };
+    const cfg: AnnounceCfg = { on, text, everySec, channel };
     gameSession.setAnnounce(cfg);
     // persiste tambem por aqui: a sessao so persiste se ja tem contexto (userId) — a config
     // do anuncio tem que sobreviver mesmo configurada antes de ligar o robo

@@ -106,7 +106,7 @@ export interface LiveChatMsg {
   id?: string; mine?: boolean;
   level?: number; vip?: boolean; admin?: boolean;
 }
-export interface LiveAnnounce { on: boolean; text: string; everyMin: number; channel: "world" | "trade" | "help" }
+export interface LiveAnnounce { on: boolean; text: string; everySec: number; channel: "world" | "trade" | "help" }
 export interface LiveChat {
   wsOpen: boolean;
   messages: LiveChatMsg[];
