@@ -8,7 +8,9 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useVipLive, type LiveChat } from "./vip-live";
-import { Bubble, ChevronRight, Clock, Signal, Star } from "./icons";
+import { Bubble, ChevronRight, Clock, Star } from "./icons";
+import { Panel } from "./ui/panel";
+import { EmptyState } from "./ui/feed";
 import { MarketMonModal, type MarketDex } from "./market-advisor";
 import type { MarketMon } from "@/lib/game-account";
 import { useToast } from "./toast";
@@ -200,29 +202,16 @@ export function ChatPanel({ creatures, dex }: { creatures: { pokeId: number; nam
 
       {!connected && (
         <div className="flex items-center gap-2.5 rounded border border-yellow/40 bg-[color:var(--yellow)]/5 px-3.5 py-2">
-          <Signal size={11} className="text-yellow" />
           <span className="text-[0.86rem] text-yellow">{t("vip.chat.needLive")}</span>
         </div>
       )}
 
       <div className="grid gap-4 lg:grid-cols-12">
         {/* feed + envio */}
-        <div className="card flex flex-col p-4 lg:col-span-8">
-          <div className="mb-2.5 flex items-center gap-2">
-            <h3 className="section-title flex-1">{t("vip.chat.feed")}</h3>
-            {connected && (
-              <span className="inline-flex items-center gap-1.5 text-[0.75rem] uppercase text-green">
-                <span className="hud-led pulse-soft" style={{ "--led": "var(--green)" } as React.CSSProperties} />
-                {t("vip.ov.live")}
-              </span>
-            )}
-          </div>
-
+        <Panel icon={<Bubble size={12} />} accent="var(--cyan)" title={t("vip.chat.feed")} live={connected} className="lg:col-span-8">
           <div ref={feedRef} className="flex h-[26rem] flex-col gap-1 overflow-y-auto rounded border border-border bg-[var(--well-bg)] p-2.5">
             {msgs.length === 0 ? (
-              <p className="m-auto text-center text-[0.86rem] text-text-dim">
-                {connected ? t("vip.chat.empty") : t("vip.chat.emptyOff")}
-              </p>
+              <EmptyState className="m-auto" message={connected ? t("vip.chat.empty") : t("vip.chat.emptyOff")} />
             ) : (
               msgs.map((m, i) => {
                 const self = m.mine || (selfName != null && m.from.toLowerCase() === selfName.toLowerCase());
@@ -271,15 +260,14 @@ export function ChatPanel({ creatures, dex }: { creatures: { pokeId: number; nam
               <Clock size={9} className="text-yellow" /> {t("vip.chat.cooldownHint", { s: cooldownLeft })}
             </p>
           )}
-        </div>
+        </Panel>
 
         {/* anuncio automatico */}
-        <div className="card flex flex-col gap-3 p-4 lg:col-span-4">
-          <div className="flex items-center gap-2">
-            <Clock size={12} className={ann?.on ? "text-green" : "text-text-dim"} />
-            <h3 className="section-title flex-1">{t("vip.chat.annTitle")}</h3>
-            {ann?.on && <span className="chip glow-pulse" style={{ background: "var(--green)", color: "#052012", "--accent": "var(--green)" } as React.CSSProperties}>{t("vip.chat.annOn")}</span>}
-          </div>
+        <Panel
+          icon={<Clock size={12} />} accent={ann?.on ? "var(--green)" : undefined} title={t("vip.chat.annTitle")}
+          right={ann?.on ? <span className="chip glow-pulse" style={{ background: "var(--green)", color: "#052012", "--accent": "var(--green)" } as React.CSSProperties}>{t("vip.chat.annOn")}</span> : undefined}
+          className="lg:col-span-4" bodyClassName="gap-3"
+        >
           <p className="text-[0.82rem] leading-relaxed text-text-dim">{t("vip.chat.annDesc")}</p>
 
           <div className="field-label">{t("vip.chat.annText")}</div>
@@ -316,7 +304,7 @@ export function ChatPanel({ creatures, dex }: { creatures: { pokeId: number; nam
           {ann?.on && (
             <p className="text-[0.78rem] text-text-dim">{t("vip.chat.annRunning", { n: fmtEvery(ann.everySec), c: t(`vip.chat.ch.${ann.channel}`) })}</p>
           )}
-        </div>
+        </Panel>
       </div>
 
       {/* pokemon linkado (clique no chip) — O MESMO modal do mercado; sem preco no link,

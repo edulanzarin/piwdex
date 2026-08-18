@@ -8,6 +8,8 @@ import { useCallback, useEffect, useRef } from "react";
 import { useT } from "./locale-provider";
 import { Star, Coin, Loot, Skull, Brain, Signal, Flag } from "./icons";
 import { useVipLive, type LiveEvent } from "./vip-live";
+import { Panel } from "./ui/panel";
+import { FeedRow, EmptyState } from "./ui/feed";
 
 const num = (v: unknown) => Math.round(Number(v ?? 0)).toLocaleString("pt-BR");
 const when = (iso: string) => {
@@ -66,29 +68,28 @@ export function RobotActivity() {
   const shown = events.slice(0, 10);
 
   return (
-    <div className="card p-4">
-      <div className="mb-3 flex items-center justify-between gap-2">
-        <h3 className="section-title text-cyan">{t("evt.title")}</h3>
-        {events.length > 0 && (
-          <button type="button" onClick={clear} className="btn btn-ghost">{t("evt.clear")}</button>
-        )}
-      </div>
+    <Panel
+      title={<span className="text-cyan">{t("evt.title")}</span>}
+      right={events.length > 0 ? <button type="button" onClick={clear} className="btn btn-ghost">{t("evt.clear")}</button> : undefined}
+    >
       {shown.length === 0 ? (
-        <p className="text-[0.92rem] text-text-dim">{t("evt.empty")}</p>
+        <EmptyState compact message={t("evt.empty")} />
       ) : (
         <div className="flex max-h-96 flex-col gap-1.5 overflow-y-auto pr-1">
           {shown.map((e, idx) => {
             const r = render(e);
             return (
-              <div key={e.id} className={`flex items-center gap-2.5 rounded border border-border bg-[var(--well-bg)] p-2 ${idx === 0 ? "flash-in" : ""}`}>
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center">{r.icon}</span>
-                <span className={`min-w-0 flex-1 truncate text-[0.92rem] ${r.tone ?? "text-text"}`}>{r.text}</span>
-                <span className="shrink-0 tabular-nums text-[0.75rem] text-text-dim">{when(e.createdAt)}</span>
-              </div>
+              <FeedRow
+                key={e.id}
+                flash={idx === 0}
+                leading={<span className="flex h-6 w-6 items-center justify-center">{r.icon}</span>}
+                title={<span className={r.tone ?? "text-text"}>{r.text}</span>}
+                right={<span className="tabular-nums text-[0.75rem] text-text-dim">{when(e.createdAt)}</span>}
+              />
             );
           })}
         </div>
       )}
-    </div>
+    </Panel>
   );
 }

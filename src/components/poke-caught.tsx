@@ -15,7 +15,9 @@ import { TypeFilter } from "./type-filter";
 import { Field, ShinyToggle } from "./filter-field";
 import { PokemonCombobox, type ComboCreature } from "./pokemon-combobox";
 import { TypeBadges, RarityBadge } from "./badges";
-import { Star } from "./icons";
+import { Panel } from "./ui/panel";
+import { EmptyState } from "./ui/feed";
+import { Star, Gear, Backpack } from "./icons";
 import { spriteUrl } from "@/lib/sprites";
 import { RARITY_ORDER } from "@/lib/typing";
 import { useT } from "./locale-provider";
@@ -91,18 +93,13 @@ export function PokeCaught({ creatures }: { creatures: ComboCreature[] }) {
 
   return (
     <div className="flex flex-col gap-5">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h2 className="section-title flex items-center gap-2 text-green"><Star size={13} /> {t("robo.caught.title")}</h2>
-          <p className="mt-2 max-w-2xl text-sm text-text-dim">{t("robo.caught.desc")}</p>
-        </div>
-        {(data?.total ?? 0) > 0 && (
-          <button type="button" onClick={clear} disabled={clearing} className="btn btn-ghost disabled:opacity-40">{t("robo.caught.clear")}</button>
-        )}
+      <div>
+        <h2 className="section-title flex items-center gap-2 text-green"><Star size={13} /> {t("robo.caught.title")}</h2>
+        <p className="mt-2 max-w-2xl text-sm text-text-dim">{t("robo.caught.desc")}</p>
       </div>
 
-      {/* filtros — igual mercado */}
-      <div className="card grid gap-3 p-5 sm:grid-cols-2 lg:grid-cols-4">
+      {/* filtros — Panel expansivel (recolhe quando nao esta filtrando) */}
+      <Panel collapsible icon={<Gear size={12} />} accent="var(--cyan)" title={t("robo.caught.filters")} className="p-5" bodyClassName="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <label className="flex flex-col gap-1"><span className="field-label">{t("robo.caught.f.species")}</span>
           <PokemonCombobox creatures={creatures} value={species} onSelect={(c) => { setSpecies(c); if (c) setType(""); }} />
         </label>
@@ -124,15 +121,20 @@ export function PokeCaught({ creatures }: { creatures: ComboCreature[] }) {
         <Field label={t("robo.caught.f.shiny")}>
           <ShinyToggle active={shiny} onChange={setShiny} />
         </Field>
-      </div>
+      </Panel>
 
-      {/* grade */}
-      <div className="card p-4">
+      {/* grade — contagem no cabecalho, limpar a direita */}
+      <Panel
+        icon={<Backpack size={12} />} accent="var(--green)"
+        title={t("robo.caught.count").replace("{n}", String(data?.total ?? 0))}
+        right={(data?.total ?? 0) > 0 ? (
+          <button type="button" onClick={clear} disabled={clearing} className="btn btn-ghost disabled:opacity-40">{t("robo.caught.clear")}</button>
+        ) : undefined}
+      >
         {rows.length === 0 ? (
-          <p className="text-[0.92rem] text-text-dim">{t("robo.caught.empty")}</p>
+          <EmptyState compact message={t("robo.caught.empty")} />
         ) : (
           <div className="flex flex-col gap-3">
-            <div className="text-[0.92rem] text-text-dim">{t("robo.caught.count").replace("{n}", String(data?.total ?? 0))}</div>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
               {rows.map((p) => (
                 <button key={p.pokeId} type="button" onClick={() => setSel(p)} className="card card-link flex flex-col items-center gap-1.5 p-3 text-center">
@@ -140,7 +142,7 @@ export function PokeCaught({ creatures }: { creatures: ComboCreature[] }) {
                     <Sprite src={spriteUrl(p.speciesId, p.shiny)} alt={p.name} size={56} />
                     {p.shiny && <span className="absolute -right-1 -top-1 text-yellow"><Star size={11} /></span>}
                   </div>
-                  <span className="truncate text-sm">{p.name}</span>
+                  <span className="pixel truncate text-[1rem]">{p.name}</span>
                   <span className="text-[0.75rem] text-text-dim">Lv{p.level} · IV {p.ivTotal} · Q {p.quality.toFixed(2)}</span>
                   <RarityBadge rarity={p.rarity} />
                 </button>
@@ -149,7 +151,7 @@ export function PokeCaught({ creatures }: { creatures: ComboCreature[] }) {
             {data && data.pageCount > 1 && <Pagination page={data.page} pageCount={data.pageCount} onPage={setPage} />}
           </div>
         )}
-      </div>
+      </Panel>
 
       {sel && (
         <Modal onClose={() => setSel(null)} className="w-full max-w-sm p-5" labelledBy="caught-name">
