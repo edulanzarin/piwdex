@@ -53,10 +53,17 @@
 html { color-scheme: dark; }
 html, body { max-width: 100%; overflow-x: hidden; }
 
+/* Jersey 10 e condensada: a base sobe pra 18px (tudo em rem escala junto — texto,
+   espacos, controles) pra fonte render no tamanho certo, nao em letrinha de 16px. */
+html { font-size: 112.5%; }
+
+/* O SITE INTEIRO fala Jersey 10 (pedido do Eduardo) — nao so titulos. A mono fica so
+   como fallback de glifo. */
 body {
   min-height: 100vh;
   color: var(--text);
-  font-family: var(--font-mono), ui-monospace, "SFMono-Regular", monospace;
+  font-family: var(--font-pixel), var(--font-mono), ui-monospace, monospace;
+  letter-spacing: 0.02em;
   background-color: var(--bg);
   -webkit-font-smoothing: antialiased;
 }
@@ -145,9 +152,8 @@ img { image-rendering: pixelated; }
     gap: 0.3rem;
     padding: 0.12rem 0.5rem;
     border-radius: 0.2rem;
-    font-size: 0.62rem;
-    font-weight: 700;
-    letter-spacing: 0.04em;
+    font-size: 0.72rem;
+    letter-spacing: 0.05em;
     text-transform: uppercase;
     color: #06111a;
   }
@@ -207,7 +213,7 @@ img { image-rendering: pixelated; }
     border-radius: 0.3rem;
     padding: 0.4rem 0.75rem;
     color: var(--text);
-    font-family: var(--font-mono), monospace;
+    font-family: var(--font-pixel), var(--font-mono), monospace;
     outline: none;
   }
   .input:focus { border-color: var(--border-strong); box-shadow: var(--glow); }
@@ -235,8 +241,8 @@ img { image-rendering: pixelated; }
 
   /* rotulo padrao acima de um campo: um tamanho so em todo o site */
   .field-label {
-    font-size: 0.58rem;
-    letter-spacing: 0.07em;
+    font-size: 0.72rem;
+    letter-spacing: 0.09em;
     text-transform: uppercase;
     color: var(--text-dim);
   }
