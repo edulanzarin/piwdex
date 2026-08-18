@@ -1,215 +1,37 @@
+// Icone por tipo de pokemon — lucide, currentColor (a cor vem do badge que embrulha).
+// Mesma API de antes: TypeIcon({ type, size }). Tipos fora dos 18 canonicos
+// (ex.: golpe "NEUTRAL") nao tem icone — nao renderiza nada.
+
+import type { LucideIcon } from "lucide-react";
+import {
+  Circle, Flame, Droplets, Zap, Leaf, Snowflake, Swords, FlaskConical, Mountain,
+  Feather, Eye, Bug, Pyramid, Ghost, Shell, Moon, Shield, Sparkles,
+} from "lucide-react";
 import type { PokeType } from "@/lib/types";
 
-// Icones de tipo em pixel art (8x8), desenhados como bitmap: '#' = pixel cheio.
-// Monocromaticos (currentColor) pra funcionar branco no badge colorido e colorido solto.
-// Silhueta importa mais que detalhe nesse tamanho.
-const GLYPHS: Record<PokeType, string[]> = {
-  NORMAL: [
-    "........",
-    "..####..",
-    ".#....#.",
-    ".#....#.",
-    ".#....#.",
-    ".#....#.",
-    "..####..",
-    "........",
-  ],
-  FIRE: [
-    "...#....",
-    "...##...",
-    "..#.#...",
-    "..#.##..",
-    ".#...#..",
-    ".#.#.#..",
-    ".#.#.#..",
-    "..###...",
-  ],
-  WATER: [
-    "...#....",
-    "...#....",
-    "..###...",
-    "..###...",
-    ".#####..",
-    ".##.##..",
-    ".#####..",
-    "..###...",
-  ],
-  ELECTRIC: [
-    "....##..",
-    "...##...",
-    "..##....",
-    ".#####..",
-    "...##...",
-    "..##....",
-    ".##.....",
-    "#.......",
-  ],
-  GRASS: [
-    "......##",
-    "....###.",
-    "...###..",
-    "..###.#.",
-    ".###.#..",
-    "###.#...",
-    "#..#....",
-    "..#.....",
-  ],
-  ICE: [
-    "...#....",
-    ".#.#.#..",
-    "..###...",
-    "###.###.",
-    "..###...",
-    ".#.#.#..",
-    "...#....",
-    "........",
-  ],
-  FIGHTING: [
-    "........",
-    ".###....",
-    "#####...",
-    "#####.#.",
-    "######..",
-    "#####.#.",
-    ".####...",
-    "........",
-  ],
-  POISON: [
-    "...#....",
-    "..###...",
-    ".#####..",
-    "#######.",
-    "#######.",
-    ".#####..",
-    "..#.#...",
-    ".#...#..",
-  ],
-  GROUND: [
-    "........",
-    "........",
-    "...#....",
-    "..###...",
-    ".##.##..",
-    "##...##.",
-    "#######.",
-    "........",
-  ],
-  FLYING: [
-    "........",
-    ".#......",
-    ".##...#.",
-    ".###.##.",
-    ".######.",
-    ".#####..",
-    ".###....",
-    "........",
-  ],
-  PSYCHIC: [
-    "........",
-    "..####..",
-    ".#....#.",
-    ".#.##.#.",
-    ".#.##.#.",
-    ".#....#.",
-    "..####..",
-    "........",
-  ],
-  BUG: [
-    "#..#..#.",
-    ".#.#.#..",
-    "..###...",
-    ".#####..",
-    "##.#.##.",
-    ".#####..",
-    "#.#.#.#.",
-    "...#....",
-  ],
-  ROCK: [
-    "........",
-    "..###...",
-    ".#####..",
-    "#######.",
-    "#######.",
-    "#######.",
-    "........",
-    "........",
-  ],
-  GHOST: [
-    "..###...",
-    ".#####..",
-    "##.#.##.",
-    "#######.",
-    "#######.",
-    "#######.",
-    "#.#.#.#.",
-    "........",
-  ],
-  DRAGON: [
-    ".####...",
-    ".#...#..",
-    ".#...#..",
-    ".#...##.",
-    ".#...#..",
-    ".#...#..",
-    ".####...",
-    "........",
-  ],
-  DARK: [
-    "..###...",
-    ".##.....",
-    "##......",
-    "##......",
-    "##......",
-    ".##.....",
-    "..###...",
-    "........",
-  ],
-  STEEL: [
-    "...#....",
-    ".#####..",
-    ".##.##..",
-    "##.#.##.",
-    ".##.##..",
-    ".#####..",
-    "...#....",
-    "........",
-  ],
-  FAIRY: [
-    "...#....",
-    "...#....",
-    ".#.#.#..",
-    "..###...",
-    "#######.",
-    "..###...",
-    ".#.#.#..",
-    "...#....",
-  ],
+const ICONS: Record<PokeType, LucideIcon> = {
+  NORMAL: Circle,
+  FIRE: Flame,
+  WATER: Droplets,
+  ELECTRIC: Zap,
+  GRASS: Leaf,
+  ICE: Snowflake,
+  FIGHTING: Swords,
+  POISON: FlaskConical,
+  GROUND: Mountain,
+  FLYING: Feather,
+  PSYCHIC: Eye,
+  BUG: Bug,
+  ROCK: Pyramid,
+  GHOST: Ghost,
+  DRAGON: Shell,
+  DARK: Moon,
+  STEEL: Shield,
+  FAIRY: Sparkles,
 };
 
-/** Icone pixel do tipo, herda a cor do texto (currentColor). Tipos fora dos 18
- *  canonicos (ex.: golpe "NEUTRAL") nao tem glifo — nao renderiza nada. */
 export function TypeIcon({ type, size = 12 }: { type: PokeType | string; size?: number }) {
-  const rows = GLYPHS[type as PokeType];
-  if (!rows) return null;
-  const rects: React.ReactNode[] = [];
-  for (let y = 0; y < rows.length; y++) {
-    for (let x = 0; x < rows[y].length; x++) {
-      if (rows[y][x] === "#") {
-        rects.push(<rect key={`${x}-${y}`} x={x} y={y} width={1} height={1} />);
-      }
-    }
-  }
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 8 8"
-      fill="currentColor"
-      shapeRendering="crispEdges"
-      style={{ imageRendering: "pixelated", flexShrink: 0 }}
-      aria-hidden="true"
-    >
-      {rects}
-    </svg>
-  );
+  const Icon = ICONS[type as PokeType];
+  if (!Icon) return null;
+  return <Icon size={size} className="shrink-0" aria-hidden />;
 }

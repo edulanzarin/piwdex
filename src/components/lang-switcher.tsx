@@ -6,7 +6,7 @@ import { Caret } from "./icons";
 import { useLocale } from "./locale-provider";
 
 function Flag({ code }: { code: Locale }) {
-  const common = { width: 20, height: 14, viewBox: "0 0 18 12", shapeRendering: "crispEdges" as const, style: { imageRendering: "pixelated" as const, borderRadius: 2 } };
+  const common = { width: 20, height: 14, viewBox: "0 0 18 12", style: { borderRadius: 2 } };
   if (code === "pt") {
     return (
       <svg {...common} aria-hidden>

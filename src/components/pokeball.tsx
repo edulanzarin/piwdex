@@ -1,47 +1,29 @@
-// Pokebola em pixels (grid 14x14) em SVG — logo e spinner. Com brilho e botao
-// central. Sem emoji.
-const P = "#ec3b3b"; // vermelho
-const S = "#ff7a7a"; // brilho
-const W = "#f4f6fb"; // branco
-const K = "#141821"; // contorno / banda
+// Pokebola vetorial lisa (logo e spinner): metade vermelha, banda escura, botao
+// central. Trocou o grid pixel por vetor limpo (decisao do Eduardo, ago/2026 —
+// icones normais; o pixel fica nos sprites do jogo). Mesma API (size/className).
 
-const GRID = [
-  "....KKKKKK....",
-  "..KKSSPPPPKK..",
-  ".KSSPPPPPPPPK.",
-  ".KSPPPPPPPPPK.",
-  "KPPPPPPPPPPPPK",
-  "KPPPPKKKKPPPPK",
-  "KKKKKKWWKKKKKK",
-  "KKKKKKWWKKKKKK",
-  "WWWWWKKKKWWWWW",
-  "KWWWWWWWWWWWWK",
-  "KWWWWWWWWWWWWK",
-  ".KWWWWWWWWWWK.",
-  "..KKWWWWWWKK..",
-  "....KKKKKK....",
-];
-
-const COLORS: Record<string, string> = { P, S, W, K };
+const RED = "#ec3b3b";
+const WHITE = "#f4f6fb";
+const DARK = "#141821";
 
 export function Pokeball({ size = 20, className = "" }: { size?: number; className?: string }) {
-  const cells: React.ReactNode[] = [];
-  GRID.forEach((row, y) => {
-    row.split("").forEach((c, x) => {
-      const fill = COLORS[c];
-      if (fill) cells.push(<rect key={`${x}-${y}`} x={x} y={y} width={1} height={1} fill={fill} />);
-    });
-  });
   return (
     <svg
       width={size}
       height={size}
-      viewBox="0 0 14 14"
-      shapeRendering="crispEdges"
+      viewBox="0 0 24 24"
       className={className}
-      aria-hidden
+      aria-hidden="true"
     >
-      {cells}
+      {/* metade de cima vermelha, metade de baixo branca */}
+      <path d="M12 2a10 10 0 0 1 10 10H2A10 10 0 0 1 12 2Z" fill={RED} />
+      <path d="M22 12a10 10 0 0 1-20 0Z" fill={WHITE} />
+      {/* banda central + contorno */}
+      <rect x="2" y="10.75" width="20" height="2.5" fill={DARK} />
+      <circle cx="12" cy="12" r="10" fill="none" stroke={DARK} strokeWidth="2" />
+      {/* botao central */}
+      <circle cx="12" cy="12" r="3.4" fill={DARK} />
+      <circle cx="12" cy="12" r="2.1" fill={WHITE} />
     </svg>
   );
 }

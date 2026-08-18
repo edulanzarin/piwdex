@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { MapPin as LucideMapPin } from "lucide-react";
 import { getData } from "@/lib/data";
 import { spriteUrl, itemIconUrl } from "@/lib/sprites";
 import { defensiveDetailed, offensiveDetailed } from "@/lib/typing";
@@ -38,16 +39,9 @@ const STATS = [
   ["SP.ATK", "baseSpAtk"], ["SP.DEF", "baseSpDef"], ["SPEED", "baseSpeed"],
 ] as const;
 
-// Pin pixel simples pra "onde cacar".
+// Pin de "onde cacar" (lucide MapPin, mesma API local).
 function MapPin({ size = 16 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 8 8" fill="currentColor" shapeRendering="crispEdges" style={{ imageRendering: "pixelated", flexShrink: 0 }} aria-hidden="true">
-      {["..###...", ".#####..", "#######.", "#######.", "#######.", ".#####..", "..###...", "...#...."].flatMap((row, y) =>
-        row.split("").map((ch, x) => (ch === "#" ? <rect key={`${x}-${y}`} x={x} y={y} width={1} height={1} /> : null)),
-      )}
-      <rect x={3} y={2} width={2} height={2} fill="#0a1020" />
-    </svg>
-  );
+  return <LucideMapPin size={size} className="shrink-0" aria-hidden />;
 }
 
 function pctLabel(p: number): string {
