@@ -20,7 +20,7 @@ export function CreatureCard({ creature, acq }: { creature: Creature; acq?: Acqu
         <div className="text-[0.8rem] text-text-dim">
           #{String(creature.pokeId).padStart(3, "0")}
         </div>
-        <div className="text-sm font-semibold leading-tight">{creature.name}</div>
+        <div className="pixel text-[1.05rem] leading-tight">{creature.name}</div>
       </div>
       <TypeBadges t1={creature.type1} t2={creature.type2} />
     </Link>

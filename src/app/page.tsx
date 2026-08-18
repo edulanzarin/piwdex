@@ -30,7 +30,7 @@ function ToolCard({
     >
       {icon && <span className="shrink-0">{icon}</span>}
       <div className="flex min-w-0 flex-col gap-2.5">
-        <h2 className="pixel text-[1rem] sm:text-sm" style={{ color }}><T k={titleKey} /></h2>
+        <h2 className="pixel text-[1.25rem]" style={{ color }}><T k={titleKey} /></h2>
         <p className="text-sm text-text-dim leading-relaxed"><T k={descKey} /></p>
         <span className="btn mt-1 self-start whitespace-nowrap" style={{ background: color, color: ctaText }}>
           <T k={ctaKey} /> <ChevronRight size={10} />
