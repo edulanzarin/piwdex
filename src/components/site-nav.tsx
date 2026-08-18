@@ -14,6 +14,7 @@ export interface NavUser {
   name: string | null;
   image: string | null;
   vip: boolean;
+  admin?: boolean;
 }
 
 const TABS: { key: string; href: string; Icon: (p: { size?: number }) => React.ReactNode }[] = [
@@ -63,6 +64,15 @@ export function SiteNav({ user }: { user: NavUser | null }) {
           {/* Botao VIP na nav sticky (aparece na entrada, segue o scroll, desktop+mobile).
               Nao-VIP: convite dourado pulsante -> paywall. VIP: entrada da area (cockpit),
               sem pulso. Sempre visivel: pra o VIP e o caminho pro cockpit. */}
+          {user?.admin && (
+            <Link
+              href="/admin"
+              title="Painel admin"
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-[#e5484d] bg-[#e5484d]/12 px-2.5 py-1.5 pixel text-[0.58rem] text-[#ff6b6b] transition hover:bg-[#e5484d]/22"
+            >
+              ADM
+            </Link>
+          )}
           <Link
             href="/vip"
             title={user?.vip ? t("vip.eyebrow") : t("vipcta.btn")}
@@ -159,6 +169,16 @@ export function SiteNav({ user }: { user: NavUser | null }) {
                 {t(key)}
               </Link>
             ))}
+
+            {user?.admin && (
+              <Link
+                href="/admin"
+                className="flex items-center gap-3 border-b border-border/40 py-3 pixel text-[0.7rem] text-[#ff6b6b] hover:text-[#ff8a8a]"
+                onClick={() => setOpen(false)}
+              >
+                <Star size={20} /> Painel admin
+              </Link>
+            )}
 
             {/* conta / login-logout (mobile) — sem VIP no topo */}
             {user ? (

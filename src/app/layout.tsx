@@ -32,7 +32,7 @@ export const metadata: Metadata = {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
   const user = session?.user
-    ? { name: session.user.name ?? null, image: session.user.image ?? null, vip: session.user.vip }
+    ? { name: session.user.name ?? null, image: session.user.image ?? null, vip: session.user.vip, admin: session.user.admin }
     : null;
   return (
     <html lang="pt-BR" className={`${pixel.variable} ${mono.variable}`}>

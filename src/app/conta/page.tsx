@@ -12,6 +12,8 @@ export const metadata: Metadata = { title: "Conta" };
 export default async function ContaPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/entrar");
+  // Admin nao usa a Conta comum (conta do jogo/VIP): vai direto pro painel.
+  if (session.user.admin) redirect("/admin");
   const u = await getUserById(session.user.id);
   if (!u) redirect("/entrar");
 

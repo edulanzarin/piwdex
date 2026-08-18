@@ -8,6 +8,7 @@ export const metadata: Metadata = { title: "Entrar" };
 
 export default async function EntrarPage() {
   const session = await auth();
+  if (session?.user?.admin) redirect("/admin");
   if (session?.user) redirect("/conta");
 
   return (

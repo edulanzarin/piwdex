@@ -11,6 +11,7 @@ export interface UserRow {
   avatar_url: string | null;
   vip: boolean;
   vip_ate: string | null;
+  is_admin: boolean;
 }
 
 export const normEmail = (e: string) => e.trim().toLowerCase();

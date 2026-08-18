@@ -73,12 +73,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.email = u.email;
         token.picture = u.avatar_url;
         token.vip = vipActive(u.vip, u.vip_ate);
+        token.admin = u.is_admin;
       }
       return token;
     },
     session({ session, token }) {
       if (token.uid) session.user.id = token.uid as string;
       session.user.vip = !!token.vip;
+      session.user.admin = !!token.admin;
       return session;
     },
   },
