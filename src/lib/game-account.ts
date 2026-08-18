@@ -23,6 +23,7 @@ export interface ActivePoke {
   slot: number;
   leader: boolean;
   starter: boolean;
+  locked: boolean; // cadeado do jogador — o jogo RECUSA vender (flag do frame pokes)
   sellValue: number; // ouro que o NPC paga por ele
   ivTotal: number;
   quality: number;
@@ -47,6 +48,7 @@ export function normalizeActivePokes(list: unknown): ActivePoke[] {
       slot: num(p.slot),
       leader: Boolean(p.leader),
       starter: Boolean(p.starter),
+      locked: Boolean(p.locked),
       sellValue: num(p.sellValue),
       ivTotal: num(p.ivTotal),
       quality: num(p.quality),

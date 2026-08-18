@@ -67,8 +67,16 @@ export interface WriteResult<T = unknown> { ok: boolean; status: number; data: T
 
 async function send<T = unknown>(path: string, tokens: Tokens, body: unknown): Promise<WriteResult<T>> {
   const r = await gameSend(path, tokens, "POST", body);
-  const data = r.res.ok ? ((await r.res.json().catch(() => null)) as T) : null;
+  // corpo lido TAMBEM no erro: o jogo explica a recusa ({"error": ...}) — vira alerta util
+  const data = (await r.res.json().catch(() => null)) as T | null;
   return { ok: r.res.ok, status: r.res.status, data, tokens: r.tokens, changed: r.changed };
+}
+
+// mensagem legivel de uma recusa do jogo (se o corpo trouxe)
+export function gameErrorMsg(data: unknown): string | null {
+  const o = data as { error?: unknown; message?: unknown } | null;
+  const m = o && (typeof o.error === "string" ? o.error : typeof o.message === "string" ? o.message : null);
+  return m && m.length <= 200 ? m : null;
 }
 
 export const buyBall = (t: Tokens, ballId: number, qty: number) => send("/api/game/shop/buy", t, { ballId, qty });

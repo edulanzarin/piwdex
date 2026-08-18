@@ -53,6 +53,9 @@ export function filterSellable(
 ): (ActivePoke & { rarity: Rarity })[] {
   return pokes
     .filter((p) => !p.team && !p.leader && !p.starter)
+    // cadeado do jogador e sellValue 0: o JOGO recusa (400) — o cliente oficial exclui
+    // os dois antes de vender, a gente tambem (um travado no lote derruba o lote inteiro)
+    .filter((p) => !p.locked && p.sellValue > 0)
     .filter((p) => !(cfg.keepShiny && p.shiny))
     .map((p) => ({ ...p, rarity: rarityOf(p.speciesId) }))
     .filter((p) => cfg.sellRarities.includes(p.rarity))

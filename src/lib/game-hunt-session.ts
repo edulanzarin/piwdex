@@ -24,7 +24,7 @@ import {
   saveRobotDesired, saveRobotStatus, getRobotDesired,
   type RobotMode, type LevelingGoal, type RobotDesired, type AnnounceCfg,
 } from "./robot-session-store";
-import { sellItems, sellPokes, fetchShop, buyBall, buyItem, fetchInventory } from "./game-shop";
+import { sellItems, sellPokes, fetchShop, buyBall, buyItem, fetchInventory, fetchLocks, gameErrorMsg } from "./game-shop";
 import { readAuto, parseBalls } from "./game-auto";
 import { getData } from "./data";
 import { normalizeActivePokes, type ActivePoke } from "./game-account";
@@ -209,6 +209,10 @@ class GameSession {
   // falhas operacionais (venda/compra que nao rodou) viram Alerta — throttled por operacao
   // pra nao inundar o feed quando o jogo fica fora um tempo.
   private lastOpErrAt = new Map<string, number>();
+  // itens com CADEADO do jogador: o jogo recusa vender (403) e UM travado derruba o lote
+  // inteiro — a varredura de drops exclui. Cache de 5min (o cadeado muda raramente).
+  private lockedItems = new Set<number>();
+  private lockedItemsAt = 0;
 
   // cerebro (modo auto/leveling) + reconexao automatica
   private mode: RobotMode = "manual";
@@ -936,18 +940,34 @@ class GameSession {
     this.emit("hunt");
   }
 
-  // vende os drops marcados que tem na mochila (REST)
+  // vende os drops marcados que tem na mochila (REST) — pulando itens com cadeado
   private async sellDrops() {
     if (this.sellingDrops || this.sellIds.size === 0) return;
-    const toSell: { itemId: number; qty: number }[] = [];
-    for (const id of this.sellIds) { const q = this.inv.get(id) ?? 0; if (q > 0) toSell.push({ itemId: id, qty: q }); }
-    if (!toSell.length) return;
     this.sellingDrops = true;
     try {
       if (!(await this.syncTokens()) || !this.tokens) return;
+      // cadeado do jogador: recusa 403 e derruba o lote — exclui antes (cache 5min)
+      if (Date.now() - this.lockedItemsAt > 5 * 60_000) {
+        const lr = await fetchLocks(this.tokens).catch(() => null);
+        if (lr) {
+          if (lr.changed) { this.tokens = lr.tokens; await this.onTokens?.(lr.tokens); }
+          this.lockedItems = lr.locked;
+          this.lockedItemsAt = Date.now();
+        }
+      }
+      const toSell: { itemId: number; qty: number }[] = [];
+      for (const id of this.sellIds) {
+        if (this.lockedItems.has(id)) continue;
+        const q = this.inv.get(id) ?? 0;
+        if (q > 0) toSell.push({ itemId: id, qty: q });
+      }
+      if (!toSell.length) return;
       const w = await sellItems(this.tokens, toSell);
       if (w.changed) { this.tokens = w.tokens; await this.onTokens?.(w.tokens); }
-      if (!w.ok) this.logOpError("sell-drops", "Venda de itens falhou", `O jogo recusou a venda (HTTP ${w.status}). O robo tenta de novo na proxima varredura.`);
+      if (!w.ok) {
+        const why = gameErrorMsg(w.data);
+        this.logOpError("sell-drops", "Venda de itens falhou", `O jogo recusou (HTTP ${w.status}${why ? `: ${why}` : ""}). O robo tenta na proxima varredura.`);
+      }
       if (w.ok) {
         const data = await getData();
         let qtyTotal = 0, goldTotal = 0;
@@ -987,7 +1007,10 @@ class GameSession {
       const ids = matches.map((p) => p.id);
       const w = await sellPokes(this.tokens, ids);
       if (w.changed) { this.tokens = w.tokens; await this.onTokens?.(w.tokens); }
-      if (!w.ok) this.logOpError("sell-pokes", "Venda de pokemon falhou", `O jogo recusou a venda (HTTP ${w.status}). O robo tenta de novo na proxima varredura.`);
+      if (!w.ok) {
+        const why = gameErrorMsg(w.data);
+        this.logOpError("sell-pokes", "Venda de pokemon falhou", `O jogo recusou (HTTP ${w.status}${why ? `: ${why}` : ""}). O robo tenta na proxima varredura.`);
+      }
       if (w.ok && w.data) {
         const sold = w.data.sold ?? 0, gold = w.data.goldGained ?? 0; // so conta o que o jogo CONFIRMOU
         if (sold > 0) {
@@ -1296,7 +1319,7 @@ class GameSession {
 // SESSION_REV: bump SEMPRE que a classe ganhar/mudar metodo — no dev, o hot-reload
 // re-avalia o modulo mas a instancia antiga (prototype velho) fica presa no globalThis;
 // sem o rev, chamar um metodo novo dava "is not a function" ate reiniciar o server.
-const SESSION_REV = 15;
+const SESSION_REV = 16;
 const g = globalThis as unknown as { __piwSession?: GameSession; __piwSessionRev?: number };
 if (!g.__piwSession || g.__piwSessionRev !== SESSION_REV) {
   // silencia a instancia velha SEM persistir nada (stop() gravaria enabled=false no banco
