@@ -8,6 +8,8 @@
 
 import { STAT_KEYS, STAT_LABELS, projectStat, estimateIv } from "@/lib/stats";
 import type { MonStats } from "@/lib/game-account";
+import type { MarketDex } from "./market-advisor";
+import { TypeBadges, RarityBadge } from "./badges";
 import { StatBar, StatCompareRow } from "./stat-bar";
 import { StatTile } from "./stat-tile";
 import { Modal } from "./modal";
@@ -74,15 +76,17 @@ export interface OwnedMonView {
 
 const fmt = (n: number) => n.toLocaleString("pt-BR");
 
-/** Modal de stats de um pokemon SEU (time ou box): cabecalho + Power/IV/Q + stats reais. */
+/** Modal de stats de um pokemon SEU (time ou box): cabecalho + Power/IV/Q + stats reais.
+ *  `dex` (catalogo da especie) habilita tipos/raridade e a comparacao vs perfeito. */
 export function PokeStatsModal({
-  poke, bases, onClose,
+  poke, dex, onClose,
 }: {
   poke: OwnedMonView;
-  bases?: number[] | null;
+  dex?: MarketDex | null;
   onClose: () => void;
 }) {
   const t = useT();
+  const bases = dex ? [dex.baseHp, dex.baseAtk, dex.baseDef, dex.baseSpAtk, dex.baseSpDef, dex.baseSpeed] : null;
   return (
     <Modal onClose={onClose} className="w-full max-w-md gap-5 p-5">
       <div className="flex items-center gap-4">
@@ -95,6 +99,12 @@ export function PokeStatsModal({
             <h3 className="truncate pixel text-[0.9rem] text-text">{poke.name}</h3>
             <span className="text-[0.82rem] text-text-dim">Lv.{poke.level}</span>
           </div>
+          {dex && (
+            <div className="mt-2 flex flex-wrap items-center gap-1.5">
+              <TypeBadges t1={dex.type1} t2={dex.type2} />
+              <RarityBadge rarity={dex.rarity} />
+            </div>
+          )}
         </div>
         <CloseButton onClick={onClose} className="shrink-0 self-start" />
       </div>

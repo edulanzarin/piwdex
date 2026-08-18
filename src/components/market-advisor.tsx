@@ -13,7 +13,7 @@ import { ivGrade, qualityGrade, monGrade, isBreedingStock, priceGrade, dealPct, 
 import { Sprite } from "./sprite";
 import { LoadingBall } from "./loaders";
 import { PokemonCombobox, type ComboCreature } from "./pokemon-combobox";
-import { TypeBadges } from "./badges";
+import { TypeBadges, RarityBadge } from "./badges";
 import { TypeFilter } from "./type-filter";
 import { StatBar } from "./stat-bar";
 import { MonStatsSection } from "./mon-stats";
@@ -96,7 +96,7 @@ function Tile({ label, children }: { label: string; children: React.ReactNode })
 // Desejos), pra o achado mostrar a MESMA leitura: borda por nota (Q pesa mais que IV),
 // etiqueta de preco (BARATO/JUSTO/CARO vs justo) e abaixo do NPC. `right` injeta um
 // canto (ex.: o ✕ de recusar) sem quebrar o layout.
-export function MarketMonCard({ mon, onClick, right }: { mon: MarketMon; onClick: () => void; right?: React.ReactNode }) {
+export function MarketMonCard({ mon, onClick, right, rarity }: { mon: MarketMon; onClick: () => void; right?: React.ReactNode; rarity?: Rarity }) {
   const t = useT();
   const monG = monGrade(mon.ivTotal, mon.quality);
   const qualG = qualityGrade(mon.quality);
@@ -117,6 +117,7 @@ export function MarketMonCard({ mon, onClick, right }: { mon: MarketMon; onClick
           <div className="flex items-center gap-1.5">
             <span className="pixel truncate text-[1rem]">{mon.name}</span>
             <span className="text-[0.78rem] text-text-dim">Lv.{mon.level}</span>
+            {rarity && <RarityBadge rarity={rarity} />}
           </div>
           <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[0.82rem] text-text-dim">
             {mon.power != null && <span>{t("account.col.power")} <span className="text-yellow">{fmt(mon.power)}</span></span>}
@@ -255,6 +256,7 @@ export function MarketMonModal({ mon, dex, onClose, onBought }: { mon: MarketMon
             </div>
             <div className="mt-2 flex flex-wrap items-center gap-1.5">
               {dex ? <TypeBadges t1={dex.type1} t2={dex.type2} /> : mon.type1 ? <TypeBadges t1={mon.type1 as PokeType} t2={null} /> : null}
+              {dex && <RarityBadge rarity={dex.rarity} />}
               {mon.belowNpc && (
                 <span className="chip" style={{ background: "var(--green)", color: "#052012" }}>{t("account.market.belowNpc")}</span>
               )}
@@ -644,7 +646,7 @@ export function MarketAdvisor({
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {paged.map((m) => (
-            <MarketMonCard key={m.listingId} mon={m} onClick={() => setSelected(m)} />
+            <MarketMonCard key={m.listingId} mon={m} rarity={dex?.[m.speciesId]?.rarity} onClick={() => setSelected(m)} />
           ))}
         </div>
       )}

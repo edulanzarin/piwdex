@@ -11,7 +11,11 @@ import { StatTile } from "./stat-tile";
 import type { ComboCreature } from "./pokemon-combobox";
 import { useT } from "./locale-provider";
 import { Panel } from "./ui/panel";
-import { Star, Coin, Diamond, Skull, Xp, Check, ArrowDown, Infinity_, ChevronRight } from "./icons";
+import { Star, Coin, Diamond, Skull, Xp, Check, ArrowDown, Infinity_, ChevronRight, Chart } from "./icons";
+import { PokeStatsModal } from "./mon-stats";
+import { RarityBadge } from "./badges";
+import type { Rarity } from "@/lib/types";
+import type { MarketDex } from "./market-advisor";
 
 const fmt = (n: number) => n.toLocaleString("pt-BR");
 const fmtDate = (s: string) => (s ? new Date(s).toLocaleDateString("pt-BR") : "—");
@@ -315,7 +319,7 @@ function BallsCard({ account }: { account: Account }) {
   );
 }
 
-function TeamMon({ p }: { p: ActivePoke }) {
+function TeamMon({ p, rarity, onStats }: { p: ActivePoke; rarity?: Rarity; onStats?: () => void }) {
   const t = useT();
   return (
     <div className="flex items-center gap-3 rounded border border-border bg-[var(--well-bg)] p-2.5">
@@ -327,6 +331,7 @@ function TeamMon({ p }: { p: ActivePoke }) {
         <div className="flex items-center gap-1.5">
           <span className="truncate text-sm font-semibold">{p.name}</span>
           {p.leader && <span className="chip" style={{ background: "var(--green)", color: "#052012" }}>{t("account.team.leader")}</span>}
+          {rarity && <RarityBadge rarity={rarity} />}
         </div>
         <div className="text-[0.78rem] text-text-dim">Lv.{p.level}</div>
         <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[0.82rem] text-text-dim">
@@ -335,6 +340,16 @@ function TeamMon({ p }: { p: ActivePoke }) {
           <span>{t("account.col.quality")} <span className="text-cyan">{p.quality.toFixed(3)}</span></span>
         </div>
       </div>
+      {onStats && (
+        <button
+          type="button"
+          onClick={onStats}
+          title={t("vip.team.viewStats")}
+          className="shrink-0 self-start rounded border border-border p-1.5 text-text-dim transition hover:border-[color:var(--cyan)]/60 hover:text-cyan"
+        >
+          <Chart size={11} />
+        </button>
+      )}
     </div>
   );
 }
@@ -349,8 +364,10 @@ const hhmm = (iso: string) => {
   return Number.isNaN(d.getTime()) ? "" : d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
 };
 
-function ActiveTeamCard({ initial }: { initial: TeamSnapshot | null }) {
+function ActiveTeamCard({ initial, dex }: { initial: TeamSnapshot | null; dex?: Record<number, MarketDex> }) {
   const t = useT();
+  // stats reais de um pokemon do snapshot (mesmo modal do painel/box)
+  const [statsPoke, setStatsPoke] = useState<ActivePoke | null>(null);
   if (!initial || initial.list.length === 0) {
     return (
       <Section title={t("account.sec.team")} color="text-green">
@@ -370,13 +387,14 @@ function ActiveTeamCard({ initial }: { initial: TeamSnapshot | null }) {
       }
     >
       <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-        {initial.list.map((p) => <TeamMon key={p.id} p={p} />)}
+        {initial.list.map((p) => <TeamMon key={p.id} p={p} rarity={dex?.[p.speciesId]?.rarity} onStats={p.stats ? () => setStatsPoke(p) : undefined} />)}
       </div>
+      {statsPoke && <PokeStatsModal poke={statsPoke} dex={dex?.[statsPoke.speciesId]} onClose={() => setStatsPoke(null)} />}
     </Section>
   );
 }
 
-export function AccountPanel({ creatures }: { creatures: ComboCreature[] }) {
+export function AccountPanel({ creatures, dex }: { creatures: ComboCreature[]; dex?: Record<number, MarketDex> }) {
   const t = useT();
   // Dados AO VIVO via SSE (mesmo shape do GET /api/collection) — sem fetch nem interval aqui.
   const live = useVipLive().account;
@@ -409,7 +427,7 @@ export function AccountPanel({ creatures }: { creatures: ComboCreature[] }) {
         <button type="button" onClick={disconnect} className="btn btn-ghost">{t("account.disconnect")}</button>
       </div>
       <Overview account={account} />
-      <ActiveTeamCard initial={team} />
+      <ActiveTeamCard initial={team} dex={dex} />
       <TrainerCard account={account} />
       <AutomationCard account={account} nameById={nameById} />
       <StreakCard account={account} />

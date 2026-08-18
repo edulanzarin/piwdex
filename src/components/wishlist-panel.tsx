@@ -10,7 +10,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { spriteUrl, assetIconUrl } from "@/lib/sprites";
 import type { Watchlist } from "@/lib/alerts";
 import type { Currency, MarketMon } from "@/lib/game-account";
-import type { PokeType } from "@/lib/types";
+import type { Rarity, PokeType } from "@/lib/types";
 import { Sprite } from "./sprite";
 import { LoadingBall } from "./loaders";
 import { Pagination } from "./pagination";
@@ -365,6 +365,7 @@ function WishBlock({
   onOpen,
   onDismiss,
   nameOf,
+  rarityOf,
   itemIconOf,
   onBuyItem,
   t,
@@ -378,6 +379,7 @@ function WishBlock({
   onOpen: (mon: MarketMon) => void;
   onDismiss: (id: string) => void;
   nameOf: (speciesId: number) => string;
+  rarityOf: (speciesId: number) => Rarity | undefined;
   itemIconOf: (itemId: number) => string;
   onBuyItem: (item: MarketItemRow) => void;
   t: (k: string) => string;
@@ -445,6 +447,7 @@ function WishBlock({
                   <MarketMonCard
                     key={n.id}
                     mon={mon}
+                    rarity={rarityOf(mon.speciesId)}
                     onClick={() => onOpen(mon)}
                     right={<CloseButton onClick={() => onDismiss(n.id)} title={t("alerts.dismiss")} />}
                   />
@@ -564,6 +567,7 @@ export function WishlistPanel({ creatures, items, dex, focusWishId }: { creature
               expanded={expandedId === w.id}
               onToggleExpand={() => setExpandedId((cur) => (cur === w.id ? null : w.id))}
               nameOf={nameOf}
+              rarityOf={(id) => dex[id]?.rarity}
               t={t}
               onToggle={(a) => toggle(w.id, a)}
               onDelete={() => remove(w.id)}
