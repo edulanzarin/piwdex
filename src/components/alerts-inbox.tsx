@@ -47,8 +47,11 @@ function SummaryCard({ g, onOpen, t }: { g: Group; onOpen: () => void; t: (k: st
         <div className="field-label flex items-center gap-1 text-green">
           <Bell size={9} /> {t("alerts.kind.snipe")}
         </div>
-        <div className="mt-0.5 pixel text-base text-text">{t("alerts.found", { n: g.total, name })}</div>
-        {g.unread > 0 && <div className="mt-0.5 text-sm text-green">{t("alerts.newCount", { n: g.unread })}</div>}
+        <div className="mt-0.5 truncate pixel text-base text-text">{t("alerts.found", { n: g.total, name })}</div>
+        {/* linha de nao lidos SEMPRE presente: sem novos vira slot esmaecido (card de altura fixa) */}
+        <div className={`mt-0.5 text-sm ${g.unread > 0 ? "text-green" : "slot-empty"}`}>
+          {g.unread > 0 ? t("alerts.newCount", { n: g.unread }) : "—"}
+        </div>
       </div>
       <span className="inline-flex shrink-0 items-center gap-1 text-sm text-cyan">{t("alerts.see")} <ChevronRight size={10} /></span>
     </button>
@@ -94,17 +97,20 @@ export function AlertsInbox({ onJumpToWish, itemIcons }: { onJumpToWish?: (watch
       <Panel
         icon={<Bell size={12} />} accent="var(--green)"
         title={<span className="text-green">{t("alerts.inbox.title")}{totalUnread > 0 ? ` (${totalUnread})` : ""}</span>}
-        right={totalUnread > 0 ? <button type="button" onClick={markAll} className="btn btn-ghost">{t("alerts.markAll")}</button> : undefined}
+        // botao sempre no slot: invisible reserva o espaco (o cabecalho nao muda de altura)
+        right={<button type="button" onClick={markAll} className={`btn btn-ghost btn-sm ${totalUnread > 0 ? "" : "invisible"}`}>{t("alerts.markAll")}</button>}
       >
+        {/* feed vivo: ALTURA FIXA com rolagem propria — grupo novo chegando nao empurra a pagina.
+            Carregando e vazio ocupam exatamente a mesma caixa. */}
         {alerts == null ? (
-          <LoadingBall label={t("alerts.loading")} />
+          <div className="flex h-80 items-center justify-center"><LoadingBall label={t("alerts.loading")} /></div>
         ) : groups.length === 0 ? (
-          <div className="flex flex-col items-center gap-3 py-8 text-center">
+          <div className="flex h-80 flex-col items-center justify-center gap-3 text-center">
             <span className="text-text-dim/50"><Bell size={40} /></span>
             <p className="max-w-sm text-base leading-relaxed text-text-dim">{t("alerts.inbox.empty")}</p>
           </div>
         ) : (
-          <div className="grid gap-2">
+          <div className="grid h-80 content-start gap-2 overflow-y-auto pr-1">
             {groups.map((g) => (
               <SummaryCard key={g.watchlistId} g={g} t={t} onOpen={() => onJumpToWish?.(g.watchlistId)} />
             ))}

@@ -94,7 +94,8 @@ function HuntRowModal({ row, onClose }: { row: HuntRow; onClose: () => void }) {
         ))}
         <div className="mt-1 flex items-center justify-between border-t border-border pt-2 text-sm">
           <span className="field-label">{t("cr.total")}</span>
-          <strong className="tabular-nums text-cyan">{total}</strong>
+          {/* enfase por cor (Jersey 10 nao tem bold) */}
+          <span className="tabular-nums text-cyan">{total}</span>
         </div>
       </div>
 
@@ -104,16 +105,19 @@ function HuntRowModal({ row, onClose }: { row: HuntRow; onClose: () => void }) {
           <span className="w-14 shrink-0 pt-0.5 field-label">{t("hunt.col.where")}</span>
           <span className="text-text">{row.areas.map(area).join(", ")} · {t("hunt.spots", { n: row.spotCount })}</span>
         </div>
-        {row.topDrop && (
-          <div className="flex items-center gap-2">
-            <span className="w-14 shrink-0 field-label">{t("hunt.col.drop")}</span>
+        {/* linha sempre presente: sem drop o slot mostra "—" (modal nao muda de altura) */}
+        <div className="flex items-center gap-2">
+          <span className="w-14 shrink-0 field-label">{t("hunt.col.drop")}</span>
+          {row.topDrop ? (
             <span className="inline-flex items-center gap-2 text-text">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={row.topDrop.icon} alt="" width={18} height={18} className="[image-rendering:pixelated]" />
               {row.topDrop.name}
             </span>
-          </div>
-        )}
+          ) : (
+            <span className="slot-empty">—</span>
+          )}
+        </div>
       </div>
 
       <a href={`/dex/${row.pokeId}`} className="btn btn-cyan self-start">{t("hunt.viewDex")} <ChevronRight size={10} /></a>
@@ -214,10 +218,12 @@ export function EconomyTable({ rows, areas }: { rows: HuntRow[]; areas: string[]
       <div className="text-base uppercase tracking-wide text-text-dim">{t("hunt.count", { n: filtered.length })}</div>
 
       {filtered.length === 0 ? (
-        <div className="card p-10 text-center text-text-dim">{t("hunt.empty")}</div>
+        <div className="card flex min-h-[14rem] items-center justify-center p-10 text-center text-text-dim">{t("hunt.empty")}</div>
       ) : (
       <>
-        <div className="card overflow-x-auto p-0">
+        <div className="card p-0">
+          {/* tabela larga rola DENTRO deste wrapper — a pagina nunca rola na horizontal */}
+          <div className="overflow-x-auto">
           <table className="w-full min-w-[46rem] text-sm">
             <thead>
               <tr className="border-b border-border text-left text-sm uppercase tracking-wide text-text-dim">
@@ -289,6 +295,7 @@ export function EconomyTable({ rows, areas }: { rows: HuntRow[]; areas: string[]
               ))}
             </tbody>
           </table>
+          </div>
         </div>
         <Pagination page={safePage} pageCount={pageCount} onPage={setPage} />
       </>

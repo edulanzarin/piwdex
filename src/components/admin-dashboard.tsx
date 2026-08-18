@@ -32,7 +32,7 @@ function BookmarkletLink({ snippet, label }: { snippet: string; label: string })
       draggable
       onClick={(e) => e.preventDefault()}
       title="Arraste pra barra de favoritos; na aba do jogo, clique pra entrar"
-      className="inline-flex items-center gap-1 rounded border border-border px-2 py-1 pixel text-xs text-text-dim hover:border-[color:var(--border-strong)] hover:text-cyan cursor-grab"
+      className="btn btn-ghost cursor-grab select-none text-text-dim"
     >
       ↗ {label}
     </a>
@@ -72,7 +72,7 @@ export function AdminDashboard({ users }: { users: AdminUser[] }) {
   return (
     <div className="flex flex-col gap-4">
       {/* resumo */}
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
         <Stat label="Usuários" value={fmt(totals.total)} />
         <Stat label="VIPs" value={fmt(totals.vip)} icon={<Star size={12} />} />
         <Stat label="Conta ligada" value={fmt(totals.linked)} icon={<Trainer size={12} />} />
@@ -80,12 +80,13 @@ export function AdminDashboard({ users }: { users: AdminUser[] }) {
         <Stat label="Diamantes (soma)" value={fmt(totals.diamonds)} icon={<Diamond size={12} />} />
       </div>
 
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="text-sm text-text-dim">Moedas puxadas ao vivo do jogo (REST, sem roubar a sessão).</span>
+        {/* largura minima fixa: o rotulo alterna (atualizar/atualizando) sem o botao pular */}
         <button
           type="button"
           onClick={() => { setBusy(true); router.refresh(); setTimeout(() => setBusy(false), 1200); }}
-          className="rounded border border-border px-2.5 py-1 pixel text-xs text-text-dim hover:text-cyan"
+          className="btn btn-ghost min-w-[9.5rem]"
         >
           {busy ? "atualizando…" : "atualizar"}
         </button>
@@ -112,7 +113,7 @@ export function AdminDashboard({ users }: { users: AdminUser[] }) {
               <tr key={u.id} className="border-b border-border/50 last:border-0 hover:bg-surface-2/40">
                 <Td>
                   <div className="flex flex-col">
-                    <span className="text-text">{u.nome ?? "—"}</span>
+                    <span className={u.nome ? "text-text" : "slot-empty"}>{u.nome ?? "—"}</span>
                     <span className="text-sm text-text-dim">{u.email}</span>
                   </div>
                 </Td>
@@ -120,7 +121,7 @@ export function AdminDashboard({ users }: { users: AdminUser[] }) {
                   {u.vip ? (
                     <span className="chip" style={{ background: "var(--yellow)", color: "#3a2c00" }}>VIP</span>
                   ) : (
-                    <span className="text-text-dim">—</span>
+                    <span className="slot-empty">—</span>
                   )}
                   {u.vip && u.vipAte && (
                     <div className="mt-0.5 text-xs text-text-dim">até {fmtDate(u.vipAte)}</div>
@@ -130,7 +131,7 @@ export function AdminDashboard({ users }: { users: AdminUser[] }) {
                   {u.linked ? (
                     <div className="flex flex-col">
                       <span className="text-text">{u.playerName ?? "conectada"}</span>
-                      <span className={`text-xs ${u.linkStatus === "active" ? "text-[color:var(--green,#35e08e)]" : "text-[color:#ff5555]"}`}>
+                      <span className={`text-xs ${u.linkStatus === "active" ? "text-green" : "text-red"}`}>
                         {u.linkStatus === "active" ? "ativa" : "expirada"}
                       </span>
                     </div>
@@ -138,18 +139,18 @@ export function AdminDashboard({ users }: { users: AdminUser[] }) {
                     <span className="text-text-dim">não ligada</span>
                   )}
                 </Td>
-                <Td className="text-right tabular-nums">{fmt(u.level)}</Td>
-                <Td className="text-right tabular-nums text-yellow">{fmt(u.gold)}</Td>
-                <Td className="text-right tabular-nums text-cyan">{fmt(u.diamonds)}</Td>
-                <Td className="text-right tabular-nums">{fmt(u.catches)}</Td>
-                <Td className="whitespace-nowrap text-text-dim">{fmtDate(u.criadoEm)}</Td>
+                <Td className={`text-right tabular-nums ${u.level == null ? "slot-empty" : ""}`}>{fmt(u.level)}</Td>
+                <Td className={`text-right tabular-nums ${u.gold == null ? "slot-empty" : "text-yellow"}`}>{fmt(u.gold)}</Td>
+                <Td className={`text-right tabular-nums ${u.diamonds == null ? "slot-empty" : "text-cyan"}`}>{fmt(u.diamonds)}</Td>
+                <Td className={`text-right tabular-nums ${u.catches == null ? "slot-empty" : ""}`}>{fmt(u.catches)}</Td>
+                <Td className={`whitespace-nowrap ${u.criadoEm ? "text-text-dim" : "slot-empty"}`}>{fmtDate(u.criadoEm)}</Td>
                 <Td>
                   {u.impersonate ? (
                     <div className="flex items-center gap-1.5">
                       <button
                         type="button"
                         onClick={() => copyLogin(u)}
-                        className="rounded border border-[color:var(--border-strong)] bg-surface-2 px-2 py-1 pixel text-xs text-cyan hover:bg-cyan/10"
+                        className="btn btn-ghost text-cyan"
                       >
                         Copiar login
                       </button>
@@ -181,8 +182,8 @@ export function AdminDashboard({ users }: { users: AdminUser[] }) {
 function Stat({ label, value, icon }: { label: string; value: string; icon?: React.ReactNode }) {
   return (
     <div className="rounded border border-border bg-surface-2 px-3 py-2">
-      <div className="flex items-center gap-1 text-xs uppercase tracking-wide text-text-dim">{icon}{label}</div>
-      <div className="pixel text-lg text-text">{value}</div>
+      <div className="field-label flex items-center gap-1">{icon}{label}</div>
+      <div className="pixel text-lg tabular-nums text-text">{value}</div>
     </div>
   );
 }

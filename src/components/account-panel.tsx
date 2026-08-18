@@ -19,6 +19,8 @@ import type { MarketDex } from "./market-advisor";
 
 const fmt = (n: number) => n.toLocaleString("pt-BR");
 const fmtDate = (s: string) => (s ? new Date(s).toLocaleDateString("pt-BR") : "—");
+// placeholder padrao de slot vazio: o valor ausente ocupa o MESMO lugar, esmaecido
+const dash = <span className="slot-empty">—</span>;
 const pct = (n: number) => `${n > 0 ? "+" : ""}${+n.toFixed(1)}%`;
 const ivColor = (v: number) => (v >= 150 ? "text-green" : v >= 100 ? "text-yellow" : "text-text");
 
@@ -113,18 +115,23 @@ function Overview({ account }: { account: Account }) {
   return (
     <div className="card p-4">
       <div className="flex items-start gap-4">
-        {skinUrl && (
-          <div className="shrink-0 text-center">
-            <div className="flex h-[68px] w-[68px] items-center justify-center rounded-lg border border-[color:var(--cyan)]/40 bg-[var(--well-bg)]">
+        {/* moldura da skin SEMPRE presente: sem sprite = pokebola esmaecida no mesmo
+            quadro, e a linha do nome vira "—" — nada empurra o resto quando carrega */}
+        <div className="shrink-0 text-center">
+          <div className="flex h-[68px] w-[68px] items-center justify-center rounded-lg border border-[color:var(--cyan)]/40 bg-[var(--well-bg)]">
+            {skinUrl ? (
               <Sprite src={skinUrl} alt={skin ?? "skin"} size={56} />
-            </div>
-            {skin && <div className="mt-1 w-[68px] text-xs leading-tight text-text-dim">{skin}</div>}
+            ) : (
+              <span className="slot-empty"><Pokeball size={24} /></span>
+            )}
           </div>
-        )}
+          <div className={`mt-1 w-[68px] truncate text-xs leading-tight ${skin ? "text-text-dim" : "slot-empty"}`}>{skin ?? "—"}</div>
+        </div>
         <div className="min-w-0 flex-1">
           <div className="mb-3 flex flex-wrap items-center gap-2">
             <span className="pixel text-base text-green">{p.name}</span>
-            {account.trainer.vip && <span className="chip" style={{ background: "var(--yellow)", color: "#3a2c00" }}>VIP</span>}
+            {/* chip VIP com espaco reservado (invisible quando nao-VIP) */}
+            <span className={`chip ${account.trainer.vip ? "" : "invisible"}`} style={{ background: "var(--yellow)", color: "#3a2c00" }}>VIP</span>
             <span className="text-xs uppercase tracking-wide text-text-dim">{t(`account.gender.${account.trainer.gender}`)}</span>
           </div>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
@@ -133,19 +140,18 @@ function Overview({ account }: { account: Account }) {
             <Stat label={t("account.profile.diamonds")} value={fmt(p.diamonds)} color="text-cyan" icon={<Diamond size={11} className="text-cyan" />} />
             <Stat label={t("account.profile.catches")} value={fmt(p.catches)} icon={<Pokeball size={11} />} />
             <Stat label={t("account.profile.pokedex")} value={<span className="text-green">{p.pokedexCount}<span className="text-text-dim">/{p.pokedexTotal}</span></span>} icon={<Star size={11} className="text-green" />} />
-            <Stat label={t("account.f.rank")} value={p.rank > 0 ? `#${fmt(p.rank)}` : "—"} />
+            <Stat label={t("account.f.rank")} value={p.rank > 0 ? `#${fmt(p.rank)}` : "—"} color={p.rank > 0 ? "text-text" : "slot-empty"} />
           </div>
-          {p.xpForNext > 0 && (
-            <div className="mt-3">
-              <div className="mb-1 flex justify-between text-xs text-text-dim">
-                <span>XP · {t("account.profile.level")} {p.level}</span>
-                <span className="tabular-nums">{fmt(p.xpInLevel)} / {fmt(p.xpForNext)}</span>
-              </div>
-              <div className="h-2 overflow-hidden rounded bg-[var(--well-bg)]">
-                <div className="h-full rounded bg-[color:var(--green)]" style={{ width: `${xpPct}%` }} />
-              </div>
+          {/* barra de XP sempre presente: sem dado = trilho a 0% e numeros esmaecidos */}
+          <div className="mt-3">
+            <div className="mb-1 flex justify-between text-xs text-text-dim">
+              <span>XP · {t("account.profile.level")} {p.level}</span>
+              <span className={`tabular-nums ${p.xpForNext > 0 ? "" : "slot-empty"}`}>{p.xpForNext > 0 ? `${fmt(p.xpInLevel)} / ${fmt(p.xpForNext)}` : "—"}</span>
             </div>
-          )}
+            <div className="h-2 overflow-hidden rounded bg-[var(--well-bg)]">
+              <div className="h-full rounded bg-[color:var(--green)]" style={{ width: `${xpPct}%` }} />
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -159,13 +165,13 @@ function TrainerCard({ account }: { account: Account }) {
     <Section title={t("account.sec.trainer")} color="text-cyan">
       <div className="grid gap-x-6 sm:grid-cols-2">
         <Row label={t("account.f.skin")} value={skinName(tr.lookType) ? `${skinName(tr.lookType)} · #${tr.lookType}` : `#${tr.lookType}`} />
-        <Row label={t("account.f.clan")} value={tr.clan ? `${tr.clan} · #${tr.clanRank}` : "—"} />
-        <Row label={t("account.f.profession")} value={tr.profession ? `${tr.profession}${tr.professionRankName ? " · " + tr.professionRankName : ""}` : "—"} />
+        <Row label={t("account.f.clan")} value={tr.clan ? `${tr.clan} · #${tr.clanRank}` : dash} />
+        <Row label={t("account.f.profession")} value={tr.profession ? `${tr.profession}${tr.professionRankName ? " · " + tr.professionRankName : ""}` : dash} />
         <Row label={t("account.f.catchBonus")} value={<span className="text-green">{pct(tr.catchBonusPct)}</span>} />
-        <Row label={t("account.f.vipUntil")} value={tr.vipUntil ? fmtDate(tr.vipUntil) : "—"} />
+        <Row label={t("account.f.vipUntil")} value={tr.vipUntil ? fmtDate(tr.vipUntil) : dash} />
         <Row label={t("account.f.breedingSlots")} value={fmt(tr.breedingSlots)} />
         <Row label={t("account.f.diamondsBought")} value={fmt(tr.diamondsPurchased)} />
-        <Row label={t("account.f.referral")} value={tr.referralCode ?? "—"} />
+        <Row label={t("account.f.referral")} value={tr.referralCode ?? dash} />
       </div>
     </Section>
   );
@@ -266,8 +272,16 @@ function BreedingCard({ account }: { account: Account }) {
   );
 }
 
+// Inventario/deposito: a secao NAO some quando vazia — o par ocupa as duas colunas
+// do grid sempre, e a lista vazia vira um tracinho esmaecido no mesmo espaco.
 function ItemsCard({ title, color, items }: { title: string; color: string; items: AccountItem[] }) {
-  if (!items.length) return null;
+  if (!items.length) {
+    return (
+      <Section title={`${title} (0)`} color={color}>
+        <p className="slot-empty flex min-h-16 items-center justify-center text-base">—</p>
+      </Section>
+    );
+  }
   return (
     <Section title={`${title} (${items.length})`} color={color}>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
@@ -293,7 +307,14 @@ function BallsCard({ account }: { account: Account }) {
   // menos que voce TENHA uma — ninguem tem, nao e compravel, so ocupava espaco — e as
   // entradas ocultas do jogo (sem icone e sem estoque).
   const balls = account.balls.filter((b) => (b.id !== 5 || b.count > 0) && (b.iconUrl || b.infinite || b.count > 0));
-  if (!balls.length) return null;
+  // secao sempre presente: catalogo vazio (dado ainda nao veio) = tracinho no lugar
+  if (!balls.length) {
+    return (
+      <Section title={t("account.sec.balls")} color="text-cyan">
+        <p className="slot-empty flex min-h-16 items-center justify-center text-base">—</p>
+      </Section>
+    );
+  }
   return (
     <Section title={t("account.sec.balls")} color="text-cyan">
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
@@ -340,15 +361,18 @@ function TeamMon({ p, rarity, onStats }: { p: ActivePoke; rarity?: Rarity; onSta
           <span>{t("account.col.quality")} <span className="text-cyan">{p.quality.toFixed(3)}</span></span>
         </div>
       </div>
-      {onStats && (
+      {/* botao de stats com slot fixo (40px de toque); sem stats = espaco reservado */}
+      {onStats ? (
         <button
           type="button"
           onClick={onStats}
           title={t("vip.team.viewStats")}
-          className="shrink-0 self-start rounded border border-border p-1.5 text-text-dim transition hover:border-[color:var(--cyan)]/60 hover:text-cyan"
+          className="flex h-9 w-9 shrink-0 items-center justify-center self-start rounded border border-border text-text-dim transition hover:border-[color:var(--cyan)]/60 hover:text-cyan"
         >
           <Chart size={11} />
         </button>
+      ) : (
+        <span aria-hidden className="h-9 w-9 shrink-0 self-start" />
       )}
     </div>
   );

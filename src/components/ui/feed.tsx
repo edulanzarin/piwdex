@@ -23,7 +23,8 @@ export function FeedRow({
   onClick?: () => void;
   className?: string;
 }) {
-  const cls = `flex w-full items-center gap-2.5 rounded border border-border bg-[var(--well-bg)] p-2 text-left ${flash ? "flash-in" : ""} ${onClick ? "transition hover:border-[color:var(--border-strong)] hover:bg-surface-2" : ""} ${className}`;
+  // min-h fecha a altura da linha mesmo sem leading/sub: feed nao muda de ritmo
+  const cls = `flex min-h-[3rem] w-full items-center gap-2.5 rounded border border-border bg-[var(--well-bg)] p-2 text-left ${flash ? "flash-in" : ""} ${onClick ? "transition hover:border-[color:var(--border-strong)] hover:bg-surface-2" : ""} ${className}`;
   const style = accent ? ({ "--accent": accent } as React.CSSProperties) : undefined;
   const body = (
     <>
@@ -32,7 +33,7 @@ export function FeedRow({
         <span className="block truncate text-base text-text">{title}</span>
         {sub && <span className="mt-0.5 block truncate text-sm text-text-dim">{sub}</span>}
       </span>
-      {right && <span className="flex shrink-0 items-center gap-1.5">{right}</span>}
+      {right && <span className="flex shrink-0 items-center gap-1.5 tabular-nums">{right}</span>}
     </>
   );
   return onClick ? (

@@ -28,15 +28,17 @@ export function DropSeller({ itemIcons }: { itemIcons: Record<string, string> })
         <p className="mt-2 max-w-2xl text-sm text-text-dim">{t("robo.sold.desc")}</p>
       </div>
 
-      <div className="card p-4">
-        {shown.length === 0 ? (
-          <p className="text-base text-text-dim">{count > 0 ? t("robo.sold.waiting") : t("robo.sold.empty")}</p>
-        ) : (
-          <div className="flex flex-col gap-3">
-            <div className="flex items-center justify-between text-base">
-              <span className="text-text-dim">{t("robo.sold.count").replace("{n}", String(shown.length))}</span>
-              <span className="inline-flex items-center gap-1 text-green"><Coin size={11} />{fmt(huntGold)}</span>
-            </div>
+      {/* estrutura fixa: linha de resumo com slots permanentes + area de lista de
+          ALTURA FIXA (rola por dentro) — vender item novo nao empurra a pagina */}
+      <div className="card flex flex-col gap-3 p-4">
+        <div className="flex h-7 items-center justify-between text-base">
+          <span className={shown.length > 0 ? "text-text-dim" : "slot-empty"}>{t("robo.sold.count").replace("{n}", String(shown.length))}</span>
+          <span className={`inline-flex items-center gap-1 tabular-nums ${shown.length > 0 ? "text-green" : "slot-empty"}`}><Coin size={11} />{shown.length > 0 ? fmt(huntGold) : "—"}</span>
+        </div>
+        <div className="h-64 overflow-y-auto pr-1">
+          {shown.length === 0 ? (
+            <p className="flex h-full items-center justify-center text-center text-base text-text-dim">{count > 0 ? t("robo.sold.waiting") : t("robo.sold.empty")}</p>
+          ) : (
             <div className="grid gap-1.5 sm:grid-cols-2">
               {shown.map((i, idx) => {
                 const icon = itemIcons[i.name.toLowerCase()];
@@ -47,13 +49,13 @@ export function DropSeller({ itemIcons }: { itemIcons: Record<string, string> })
                       <div className="truncate text-base">{i.name}</div>
                       <div className="text-sm text-text-dim">×{fmt(i.qty)}</div>
                     </div>
-                    <span className="inline-flex shrink-0 items-center gap-1 text-base text-green"><Coin size={9} />{fmt(i.gold)}</span>
+                    <span className="inline-flex shrink-0 items-center gap-1 tabular-nums text-base text-green"><Coin size={9} />{fmt(i.gold)}</span>
                   </div>
                 );
               })}
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );

@@ -99,7 +99,7 @@ export function PokeCaught({ creatures }: { creatures: ComboCreature[] }) {
       </div>
 
       {/* filtros — Panel expansivel (recolhe quando nao esta filtrando) */}
-      <Panel collapsible icon={<Gear size={12} />} accent="var(--cyan)" title={t("robo.caught.filters")} className="p-5" bodyClassName="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <Panel collapsible icon={<Gear size={12} />} accent="var(--cyan)" title={t("robo.caught.filters")} className="p-5" bodyClassName="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
         <label className="flex flex-col gap-1"><span className="field-label">{t("robo.caught.f.species")}</span>
           <PokemonCombobox creatures={creatures} value={species} onSelect={(c) => { setSpecies(c); if (c) setType(""); }} />
         </label>
@@ -127,12 +127,12 @@ export function PokeCaught({ creatures }: { creatures: ComboCreature[] }) {
       <Panel
         icon={<Backpack size={12} />} accent="var(--green)"
         title={t("robo.caught.count").replace("{n}", String(data?.total ?? 0))}
-        right={(data?.total ?? 0) > 0 ? (
-          <button type="button" onClick={clear} disabled={clearing} className="btn btn-ghost disabled:opacity-40">{t("robo.caught.clear")}</button>
-        ) : undefined}
+        // botao sempre no slot: invisible reserva o espaco (cabecalho de altura estavel)
+        right={<button type="button" onClick={clear} disabled={clearing} className={`btn btn-ghost btn-sm disabled:opacity-40 ${(data?.total ?? 0) > 0 ? "" : "invisible"}`}>{t("robo.caught.clear")}</button>}
       >
         {rows.length === 0 ? (
-          <EmptyState compact message={t("robo.caught.empty")} />
+          // vazio com a altura de uma linha de cards: a grade chegando nao pula o painel
+          <EmptyState className="min-h-40 justify-center" message={t("robo.caught.empty")} />
         ) : (
           <div className="flex flex-col gap-3">
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
@@ -140,10 +140,12 @@ export function PokeCaught({ creatures }: { creatures: ComboCreature[] }) {
                 <button key={p.pokeId} type="button" onClick={() => setSel(p)} className="card card-link flex flex-col items-center gap-1.5 p-3 text-center">
                   <div className="relative">
                     <Sprite src={spriteUrl(p.speciesId, p.shiny)} alt={p.name} size={56} />
-                    {p.shiny && <span className="absolute -right-1 -top-1 text-yellow"><Star size={11} /></span>}
+                    {/* estrela shiny sempre no slot: invisible reserva o canto */}
+                    <span className={`absolute -right-1 -top-1 text-yellow ${p.shiny ? "" : "invisible"}`}><Star size={11} /></span>
                   </div>
-                  <span className="pixel truncate text-base">{p.name}</span>
-                  <span className="text-xs text-text-dim">Lv{p.level} · IV {p.ivTotal} · Q {p.quality.toFixed(2)}</span>
+                  {/* linhas truncadas (nunca quebram): todo card da grade tem a mesma altura */}
+                  <span className="w-full truncate pixel text-base">{p.name}</span>
+                  <span className="w-full truncate text-xs text-text-dim">Lv{p.level} · IV {p.ivTotal} · Q {p.quality.toFixed(2)}</span>
                   <RarityBadge rarity={p.rarity} />
                 </button>
               ))}
@@ -156,7 +158,7 @@ export function PokeCaught({ creatures }: { creatures: ComboCreature[] }) {
       {sel && (
         <Modal onClose={() => setSel(null)} className="w-full max-w-sm p-5" labelledBy="caught-name">
           <div className="mb-3 flex items-start justify-between gap-3">
-            <h3 id="caught-name" className="pixel text-lg text-text">{sel.name}</h3>
+            <h3 id="caught-name" className="section-title truncate">{sel.name}</h3>
             <CloseButton onClick={() => setSel(null)} />
           </div>
           <div className="flex items-center gap-4">

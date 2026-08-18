@@ -30,6 +30,9 @@ export interface HuntOption { slug: string; name: string; level: number; area: s
 export interface DropOption { itemId: number; name: string; icon: string; npcPrice: number }
 
 const fmt = (n: number) => Math.round(n).toLocaleString("pt-BR");
+// numeros grandes (xp/h, ouro/h) em notacao compacta: o slot nao estica quando o valor cresce
+const compactFmt = new Intl.NumberFormat("pt-BR", { notation: "compact", maximumFractionDigits: 1 });
+const fmtC = (n: number) => (Math.abs(n) >= 100_000 ? compactFmt.format(Math.round(n)) : fmt(n));
 const hm = (s: number) => `${Math.floor(s / 3600)}h ${Math.floor((s % 3600) / 60)}m`;
 const STATUS_COLOR: Record<string, string> = { idle: "var(--text-dim)", connecting: "var(--yellow)", running: "var(--green)", kicked: "var(--yellow)", error: "var(--pink)" };
 
@@ -162,17 +165,20 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
         <p className="mt-2 max-w-2xl text-sm text-text-dim">{t("robo.hunt.desc")}</p>
       </div>
 
-      {/* conexao segurada sem hunt: os modos ligam INSTANTANEO na mesma sessao */}
-      {!huntOn && connected && (
-        <div className="flex items-center gap-2.5 rounded border border-[color:var(--green)]/40 bg-[color:var(--green)]/5 px-3.5 py-2">
-          <Led color="var(--green)" pulse />
-          <span className="text-base text-green">{t("vip.conn.readyHint")}</span>
+      {/* linha de estado da conexao: SEMPRE renderizada na area de configuracao com
+          altura fixa — conectado acende o verde, desligado mostra o placeholder no
+          mesmo lugar (nada empurra os paineis quando a conexao chega/cai) */}
+      {!huntOn && (
+        <div className={`flex min-h-11 items-center gap-2.5 rounded border px-3.5 ${connected ? "border-[color:var(--green)]/40 bg-[color:var(--green)]/5" : "border-border bg-[var(--well-bg)]"}`}>
+          <Led color={connected ? "var(--green)" : "var(--text-dim)"} pulse={connected} />
+          <span className={`text-base ${connected ? "text-green" : "slot-empty"}`}>{connected ? t("vip.conn.readyHint") : t("vip.conn.off")}</span>
         </div>
       )}
 
-      {/* controle: desligado = 3 modos; ligado = hero da hunt viva */}
+      {/* controle: desligado = 3 modos; ligado = hero da hunt viva (alternancia por
+          estado macro do usuario — dentro de cada area nada muda de estrutura) */}
       {!huntOn ? (
-        <div className="grid gap-3 lg:grid-cols-3">
+        <div className="grid gap-3 md:grid-cols-3">
           {/* AUTO — o destaque: um botao e o robo se vira */}
           <Panel icon={<Brain size={13} />} accent="var(--cyan)" title={<span className="text-cyan">{t("robo.mode.auto")}</span>} className="card-link">
             <p className="flex-1 text-base leading-relaxed text-text-dim">{t("robo.mode.autoDesc")}</p>
@@ -191,7 +197,7 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
 
           {/* MANUAL — voce escolhe */}
           <Panel icon={<Target size={13} />} title={t("robo.mode.manual")} className="card-link">
-            <div className="flex flex-1 flex-wrap items-center gap-2">
+            <div className="flex flex-1 items-start">
               <button type="button" onClick={() => setPickerOpen(true)} className="btn btn-ghost inline-flex items-center gap-2">
                 {selected ? (
                   <>
@@ -211,74 +217,87 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
 
         </div>
       ) : (() => {
-        // HERO da hunt viva: sprite do alvo + nome/area + modo + status, parar a direita
+        // HERO da hunt viva: estrutura FIXA de slots — sprite (pokeball esmaecida sem
+        // alvo), nome + modo em linha de altura fixa, status + rendimento em trilho
+        // rolavel com placeholders ("—/h" ate o analyzer chegar). Nada pula ao vivo.
         const cur = hunts.find((h) => h.slug === st?.slug) ?? null;
         return (
           <section
-            className={`card flex flex-wrap items-center gap-x-4 gap-y-3 p-4 ${running ? "glow-pulse" : ""}`}
+            className={`card flex min-h-[6.5rem] items-center gap-3 p-4 sm:gap-4 ${running ? "glow-pulse" : ""}`}
             style={{ "--accent": STATUS_COLOR[huntStatus] } as React.CSSProperties}
           >
-            {cur?.pokeId != null && (
-              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded bg-[var(--well-bg)]">
+            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded bg-[var(--well-bg)]">
+              {cur?.pokeId != null ? (
                 <Sprite src={spriteUrl(cur.pokeId)} alt={cur.name} size={40} />
-              </span>
-            )}
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="pixel text-base text-cyan">{cur?.name ?? st?.slug}</span>
-                <span className="chip" style={{ background: mode === "manual" ? "var(--surface-2)" : mode === "auto" ? "var(--cyan)" : "var(--purple)", color: mode === "manual" ? "var(--text-dim)" : mode === "auto" ? "#06131a" : "#140a26" }}>
+              ) : (
+                <span className="slot-empty"><Pokeball size={24} /></span>
+              )}
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="flex h-7 min-w-0 items-center gap-2">
+                <span className="pixel min-w-0 truncate text-base text-cyan">{cur?.name ?? st?.slug}</span>
+                <span className="chip shrink-0" style={{ background: mode === "manual" ? "var(--surface-2)" : mode === "auto" ? "var(--cyan)" : "var(--purple)", color: mode === "manual" ? "var(--text-dim)" : mode === "auto" ? "#06131a" : "#140a26" }}>
                   {mode === "auto" && <Brain size={9} />}
                   {mode === "leveling" && <Flag size={9} />}
                   {t(`vip.hud.mode.${mode}`)}
                 </span>
               </div>
-              <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-text-dim">
-                <span className="inline-flex items-center gap-1.5">
+              {/* linha de altura fixa; se apertar, rola na horizontal (nunca quebra) */}
+              <div className="mt-1 flex h-6 items-center gap-x-3 overflow-x-auto text-sm text-text-dim [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                <span className="inline-flex shrink-0 items-center gap-1.5">
                   <Led color={STATUS_COLOR[huntStatus]} pulse={running} />
                   {st?.reconnecting ? t("vip.ov.reconnecting") : t(`robo.hunt.status.${huntStatus}`)}
                 </span>
-                {cur && <span>Lv{cur.level} · {cur.area}</span>}
-                {a && (
-                  <>
-                    <span className="inline-flex items-center gap-1 text-cyan"><Xp size={9} />{fmt(a.xpPerHour)}/h</span>
-                    <span className="inline-flex items-center gap-1 text-green"><Coin size={9} />{fmt(a.goldPerHour)}/h</span>
-                  </>
-                )}
+                <span className={`shrink-0 ${cur ? "" : "slot-empty"}`}>{cur ? `Lv${cur.level} · ${cur.area}` : "—"}</span>
+                <span className={`inline-flex min-w-[4.2rem] shrink-0 items-center gap-1 tabular-nums ${a ? "text-cyan" : "slot-empty"}`} title={a ? `${fmt(a.xpPerHour)} XP/h` : undefined}><Xp size={9} />{a ? `${fmtC(a.xpPerHour)}/h` : "—/h"}</span>
+                <span className={`inline-flex min-w-[4.2rem] shrink-0 items-center gap-1 tabular-nums ${a ? "text-green" : "slot-empty"}`} title={a ? `${fmt(a.goldPerHour)} ouro/h` : undefined}><Coin size={9} />{a ? `${fmtC(a.goldPerHour)}/h` : "—/h"}</span>
               </div>
             </div>
-            <span className="ms-auto" />
             {/* parar a hunt NAO derruba a conexao (o robo segue segurando a sessao) */}
-            <button type="button" onClick={() => void send({ action: "stop" }, t("toast.huntOff"))} disabled={busy} className="btn btn-ghost">{t("vip.conn.stopHunt")}</button>
+            <button type="button" onClick={() => void send({ action: "stop" }, t("toast.huntOff"))} disabled={busy} className="btn btn-ghost shrink-0 disabled:opacity-40">{t("vip.conn.stopHunt")}</button>
           </section>
         );
       })()}
 
-      {/* plano de leveling em andamento: rota com a faixa atual acesa */}
-      {huntOn && lv && plan && plan.length > 0 && (
+      {/* plano de leveling em andamento: o card existe enquanto o MODO for leveling
+          (escolha do usuario); a rota que ainda nao chegou vira skeleton com as
+          mesmas dimensoes das linhas — o card nao muda de tamanho quando o plano cai */}
+      {huntOn && mode === "leveling" && (
         <div className="card p-4">
-          <div className="mb-2.5 flex flex-wrap items-center gap-2">
-            <Flag size={12} className="text-purple" />
-            <h3 className="section-title text-purple">{t("robo.lv.planTitle", { name: lv.name })}</h3>
-            <span className="pixel text-sm text-text">{lv.currentLevel}<span className="text-text-dim"> / {lv.targetLevel}</span></span>
-            {lv.done && <span className="chip" style={{ background: "var(--green)", color: "#052012" }}>{t("vip.ov.planDone")}</span>}
+          <div className="mb-2.5 flex h-7 min-w-0 items-center gap-2">
+            <Flag size={12} className="shrink-0 text-purple" />
+            <h3 className="section-title min-w-0 truncate text-purple">{lv ? t("robo.lv.planTitle", { name: lv.name }) : t("robo.lv.title")}</h3>
+            <span className={`pixel shrink-0 text-sm ${lv ? "text-text" : "slot-empty"}`}>
+              {lv ? <>{lv.currentLevel}<span className="text-text-dim"> / {lv.targetLevel}</span></> : "—/—"}
+            </span>
+            <span className="ms-auto" />
+            <span className={`chip shrink-0 ${lv?.done ? "" : "invisible"}`} style={{ background: "var(--green)", color: "#052012" }}>{t("vip.ov.planDone")}</span>
           </div>
           <div className="hud-track mb-3">
-            <span className="hud-fill block bg-purple" style={{ width: `${Math.min(100, Math.max(0, ((lv.currentLevel - lv.startLevel) / Math.max(1, lv.targetLevel - lv.startLevel)) * 100))}%` }} />
+            <span className="hud-fill block bg-purple" style={{ width: `${lv ? Math.min(100, Math.max(0, ((lv.currentLevel - lv.startLevel) / Math.max(1, lv.targetLevel - lv.startLevel)) * 100)) : 0}%` }} />
           </div>
-          <div className="flex flex-col gap-1">
-            {plan.map((s, i) => {
-              const active = !lv.done && lv.currentLevel >= s.from && lv.currentLevel <= s.to;
-              const past = lv.currentLevel > s.to;
-              return (
-                <div key={i} className={`flex items-center gap-2.5 rounded border p-2 text-base transition ${active ? "border-[color:var(--purple)] bg-[color:var(--purple)]/10 glow-pulse" : "border-border"} ${past ? "opacity-45" : ""}`}
-                  style={active ? ({ "--accent": "var(--purple)" } as React.CSSProperties) : undefined}>
-                  <span className={`pixel w-16 shrink-0 text-sm ${active ? "text-purple" : "text-text-dim"}`}>{s.from}-{s.to}</span>
-                  <span className="min-w-0 flex-1 truncate">{s.huntName} <span className="text-text-dim">· {s.area}</span></span>
-                  <span className="inline-flex shrink-0 items-center gap-1 tabular-nums text-cyan"><Xp size={9} />{fmt(s.xpH)}/h</span>
-                  {past && <Check size={10} className="shrink-0 text-green" />}
-                </div>
-              );
-            })}
+          <div className="flex max-h-64 flex-col gap-1 overflow-y-auto pr-1">
+            {lv && plan && plan.length > 0 ? (
+              plan.map((s, i) => {
+                const active = !lv.done && lv.currentLevel >= s.from && lv.currentLevel <= s.to;
+                const past = lv.currentLevel > s.to;
+                return (
+                  <div key={i} className={`flex items-center gap-2.5 rounded border p-2 text-base transition ${active ? "border-[color:var(--purple)] bg-[color:var(--purple)]/10 glow-pulse" : "border-border"} ${past ? "opacity-45" : ""}`}
+                    style={active ? ({ "--accent": "var(--purple)" } as React.CSSProperties) : undefined}>
+                    <span className={`pixel w-16 shrink-0 text-sm ${active ? "text-purple" : "text-text-dim"}`}>{s.from}-{s.to}</span>
+                    <span className="min-w-0 flex-1 truncate">{s.huntName} <span className="text-text-dim">· {s.area}</span></span>
+                    <span className="inline-flex shrink-0 items-center gap-1 tabular-nums text-cyan"><Xp size={9} />{fmt(s.xpH)}/h</span>
+                    {past && <Check size={10} className="shrink-0 text-green" />}
+                  </div>
+                );
+              })
+            ) : (
+              <>
+                <div className="skeleton h-10" />
+                <div className="skeleton h-10" />
+                <div className="skeleton h-10" />
+              </>
+            )}
           </div>
         </div>
       )}
@@ -359,31 +378,39 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
               {planBusy ? "…" : t("robo.lv.calc")}
             </button>
           </div>
-          {planErr && <p className="mb-2 text-sm text-red">{planErr}</p>}
+          {/* linha de erro com altura reservada: aparecer/sumir nao mexe no modal */}
+          <p className="mb-2 min-h-5 text-sm text-red">{planErr}</p>
 
-          {/* preview da rota */}
-          {planSteps && (
-            <>
-              <div className="field-label mb-1">{t("robo.lv.route", { n: planSteps.length })}</div>
-              <div className="mb-3 flex max-h-56 flex-col gap-1 overflow-auto pr-1">
-                {planSteps.map((s, i) => (
-                  <div key={i} className="flex items-center gap-2.5 rounded border border-border p-2 text-base">
-                    <span className="pixel w-16 shrink-0 text-sm text-purple">{s.from}-{s.to}</span>
-                    <span className="min-w-0 flex-1 truncate">{s.huntName} <span className="text-text-dim">· {s.area}</span></span>
-                    <span className="inline-flex shrink-0 items-center gap-1 tabular-nums text-cyan"><Xp size={9} />{fmt(s.xpH)}/h</span>
-                  </div>
-                ))}
-              </div>
-              <div className="flex items-center justify-between gap-2 border-t border-border pt-3">
-                <span className="text-sm text-text-dim">
-                  {planPoke?.name} · Lv{planPoke?.level} <ChevronRight size={8} className="inline" /> <span className="text-purple">Lv{planTarget}</span>
-                </span>
-                <button type="button" onClick={() => void startLeveling()} disabled={busy} className="btn btn-purple disabled:opacity-40">
-                  {t("robo.lv.start")} <ChevronRight size={10} />
-                </button>
-              </div>
-            </>
-          )}
+          {/* preview da rota: area de altura FIXA — vazio (placeholder), calculando
+              (skeleton) e rota pronta ocupam o mesmo espaco */}
+          <div className="field-label mb-1">{t("robo.lv.route", { n: planSteps?.length ?? 0 })}</div>
+          <div className="mb-3 flex h-40 flex-col gap-1 overflow-y-auto rounded border border-border/60 p-1.5 pr-1">
+            {planBusy ? (
+              <>
+                <div className="skeleton h-10 shrink-0" />
+                <div className="skeleton h-10 shrink-0" />
+                <div className="skeleton h-10 shrink-0" />
+              </>
+            ) : planSteps ? (
+              planSteps.map((s, i) => (
+                <div key={i} className="flex shrink-0 items-center gap-2.5 rounded border border-border p-2 text-base">
+                  <span className="pixel w-16 shrink-0 text-sm text-purple">{s.from}-{s.to}</span>
+                  <span className="min-w-0 flex-1 truncate">{s.huntName} <span className="text-text-dim">· {s.area}</span></span>
+                  <span className="inline-flex shrink-0 items-center gap-1 tabular-nums text-cyan"><Xp size={9} />{fmt(s.xpH)}/h</span>
+                </div>
+              ))
+            ) : (
+              <p className="slot-empty flex h-full items-center justify-center text-base">—</p>
+            )}
+          </div>
+          <div className="flex items-center justify-between gap-2 border-t border-border pt-3">
+            <span className={`min-w-0 truncate text-sm ${planSteps ? "text-text-dim" : "slot-empty"}`}>
+              {planPoke ? <>{planPoke.name} · Lv{planPoke.level} <ChevronRight size={8} className="inline" /> <span className={planTarget ? "text-purple" : "slot-empty"}>Lv{planTarget || "—"}</span></> : "—"}
+            </span>
+            <button type="button" onClick={() => void startLeveling()} disabled={busy || !planSteps} className="btn btn-purple shrink-0 disabled:opacity-40">
+              {t("robo.lv.start")} <ChevronRight size={10} />
+            </button>
+          </div>
         </Modal>
       )}
 
@@ -395,22 +422,28 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
               <h3 className="section-title text-cyan">{t("robo.hunt.dropsTitle")}</h3>
               <p className="mt-1 text-sm leading-relaxed text-text-dim">{t("robo.hunt.dropsDesc").replace("{hunt}", selected.name)}</p>
 
-              {bestPoke && (
-                <div className="mt-3 flex items-center gap-2.5 rounded border border-[color:var(--cyan)]/40 bg-[var(--well-bg)] p-2.5">
-                  <Sprite src={spriteUrl(bestPoke.speciesId)} alt={bestPoke.name} size={30} />
-                  <div className="min-w-0 flex-1">
-                    <div className="text-base text-text">{t("robo.hunt.bestPoke")}: <span className="text-cyan">{bestPoke.name}</span> <span className="text-text-dim">Lv{bestPoke.level}</span></div>
-                    <div className="text-sm leading-relaxed text-text-dim">{t("robo.hunt.bestPokeHint").replace("{x}", String(bestPoke.eff))}</div>
-                  </div>
-                  {summonState === "done" ? (
-                    <span className="inline-flex shrink-0 items-center gap-1 text-sm text-green"><Check size={10} /> {t("robo.hunt.useThisDone")}</span>
+              {/* sugestao de melhor pokemon: box SEMPRE renderizado — enquanto o fetch
+                  nao volta (ou nao ha sugestao) os slots ficam esmaecidos no mesmo lugar */}
+              <div className="mt-3 flex min-h-16 items-center gap-2.5 rounded border border-[color:var(--cyan)]/40 bg-[var(--well-bg)] p-2.5">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center">
+                  {bestPoke ? (
+                    <Sprite src={spriteUrl(bestPoke.speciesId)} alt={bestPoke.name} size={30} />
                   ) : (
-                    <button type="button" onClick={() => summon(bestPoke.pokeId)} disabled={summonState === "busy"} className="btn btn-cyan shrink-0 disabled:opacity-40">
-                      {summonState === "busy" ? "…" : summonState === "fail" ? t("robo.hunt.useThisRetry") : t("robo.hunt.useThis")}
-                    </button>
+                    <span className="slot-empty"><Pokeball size={22} /></span>
                   )}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-base text-text">{t("robo.hunt.bestPoke")}: <span className={bestPoke ? "text-cyan" : "slot-empty"}>{bestPoke?.name ?? "—"}</span> <span className={bestPoke ? "text-text-dim" : "slot-empty"}>{bestPoke ? `Lv${bestPoke.level}` : "Lv —"}</span></div>
+                  <div className={`text-sm leading-relaxed ${bestPoke ? "text-text-dim" : "slot-empty"}`}>{bestPoke ? t("robo.hunt.bestPokeHint").replace("{x}", String(bestPoke.eff)) : "—"}</div>
                 </div>
-              )}
+                {summonState === "done" ? (
+                  <span className="inline-flex shrink-0 items-center gap-1 text-sm text-green"><Check size={10} /> {t("robo.hunt.useThisDone")}</span>
+                ) : (
+                  <button type="button" onClick={() => bestPoke && summon(bestPoke.pokeId)} disabled={summonState === "busy" || !bestPoke} className="btn btn-cyan shrink-0 disabled:opacity-40">
+                    {summonState === "busy" ? "…" : summonState === "fail" ? t("robo.hunt.useThisRetry") : t("robo.hunt.useThis")}
+                  </button>
+                )}
+              </div>
 
               {huntDrops.length > 0 ? (
                 <>
@@ -449,53 +482,64 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
         );
       })()}
 
-      {/* stats ao vivo (piscam no acento quando o numero muda) */}
-      {huntOn && a && (
+      {/* stats ao vivo (piscam no acento quando o numero muda): a grade existe desde
+          que a hunt liga — sem analyzer ainda, cada tile mostra "—" no mesmo lugar */}
+      {huntOn && (
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          <StatTile live label={t("robo.hunt.kills")} value={fmt(a.kills)} icon={<Skull size={11} className="text-text-dim" />} />
-          <StatTile label={t("robo.hunt.time")} value={hm(a.seconds)} icon={<Clock size={11} className="text-text-dim" />} />
-          <StatTile live label={t("robo.hunt.xph")} value={fmt(a.xpPerHour)} accent="var(--cyan)" icon={<Xp size={11} className="text-cyan" />} />
-          <StatTile live label={t("robo.hunt.goldph")} value={fmt(a.goldPerHour)} accent="var(--green)" icon={<Coin size={11} />} />
-          <StatTile live label={t("robo.hunt.loot")} value={fmt(a.lootGold)} icon={<Coin size={11} />} />
-          <StatTile live label={t("robo.hunt.supply")} value={`-${fmt(a.supplyGold)}`} icon={<Coin size={11} />} />
-          <StatTile live label={t("robo.hunt.captures")} value={fmt(a.captures)} icon={<Pokeball size={11} />} />
-          <StatTile live label={t("robo.hunt.balance")} value={fmt(a.balance)} accent="var(--green)" icon={<Coin size={11} />} />
+          <StatTile live label={t("robo.hunt.kills")} value={a ? fmt(a.kills) : "—"} icon={<Skull size={11} className="text-text-dim" />} />
+          <StatTile label={t("robo.hunt.time")} value={a ? hm(a.seconds) : "—"} icon={<Clock size={11} className="text-text-dim" />} />
+          <StatTile live label={t("robo.hunt.xph")} value={a ? fmt(a.xpPerHour) : "—"} accent="var(--cyan)" icon={<Xp size={11} className="text-cyan" />} />
+          <StatTile live label={t("robo.hunt.goldph")} value={a ? fmt(a.goldPerHour) : "—"} accent="var(--green)" icon={<Coin size={11} />} />
+          <StatTile live label={t("robo.hunt.loot")} value={a ? fmt(a.lootGold) : "—"} icon={<Coin size={11} />} />
+          <StatTile live label={t("robo.hunt.supply")} value={a ? `-${fmt(a.supplyGold)}` : "—"} icon={<Coin size={11} />} />
+          <StatTile live label={t("robo.hunt.captures")} value={a ? fmt(a.captures) : "—"} icon={<Pokeball size={11} />} />
+          <StatTile live label={t("robo.hunt.balance")} value={a ? fmt(a.balance) : "—"} accent="var(--green)" icon={<Coin size={11} />} />
         </div>
       )}
 
       {/* fila de captura AO VIVO — corpos aguardando o auto-catch (frame pending da
-          sessao). Cresce a cada kill e drena conforme o jogo captura; fila vazia com a
-          hunt viva = o auto-catch esta dando conta. */}
-      {huntOn && st?.pending && (
+          sessao). O painel existe desde que a hunt liga; a area tem altura minima e
+          maxima fixas (rola por dentro) pra fila crescer/drenar sem mexer na pagina. */}
+      {huntOn && (
         <Panel
           icon={<Pokeball size={12} />} accent="var(--green)"
           title={<span className="text-green">{t("robo.hunt.queue")}</span>}
-          right={<span className="pixel text-base text-text">{st.pending.length}</span>}
+          right={<span className={`pixel text-base ${st?.pending ? "text-text" : "slot-empty"}`}>{st?.pending ? st.pending.length : "—"}</span>}
         >
-          {st.pending.length === 0 ? (
-            <p className="text-base text-text-dim">{t("robo.hunt.queueEmpty")}</p>
-          ) : (
-            <div className="flex flex-wrap gap-1.5">
-              {st.pending.map((p, i) => (
-                <span
-                  key={p.id}
-                  className={`relative flex items-center gap-1.5 rounded border border-border bg-[var(--well-bg)] px-1.5 py-1 ${i === st.pending.length - 1 ? "flash-in" : ""}`}
-                  title={`${p.name} Lv${p.level}`}
-                >
-                  <Sprite src={spriteUrl(p.speciesId, p.shiny)} alt={p.name} size={24} />
-                  <span className="text-sm text-text-dim">Lv{p.level}</span>
-                  {p.shiny && <span className="absolute -right-1 -top-1 text-yellow"><Star size={9} /></span>}
-                </span>
-              ))}
-            </div>
-          )}
+          <div className="max-h-28 min-h-11 overflow-y-auto pr-1">
+            {!st?.pending ? (
+              <div className="skeleton h-10" />
+            ) : st.pending.length === 0 ? (
+              <p className="flex h-10 items-center text-base text-text-dim">{t("robo.hunt.queueEmpty")}</p>
+            ) : (
+              <div className="flex flex-wrap gap-1.5">
+                {st.pending.map((p, i) => (
+                  <span
+                    key={p.id}
+                    className={`relative flex items-center gap-1.5 rounded border border-border bg-[var(--well-bg)] px-1.5 py-1 ${i === st.pending.length - 1 ? "flash-in" : ""}`}
+                    title={`${p.name} Lv${p.level}`}
+                  >
+                    <Sprite src={spriteUrl(p.speciesId, p.shiny)} alt={p.name} size={24} />
+                    <span className="text-sm text-text-dim">Lv{p.level}</span>
+                    {p.shiny && <span className="absolute -right-1 -top-1 text-yellow"><Star size={9} /></span>}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
         </Panel>
       )}
 
-      {/* feed ao vivo — kills e capturas com flash de entrada; clique abre o detalhe */}
-      {huntOn && st?.recentKills && st.recentKills.length > 0 && (
+      {/* feed ao vivo — kills e capturas com flash de entrada; clique abre o detalhe.
+          Painel sempre presente com a hunt ligada: altura FIXA com rolagem interna,
+          feed vazio mostra o placeholder no mesmo espaco. */}
+      {huntOn && (
         <Panel title={<span className="text-cyan">{t("robo.hunt.recent")}</span>} live>
-          <div className="grid gap-1.5 sm:grid-cols-2">
+          <div className="h-72 overflow-y-auto pr-1">
+            {!st?.recentKills || st.recentKills.length === 0 ? (
+              <p className="slot-empty flex h-full items-center justify-center text-base">—</p>
+            ) : (
+            <div className="grid gap-1.5 sm:grid-cols-2">
             {st.recentKills.slice(0, 10).map((k, i) => {
               const pid = pokeIdOf(k.species);
               const isCatch = k.kind === "catch";
@@ -537,6 +581,8 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
                 </button>
               );
             })}
+            </div>
+            )}
           </div>
         </Panel>
       )}

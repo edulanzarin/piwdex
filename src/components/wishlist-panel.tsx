@@ -100,20 +100,22 @@ function ItemPicker({ items, value, onSelect, placeholder }: { items: WishItem[]
 }
 
 // Card de um ACHADO de item dentro do desejo: icone + qtd + preco unitario + comprar.
+// min-h igual ao do MarketMonCard: os dois convivem na MESMA grade de achados e as
+// linhas de altura fixa garantem cards do mesmo tamanho.
 function ItemMatchCard({ item, onBuy, right }: { item: MarketItemRow; onBuy: () => void; right?: React.ReactNode }) {
   const t = useT();
   return (
     <div className="relative">
-      <div className="card flex w-full items-center gap-3 p-3">
+      <div className="card flex min-h-28 w-full items-center gap-3 p-3">
         <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded bg-[var(--well-bg)]">
           {item.icon ? <Sprite src={assetIconUrl(item.icon)} alt={item.name} size={34} /> : <Loot size={20} />}
         </span>
         <div className="min-w-0 flex-1">
-          <span className="pixel block truncate text-base">{item.name}</span>
-          <div className="mt-0.5 flex flex-wrap items-center gap-x-3 text-sm text-text-dim">
-            <span className="pixel text-base text-text">{item.price.toLocaleString("pt-BR")} <span className="text-text-dim">{item.currency === "DIAMONDS" ? "dia" : "$"} {t("market.it.unit")}</span></span>
-            <span>x{item.quantity.toLocaleString("pt-BR")}</span>
-            {item.belowNpc && <span className="chip" style={{ background: "var(--green)", color: "#052012" }}>{t("account.market.belowNpc")}</span>}
+          <span className="pixel block h-6 truncate text-base">{item.name}</span>
+          <div className="flex h-6 items-center gap-x-3 overflow-hidden text-sm text-text-dim">
+            <span className="pixel shrink-0 whitespace-nowrap text-base text-text">{item.price.toLocaleString("pt-BR")} <span className="text-text-dim">{item.currency === "DIAMONDS" ? "dia" : "$"} {t("market.it.unit")}</span></span>
+            <span className="shrink-0 whitespace-nowrap">x{item.quantity.toLocaleString("pt-BR")}</span>
+            <span className={`chip shrink-0 ${item.belowNpc ? "" : "invisible"}`} style={{ background: "var(--green)", color: "#052012" }}>{t("account.market.belowNpc")}</span>
           </div>
         </div>
         <button type="button" onClick={onBuy} className="btn btn-green mr-7 shrink-0">{t("market.buy")}</button>
@@ -254,7 +256,7 @@ function NewWish({ creatures, items, onCreated }: { creatures: ComboCreature[]; 
         </div>
       </div>
       <div className="card z-20 flex flex-col gap-4 p-5">
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
           {kind === "item" ? (
             <>
               <label className="flex flex-col gap-1 sm:col-span-2">
@@ -281,7 +283,7 @@ function NewWish({ creatures, items, onCreated }: { creatures: ComboCreature[]; 
           ) : (
           <>
           {/* Especie e Tipo sao exclusivos: uma especie ja e de um tipo so. */}
-          <label className="flex flex-col gap-1 sm:col-span-2 lg:col-span-1">
+          <label className="flex flex-col gap-1 sm:col-span-2 md:col-span-1">
             <span className={lblCls}>{t("alerts.f.species")}</span>
             <PokemonCombobox creatures={creatures} value={species} onSelect={(c) => { setSpecies(c); if (c) setType(""); }} placeholder={t("alerts.f.anySpecies")} />
           </label>
@@ -408,13 +410,14 @@ function WishBlock({
               <Sprite src={w.speciesId ? spriteUrl(w.speciesId, w.shinyOnly) : null} alt={w.label ?? "any"} size={38} />
             )}
             {w.shinyOnly && <span className="absolute right-0.5 top-0.5 text-yellow"><Star size={10} /></span>}
+            {/* contagem de achados: badge ABSOLUTO no canto do tile — nunca in-flow */}
+            {matches.length > 0 && (
+              <span className="absolute -bottom-1 -right-1 rounded-full bg-green px-1.5 py-0.5 text-xs text-[#052012]">{matches.length}</span>
+            )}
           </div>
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2">
+            <div className="flex h-6 items-center gap-2 overflow-hidden">
               <span className="pixel truncate text-base">{w.label ?? (w.speciesId ? `#${w.speciesId}` : t("alerts.anySpecies"))}</span>
-              {matches.length > 0 && (
-                <span className="rounded-full bg-green px-1.5 py-0.5 text-xs text-[#052012]">{matches.length}</span>
-              )}
             </div>
             <div className="truncate text-sm text-text-dim">{wishSummary(w, t)}</div>
           </div>
@@ -457,7 +460,11 @@ function WishBlock({
             {matches.length > MATCH_PAGE && <Pagination page={safePage} pageCount={pageCount} onPage={setPage} />}
           </div>
         ) : (
-          <p className="mt-3 text-base text-text-dim">{w.active ? t("wish.noMatches") : t("wish.paused")}</p>
+          // estado vazio com a MESMA altura de uma linha de achados: quando o primeiro
+          // achado chegar ao vivo, o bloco nao pula
+          <div className="mt-3 flex min-h-28 items-center justify-center rounded border border-border bg-[var(--well-bg)] p-3">
+            <p className="text-base text-text-dim">{w.active ? t("wish.noMatches") : t("wish.paused")}</p>
+          </div>
         ))}
     </div>
   );
@@ -552,12 +559,14 @@ export function WishlistPanel({ creatures, items, dex, focusWishId }: { creature
         <h3 className="section-title flex items-center gap-2 text-cyan">
           <Heart size={12} className="text-pink" /> {t("wish.list.title")}
         </h3>
+        {/* estados com a mesma altura minima de um desejo recolhido: a lista nao pula
+            quando sai do carregando pro vazio/erro/cheio */}
         {wishes.status === "loading" ? (
-          <div className="card p-4"><LoadingBall label={t("alerts.loading")} /></div>
+          <div className="card flex min-h-20 items-center justify-center p-4"><LoadingBall label={t("alerts.loading")} /></div>
         ) : wishes.status === "error" ? (
-          <div className="card p-4"><p className="text-base text-text-dim">{t("alerts.error")}</p></div>
+          <div className="card flex min-h-20 items-center justify-center p-4"><p className="text-base text-text-dim">{t("alerts.error")}</p></div>
         ) : wishes.data.length === 0 ? (
-          <div className="card p-4"><p className="text-base text-text-dim">{t("wish.list.empty")}</p></div>
+          <div className="card flex min-h-20 items-center justify-center p-4"><p className="text-base text-text-dim">{t("wish.list.empty")}</p></div>
         ) : (
           wishes.data.map((w) => (
             <WishBlock

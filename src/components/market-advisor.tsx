@@ -95,7 +95,8 @@ function Tile({ label, children }: { label: string; children: React.ReactNode })
 // Card de um anuncio do mercado — reusado no consultor E dentro de cada Desejo (aba
 // Desejos), pra o achado mostrar a MESMA leitura: borda por nota (Q pesa mais que IV),
 // etiqueta de preco (BARATO/JUSTO/CARO vs justo) e abaixo do NPC. `right` injeta um
-// canto (ex.: o ✕ de recusar) sem quebrar o layout.
+// canto (ex.: o ✕ de recusar) sem quebrar o layout. Linhas de ALTURA FIXA com slot
+// permanente ("—" esmaecido pra dado ausente): todo card da grade fica do MESMO tamanho.
 export function MarketMonCard({ mon, onClick, right, rarity }: { mon: MarketMon; onClick: () => void; right?: React.ReactNode; rarity?: Rarity }) {
   const t = useT();
   const monG = monGrade(mon.ivTotal, mon.quality);
@@ -106,28 +107,29 @@ export function MarketMonCard({ mon, onClick, right, rarity }: { mon: MarketMon;
       <button
         type="button"
         onClick={onClick}
-        className="card flex w-full items-center gap-3 p-3 text-left transition hover:border-[color:var(--border-strong)] hover:bg-surface-2"
+        className="card flex min-h-28 w-full items-center gap-3 p-3 text-left transition hover:border-[color:var(--border-strong)] hover:bg-surface-2"
         style={monG ? { borderLeftColor: GRADE_VAR[monG], borderLeftWidth: 3 } : undefined}
       >
         <div className="relative flex h-14 w-14 shrink-0 items-center justify-center rounded bg-[var(--well-bg)]">
           <Sprite src={spriteUrl(mon.speciesId, mon.shiny)} alt={mon.name} size={48} />
-          {mon.shiny && <span className="absolute right-0.5 top-0.5 text-yellow"><Star size={11} /></span>}
+          {/* estrela shiny sempre no canto: invisible reserva o espaco */}
+          <span className={`absolute right-0.5 top-0.5 text-yellow ${mon.shiny ? "" : "invisible"}`}><Star size={11} /></span>
         </div>
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1.5">
+          <div className="flex h-6 items-center gap-1.5 overflow-hidden">
             <span className="pixel truncate text-base">{mon.name}</span>
-            <span className="text-sm text-text-dim">Lv.{mon.level}</span>
-            {rarity && <RarityBadge rarity={rarity} />}
+            <span className="shrink-0 text-sm text-text-dim">Lv.{mon.level}</span>
+            {rarity && <span className="shrink-0"><RarityBadge rarity={rarity} /></span>}
           </div>
-          <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-sm text-text-dim">
-            {mon.power != null && <span>{t("account.col.power")} <span className="text-yellow">{fmt(mon.power)}</span></span>}
-            {mon.ivTotal != null && <span>{t("account.col.iv")} <span className={ivColor(mon.ivTotal)}>{mon.ivTotal}</span>/192</span>}
-            {mon.quality != null && <span>{t("account.col.quality")} <span className={qualG ? GRADE_TEXT[qualG] : "text-cyan"}>{mon.quality.toFixed(3)}</span></span>}
+          <div className="flex h-5 items-center gap-x-3 overflow-hidden text-sm text-text-dim">
+            <span className="shrink-0 whitespace-nowrap">{t("account.col.power")} <span className={mon.power != null ? "text-yellow" : "slot-empty"}>{mon.power != null ? fmt(mon.power) : "—"}</span></span>
+            <span className="shrink-0 whitespace-nowrap">{t("account.col.iv")} <span className={mon.ivTotal != null ? ivColor(mon.ivTotal) : "slot-empty"}>{mon.ivTotal ?? "—"}</span>{mon.ivTotal != null ? "/192" : ""}</span>
+            <span className="shrink-0 whitespace-nowrap">{t("account.col.quality")} <span className={mon.quality != null ? (qualG ? GRADE_TEXT[qualG] : "text-cyan") : "slot-empty"}>{mon.quality != null ? mon.quality.toFixed(3) : "—"}</span></span>
           </div>
-          <div className="mt-1.5 flex flex-wrap items-center gap-1.5 pixel text-base text-text">
-            <Price currency={mon.currency} value={mon.price} />
-            {dGrade && <GradeChip grade={dGrade} label={t(`account.market.deal.${dGrade}`)} />}
-            {mon.belowNpc && <span className="chip" style={{ background: "var(--green)", color: "#052012" }}>{t("account.market.belowNpc")}</span>}
+          <div className="mt-1 flex h-7 items-center gap-1.5 overflow-hidden pixel text-base text-text">
+            {mon.price > 0 ? <Price currency={mon.currency} value={mon.price} /> : <span className="slot-empty">—</span>}
+            {dGrade ? <GradeChip grade={dGrade} label={t(`account.market.deal.${dGrade}`)} /> : <span className="slot-empty text-xs">—</span>}
+            <span className={`chip shrink-0 ${mon.belowNpc ? "" : "invisible"}`} style={{ background: "var(--green)", color: "#052012" }}>{t("account.market.belowNpc")}</span>
           </div>
         </div>
       </button>
@@ -190,7 +192,7 @@ export function BuyItemModal({ item, onClose, onBought }: { item: MarketItemRow;
           {item.icon ? <Sprite src={assetIconUrl(item.icon)} alt={item.name} size={36} /> : <Loot size={22} />}
         </span>
         <div className="min-w-0 flex-1">
-          <h3 className="truncate pixel text-base text-text">{item.name}</h3>
+          <h3 className="section-title truncate">{item.name}</h3>
           <div className="text-sm text-text-dim">
             <Price currency={item.currency} value={item.price} size={11} /> {t("market.it.unit")} · x{fmt(item.quantity)}
           </div>
@@ -251,7 +253,7 @@ export function MarketMonModal({ mon, dex, onClose, onBought }: { mon: MarketMon
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
-              <h3 className="truncate pixel text-base text-text">{mon.name}</h3>
+              <h3 className="section-title truncate">{mon.name}</h3>
               <span className="text-sm text-text-dim">Lv.{mon.level}</span>
             </div>
             <div className="mt-2 flex flex-wrap items-center gap-1.5">
@@ -265,63 +267,62 @@ export function MarketMonModal({ mon, dex, onClose, onBought }: { mon: MarketMon
           <CloseButton onClick={onClose} className="shrink-0 self-start" />
         </div>
 
-        {/* Numeros reais do anuncio — 2 colunas fixas: cabem valores ate ~1 bilhao sem vazar.
-            price <= 0 = nao veio preco (ex.: pokemon LINKADO no chat): esconde o tile. */}
+        {/* Numeros reais do anuncio — 2 colunas fixas, SEMPRE 4 tiles: cabem valores ate
+            ~1 bilhao sem vazar. O 4o tile e um slot so: preco do anuncio > "valeria"
+            (bicho linkado no chat, sem preco) > placeholder — nada aparece/some do grid. */}
         <div className="grid grid-cols-2 gap-2">
-          <Tile label={t("account.col.power")}><span className="text-yellow">{mon.power != null ? fmt(mon.power) : "—"}</span></Tile>
+          <Tile label={t("account.col.power")}><span className={mon.power != null ? "text-yellow" : "slot-empty"}>{mon.power != null ? fmt(mon.power) : "—"}</span></Tile>
           <Tile label={t("account.col.iv")}>
-            {mon.ivTotal != null ? <><span className={ivColor(mon.ivTotal)}>{mon.ivTotal}</span><span className="text-sm text-text-dim">/192</span></> : "—"}
+            {mon.ivTotal != null ? <><span className={ivColor(mon.ivTotal)}>{mon.ivTotal}</span><span className="text-sm text-text-dim">/192</span></> : <span className="slot-empty">—</span>}
           </Tile>
-          <Tile label={t("account.col.quality")}><span className={qual ? GRADE_TEXT[qual] : "text-cyan"}>{mon.quality != null ? mon.quality.toFixed(3) : "—"}</span></Tile>
-          {mon.price > 0 && (
-            <Tile label={t("account.market.price")}><span className="text-text"><Price currency={mon.currency} value={mon.price} size={13} /></span></Tile>
-          )}
-          {/* bicho sem preco (ex.: linkado no chat): mostra quanto VALERIA pelo motor de
-              preco justo (teto x mediana do mercado) — chega async, dai o tile condicional */}
-          {mon.price <= 0 && fair != null && (
-            <Tile label={t("account.market.worth")}>
+          <Tile label={t("account.col.quality")}><span className={mon.quality != null ? (qual ? GRADE_TEXT[qual] : "text-cyan") : "slot-empty"}>{mon.quality != null ? mon.quality.toFixed(3) : "—"}</span></Tile>
+          <Tile label={mon.price > 0 ? t("account.market.price") : t("account.market.worth")}>
+            {mon.price > 0 ? (
+              <span className="text-text"><Price currency={mon.currency} value={mon.price} size={13} /></span>
+            ) : fair != null ? (
               <span className="inline-flex items-center gap-1 text-text"><span className="opacity-70">~</span><Price currency={mon.currency} value={fair} size={13} /></span>
-            </Tile>
-          )}
+            ) : (
+              <span className="slot-empty">—</span>
+            )}
+          </Tile>
         </div>
 
-        {/* Veredito: genes (IV), Quality (Q) e preco (vale a pena). Quality manda na nota. */}
-        {(genes || qual || deal) && (
-          <div className="flex flex-col gap-2 rounded border border-border bg-[var(--well-bg)] p-3">
-            <div className="section-title text-purple">{t("account.market.verdict")}</div>
-            {genes && (
-              <div className="flex items-center justify-between gap-2 text-base">
-                <span className="text-text-dim">{t("account.market.genesLabel")}</span>
-                <GradeChip grade={genes} label={t(`account.market.genes.${genes}`)} />
-              </div>
-            )}
-            {qual && (
-              <div className="flex items-center justify-between gap-2 text-base">
-                <span className="text-text-dim">{t("account.market.qualityLabel")}</span>
-                <GradeChip grade={qual} label={t(`account.market.quality.${qual}`)} />
-              </div>
-            )}
-            {deal && (
-              <div className="flex items-center justify-between gap-2 text-base">
-                <span className="text-text-dim">{t("account.market.dealLabel")}</span>
-                <span className="flex items-center gap-2">
-                  {pct != null && <span className="tabular-nums text-text-dim">{t("account.market.dealVs", { p: fmtPct(pct) })}</span>}
-                  <GradeChip grade={deal} label={t(`account.market.deal.${deal}`)} />
-                </span>
-              </div>
-            )}
-            {/* so pra anuncio com preco: no bicho do chat o valor ja esta no tile "valeria" */}
-            {fair != null && mon.price > 0 && (
-              <div className="flex items-center justify-between gap-2 text-sm text-text-dim">
-                <span>{t("account.market.fairPrice")}</span>
-                <span className="inline-flex items-center gap-1"><span className="opacity-70">~</span><Price currency={mon.currency} value={fair} /></span>
-              </div>
-            )}
-            {breeding && (
-              <p className="border-t border-border pt-2 text-sm leading-relaxed text-text-dim">{t("account.market.breedingNote")}</p>
+        {/* Veredito: genes (IV), Quality (Q) e preco (vale a pena). Quality manda na nota.
+            Linhas de altura fixa SEMPRE presentes: nota ausente vira slot esmaecido. */}
+        <div className="flex flex-col gap-2 rounded border border-border bg-[var(--well-bg)] p-3">
+          <div className="section-title text-purple">{t("account.market.verdict")}</div>
+          <div className="flex h-6 items-center justify-between gap-2 text-base">
+            <span className="text-text-dim">{t("account.market.genesLabel")}</span>
+            {genes ? <GradeChip grade={genes} label={t(`account.market.genes.${genes}`)} /> : <span className="slot-empty">—</span>}
+          </div>
+          <div className="flex h-6 items-center justify-between gap-2 text-base">
+            <span className="text-text-dim">{t("account.market.qualityLabel")}</span>
+            {qual ? <GradeChip grade={qual} label={t(`account.market.quality.${qual}`)} /> : <span className="slot-empty">—</span>}
+          </div>
+          <div className="flex h-6 items-center justify-between gap-2 text-base">
+            <span className="text-text-dim">{t("account.market.dealLabel")}</span>
+            {deal ? (
+              <span className="flex items-center gap-2">
+                {pct != null && <span className="tabular-nums text-text-dim">{t("account.market.dealVs", { p: fmtPct(pct) })}</span>}
+                <GradeChip grade={deal} label={t(`account.market.deal.${deal}`)} />
+              </span>
+            ) : (
+              <span className="slot-empty">—</span>
             )}
           </div>
-        )}
+          {/* preco justo: no bicho do chat o valor ja esta no tile "valeria" — aqui vira slot */}
+          <div className="flex h-5 items-center justify-between gap-2 text-sm text-text-dim">
+            <span>{t("account.market.fairPrice")}</span>
+            {fair != null && mon.price > 0 ? (
+              <span className="inline-flex items-center gap-1"><span className="opacity-70">~</span><Price currency={mon.currency} value={fair} /></span>
+            ) : (
+              <span className="slot-empty">—</span>
+            )}
+          </div>
+          {breeding && (
+            <p className="border-t border-border pt-2 text-sm leading-relaxed text-text-dim">{t("account.market.breedingNote")}</p>
+          )}
+        </div>
 
         {/* Stats REAIS do individuo a venda (o anuncio ja traz); sem eles, cai nos base
             da especie. Com dex + qualidade, cada barra compara com o perfeito (IV 32). */}
@@ -340,7 +341,7 @@ export function MarketMonModal({ mon, dex, onClose, onBought }: { mon: MarketMon
             ))}
             <div className="mt-1 flex items-center justify-between border-t border-border pt-2 text-sm">
               <span className="text-sm uppercase tracking-wide text-text-dim">{t("cr.total")}</span>
-              <strong className="tabular-nums text-cyan">{total}</strong>
+              <span className="tabular-nums text-cyan">{total}</span>
             </div>
           </div>
         )}
@@ -366,25 +367,27 @@ export function MarketMonModal({ mon, dex, onClose, onBought }: { mon: MarketMon
 }
 
 /** Card de uma pilha de item do mercado: icone + nome + categoria, preco unitario,
- *  estoque/vendedores e o botao Comprar. */
+ *  estoque/vendedores e o botao Comprar. Linhas de ALTURA FIXA com slots: cards da
+ *  mesma grade ficam do mesmo tamanho, com ou sem NPC/etiqueta. */
 function MarketItemCard({ item, onBuy }: { item: MarketItemRow; onBuy: () => void }) {
   const t = useT();
+  const npc = item.npcPrice != null && item.npcPrice > 0 ? item.npcPrice : null;
   return (
-    <div className="card flex items-center gap-3 p-3">
+    <div className="card flex min-h-[4.6rem] items-center gap-3 p-3">
       <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded bg-[var(--well-bg)]">
         {item.icon ? <Sprite src={assetIconUrl(item.icon)} alt={item.name} size={34} /> : <Loot size={20} />}
       </span>
       <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-1.5">
+        <div className="flex h-6 items-center gap-1.5 overflow-hidden">
           <span className="pixel truncate text-base">{item.name}</span>
-          <span className="text-xs uppercase text-text-dim">{item.category}</span>
+          <span className="shrink-0 text-xs uppercase text-text-dim">{item.category}</span>
         </div>
-        <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-sm text-text-dim">
-          <span className="pixel text-base text-text"><Price currency={item.currency} value={item.price} size={11} /> <span className="text-text-dim">{t("market.it.unit")}</span></span>
-          <span>x{fmt(item.quantity)}</span>
-          <span>{t("market.it.sellers", { n: item.sellers })}</span>
-          {item.npcPrice != null && item.npcPrice > 0 && <span>NPC {fmt(item.npcPrice)}</span>}
-          {item.belowNpc && <span className="chip" style={{ background: "var(--green)", color: "#052012" }}>{t("account.market.belowNpc")}</span>}
+        <div className="flex h-6 items-center gap-x-3 overflow-hidden text-sm text-text-dim">
+          <span className="pixel shrink-0 whitespace-nowrap text-base text-text"><Price currency={item.currency} value={item.price} size={11} /> <span className="text-text-dim">{t("market.it.unit")}</span></span>
+          <span className="shrink-0 whitespace-nowrap">x{fmt(item.quantity)}</span>
+          <span className="shrink-0 whitespace-nowrap">{t("market.it.sellers", { n: item.sellers })}</span>
+          <span className={`shrink-0 whitespace-nowrap ${npc != null ? "" : "slot-empty"}`}>NPC {npc != null ? fmt(npc) : "—"}</span>
+          <span className={`chip shrink-0 ${item.belowNpc ? "" : "invisible"}`} style={{ background: "var(--green)", color: "#052012" }}>{t("account.market.belowNpc")}</span>
         </div>
       </div>
       <button type="button" onClick={onBuy} className="btn btn-green shrink-0">{t("market.buy")}</button>
@@ -501,7 +504,7 @@ export function MarketAdvisor({
         return (
           <>
             <Panel icon={<Loot size={12} />} accent="var(--green)" title={t("robo.caught.filters")} className="z-20 p-5" bodyClassName="gap-4">
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+              <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
                 <label className="flex flex-col gap-1">
                   <span className="field-label">{t("market.it.q")}</span>
                   <input className="input" value={itQ} onChange={(e) => setItQ(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") void searchItems(); }} placeholder={t("market.it.qPh")} />
@@ -545,10 +548,13 @@ export function MarketAdvisor({
               </div>
             </Panel>
 
+            {/* estados com a MESMA altura minima: carregando/vazio/sem busca nao mudam o chao da pagina */}
             {itBusy ? (
-              <div className="card p-6"><LoadingBall label={t("account.market.searching")} /></div>
-            ) : itRows == null ? null : itRows.length === 0 ? (
-              <div className="card p-4"><EmptyState message={t("account.market.empty")} /></div>
+              <div className="card flex min-h-60 items-center justify-center p-4"><LoadingBall label={t("account.market.searching")} /></div>
+            ) : itRows == null ? (
+              <div className="card flex min-h-60 items-center justify-center p-4"><EmptyState message={t("account.market.hint")} /></div>
+            ) : itRows.length === 0 ? (
+              <div className="card flex min-h-60 items-center justify-center p-4"><EmptyState message={t("account.market.empty")} /></div>
             ) : (
               <div className="grid gap-2 lg:grid-cols-2">
                 {itPaged.map((i) => <MarketItemCard key={`${i.refId}:${i.currency}:${i.price}`} item={i} onBuy={() => setBuyItem(i)} />)}
@@ -561,10 +567,10 @@ export function MarketAdvisor({
       })() : (
       <>
       <Panel icon={<Dollar size={12} />} accent="var(--purple)" title={t("robo.caught.filters")} className="z-20 p-5" bodyClassName="gap-4">
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
           {/* Especie e Tipo sao mutuamente exclusivos: uma especie ja e de um tipo so.
               Escolher um zera o outro. */}
-          <label className="flex flex-col gap-1 sm:col-span-2 lg:col-span-1">
+          <label className="flex flex-col gap-1 sm:col-span-2 md:col-span-1">
             <span className="field-label">{t("account.market.species")}</span>
             <PokemonCombobox
               creatures={creatures}
@@ -639,10 +645,13 @@ export function MarketAdvisor({
         </div>
       </Panel>
 
+      {/* estados com a MESMA altura minima: carregando/vazio/sem busca nao mudam o chao da pagina */}
       {busy ? (
-        <div className="card p-6"><LoadingBall label={t("account.market.searching")} /></div>
-      ) : mons == null ? null : mons.length === 0 ? (
-        <div className="card p-4"><EmptyState message={t("account.market.empty")} /></div>
+        <div className="card flex min-h-60 items-center justify-center p-4"><LoadingBall label={t("account.market.searching")} /></div>
+      ) : mons == null ? (
+        <div className="card flex min-h-60 items-center justify-center p-4"><EmptyState message={t("account.market.hint")} /></div>
+      ) : mons.length === 0 ? (
+        <div className="card flex min-h-60 items-center justify-center p-4"><EmptyState message={t("account.market.empty")} /></div>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {paged.map((m) => (

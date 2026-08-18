@@ -39,7 +39,7 @@ export function AlertBanner({
 }) {
   return (
     <div
-      className="flash-in flex flex-wrap items-center gap-3 rounded border px-4 py-3"
+      className="flash-in flex min-h-[3.9rem] flex-wrap items-center gap-x-3 gap-y-2 rounded border px-4 py-2"
       style={{
         "--accent": color,
         borderColor: `color-mix(in srgb, ${color} 60%, transparent)`,

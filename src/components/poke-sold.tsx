@@ -29,9 +29,12 @@ export function PokeSold() {
         <p className="mt-2 max-w-2xl text-sm text-text-dim">{t("robo.pokesold.desc")}</p>
       </div>
 
+      {/* area de lista de ALTURA FIXA (rola por dentro): venda nova nao empurra a
+          pagina; vazio ocupa o mesmo espaco da lista cheia */}
       <div className="card p-4">
+        <div className="h-64 overflow-y-auto pr-1">
         {sold.length === 0 ? (
-          <p className="text-base text-text-dim">{on ? t("robo.pokesold.waiting") : t("robo.pokesold.empty")}</p>
+          <p className="flex h-full items-center justify-center text-center text-base text-text-dim">{on ? t("robo.pokesold.waiting") : t("robo.pokesold.empty")}</p>
         ) : (
           <div className="grid gap-1.5 sm:grid-cols-2">
             {sold.map((p) => (
@@ -51,6 +54,7 @@ export function PokeSold() {
             ))}
           </div>
         )}
+        </div>
       </div>
     </div>
   );

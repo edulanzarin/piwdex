@@ -3,13 +3,14 @@
 // Painel (cockpit) da area VIP — modelo CONEXAO-PRIMEIRO:
 //   "Ligar o robo" TOMA a sessao da conta e segura. A partir dai tudo opera na mesma
 //   conexao: time ao vivo (com troca de lider em um clique), hunt/auto/leveling como
-//   jobs, vendas, recursos. Se a conexao falhar, o painel APITA (banner vermelho +
+//   jobs, vendas, recursos. Se a conexao falhar, o painel APITA (faixa de alerta +
 //   countdown da proxima tentativa). Nada aqui faz fetch de leitura — tudo e o stream.
 //
-// Estrutura: banners de alerta -> BARRA DE COMANDO do robo (hero, largura cheia) ->
-// grade time/hunt+plano/progresso -> régua de rendimento ao vivo -> pokebolas ->
-// feeds (kills + eventos) -> acumulado + streak. Tudo montado com os primitivos de
-// src/components/ui (Panel, FeedRow, EmptyState, ProgressBar, Led/LiveBadge/AlertBanner).
+// Estrutura: faixa de alerta (SLOT fixo, um alerta por vez) -> BARRA DE COMANDO do robo
+// (duas linhas de altura fixa, botoes sempre no mesmo lugar) -> regua de rendimento
+// (sempre renderizada, placeholders quando parado) -> grade time/hunt+plano/progresso
+// (colunas com min-h, nada de flex-1 condicional) -> feeds com altura FIXA + scroll ->
+// acumulado. Tudo montado com os primitivos de src/components/ui.
 
 import { useEffect, useMemo, useState } from "react";
 import { useVipLive, type LiveStatus } from "./vip-live";
@@ -18,7 +19,7 @@ import type { MarketDex } from "./market-advisor";
 import { TeamLive } from "./team-live";
 import { StatTile } from "./stat-tile";
 import { Panel } from "./ui/panel";
-import { Led, LiveBadge, AlertBanner } from "./ui/status";
+import { Led, AlertBanner } from "./ui/status";
 import { ProgressBar } from "./ui/progress";
 import { FeedRow, EmptyState } from "./ui/feed";
 import { Sprite } from "./sprite";
@@ -109,6 +110,7 @@ export function VipOverview({
 
   const prof = account?.account?.profile ?? null;
   const balls = (account?.account?.balls ?? []).filter((b) => b.id !== MASTER_BALL_ID);
+  const streak = account?.account?.streak ?? null;
   const xpPct = prof && prof.xpForNext > 0 ? Math.min(100, (prof.xpInLevel / prof.xpForNext) * 100) : 0;
 
   const lvPct = lv
@@ -136,133 +138,168 @@ export function VipOverview({
     : t("vip.conn.off");
 
   const heroColor = troubled ? "var(--red)" : connected ? "var(--green)" : "var(--text-dim)";
+  const expired = account?.reason === "expired";
+  // rendimento ao vivo so vale com hunt rodando — fora disso a regua fica em placeholder
+  const rv = hunting && a ? a : null;
 
   return (
     <div className="flex flex-col gap-4">
-      {/* APITO: o jogo invalidou o vinculo — precisa do bookmark UMA vez de novo */}
-      {account?.reason === "expired" && (
-        <AlertBanner
-          color="var(--red)"
-          title={t("vip.conn.expired")}
-          detail={t("vip.conn.expiredHint")}
-          action={
-            <button type="button" onClick={() => onGo("conta")} className="btn btn-pink">
-              {t("vip.conn.expiredCta")} <ChevronRight size={9} />
-            </button>
-          }
-        />
-      )}
+      {/* ===== FAIXA DE ALERTA: slot de altura fixa SEMPRE renderizado. Mostra o
+             alerta mais prioritario (expirado > contestada > conexao caida), um por
+             vez; sem alerta, fica o estado quieto (LED ok esmaecido). Nada empilha,
+             nada empurra o painel. ===== */}
+      <div className="flex min-h-[3.9rem] flex-col justify-center">
+        {expired ? (
+          // APITO: o jogo invalidou o vinculo — precisa do bookmark UMA vez de novo
+          <AlertBanner
+            color="var(--red)"
+            title={t("vip.conn.expired")}
+            detail={t("vip.conn.expiredHint")}
+            action={
+              <button type="button" onClick={() => onGo("conta")} className="btn btn-pink">
+                {t("vip.conn.expiredCta")} <ChevronRight size={9} />
+              </button>
+            }
+          />
+        ) : contested ? (
+          // CEDEU A SESSAO: a conta foi tomada (usuario entrou no jogo). Um clique religa.
+          <AlertBanner
+            color="var(--yellow)"
+            title={t("vip.contested.status")}
+            detail={t("vip.contested.note")}
+            action={
+              <button type="button" onClick={() => void send({ action: "connect" }, t("toast.connected"))} disabled={busy} className="btn btn-yellow disabled:opacity-40">
+                {t("vip.contested.resume")} <ChevronRight size={9} />
+              </button>
+            }
+          />
+        ) : troubled ? (
+          // APITO: quer conectado mas a conexao falhou/caiu
+          <AlertBanner
+            color="var(--red)"
+            title={t("vip.conn.alarm")}
+            detail={<>{hunt?.error ? `${hunt.error} · ` : ""}{retryIn != null ? t("vip.hud.retry", { s: retryIn }) : t("vip.conn.retrying")}</>}
+            action={
+              <button type="button" onClick={() => void send({ action: "connect" })} disabled={busy} className="btn btn-pink disabled:opacity-40">
+                {t("vip.conn.forceRetry")}
+              </button>
+            }
+          />
+        ) : (
+          // estado quieto: mesma faixa, LED ok discreto — o slot nunca desaparece
+          <div className="flex min-h-[3.9rem] items-center gap-3 rounded border border-border/40 px-4">
+            <Led color={connected ? "var(--green)" : "var(--text-dim)"} />
+            <span className="slot-empty text-sm uppercase tracking-wide">—</span>
+          </div>
+        )}
+      </div>
 
-      {/* CEDEU A SESSAO: a conta foi tomada (usuario entrou no jogo). Um clique religa. */}
-      {contested && (
-        <AlertBanner
-          color="var(--yellow)"
-          title={t("vip.contested.status")}
-          detail={t("vip.contested.note")}
-          action={
-            <button type="button" onClick={() => void send({ action: "connect" }, t("toast.connected"))} disabled={busy} className="btn btn-yellow disabled:opacity-40">
-              {t("vip.contested.resume")} <ChevronRight size={9} />
-            </button>
-          }
-        />
-      )}
-
-      {/* APITO: quer conectado mas a conexao falhou/caiu */}
-      {troubled && (
-        <AlertBanner
-          color="var(--red)"
-          title={t("vip.conn.alarm")}
-          detail={<>{hunt?.error ? `${hunt.error} · ` : ""}{retryIn != null ? t("vip.hud.retry", { s: retryIn }) : t("vip.conn.retrying")}</>}
-          action={
-            <button type="button" onClick={() => void send({ action: "connect" })} disabled={busy} className="btn btn-pink disabled:opacity-40">
-              {t("vip.conn.forceRetry")}
-            </button>
-          }
-        />
-      )}
-
-      {/* ===== BARRA DE COMANDO DO ROBO: uma linha, status + meta + acoes ===== */}
+      {/* ===== BARRA DE COMANDO DO ROBO: duas linhas de ALTURA FIXA (como o HUD).
+             Linha 1: led + status + chip keep-alive (invisible reserva o lugar).
+             Linha 2: meta em slots + botoes SEMPRE nos mesmos lugares — o secundario
+             (desligar) desabilita em vez de sumir; o primario alterna no MESMO slot. ===== */}
       <section
-        className={`card flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3 ${connected ? "glow-pulse" : ""}`}
+        className={`card ${connected ? "glow-pulse" : ""}`}
         style={{ "--accent": troubled ? "var(--red)" : "var(--green)" } as React.CSSProperties}
       >
-        <Led color={troubled ? "var(--red)" : LED[status]} pulse={connected || status === "connecting" || !!hunt?.reconnecting} />
-        <Robot size={14} className={connected ? "text-green" : "text-text-dim"} />
-        <span className="pixel text-lg" style={{ color: heroColor }}>{statusLabel}</span>
-        {holdOpen && <span className="chip" style={{ background: "var(--green)", color: "#052012" }}>{t("vip.ov.keepAlive")}</span>}
-        <span className="hidden flex-wrap items-center gap-x-3 text-sm text-text-dim sm:flex">
-          {connected && hunt?.since && <span className="inline-flex items-center gap-1"><Clock size={10} />{hm(Math.floor((Date.now() - hunt.since) / 1000))}</span>}
-          {prof && <span className="inline-flex items-center gap-1"><Signal size={10} className={connected ? "text-green" : ""} />{prof.name}</span>}
-          {hunt?.mode && hunt.mode !== "manual" && hunting && (
-            <span className="inline-flex items-center gap-1 text-cyan">
-              {hunt.mode === "auto" ? <Brain size={10} /> : <Flag size={10} />}
-              {t(`vip.hud.mode.${hunt.mode}`)}
-            </span>
-          )}
-          {!holdOpen && <span>{t("vip.conn.connectDesc")}</span>}
-        </span>
-        <span className="ms-auto" />
-        {!holdOpen ? (
-          <button type="button" onClick={() => void send({ action: "connect" }, t("toast.connected"))} disabled={busy} className="btn btn-green disabled:opacity-40">
-            {t("vip.conn.connect")} <ChevronRight size={10} />
-          </button>
-        ) : (
-          <div className="flex flex-wrap items-center gap-2">
-            {!hunting && connected && (
-              <button type="button" onClick={() => void send({ action: "auto" }, t("toast.autoOn"))} disabled={busy} className="btn btn-cyan disabled:opacity-40">
-                <Brain size={10} /> {t("robo.mode.autoStart")}
-              </button>
+        <div className="flex h-11 min-w-0 items-center gap-3 border-b border-border/60 px-4">
+          <Led color={troubled ? "var(--red)" : LED[status]} pulse={connected || status === "connecting" || !!hunt?.reconnecting} />
+          <Robot size={14} className={`shrink-0 ${connected ? "text-green" : "text-text-dim"}`} />
+          <span className="pixel min-w-0 truncate text-lg" style={{ color: heroColor }}>{statusLabel}</span>
+          <span className={`chip shrink-0 ${holdOpen ? "" : "invisible"}`} style={{ background: "var(--green)", color: "#052012" }}>
+            {t("vip.ov.keepAlive")}
+          </span>
+        </div>
+
+        <div className="flex h-14 items-center gap-3 px-4">
+          {/* meta (sm+): slots permanentes quando o robo esta ligado; desligado, o
+              MESMO espaco explica o que o botao faz — um conteudo por vez, altura igual */}
+          <span className="hidden min-w-0 flex-1 items-center gap-x-4 text-sm text-text-dim sm:flex">
+            {holdOpen ? (
+              <>
+                <span className="inline-flex shrink-0 items-center gap-1 tabular-nums">
+                  <Clock size={10} />
+                  <span className={connected && hunt?.since ? "" : "slot-empty"}>
+                    {connected && hunt?.since ? hm(Math.floor((Date.now() - hunt.since) / 1000)) : "—"}
+                  </span>
+                </span>
+                <span className="inline-flex min-w-0 items-center gap-1">
+                  <Signal size={10} className={`shrink-0 ${connected ? "text-green" : ""}`} />
+                  <span className={`truncate ${prof ? "" : "slot-empty"}`}>{prof ? prof.name : "—"}</span>
+                </span>
+                <span className="inline-flex shrink-0 items-center gap-1">
+                  {hunt?.mode && hunt.mode !== "manual" && hunting ? (
+                    <span className="inline-flex items-center gap-1 text-cyan">
+                      {hunt.mode === "auto" ? <Brain size={10} /> : <Flag size={10} />}
+                      {t(`vip.hud.mode.${hunt.mode}`)}
+                    </span>
+                  ) : (
+                    <span className="slot-empty inline-flex items-center gap-1"><Brain size={10} />—</span>
+                  )}
+                </span>
+              </>
+            ) : (
+              <span className="min-w-0 truncate">{t("vip.conn.connectDesc")}</span>
             )}
-            {hunting && (
+          </span>
+
+          <span className="ms-auto flex shrink-0 items-center gap-2">
+            {/* slot PRIMARIO: ligar > parar hunt > iniciar auto — um por vez, mesmo lugar */}
+            {!holdOpen ? (
+              <button type="button" onClick={() => void send({ action: "connect" }, t("toast.connected"))} disabled={busy} className="btn btn-green disabled:opacity-40">
+                {t("vip.conn.connect")} <ChevronRight size={10} />
+              </button>
+            ) : hunting ? (
               <button type="button" onClick={() => void send({ action: "stop" }, t("toast.huntOff"))} disabled={busy} className="btn btn-ghost disabled:opacity-40">
                 {t("vip.conn.stopHunt")}
               </button>
+            ) : (
+              <button type="button" onClick={() => void send({ action: "auto" }, t("toast.autoOn"))} disabled={busy || !connected} className="btn btn-cyan disabled:opacity-40">
+                <Brain size={10} /> {t("robo.mode.autoStart")}
+              </button>
             )}
-            <button type="button" onClick={() => void send({ action: "disconnect" }, t("toast.disconnected"))} disabled={busy} className="btn btn-ghost disabled:opacity-40">
+            {/* slot SECUNDARIO: desligar sempre presente; desabilita quando ja desligado */}
+            <button type="button" onClick={() => void send({ action: "disconnect" }, t("toast.disconnected"))} disabled={busy || !holdOpen} className="btn btn-ghost disabled:opacity-40">
               {t("vip.conn.disconnect")}
             </button>
-          </div>
-        )}
+          </span>
+        </div>
       </section>
 
-      {/* ===== régua de rendimento AO VIVO (hunt rodando) ===== */}
-      {hunting && a && (
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-8">
-          <StatTile live label={t("robo.hunt.kills")} value={fmt(a.kills)} icon={<Skull size={11} className="text-text-dim" />} />
-          <StatTile label={t("robo.hunt.time")} value={hm(a.seconds)} icon={<Clock size={11} className="text-text-dim" />} />
-          <StatTile live label={t("robo.hunt.xph")} value={fmt(a.xpPerHour)} accent="var(--cyan)" icon={<Xp size={11} className="text-cyan" />} />
-          <StatTile live label={t("robo.hunt.goldph")} value={fmt(a.goldPerHour)} accent="var(--green)" icon={<Coin size={11} />} />
-          <StatTile live label={t("robo.hunt.captures")} value={fmt(a.captures)} icon={<Pokeball size={11} />} />
-          <StatTile live label={t("robo.hunt.loot")} value={fmt(a.lootGold)} icon={<Coin size={11} />} />
-          <StatTile live label={t("robo.hunt.supply")} value={`-${fmt(a.supplyGold)}`} accent="var(--pink)" icon={<Coin size={11} />} />
-          <StatTile live label={t("robo.hunt.balance")} value={fmt(a.balance)} accent="var(--green)" icon={<Coin size={11} />} />
-        </div>
-      )}
+      {/* ===== regua de rendimento AO VIVO: grade estavel SEMPRE renderizada —
+             sem hunt rodando, cada tile mostra o placeholder no MESMO slot ===== */}
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-8">
+        <StatTile live={!!rv} label={t("robo.hunt.kills")} value={rv ? fmt(rv.kills) : undefined} icon={<Skull size={11} className="text-text-dim" />} />
+        <StatTile label={t("robo.hunt.time")} value={rv ? hm(rv.seconds) : undefined} icon={<Clock size={11} className="text-text-dim" />} />
+        <StatTile live={!!rv} label={t("robo.hunt.xph")} value={rv ? fmt(rv.xpPerHour) : undefined} accent="var(--cyan)" icon={<Xp size={11} className="text-cyan" />} />
+        <StatTile live={!!rv} label={t("robo.hunt.goldph")} value={rv ? fmt(rv.goldPerHour) : undefined} accent="var(--green)" icon={<Coin size={11} />} />
+        <StatTile live={!!rv} label={t("robo.hunt.captures")} value={rv ? fmt(rv.captures) : undefined} icon={<Pokeball size={11} />} />
+        <StatTile live={!!rv} label={t("robo.hunt.loot")} value={rv ? fmt(rv.lootGold) : undefined} icon={<Coin size={11} />} />
+        <StatTile live={!!rv} label={t("robo.hunt.supply")} value={rv ? `-${fmt(rv.supplyGold)}` : undefined} accent="var(--pink)" icon={<Coin size={11} />} />
+        <StatTile live={!!rv} label={t("robo.hunt.balance")} value={rv ? fmt(rv.balance) : undefined} accent="var(--green)" icon={<Coin size={11} />} />
+      </div>
 
-      {/* ===== linha principal: time · hunt+plano · progresso — colunas de MESMA altura,
-             vazios em linha compacta (nada de caixa em branco) ===== */}
+      {/* ===== linha principal: time · hunt+plano · progresso — paineis SEMPRE
+             renderizados com min-h fechado; vazio/carregando ocupa o mesmo espaco ===== */}
       <div className="grid items-stretch gap-4 lg:grid-cols-12">
         <div className="flex lg:col-span-4 [&>*]:w-full"><TeamLive dex={dex} onManage={() => onGo("pokemons")} /></div>
 
         <div className="flex flex-col gap-4 lg:col-span-4">
-          <Panel icon={<Target size={12} />} accent="var(--cyan)" title={t("vip.ov.hunt")} live={hunting} className={huntOpt ? "flex-1" : ""}>
+          <Panel icon={<Target size={12} />} accent="var(--cyan)" title={t("vip.ov.hunt")} live={hunting} className="min-h-[8rem]" bodyClassName="justify-center">
             {huntOpt ? (
               <div className="flex items-center gap-3">
-                {huntOpt.pokeId != null && (
-                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded bg-[var(--well-bg)]">
-                    <Sprite src={spriteUrl(huntOpt.pokeId)} alt={huntOpt.name} size={38} />
-                  </span>
-                )}
+                {/* slot do sprite sempre presente — hunt sem pokeId nao desloca o texto */}
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded bg-[var(--well-bg)]">
+                  {huntOpt.pokeId != null ? <Sprite src={spriteUrl(huntOpt.pokeId)} alt={huntOpt.name} size={38} /> : <span className="slot-empty"><Pokeball size={20} /></span>}
+                </span>
                 <div className="min-w-0 flex-1">
                   <div className="pixel truncate text-base text-cyan">{huntOpt.name}</div>
                   <div className="text-sm text-text-dim">Lv{huntOpt.level} · {huntOpt.area}</div>
                 </div>
-                {a && (
-                  <div className="shrink-0 text-right text-sm tabular-nums">
-                    <div className="inline-flex items-center gap-1 text-cyan"><Xp size={9} />{fmt(a.xpPerHour)}/h</div>
-                    <div className="inline-flex items-center gap-1 text-green"><Coin size={9} />{fmt(a.goldPerHour)}/h</div>
-                  </div>
-                )}
+                <div className="shrink-0 text-right text-sm tabular-nums">
+                  <div className={`inline-flex items-center gap-1 ${a ? "text-cyan" : "slot-empty"}`}><Xp size={9} />{a ? `${fmt(a.xpPerHour)}/h` : "—/h"}</div>
+                  <div className={`flex items-center justify-end gap-1 ${a ? "text-green" : "slot-empty"}`}><Coin size={9} />{a ? `${fmt(a.goldPerHour)}/h` : "—/h"}</div>
+                </div>
               </div>
             ) : (
               <EmptyState
@@ -276,20 +313,23 @@ export function VipOverview({
           <Panel
             icon={<Flag size={12} />} accent="var(--purple)" title={t("vip.ov.plan")}
             right={lv?.done ? <span className="chip" style={{ background: "var(--green)", color: "#052012" }}>{t("vip.ov.planDone")}</span> : undefined}
-            className={lv ? "flex-1" : ""}
+            className="min-h-[9.5rem]" bodyClassName="justify-center"
           >
             {lv ? (
               <>
                 <div className="flex items-baseline gap-2">
                   <span className="pixel text-base text-purple">{lv.name}</span>
-                  <span className="pixel text-base text-text">{lv.currentLevel}<span className="text-text-dim"> / {lv.targetLevel}</span></span>
+                  <span className="pixel text-base tabular-nums text-text">{lv.currentLevel}<span className="text-text-dim"> / {lv.targetLevel}</span></span>
                 </div>
                 <ProgressBar pct={lvPct} color="var(--purple)" />
-                {currentStep && !lv.done && (
-                  <div className="text-sm text-text-dim">
-                    {t("vip.ov.planStep")}: <span className="text-text">{currentStep.huntName}</span> ({currentStep.from}-{currentStep.to}) · ~{fmt(currentStep.xpH)} XP/h
-                  </div>
-                )}
+                {/* linha da etapa sempre presente enquanto ha plano — concluir nao encolhe o painel */}
+                <div className="text-sm text-text-dim">
+                  {currentStep && !lv.done ? (
+                    <>{t("vip.ov.planStep")}: <span className="text-text">{currentStep.huntName}</span> ({currentStep.from}-{currentStep.to}) · ~{fmt(currentStep.xpH)} XP/h</>
+                  ) : (
+                    <span className="slot-empty">—</span>
+                  )}
+                </div>
               </>
             ) : (
               <EmptyState
@@ -300,14 +340,15 @@ export function VipOverview({
             )}
           </Panel>
 
-          {/* pokebolas entram na coluna do meio pra fechar a altura sem sobra */}
-          {prof && (
-            <Panel
-              icon={<Pokeball size={13} />} title={t("vip.res.balls")}
-              right={<button type="button" onClick={() => onGo("config")} className="icon-btn" aria-label={t("vip.sec.config")}><ChevronRight size={11} /></button>}
-              className="flex-1"
-            >
-              {balls.length ? (
+          {/* pokebolas fecham a altura da coluna; sem snapshot ainda = grade de slots
+              esmaecidos com as MESMAS dimensoes (nada aparece do nada) */}
+          <Panel
+            icon={<Pokeball size={13} />} title={t("vip.res.balls")}
+            right={<button type="button" onClick={() => onGo("config")} className="icon-btn" aria-label={t("vip.sec.config")}><ChevronRight size={11} /></button>}
+            className="min-h-[9rem] flex-1"
+          >
+            {prof ? (
+              balls.length ? (
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                   {balls.map((b) => {
                     const low = !b.infinite && b.count < 100;
@@ -328,125 +369,137 @@ export function VipOverview({
                 </div>
               ) : (
                 <EmptyState compact message={t("vip.res.noBalls")} />
-              )}
-            </Panel>
-          )}
+              )
+            ) : (
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="well flex items-center gap-2">
+                    <span className="slot-empty flex h-7 w-7 shrink-0 items-center justify-center"><Pokeball size={18} /></span>
+                    <span className="min-w-0 flex-1">
+                      <span className="slot-empty block truncate text-sm">—</span>
+                      <span className="slot-empty pixel block text-base tabular-nums">—</span>
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Panel>
         </div>
 
         <div className="flex lg:col-span-4">
-          {prof && (
-            <Panel
-              icon={<Xp size={12} />} accent="var(--cyan)" title={t("vip.res.progress")}
-              right={<span className="pixel text-base text-yellow">Lv{prof.level}</span>}
-              className="w-full"
-            >
-              <ProgressBar pct={xpPct} color="var(--cyan)" leftLabel={`${fmt(prof.xpInLevel)} XP`} rightLabel={`${fmt(prof.xpForNext)} XP`} />
-              <div className="grid flex-1 auto-rows-min grid-cols-2 gap-2">
-                <StatTile live label={t("vip.res.gold")} value={fmt(prof.gold)} accent="var(--green)" icon={<Coin size={11} />} />
-                <StatTile label={t("vip.res.diamonds")} value={fmt(prof.diamonds)} accent="var(--cyan)" icon={<span className="text-cyan"><Diamond size={11} /></span>} />
-                {account?.account && (
-                  <>
-                    <StatTile label={t("vip.ov.streak")} value={fmt(account.account.streak.totalKills)} icon={<Skull size={11} className="text-yellow" />} />
-                    <StatTile label={t("vip.ov.bonusXp")} value={`+${account.account.streak.bonusExp}%`} accent="var(--cyan)" icon={<Xp size={11} className="text-cyan" />} />
-                    <StatTile label={t("vip.ov.bonusLoot")} value={`+${account.account.streak.bonusLoot}%`} accent="var(--green)" icon={<Coin size={11} />} />
-                    <StatTile label={t("vip.ov.bonusShiny")} value={`+${account.account.streak.bonusShiny}%`} accent="var(--yellow)" icon={<Star size={11} className="text-yellow" />} />
-                  </>
-                )}
-                {totals && (
-                  <>
-                    <StatTile label={t("vip.ov.tCaptures")} value={fmt(totals.captures)} icon={<Pokeball size={11} />} />
-                    <StatTile label={t("vip.ov.tAcervo")} value={fmt(totals.acervo?.total ?? 0)} accent="var(--blue)" icon={<Backpack size={11} className="text-blue" />} />
-                  </>
-                )}
-              </div>
-            </Panel>
-          )}
+          <Panel
+            icon={<Xp size={12} />} accent="var(--cyan)" title={t("vip.res.progress")}
+            right={<span className={`pixel text-base ${prof ? "text-yellow" : "slot-empty"}`}>{prof ? `Lv${prof.level}` : "Lv —"}</span>}
+            className="min-h-[9rem] w-full"
+          >
+            <ProgressBar
+              pct={prof ? xpPct : 0}
+              color="var(--cyan)"
+              leftLabel={prof ? `${fmt(prof.xpInLevel)} XP` : "— XP"}
+              rightLabel={prof ? `${fmt(prof.xpForNext)} XP` : "— XP"}
+            />
+            {/* grade fechada de 8 tiles: dado ausente vira placeholder no mesmo slot */}
+            <div className="grid flex-1 auto-rows-min grid-cols-2 gap-2">
+              <StatTile live={!!prof} label={t("vip.res.gold")} value={prof ? fmt(prof.gold) : undefined} accent="var(--green)" icon={<Coin size={11} />} />
+              <StatTile label={t("vip.res.diamonds")} value={prof ? fmt(prof.diamonds) : undefined} accent="var(--cyan)" icon={<span className="text-cyan"><Diamond size={11} /></span>} />
+              <StatTile label={t("vip.ov.streak")} value={streak ? fmt(streak.totalKills) : undefined} icon={<Skull size={11} className="text-yellow" />} />
+              <StatTile label={t("vip.ov.bonusXp")} value={streak ? `+${streak.bonusExp}%` : undefined} accent="var(--cyan)" icon={<Xp size={11} className="text-cyan" />} />
+              <StatTile label={t("vip.ov.bonusLoot")} value={streak ? `+${streak.bonusLoot}%` : undefined} accent="var(--green)" icon={<Coin size={11} />} />
+              <StatTile label={t("vip.ov.bonusShiny")} value={streak ? `+${streak.bonusShiny}%` : undefined} accent="var(--yellow)" icon={<Star size={11} className="text-yellow" />} />
+              <StatTile label={t("vip.ov.tCaptures")} value={totals ? fmt(totals.captures) : undefined} icon={<Pokeball size={11} />} />
+              <StatTile label={t("vip.ov.tAcervo")} value={totals ? fmt(totals.acervo?.total ?? 0) : undefined} accent="var(--blue)" icon={<Backpack size={11} className="text-blue" />} />
+            </div>
+          </Panel>
         </div>
       </div>
 
-      {/* ===== feeds: kills ao vivo + eventos recentes ===== */}
+      {/* ===== feeds: kills ao vivo + eventos recentes — corpo com ALTURA FIXA e
+             scroll interno; item novo chegando nunca estica o painel ===== */}
       <div className="grid gap-4 lg:grid-cols-2">
         <Panel title={<span className="text-cyan">{t("vip.ov.liveFeed")}</span>} live={hunting}>
-          {hunt?.recentKills?.length ? (
-            <div className="flex flex-col gap-1.5">
-              {hunt.recentKills.slice(0, 6).map((k, i) => {
-                const pid = pokeByName.get(k.species.toLowerCase());
-                const isCatch = k.kind === "catch";
-                return (
-                  <FeedRow
-                    key={`${k.at}-${i}`}
-                    flash={i === 0}
-                    accent={isCatch ? "var(--green)" : "var(--cyan)"}
-                    leading={
-                      <>
-                        {pid != null && <Sprite src={spriteUrl(pid, k.shiny)} alt={k.species} size={28} />}
-                        {k.shiny && <span className="absolute -right-1 -top-1 text-yellow"><Star size={8} /></span>}
-                        {isCatch && <span className="absolute -bottom-1 -left-1"><Pokeball size={11} /></span>}
-                      </>
-                    }
-                    title={k.species}
-                    right={
-                      <>
-                        {isCatch ? (
-                          <span className="text-sm text-green">{t("robo.hunt.caught")}</span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 text-sm text-cyan"><Xp size={9} />{fmt(k.xp)}</span>
-                        )}
-                        {!isCatch && k.loot.slice(0, 3).map((l, j) => {
-                          const icon = itemIcons[l.name.toLowerCase()];
-                          return icon ? <Sprite key={j} src={assetIconUrl(icon)} alt={l.name} size={14} /> : null;
-                        })}
-                      </>
-                    }
-                  />
-                );
-              })}
-            </div>
-          ) : (
-            <EmptyState message={t("vip.ov.noKills")} />
-          )}
+          <div className="h-[21rem] overflow-y-auto pr-1">
+            {hunt?.recentKills?.length ? (
+              <div className="flex flex-col gap-1.5">
+                {hunt.recentKills.slice(0, 6).map((k, i) => {
+                  const pid = pokeByName.get(k.species.toLowerCase());
+                  const isCatch = k.kind === "catch";
+                  return (
+                    <FeedRow
+                      key={`${k.at}-${i}`}
+                      flash={i === 0}
+                      accent={isCatch ? "var(--green)" : "var(--cyan)"}
+                      leading={
+                        <>
+                          {pid != null && <Sprite src={spriteUrl(pid, k.shiny)} alt={k.species} size={28} />}
+                          {k.shiny && <span className="absolute -right-1 -top-1 text-yellow"><Star size={8} /></span>}
+                          {isCatch && <span className="absolute -bottom-1 -left-1"><Pokeball size={11} /></span>}
+                        </>
+                      }
+                      title={k.species}
+                      right={
+                        <>
+                          {isCatch ? (
+                            <span className="text-sm text-green">{t("robo.hunt.caught")}</span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-sm text-cyan"><Xp size={9} />{fmt(k.xp)}</span>
+                          )}
+                          {!isCatch && k.loot.slice(0, 3).map((l, j) => {
+                            const icon = itemIcons[l.name.toLowerCase()];
+                            return icon ? <Sprite key={j} src={assetIconUrl(icon)} alt={l.name} size={14} /> : null;
+                          })}
+                        </>
+                      }
+                    />
+                  );
+                })}
+              </div>
+            ) : (
+              <EmptyState className="h-full" message={t("vip.ov.noKills")} />
+            )}
+          </div>
         </Panel>
 
         <Panel
           title={<span className="text-yellow">{t("vip.ov.events")}</span>}
           right={<button type="button" onClick={() => onGo("alertas")} className="icon-btn" aria-label={t("vip.ov.allEvents")}><ChevronRight size={11} /></button>}
         >
-          {events?.events?.length ? (
-            <div className="flex flex-col gap-1.5">
-              {events.events.slice(0, 6).map((ev) => (
-                <FeedRow
-                  key={ev.id}
-                  leading={<span className="flex h-6 w-6 items-center justify-center rounded bg-surface-2">{EVENT_ICON[ev.kind] ?? <Chart size={11} className="text-text-dim" />}</span>}
-                  title={ev.title}
-                  sub={ev.body ?? undefined}
-                  right={<span className="text-xs text-text-dim">{ago(ev.createdAt)}</span>}
-                />
-              ))}
-            </div>
-          ) : (
-            <EmptyState compact message={t("vip.ov.noEvents")} />
-          )}
+          <div className="h-[21rem] overflow-y-auto pr-1">
+            {events?.events?.length ? (
+              <div className="flex flex-col gap-1.5">
+                {events.events.slice(0, 6).map((ev) => (
+                  <FeedRow
+                    key={ev.id}
+                    leading={<span className="flex h-6 w-6 items-center justify-center rounded bg-surface-2">{EVENT_ICON[ev.kind] ?? <Chart size={11} className="text-text-dim" />}</span>}
+                    title={ev.title}
+                    sub={ev.body ?? undefined}
+                    right={<span className="text-xs text-text-dim">{ago(ev.createdAt)}</span>}
+                  />
+                ))}
+              </div>
+            ) : (
+              <EmptyState className="h-full" message={t("vip.ov.noEvents")} />
+            )}
+          </div>
         </Panel>
       </div>
 
-      {/* ===== acumulado de sempre (expansivel — streak ja mora no Progresso) ===== */}
-      {totals && (
-        <Panel
-          collapsible
-          icon={<Chart size={12} />} accent="var(--purple)" title={t("vip.ov.totals")}
-          right={<button type="button" onClick={(e) => { e.stopPropagation(); onGo("estatisticas"); }} className="icon-btn" aria-label={t("vip.sec.estatisticas")}><ChevronRight size={11} /></button>}
-        >
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
-            <StatTile label={t("vip.ov.tHunts")} value={fmt(totals.hunts)} icon={<Target size={11} className="text-cyan" />} hover />
-            <StatTile label={t("vip.ov.tKills")} value={fmt(totals.kills)} icon={<Skull size={11} className="text-text-dim" />} hover />
-            <StatTile label={t("vip.ov.tXp")} value={fmt(totals.xpGained)} accent="var(--cyan)" icon={<Xp size={11} className="text-cyan" />} hover />
-            {/* so dolar RECEBIDO (vendas) — o valor do loot coletado vira venda depois, somar duplicaria */}
-            <StatTile label={t("vip.ov.tGold")} value={fmt(totals.itemsGold + totals.pokesGold)} accent="var(--green)" icon={<Coin size={11} />} hover />
-            <StatTile label={t("vip.ov.tCaptures")} value={fmt(totals.captures)} icon={<Pokeball size={11} />} hover />
-            <StatTile label={t("vip.ov.tAcervo")} value={fmt(totals.acervo?.total ?? 0)} accent="var(--blue)" icon={<Backpack size={11} className="text-blue" />} hover />
-          </div>
-        </Panel>
-      )}
+      {/* ===== acumulado de sempre (expansivel — streak ja mora no Progresso).
+             Sempre renderizado: sem totals ainda, os tiles ficam em placeholder ===== */}
+      <Panel
+        collapsible
+        icon={<Chart size={12} />} accent="var(--purple)" title={t("vip.ov.totals")}
+        right={<button type="button" onClick={(e) => { e.stopPropagation(); onGo("estatisticas"); }} className="icon-btn" aria-label={t("vip.sec.estatisticas")}><ChevronRight size={11} /></button>}
+      >
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+          <StatTile label={t("vip.ov.tHunts")} value={totals ? fmt(totals.hunts) : undefined} icon={<Target size={11} className="text-cyan" />} hover />
+          <StatTile label={t("vip.ov.tKills")} value={totals ? fmt(totals.kills) : undefined} icon={<Skull size={11} className="text-text-dim" />} hover />
+          <StatTile label={t("vip.ov.tXp")} value={totals ? fmt(totals.xpGained) : undefined} accent="var(--cyan)" icon={<Xp size={11} className="text-cyan" />} hover />
+          {/* so dolar RECEBIDO (vendas) — o valor do loot coletado vira venda depois, somar duplicaria */}
+          <StatTile label={t("vip.ov.tGold")} value={totals ? fmt(totals.itemsGold + totals.pokesGold) : undefined} accent="var(--green)" icon={<Coin size={11} />} hover />
+          <StatTile label={t("vip.ov.tCaptures")} value={totals ? fmt(totals.captures) : undefined} icon={<Pokeball size={11} />} hover />
+          <StatTile label={t("vip.ov.tAcervo")} value={totals ? fmt(totals.acervo?.total ?? 0) : undefined} accent="var(--blue)" icon={<Backpack size={11} className="text-blue" />} hover />
+        </div>
+      </Panel>
     </div>
   );
 }

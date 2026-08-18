@@ -114,25 +114,23 @@ export function RouteGenerator({ species, enemies }: { species: Species[]; enemi
         </div>
 
         <div className="mt-5 border-t border-border pt-4">
-          <div className="mb-2 flex items-center justify-between gap-2">
+          {/* header de altura fixa: o botao "usar base" tem slot permanente e so
+              habilita quando ha pokemon — o bloco de stats nao muda de altura */}
+          <div className="mb-2 flex h-9 items-center justify-between gap-2">
             <span className="field-label">{t("hunt.route.statsOpt")}</span>
-            {picked && <button type="button" className="btn btn-ghost btn-sm" onClick={fillBase}>{t("hunt.route.useBase")}</button>}
+            <button type="button" className="btn btn-ghost btn-sm disabled:opacity-40" onClick={fillBase} disabled={!picked}>{t("hunt.route.useBase")}</button>
           </div>
           <div className="grid grid-cols-3 gap-2.5">
             {STAT_LABELS.map((lb, i) => (
               <StatIn key={lb} iconIndex={i} label={lb} value={stats[i]} onChange={(v) => setStat(i, v)} />
             ))}
           </div>
-          {(ivInfo.total != null || ivInfo.power != null) && (
-            <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-2">
-              {ivInfo.total != null && (
-                <span className="text-sm uppercase tracking-wide text-text-dim">{t("hunt.route.ivTotal")} <span className="pixel ml-1 text-base text-green">{ivInfo.total.toFixed(1)}</span></span>
-              )}
-              {ivInfo.power != null && (
-                <span className="text-sm uppercase tracking-wide text-text-dim">{t("hunt.route.power")} <span className="pixel ml-1 text-base text-yellow">{ivInfo.power.toLocaleString("pt-BR")}</span></span>
-              )}
-            </div>
-          )}
+          {/* IV/Power: linha SEMPRE renderizada — sem stats completos os slots ficam
+              esmaecidos com "—" no mesmo lugar (nada aparece do nada) */}
+          <div className="mt-3 flex h-6 items-center gap-x-6">
+            <span className="text-sm uppercase tracking-wide text-text-dim">{t("hunt.route.ivTotal")} <span className={`pixel ml-1 text-base tabular-nums ${ivInfo.total != null ? "text-green" : "slot-empty"}`}>{ivInfo.total != null ? ivInfo.total.toFixed(1) : "—"}</span></span>
+            <span className="text-sm uppercase tracking-wide text-text-dim">{t("hunt.route.power")} <span className={`pixel ml-1 text-base tabular-nums ${ivInfo.power != null ? "text-yellow" : "slot-empty"}`}>{ivInfo.power != null ? ivInfo.power.toLocaleString("pt-BR") : "—"}</span></span>
+          </div>
         </div>
 
         {/* Nivel alvo + prioridade + VIP + calcular */}
@@ -163,23 +161,26 @@ export function RouteGenerator({ species, enemies }: { species: Species[]; enemi
             </div>
           </div>
 
+          {/* min-w segura a largura quando o rotulo troca pra "calculando" */}
           <button
             type="button"
             onClick={calc}
             disabled={!canCalc || computing}
-            className="btn btn-yellow self-start disabled:opacity-40 lg:self-auto"
+            className="btn btn-yellow min-w-[11rem] self-start disabled:opacity-40 lg:self-auto"
           >
             {computing ? `${t("hunt.route.calcing")}...` : <>{t("hunt.route.calc")} <ChevronRight size={10} /></>}
           </button>
         </div>
       </div>
 
+      {/* area de resultado: os estados (calculando/vazio/pronto) dividem a mesma
+          altura minima — alternar nao encolhe a pagina de supetao */}
       {computing ? (
-        <div className="card"><LoadingBall label={t("hunt.route.calcing")} /></div>
+        <div className="card flex min-h-[11rem] items-center justify-center"><LoadingBall label={t("hunt.route.calcing")} /></div>
       ) : !result ? (
-        <div className="card p-10 text-center text-text-dim">{canCalc ? t("hunt.route.hitCalc") : t("hunt.route.pick")}</div>
+        <div className="card flex min-h-[11rem] items-center justify-center p-10 text-center text-text-dim">{canCalc ? t("hunt.route.hitCalc") : t("hunt.route.pick")}</div>
       ) : result.length === 0 ? (
-        <div className="card p-10 text-center text-text-dim">{t("hunt.route.empty")}</div>
+        <div className="card flex min-h-[11rem] items-center justify-center p-10 text-center text-text-dim">{t("hunt.route.empty")}</div>
       ) : (
         <div className="flex flex-col gap-3">
           {result.map((step) => {

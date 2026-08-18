@@ -201,16 +201,17 @@ export function ChatPanel({ creatures, dex }: { creatures: { pokeId: number; nam
         <p className="mt-2 max-w-2xl text-sm text-text-dim">{t("vip.chat.desc")}</p>
       </div>
 
-      {!connected && (
-        <div className="flex items-center gap-2.5 rounded border border-yellow/40 bg-[color:var(--yellow)]/5 px-3.5 py-2">
-          <span className="text-base text-yellow">{t("vip.chat.needLive")}</span>
-        </div>
-      )}
+      {/* aviso de robo desligado: slot permanente (invisible quando conectado) — o
+          estado da conexao muda ao vivo e nao pode empurrar o feed pra baixo */}
+      <div className={`flex min-h-10 items-center gap-2.5 rounded border border-yellow/40 bg-[color:var(--yellow)]/5 px-3.5 py-2 ${connected ? "invisible" : ""}`}>
+        <span className="text-base text-yellow">{t("vip.chat.needLive")}</span>
+      </div>
 
       <div className="grid gap-4 lg:grid-cols-12">
         {/* feed + envio */}
         <Panel icon={<Bubble size={12} />} accent="var(--cyan)" title={t("vip.chat.feed")} live={connected} className="lg:col-span-8">
-          <div ref={feedRef} className="flex h-[26rem] flex-col gap-1 overflow-y-auto rounded border border-border bg-[var(--well-bg)] p-2.5">
+          {/* altura fixa mas com teto responsivo: nunca passa de 60dvh no celular */}
+          <div ref={feedRef} className="flex h-[min(26rem,60dvh)] flex-col gap-1 overflow-y-auto rounded border border-border bg-[var(--well-bg)] p-2.5">
             {msgs.length === 0 ? (
               <EmptyState className="m-auto" message={connected ? t("vip.chat.empty") : t("vip.chat.emptyOff")} />
             ) : (
@@ -232,17 +233,19 @@ export function ChatPanel({ creatures, dex }: { creatures: { pokeId: number; nam
             )}
           </div>
 
-          {/* envio */}
-          <div className="mt-3 flex flex-wrap items-center gap-2">
-            <div className="flex gap-1">
-              {CHANNELS.map((c) => (
-                <button key={c} type="button" onClick={() => setChannel(c)}
-                  className={`tab ${channel === c ? "tab-active" : ""}`}
-                  style={channel === c ? { color: CH_COLOR[c], borderColor: CH_COLOR[c] } : undefined}>
-                  {t(`vip.chat.ch.${c}`)}
-                </button>
-              ))}
-            </div>
+          {/* envio: linhas de altura estavel — trilho de canais rolavel, depois input +
+              botao. O botao tem largura minima fixa: o rotulo alterna (enviar / Ns / …)
+              sem mexer o input do lado. */}
+          <div className="mt-3 flex flex-nowrap gap-1 overflow-x-auto">
+            {CHANNELS.map((c) => (
+              <button key={c} type="button" onClick={() => setChannel(c)}
+                className={`tab min-h-9 shrink-0 ${channel === c ? "tab-active" : ""}`}
+                style={channel === c ? { color: CH_COLOR[c], borderColor: CH_COLOR[c] } : undefined}>
+                {t(`vip.chat.ch.${c}`)}
+              </button>
+            ))}
+          </div>
+          <div className="mt-2 flex items-center gap-2">
             <input
               value={text}
               onChange={(e) => setText(e.target.value)}
@@ -250,17 +253,16 @@ export function ChatPanel({ creatures, dex }: { creatures: { pokeId: number; nam
               placeholder={connected ? t("vip.chat.ph") : t("vip.chat.phOff")}
               disabled={!connected}
               maxLength={300}
-              className="input min-w-40 flex-1"
+              className="input min-w-0 flex-1"
             />
-            <button type="button" onClick={() => void sendMsg()} disabled={busy || !connected || !text.trim() || cooldownLeft > 0} className="btn btn-cyan disabled:opacity-40">
+            <button type="button" onClick={() => void sendMsg()} disabled={busy || !connected || !text.trim() || cooldownLeft > 0} className="btn btn-cyan min-w-[7rem] shrink-0 tabular-nums disabled:opacity-40">
               {busy ? "…" : cooldownLeft > 0 ? `${cooldownLeft}s` : t("vip.chat.send")} <ChevronRight size={9} />
             </button>
           </div>
-          {cooldownLeft > 0 && (
-            <p className="mt-1.5 inline-flex items-center gap-1 text-sm text-text-dim">
-              <Clock size={9} className="text-yellow" /> {t("vip.chat.cooldownHint", { s: cooldownLeft })}
-            </p>
-          )}
+          {/* dica do cooldown: linha sempre reservada (invisible fora do cooldown) */}
+          <p className={`mt-1.5 flex h-5 items-center gap-1 text-sm text-text-dim ${cooldownLeft > 0 ? "" : "invisible"}`}>
+            <Clock size={9} className="text-yellow" /> {t("vip.chat.cooldownHint", { s: cooldownLeft })}
+          </p>
         </Panel>
 
         {/* anuncio automatico */}
@@ -278,7 +280,7 @@ export function ChatPanel({ creatures, dex }: { creatures: { pokeId: number; nam
             maxLength={300}
             rows={3}
             placeholder={t("vip.chat.annPh")}
-            className="input resize-none !h-auto"
+            className="input resize-none"
           />
           <div className="grid grid-cols-2 gap-2">
             <div>
@@ -302,9 +304,10 @@ export function ChatPanel({ creatures, dex }: { creatures: { pokeId: number; nam
               {t("vip.chat.annStart")} <ChevronRight size={9} />
             </button>
           )}
-          {ann?.on && (
-            <p className="text-sm text-text-dim">{t("vip.chat.annRunning", { n: fmtEvery(ann.everySec), c: t(`vip.chat.ch.${ann.channel}`) })}</p>
-          )}
+          {/* linha de status do anuncio: slot permanente — ligar/desligar nao muda a altura */}
+          <p className={`text-sm ${ann?.on ? "text-text-dim" : "slot-empty"}`}>
+            {ann?.on ? t("vip.chat.annRunning", { n: fmtEvery(ann.everySec), c: t(`vip.chat.ch.${ann.channel}`) }) : "—"}
+          </p>
         </Panel>
       </div>
 

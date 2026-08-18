@@ -105,7 +105,7 @@ function BallSelect({ balls, value, onChange, disabled }: { balls: Ball[]; value
               key={b.id}
               type="button"
               onClick={() => { onChange(b.id); setOpen(false); }}
-              className={`flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm hover:bg-surface-2 ${b.id === value ? "bg-surface-2" : ""}`}
+              className={`flex min-h-9 w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm hover:bg-surface-2 ${b.id === value ? "bg-surface-2" : ""}`}
             >
               {b.iconUrl && (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -152,7 +152,7 @@ function SupplySelect({ opts, value, onChange, bestLabel }: { opts: Opt[]; value
           <button
             type="button"
             onClick={() => { onChange(null); setOpen(false); }}
-            className={`flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm hover:bg-surface-2 ${value == null ? "bg-surface-2" : ""}`}
+            className={`flex min-h-9 w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm hover:bg-surface-2 ${value == null ? "bg-surface-2" : ""}`}
           >
             <span className="min-w-0 flex-1 truncate text-text-dim">{bestLabel}</span>
           </button>
@@ -161,7 +161,7 @@ function SupplySelect({ opts, value, onChange, bestLabel }: { opts: Opt[]; value
               key={o.id}
               type="button"
               onClick={() => { onChange(o.id); setOpen(false); }}
-              className={`flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm hover:bg-surface-2 ${o.id === value ? "bg-surface-2" : ""}`}
+              className={`flex min-h-9 w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm hover:bg-surface-2 ${o.id === value ? "bg-surface-2" : ""}`}
             >
               {o.icon && (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -178,14 +178,16 @@ function SupplySelect({ opts, value, onChange, bestLabel }: { opts: Opt[]; value
 
 // ---- blocos de layout compartilhados ----
 
+// linha rotulo/controle em GRID: coluna de texto flexivel + coluna de controle
+// encostada a direita — todos os toggles/selects da secao alinham na mesma calha
 function Row({ title, desc, children }: { title: string; desc?: string; children: React.ReactNode }) {
   return (
-    <div className="flex flex-col gap-2 border-t border-border py-3 first:border-t-0 first:pt-0 sm:flex-row sm:items-center sm:justify-between">
+    <div className="grid grid-cols-1 gap-2 border-t border-border py-3 first:border-t-0 first:pt-0 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
       <div className="min-w-0">
-        <div className="text-sm text-text">{title}</div>
-        {desc && <div className="mt-0.5 text-base text-text-dim">{desc}</div>}
+        <div className="field-label">{title}</div>
+        {desc && <div className="mt-0.5 text-sm text-text-dim">{desc}</div>}
       </div>
-      <div className="shrink-0">{children}</div>
+      <div className="sm:justify-self-end">{children}</div>
     </div>
   );
 }
@@ -195,7 +197,7 @@ function Slider({ value, min, max, step, decimals, onChange }: { value: number; 
   const set = (n: number) => { if (Number.isNaN(n)) return; onChange(round(Math.min(max, Math.max(min, n)))); };
   return (
     <div className="flex items-center gap-2">
-      <input type="range" min={min} max={max} step={step} value={value} onChange={(e) => set(Number(e.target.value))} className="w-32 accent-[color:var(--yellow)]" />
+      <input type="range" min={min} max={max} step={step} value={value} onChange={(e) => set(Number(e.target.value))} className="min-h-9 w-32 accent-[color:var(--yellow)]" />
       <input type="number" min={min} max={max} step={step} value={value} onChange={(e) => set(Number(e.target.value))} className="input w-20 text-right tabular-nums text-yellow" />
     </div>
   );
@@ -213,7 +215,7 @@ function RarityBoxes({ selected, onToggle }: { selected: Rarity[]; onToggle: (r:
             type="button"
             onClick={() => onToggle(r)}
             aria-pressed={on}
-            className="chip inline-flex items-center gap-1.5 border transition"
+            className="chip inline-flex min-h-9 items-center gap-1.5 border transition"
             style={{ background: on ? color : "transparent", borderColor: color, color: on ? "#06111a" : color, opacity: on ? 1 : 0.5 }}
           >
             <span className="inline-flex w-2 justify-center text-sm">{on ? <Check size={9} /> : "·"}</span>
@@ -348,16 +350,26 @@ export function ConfigPanel() {
   return (
     <div className="flex flex-col gap-6">
       {/* barra de acao UNICA — sticky: um Confirmar pra secao inteira. Ancora ABAIXO
-          do HUD (que segura em 0.5rem do topo) pra nao brigarem pelo mesmo lugar. */}
-      <div className="card sticky top-[4.4rem] z-20 flex flex-wrap items-center gap-3 p-4" style={{ background: "var(--surface-solid)" }}>
-        <span className="inline-flex text-blue"><Gear size={14} /></span>
+          do HUD (que segura em 0.5rem do topo) pra nao brigarem pelo mesmo lugar.
+          Linha sem wrap: o texto e flexivel e o par status+botao fica preso a direita
+          — pendencia aparecendo/sumindo troca SO o conteudo do slot, o botao nao pula. */}
+      <div className="card sticky top-[4.4rem] z-20 flex items-center gap-3 p-4" style={{ background: "var(--surface-solid)" }}>
+        <span className="hidden shrink-0 text-blue sm:inline-flex"><Gear size={14} /></span>
         <div className="min-w-0 flex-1">
           <h2 className="section-title text-blue">{t("vip.sec.config")}</h2>
-          <p className="mt-0.5 text-base text-text-dim">{t("config.desc")}</p>
+          <p className="mt-0.5 hidden text-sm text-text-dim sm:block">{t("config.desc")}</p>
         </div>
-        {saved && !dirty && <span className="text-base text-green">{t("config.saved")}</span>}
-        {dirty && <span className="chip" style={{ background: "var(--yellow)", color: "#1a1405" }}>{t("config.pending", { n: pendingCount })}</span>}
-        <button type="button" onClick={confirm} disabled={!dirty || busy} className="btn btn-cyan disabled:opacity-40">
+        {/* slot de status: um estado por vez (pendencias > salvo > vazio), mesma altura */}
+        <span className="inline-flex h-7 shrink-0 items-center">
+          {dirty ? (
+            <span className="chip" style={{ background: "var(--yellow)", color: "#1a1405" }}>{t("config.pending", { n: pendingCount })}</span>
+          ) : saved ? (
+            <span className="text-base text-green">{t("config.saved")}</span>
+          ) : (
+            <span className="slot-empty text-base">—</span>
+          )}
+        </span>
+        <button type="button" onClick={confirm} disabled={!dirty || busy} className="btn btn-cyan min-w-[8rem] shrink-0 disabled:opacity-40">
           <Check size={11} /> {busy ? "…" : t("robo.pokes.commit")}
         </button>
       </div>
@@ -374,12 +386,12 @@ export function ConfigPanel() {
           </Row>
           {d.auto.autoCatch && a.isVip && (
             <div className="border-t border-border py-3">
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
                 <div className="min-w-0">
-                  <div className="text-sm text-text">{t("robo.catchBall")}</div>
-                  <div className="mt-0.5 text-base text-text-dim">{t("robo.catchBall.desc")}</div>
+                  <div className="field-label">{t("robo.catchBall")}</div>
+                  <div className="mt-0.5 text-sm text-text-dim">{t("robo.catchBall.desc")}</div>
                 </div>
-                <div className="shrink-0"><BallSelect balls={balls} value={d.auto.autoCatchBallId} onChange={(id) => editAuto({ autoCatchBallId: id })} /></div>
+                <div className="sm:justify-self-end"><BallSelect balls={balls} value={d.auto.autoCatchBallId} onChange={(id) => editAuto({ autoCatchBallId: id })} /></div>
               </div>
               {ballWarn(d.auto.autoCatchBallId)}
             </div>
@@ -390,12 +402,12 @@ export function ConfigPanel() {
           </Row>
           {d.auto.autoCatchShiny && a.isVip && (
             <div className="border-t border-border py-3">
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
                 <div className="min-w-0">
-                  <div className="text-sm text-text">{t("robo.shinyBall")}</div>
-                  <div className="mt-0.5 text-base text-text-dim">{t("robo.shinyBall.desc")}</div>
+                  <div className="field-label">{t("robo.shinyBall")}</div>
+                  <div className="mt-0.5 text-sm text-text-dim">{t("robo.shinyBall.desc")}</div>
                 </div>
-                <div className="shrink-0"><BallSelect balls={balls} value={d.auto.autoCatchShinyBallId} onChange={(id) => editAuto({ autoCatchShinyBallId: id })} /></div>
+                <div className="sm:justify-self-end"><BallSelect balls={balls} value={d.auto.autoCatchShinyBallId} onChange={(id) => editAuto({ autoCatchShinyBallId: id })} /></div>
               </div>
               {ballWarn(d.auto.autoCatchShinyBallId)}
             </div>
@@ -450,8 +462,8 @@ export function ConfigPanel() {
           </Row>
 
           <div className="border-t border-border py-3">
-            <div className="text-sm text-text">{t("robo.pokes.sellRarities")}</div>
-            <div className="mt-0.5 text-base text-text-dim">{t("robo.pokes.sellRarities.desc")}</div>
+            <div className="field-label">{t("robo.pokes.sellRarities")}</div>
+            <div className="mt-0.5 text-sm text-text-dim">{t("robo.pokes.sellRarities.desc")}</div>
             <RarityBoxes selected={d.sell.sellRarities} onToggle={toggleRarity} />
           </div>
 

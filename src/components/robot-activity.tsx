@@ -70,12 +70,15 @@ export function RobotActivity() {
   return (
     <Panel
       title={<span className="text-cyan">{t("evt.title")}</span>}
-      right={events.length > 0 ? <button type="button" onClick={clear} className="btn btn-ghost">{t("evt.clear")}</button> : undefined}
+      // botao sempre no slot: invisible reserva o espaco (cabecalho de altura estavel)
+      right={<button type="button" onClick={clear} className={`btn btn-ghost btn-sm ${events.length > 0 ? "" : "invisible"}`}>{t("evt.clear")}</button>}
     >
+      {/* feed vivo: ALTURA FIXA com rolagem propria — evento novo nao empurra a pagina.
+          O estado vazio ocupa exatamente a mesma caixa. */}
       {shown.length === 0 ? (
-        <EmptyState compact message={t("evt.empty")} />
+        <div className="flex h-80 items-center justify-center"><EmptyState message={t("evt.empty")} /></div>
       ) : (
-        <div className="flex max-h-96 flex-col gap-1.5 overflow-y-auto pr-1">
+        <div className="flex h-80 flex-col gap-1.5 overflow-y-auto pr-1">
           {shown.map((e, idx) => {
             const r = render(e);
             return (

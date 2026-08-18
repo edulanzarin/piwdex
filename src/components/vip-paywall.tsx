@@ -55,8 +55,8 @@ export function VipPaywall({ status }: { status: string | null }) {
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-6 py-4">
       <div className="text-center">
-        <h1 className="pixel text-3xl text-yellow sm:text-2xl">{t("vip.paywall.title")}</h1>
-        <p className="mx-auto mt-3 max-w-md text-sm text-text-dim">{t("vip.paywall.desc")}</p>
+        <h1 className="pixel text-2xl text-yellow sm:text-3xl">{t("vip.paywall.title")}</h1>
+        <p className="mx-auto mt-3 max-w-md text-base text-text-dim">{t("vip.paywall.desc")}</p>
       </div>
 
       {banner && <div className={`rounded border px-4 py-2 text-base ${banner.cls}`}>{t(banner.k)}</div>}
@@ -74,7 +74,7 @@ export function VipPaywall({ status }: { status: string | null }) {
             <div className="section-title mb-1 flex items-center gap-2 text-yellow">
               <Star size={12} /> {t("vip.hero.badge")}
             </div>
-            <h2 className="pixel text-base leading-snug text-yellow sm:text-base">{t("vip.hero.robot.title")}</h2>
+            <h2 className="pixel text-xl leading-snug text-yellow">{t("vip.hero.robot.title")}</h2>
             <p className="mt-2 text-base leading-relaxed text-text-dim">{t("vip.hero.robot.desc")}</p>
           </div>
         </div>
@@ -104,11 +104,12 @@ export function VipPaywall({ status }: { status: string | null }) {
             <div className="pixel text-lg text-yellow">{t("vip.price")}</div>
             <div className="text-sm text-text-dim">{t("vip.priceNote")}</div>
           </div>
-          <button type="button" onClick={subscribe} disabled={busy} className="btn btn-yellow disabled:opacity-50">
+          <button type="button" onClick={subscribe} disabled={busy} className="btn btn-yellow min-w-[8rem] disabled:opacity-50">
             {busy ? `${t("vip.subscribing")}...` : <>{t("vip.subscribe")} <ChevronRight size={10} /></>}
           </button>
         </div>
-        {err && <p className="text-base text-red">{err}</p>}
+        {/* slot do erro sempre reservado: a mensagem aparecer nao empurra o card */}
+        <p className={`min-h-[1.45rem] text-base ${err ? "text-red" : "slot-empty"}`}>{err ?? "—"}</p>
       </div>
     </div>
   );

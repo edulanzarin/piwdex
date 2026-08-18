@@ -111,7 +111,8 @@ export function MyPokemons({ dex }: { dex?: Record<number, MarketDex> }) {
       {/* ===== time ativo: trocar lider + guardar no box ===== */}
       <Panel icon={<Trainer size={12} />} accent="var(--yellow)" title={t("vip.team.title")} className="p-5" bodyClassName="gap-3">
         {team.length === 0 ? (
-          <EmptyState message={t("vip.team.empty")} />
+          // vazio com a altura de uma linha de cards do time: o painel nao pula quando o time chega
+          <EmptyState className="min-h-24 justify-center" message={t("vip.team.empty")} />
         ) : (
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {team.map((p) => {
@@ -130,38 +131,35 @@ export function MyPokemons({ dex }: { dex?: Record<number, MarketDex> }) {
                     {busyId === p.id && <span className="absolute inset-0 rounded radar" />}
                   </span>
                   <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-1.5">
+                    {/* linhas de ALTURA FIXA (nada de wrap): cards da grade ficam iguais */}
+                    <div className="flex h-6 items-center gap-1.5 overflow-hidden">
                       <span className="truncate text-base text-text">{p.name}</span>
                       <span className="pixel shrink-0 text-xs text-text-dim">Lv{p.level}</span>
-                      {isLeader && <span className="chip" style={{ background: "var(--yellow)", color: "#3a2c00" }}>{t("account.team.leader")}</span>}
-                      {rar && <RarityBadge rarity={rar} />}
+                      {isLeader && <span className="chip shrink-0" style={{ background: "var(--yellow)", color: "#3a2c00" }}>{t("account.team.leader")}</span>}
+                      {rar && <span className="shrink-0"><RarityBadge rarity={rar} /></span>}
                     </div>
-                    <div className="mt-0.5 flex flex-wrap gap-x-2.5 text-sm tabular-nums text-text-dim">
-                      <span className="inline-flex items-center gap-1 text-cyan"><Xp size={9} />{fmt(p.power)}</span>
-                      <span>IV <span className={ivColor(p.ivTotal)}>{p.ivTotal}</span></span>
-                      <span>Q <span className="text-cyan">{p.quality.toFixed(2)}</span></span>
+                    <div className="flex h-5 items-center gap-x-2.5 overflow-hidden text-sm tabular-nums text-text-dim">
+                      <span className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-cyan"><Xp size={9} />{fmt(p.power)}</span>
+                      <span className="shrink-0 whitespace-nowrap">IV <span className={ivColor(p.ivTotal)}>{p.ivTotal}</span></span>
+                      <span className="shrink-0 whitespace-nowrap">Q <span className="text-cyan">{p.quality.toFixed(2)}</span></span>
                     </div>
                   </div>
+                  {/* coluna de acoes com 3 SLOTS fixos: acao que nao se aplica fica invisible
+                      (reserva o espaco) — lider e reserva geram cards da MESMA altura */}
                   <div className="flex shrink-0 flex-col gap-1">
-                    {p.stats && (
-                      <button type="button" onClick={() => setStatsPoke(p)} title={t("vip.team.viewStats")}
-                        className="rounded border border-border p-1.5 text-text-dim transition hover:border-[color:var(--cyan)]/60 hover:text-cyan">
-                        <Chart size={11} />
-                      </button>
-                    )}
-                    {!isLeader && (
-                      <button type="button" onClick={() => void summon(p)} disabled={busyId != null} title={t("vip.team.makeLeader")}
-                        className="rounded border border-border p-1.5 text-text-dim transition hover:border-[color:var(--yellow)]/60 hover:text-yellow disabled:opacity-30">
-                        <Check size={11} />
-                      </button>
-                    )}
-                    {!isLeader && (
-                      <button type="button" onClick={() => setConfirm({ action: "store", poke: p })} disabled={moveBusy || p.starter}
-                        title={p.starter ? t("vip.team.starterStay") : t("vip.team.store")}
-                        className="rounded border border-border p-1.5 text-text-dim transition hover:border-[color:var(--cyan)]/60 hover:text-cyan disabled:opacity-30">
-                        <Backpack size={11} />
-                      </button>
-                    )}
+                    <button type="button" onClick={() => setStatsPoke(p)} title={t("vip.team.viewStats")}
+                      className={`rounded border border-border p-1.5 text-text-dim transition hover:border-[color:var(--cyan)]/60 hover:text-cyan ${p.stats ? "" : "invisible"}`}>
+                      <Chart size={11} />
+                    </button>
+                    <button type="button" onClick={() => void summon(p)} disabled={busyId != null} title={t("vip.team.makeLeader")}
+                      className={`rounded border border-border p-1.5 text-text-dim transition hover:border-[color:var(--yellow)]/60 hover:text-yellow disabled:opacity-30 ${isLeader ? "invisible" : ""}`}>
+                      <Check size={11} />
+                    </button>
+                    <button type="button" onClick={() => setConfirm({ action: "store", poke: p })} disabled={moveBusy || p.starter}
+                      title={p.starter ? t("vip.team.starterStay") : t("vip.team.store")}
+                      className={`rounded border border-border p-1.5 text-text-dim transition hover:border-[color:var(--cyan)]/60 hover:text-cyan disabled:opacity-30 ${isLeader ? "invisible" : ""}`}>
+                      <Backpack size={11} />
+                    </button>
                   </div>
                 </div>
               );
@@ -174,30 +172,36 @@ export function MyPokemons({ dex }: { dex?: Record<number, MarketDex> }) {
       <Panel
         icon={<Backpack size={12} />}
         accent="var(--cyan)"
-        title={<>{t("vip.team.boxTitle")}{boxList && <span className="ms-2 pixel text-sm text-text-dim">{boxList.length}</span>}</>}
+        // contagem com slot permanente: sem lista carregada mostra o placeholder esmaecido
+        title={<>{t("vip.team.boxTitle")}<span className={`ms-2 pixel text-sm ${boxList ? "text-text-dim" : "slot-empty"}`}>{boxList ? boxList.length : "—"}</span></>}
         className="p-5"
         bodyClassName="gap-3"
       >
-        {teamFull && <p className="text-base text-yellow">{t("vip.team.teamFull")}</p>}
-        <div className="flex flex-wrap items-center gap-2">
-          <input value={boxQ} onChange={(e) => setBoxQ(e.target.value)} placeholder={t("vip.team.boxSearch")} className="input max-w-xs flex-1" />
-          <SelectMenu value={boxSort} onChange={setBoxSort} className="" options={[
-            { value: "quality", label: t("account.market.sort.quality") },
-            { value: "iv", label: t("account.market.sort.iv") },
-            { value: "power", label: t("account.market.sort.power") },
-            { value: "level", label: "Level" },
-          ]} />
-          <button type="button" onClick={loadBox} className="btn btn-ghost">{t("vip.poke.reload")}</button>
+        {/* aviso de time cheio SEMPRE no slot: invisible reserva a linha (nada empurra) */}
+        <p className={`text-base text-yellow ${teamFull ? "" : "invisible"}`}>{t("vip.team.teamFull")}</p>
+        {/* barra de ferramentas em LINHA de altura fixa: se nao couber, rola na horizontal */}
+        <div className="flex flex-nowrap items-center gap-2 overflow-x-auto">
+          <input value={boxQ} onChange={(e) => setBoxQ(e.target.value)} placeholder={t("vip.team.boxSearch")} className="input min-w-40 max-w-xs flex-1" />
+          <div className="w-40 shrink-0">
+            <SelectMenu value={boxSort} onChange={setBoxSort} className="" options={[
+              { value: "quality", label: t("account.market.sort.quality") },
+              { value: "iv", label: t("account.market.sort.iv") },
+              { value: "power", label: t("account.market.sort.power") },
+              { value: "level", label: "Level" },
+            ]} />
+          </div>
+          <button type="button" onClick={loadBox} className="btn btn-ghost shrink-0">{t("vip.poke.reload")}</button>
         </div>
 
+        {/* os 4 estados do box na MESMA caixa minima: trocar de estado nao pula o painel */}
         {boxErr === "not_connected" ? (
-          <EmptyState message={t("vip.poke.connectFirst")} />
+          <EmptyState className="min-h-40 justify-center" message={t("vip.poke.connectFirst")} />
         ) : boxErr === "err" ? (
-          <p className="py-8 text-center text-base text-red">{t("toast.err")}</p>
+          <div className="flex min-h-40 items-center justify-center"><p className="text-base text-red">{t("toast.err")}</p></div>
         ) : boxList === null ? (
-          <div className="py-6"><LoadingBall label={t("vip.poke.loading")} /></div>
+          <div className="flex min-h-40 items-center justify-center"><LoadingBall label={t("vip.poke.loading")} /></div>
         ) : !boxShown || boxShown.length === 0 ? (
-          <EmptyState message={t("vip.team.boxEmpty")} />
+          <EmptyState className="min-h-40 justify-center" message={t("vip.team.boxEmpty")} />
         ) : (
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {boxShown.map((p) => {
@@ -215,14 +219,15 @@ export function MyPokemons({ dex }: { dex?: Record<number, MarketDex> }) {
                       {p.shiny && <span className="absolute -right-1 -top-1 text-yellow"><Star size={10} /></span>}
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="flex flex-wrap items-center gap-1.5">
+                      {/* linhas de altura fixa (sem wrap): cards do box todos iguais */}
+                      <span className="flex h-6 items-center gap-1.5 overflow-hidden">
                         <span className="truncate text-base text-text">{p.name}</span>
                         <span className="pixel shrink-0 text-xs text-text-dim">Lv{p.level}</span>
-                        {rar && <RarityBadge rarity={rar} />}
+                        {rar && <span className="shrink-0"><RarityBadge rarity={rar} /></span>}
                       </span>
-                      <span className="mt-0.5 flex flex-wrap gap-x-2.5 text-sm tabular-nums text-text-dim">
-                        <span>IV <span className={ivColor(p.ivTotal)}>{p.ivTotal}</span></span>
-                        <span>Q <span className="text-cyan">{p.quality.toFixed(2)}</span></span>
+                      <span className="flex h-5 items-center gap-x-2.5 overflow-hidden text-sm tabular-nums text-text-dim">
+                        <span className="shrink-0 whitespace-nowrap">IV <span className={ivColor(p.ivTotal)}>{p.ivTotal}</span></span>
+                        <span className="shrink-0 whitespace-nowrap">Q <span className="text-cyan">{p.quality.toFixed(2)}</span></span>
                       </span>
                     </span>
                   </button>
