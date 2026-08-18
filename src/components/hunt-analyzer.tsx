@@ -31,17 +31,10 @@ const fmt = (n: number) => Math.round(n).toLocaleString("pt-BR");
 const hm = (s: number) => `${Math.floor(s / 3600)}h ${Math.floor((s % 3600) / 60)}m`;
 const STATUS_COLOR: Record<string, string> = { idle: "var(--text-dim)", connecting: "var(--yellow)", running: "var(--green)", kicked: "var(--yellow)", error: "var(--pink)" };
 
-// travas de venda de pokemon do card "Vender pokemon" (localStorage — fonte unica)
-function readSellCfg(): unknown | null {
-  try { const raw = window.localStorage.getItem("piw:poke-sell-config:v2"); return raw ? JSON.parse(raw) : null; } catch { return null; }
-}
-// "Vender pokemon junto" PERSISTE (localStorage): o checkbox zerando a cada reload fez
-// hunt rodar sem venda sem o usuario perceber — e captura sem venda vai TODA pro acervo
-// (design do acervo). Marcou uma vez, fica marcado ate desmarcar.
-const SELL_TOO_KEY = "piw:sell-pokes-too";
-function readSellPokesToo(): boolean {
-  try { return window.localStorage.getItem(SELL_TOO_KEY) === "1"; } catch { return false; }
-}
+// "Vender pokemon junto" agora vive no SERVIDOR (robot_sessions.poke_sell_cfg, mesmo
+// interruptor do card de Configuracoes). O localStorage saiu: a config presa no navegador
+// so valia quando a hunt comecava por AQUI — pelo Painel a hunt nascia sem venda e toda
+// captura ia pro acervo. O servidor aplica a config salva em todo inicio de hunt sozinho.
 
 export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunts: HuntOption[]; creatures: { pokeId: number; name: string }[]; itemIcons: Record<string, string>; lootByPoke: Record<number, DropOption[]> }) {
   const t = useT();
@@ -53,12 +46,21 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
   const [sellDropIds, setSellDropIds] = useState<Set<number>>(new Set());
   const [bestPoke, setBestPoke] = useState<{ pokeId: string; speciesId: number; name: string; level: number; power: number; eff: number } | null>(null);
   const [summonState, setSummonState] = useState<"idle" | "busy" | "done" | "fail">("idle");
-  // false no SSR e carrega do localStorage no mount (evita hydration mismatch)
+  // interruptor da venda: estado do SERVIDOR (GET no mount; toggle grava via save e o
+  // servidor aplica na sessao viva/na proxima hunt — sem passar config no start)
   const [sellPokesToo, setSellPokesTooState] = useState(false);
-  useEffect(() => { setSellPokesTooState(readSellPokesToo()); }, []);
+  useEffect(() => {
+    fetch("/api/vip/autosell", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j: { on?: boolean } | null) => { if (j && "on" in j) setSellPokesTooState(!!j.on); })
+      .catch(() => {});
+  }, []);
   const setSellPokesToo = (fn: (v: boolean) => boolean) => setSellPokesTooState((v) => {
     const next = fn(v);
-    try { window.localStorage.setItem(SELL_TOO_KEY, next ? "1" : "0"); } catch { /* persistencia e best-effort */ }
+    void fetch("/api/vip/autosell", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "save", on: next }), // sem config = mantem as travas salvas
+    }).catch(() => {});
     return next;
   });
   const [slug, setSlug] = useState("");
@@ -119,19 +121,13 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
   const lv = st?.leveling ?? null;
   const plan = st?.plan ?? null;
 
-  // a verdade e a CHAVE persistida na hora do start (nao o state do checkbox): o switch
-  // "Venda automatica" das Configuracoes escreve na mesma chave, e o state daqui pode
-  // estar desatualizado se o usuario ligou la com as duas abas montadas.
-  const withSellCfg = (body: Record<string, unknown>) => {
-    if (readSellPokesToo()) { const cfg = readSellCfg(); if (cfg) body.pokeSellConfig = cfg; }
-    return body;
-  };
-
+  // a config de venda NAO viaja mais no start: o servidor aplica a config SALVA (banco)
+  // em todo inicio de hunt, venha de onde vier.
   const startHunt = (ids: number[]) => {
     if (!slug.trim()) return;
-    void send(withSellCfg({ action: "start", slug: slug.trim(), sellItemIds: ids }), t("toast.huntOn"));
+    void send({ action: "start", slug: slug.trim(), sellItemIds: ids }, t("toast.huntOn"));
   };
-  const startAuto = () => void send(withSellCfg({ action: "auto" }), t("toast.autoOn"));
+  const startAuto = () => void send({ action: "auto" }, t("toast.autoOn"));
 
   const huntDrops = (selected?.pokeId != null ? lootByPoke[selected.pokeId] : undefined) ?? [];
   const openStart = () => {
@@ -166,7 +162,7 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
 
   const startLeveling = async () => {
     if (!planPoke || !planSteps) return;
-    const ok = await send(withSellCfg({ action: "leveling", pokeId: planPoke.id, targetLevel: Math.floor(Number(planTarget)) }), t("toast.planOn"));
+    const ok = await send({ action: "leveling", pokeId: planPoke.id, targetLevel: Math.floor(Number(planTarget)) }, t("toast.planOn"));
     if (ok) { setPlanOpen(false); setPlanSteps(null); setPlanPoke(null); setPlanTarget(""); }
   };
 

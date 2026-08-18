@@ -3,7 +3,8 @@ import { auth } from "@/lib/auth";
 import { getGameLink, saveGameShard, updateGameTokens, saveTeamSnapshot } from "@/lib/game-link";
 import { fetchActivePokes, summonPoke } from "@/lib/game-ws";
 import { gameSession } from "@/lib/game-hunt-session";
-import { parsePokeSellCfg } from "@/lib/poke-sell";
+import { parsePokeSellCfg, pokeSellOn } from "@/lib/poke-sell";
+import { getRobotDesired } from "@/lib/robot-session-store";
 import type { Tokens } from "@/lib/game-auth";
 import { normalizeActivePokes, type ActivePoke } from "@/lib/game-account";
 import type { FighterProfile } from "@/lib/hunt-brain";
@@ -64,19 +65,31 @@ export async function POST(req: Request) {
     gameSession.disconnectSession();
     return NextResponse.json(gameSession.getState());
   }
+  // A config de venda SALVA (Configuracoes -> banco) vale em TODO inicio de hunt/conexao,
+  // venha o start de onde vier (Painel, aba Hunt, boot). Antes so um caminho da UI mandava
+  // a config (localStorage) e os outros largavam a hunt sem venda — tudo ia pro acervo.
+  // Config explicita no body ainda ganha (compat com clientes antigos).
+  const applySellCfg = async (shard: number) => {
+    if (b.pokeSellConfig) {
+      const cfg = parsePokeSellCfg(b.pokeSellConfig);
+      if (cfg.sellRarities.length) { gameSession.setPokeSell(c.userId, c.tokens, shard, cfg, persist); return; }
+    }
+    const d = await getRobotDesired(c.userId).catch(() => null);
+    if (pokeSellOn(d?.pokeSellCfg)) {
+      gameSession.setPokeSell(c.userId, c.tokens, shard, parsePokeSellCfg(d!.pokeSellCfg), persist);
+    }
+  };
+
   if (b.action === "connect") {
     const es = await ensureShard(c.userId, c.tokens, c.shard);
     if (!es.shard) return NextResponse.json({ error: "no_shard" }, { status: 502 });
     gameSession.connectSession(c.userId, c.tokens, es.shard, persist);
+    await applySellCfg(es.shard);
+    // self-heal da auto-compra: se o banco diz ligada e o processo perdeu o timer, re-arma
+    const d = await getRobotDesired(c.userId).catch(() => null);
+    if (d?.autobuy && !gameSession.getAutoBuyOn()) gameSession.setAutoBuy(c.userId, c.tokens, true, persist);
     return NextResponse.json(gameSession.getState());
   }
-
-  const applySellCfg = (shard: number) => {
-    if (b.pokeSellConfig) {
-      const cfg = parsePokeSellCfg(b.pokeSellConfig);
-      if (cfg.sellRarities.length) gameSession.setPokeSell(c.userId, c.tokens, shard, cfg, persist);
-    }
-  };
 
   if (b.action === "start") {
     const slug = typeof b.slug === "string" && b.slug.trim() ? b.slug.trim() : null;
@@ -88,7 +101,7 @@ export async function POST(req: Request) {
       ? (b.sellItemIds as unknown[]).map(Number).filter((n) => Number.isInteger(n) && n > 0)
       : [];
     gameSession.setHunt(c.userId, c.tokens, es.shard, slug, sellItemIds, persist);
-    applySellCfg(es.shard);
+    await applySellCfg(es.shard);
     return NextResponse.json(gameSession.getState());
   }
 
@@ -103,7 +116,7 @@ export async function POST(req: Request) {
       const leader = pokes.find((p) => p.leader) ?? pokes[0];
       const pick = await gameSession.startAuto(c.userId, c.tokens, es.shard, persist, profileOf(leader));
       if (!pick) return NextResponse.json({ error: "no_hunt_found" }, { status: 422 });
-      applySellCfg(es.shard);
+      await applySellCfg(es.shard);
       return NextResponse.json(gameSession.getState());
     }
 
@@ -132,7 +145,7 @@ export async function POST(req: Request) {
       { pokeId, name: target.name, targetLevel: Math.floor(targetLevel) },
     );
     if (!started) return NextResponse.json({ error: "no_route" }, { status: 422 });
-    applySellCfg(es.shard);
+    await applySellCfg(es.shard);
     return NextResponse.json(gameSession.getState());
   }
 
