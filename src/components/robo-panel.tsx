@@ -10,6 +10,7 @@ import { ToggleButton } from "./toggle-button";
 import { Caret, Infinity_, Check } from "./icons";
 import { useT } from "./locale-provider";
 import { useVipLive } from "./vip-live";
+import { assetIconUrl } from "@/lib/sprites";
 
 interface Auto {
   autoCatch: boolean;
@@ -31,7 +32,17 @@ interface Ball {
 }
 type Field = "autoCatch" | "autoCatchBallId" | "autoCatchShiny" | "autoCatchShinyBallId" | "autoPotion" | "autoPotionThreshold" | "autoRevive" | "selectedBallId";
 
-type Load = { s: "loading" } | { s: "error"; code: string } | { s: "ok"; auto: Auto; balls: Ball[] };
+// escolha de QUAL pocao/revive a auto-compra repoe (piwdex-side, supply_cfg). null = "a melhor".
+// Fica aqui junto do Auto-Potion/Auto-Revive porque e da mesma automacao, mas grava por outra
+// rota (/api/vip/autobuy), nao no auto-helper do jogo. O jogo escolhe a pocao usada sozinho.
+interface Supply { potionId: number | null; reviveId: number | null }
+interface Opt { id: number; name: string; icon: string }
+type Draft = Auto & Supply;
+
+type Load =
+  | { s: "loading" }
+  | { s: "error"; code: string }
+  | { s: "ok"; auto: Auto; balls: Ball[]; supply: Supply; potions: Opt[]; revives: Opt[] };
 
 // ---- seletor de bola (icone + nome + quantidade) ----
 
@@ -87,6 +98,61 @@ function BallSelect({ balls, value, onChange, disabled }: { balls: Ball[]; value
   );
 }
 
+// ---- seletor de pocao/revive (icone + nome), com "a melhor disponivel" = null ----
+
+function SupplySelect({ opts, value, onChange, bestLabel }: { opts: Opt[]; value: number | null; onChange: (id: number | null) => void; bestLabel: string }) {
+  const [open, setOpen] = useState(false);
+  const box = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e: MouseEvent) => { if (box.current && !box.current.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [open]);
+  const cur = value != null ? opts.find((o) => o.id === value) : null;
+  return (
+    <div ref={box} className="relative w-full sm:w-56">
+      <button type="button" onClick={() => setOpen((o) => !o)} className="input flex w-full items-center justify-between gap-2">
+        <span className="flex min-w-0 items-center gap-2">
+          {cur?.icon && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={assetIconUrl(cur.icon)} alt="" width={18} height={18} className="[image-rendering:pixelated]" />
+          )}
+          <span className="truncate">{cur?.name ?? bestLabel}</span>
+        </span>
+        <span className="inline-flex text-cyan" style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform .15s" }}>
+          <Caret size={9} />
+        </span>
+      </button>
+      {open && (
+        <div role="listbox" className="card fadein absolute z-30 mt-1 max-h-64 w-full overflow-auto p-1" style={{ background: "var(--surface-solid)" }}>
+          <button
+            type="button"
+            onClick={() => { onChange(null); setOpen(false); }}
+            className={`flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm hover:bg-surface-2 ${value == null ? "bg-surface-2" : ""}`}
+          >
+            <span className="min-w-0 flex-1 truncate text-text-dim">{bestLabel}</span>
+          </button>
+          {opts.map((o) => (
+            <button
+              key={o.id}
+              type="button"
+              onClick={() => { onChange(o.id); setOpen(false); }}
+              className={`flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm hover:bg-surface-2 ${o.id === value ? "bg-surface-2" : ""}`}
+            >
+              {o.icon && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={assetIconUrl(o.icon)} alt="" width={18} height={18} className="[image-rendering:pixelated]" />
+              )}
+              <span className="min-w-0 flex-1 truncate">{o.name}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ---- linha de config: label + descricao + controle ----
 
 function Row({ title, desc, children }: { title: string; desc?: string; children: React.ReactNode }) {
@@ -109,16 +175,24 @@ export function RoboPanel() {
   // auto-helper nao esta no stream, entao o GET unico no mount continua.
   const liveBalls = useVipLive().account?.account?.balls;
   const [st, setSt] = useState<Load>({ s: "loading" });
-  const [draft, setDraft] = useState<Auto | null>(null); // edicao local; so o Confirmar aplica no jogo
+  const [draft, setDraft] = useState<Draft | null>(null); // edicao local; so o Confirmar aplica
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
 
   const load = async () => {
     try {
-      const res = await fetch("/api/vip/auto", { cache: "no-store" });
-      const j = (await res.json().catch(() => ({}))) as { auto?: Auto; balls?: Ball[]; error?: string };
-      if (res.ok && j.auto) { setSt({ s: "ok", auto: j.auto, balls: j.balls ?? [] }); setDraft(j.auto); }
-      else setSt({ s: "error", code: j.error ?? "failed" });
+      // config do jogo (auto-helper) + escolha de pocao/revive da auto-compra (piwdex).
+      const [aRes, bRes] = await Promise.all([
+        fetch("/api/vip/auto", { cache: "no-store" }),
+        fetch("/api/vip/autobuy", { cache: "no-store" }),
+      ]);
+      const aj = (await aRes.json().catch(() => ({}))) as { auto?: Auto; balls?: Ball[]; error?: string };
+      const bj = (await bRes.json().catch(() => ({}))) as { potionId?: number | null; reviveId?: number | null; potions?: Opt[]; revives?: Opt[] };
+      if (aRes.ok && aj.auto) {
+        const supply: Supply = { potionId: bj.potionId ?? null, reviveId: bj.reviveId ?? null };
+        setSt({ s: "ok", auto: aj.auto, balls: aj.balls ?? [], supply, potions: bj.potions ?? [], revives: bj.revives ?? [] });
+        setDraft({ ...aj.auto, ...supply });
+      } else setSt({ s: "error", code: aj.error ?? "failed" });
     } catch {
       setSt({ s: "error", code: "failed" });
     }
@@ -132,16 +206,19 @@ export function RoboPanel() {
   }
 
   const a = st.auto;
-  const d = draft ?? a;
+  const base: Draft = { ...a, ...st.supply };
+  const d = draft ?? base;
   // tempo real: sobrepoe SO a contagem de cada bola (mapa por id, vindo do stream) sobre o
   // catalogo do GET — nunca toca o draft nem o baseline (isso e o Confirmar).
   const liveCount = new Map((liveBalls ?? []).map((b) => [b.id, b.count]));
   const balls = st.balls.map((b) => (liveCount.has(b.id) ? { ...b, count: liveCount.get(b.id)! } : b));
-  const edit = (p: Partial<Auto>) => setDraft((cur) => ({ ...(cur ?? a), ...p }));
-  const dirty = CFG_FIELDS.some((f) => d[f] !== a[f]);
+  const edit = (p: Partial<Draft>) => setDraft((cur) => ({ ...(cur ?? base), ...p }));
+  const supplyDirty = d.potionId !== st.supply.potionId || d.reviveId !== st.supply.reviveId;
+  const dirty = CFG_FIELDS.some((f) => d[f] !== a[f]) || supplyDirty;
 
   // Confirmar: aplica no jogo SO os campos que mudaram (nao a cada tecla). Reaplicar a bola aqui
-  // e o que faz ela valer sem precisar desligar/ligar o auto-catch.
+  // e o que faz ela valer sem precisar desligar/ligar o auto-catch. A escolha de pocao/revive
+  // grava por outra rota (auto-compra), no mesmo clique.
   const confirm = async () => {
     setBusy(true);
     try {
@@ -150,13 +227,16 @@ export function RoboPanel() {
           await fetch("/api/vip/auto", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ field: f, value: d[f] }) });
         }
       }
+      if (supplyDirty) {
+        await fetch("/api/vip/autobuy", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ supply: { potionId: d.potionId, reviveId: d.reviveId } }) });
+      }
       await load();
       setSaved(true); window.setTimeout(() => setSaved(false), 1500);
     } finally { setBusy(false); }
   };
 
   const sw = (field: Field, on: boolean, disabled?: boolean) => (
-    <ToggleButton active={on} accent="green" onClick={() => !disabled && edit({ [field]: !on } as Partial<Auto>)} title={disabled ? t("robo.vipOnly") : undefined}>
+    <ToggleButton active={on} accent="green" onClick={() => !disabled && edit({ [field]: !on } as Partial<Draft>)} title={disabled ? t("robo.vipOnly") : undefined}>
       <span className={`inline-block h-1.5 w-1.5 rounded-full ${on ? "pulse-soft" : ""}`} style={{ background: on ? "var(--green)" : "var(--text-dim)" }} />
       {on ? t("robo.on") : t("robo.off")}
     </ToggleButton>
@@ -210,10 +290,20 @@ export function RoboPanel() {
             </div>
           </Row>
         )}
+        {d.autoPotion && (
+          <Row title={t("robo.autobuy.potion")} desc={t("robo.autobuy.rowDesc")}>
+            <SupplySelect opts={st.potions} value={d.potionId} onChange={(id) => edit({ potionId: id })} bestLabel={t("robo.autobuy.best")} />
+          </Row>
+        )}
 
         <Row title={t("robo.autoRevive")} desc={t("robo.autoRevive.desc")}>
           {sw("autoRevive", d.autoRevive)}
         </Row>
+        {d.autoRevive && (
+          <Row title={t("robo.autobuy.revive")} desc={t("robo.autobuy.rowDesc")}>
+            <SupplySelect opts={st.revives} value={d.reviveId} onChange={(id) => edit({ reviveId: id })} bestLabel={t("robo.autobuy.best")} />
+          </Row>
+        )}
 
         <Row title={t("robo.selectedBall")} desc={t("robo.selectedBall.desc")}>
           <BallSelect balls={balls} value={d.selectedBallId} onChange={(id) => edit({ selectedBallId: id })} />

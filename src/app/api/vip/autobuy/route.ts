@@ -14,14 +14,15 @@ export const runtime = "nodejs";
 // O GET e self-healing: se o banco diz ligado e a memoria do processo perdeu, re-arma o timer.
 
 // Opcoes buyaveis (dados estaticos, sem tocar o jogo): pocao = categoria heal com preco NPC;
-// revive = categoria revive. Ordenadas da mais fraca (barata) pra mais forte.
+// revive = categoria revive. Ordenadas da mais fraca (barata) pra mais forte. `icon` e o
+// caminho cru do jogo (/assets/...) — o cliente resolve pra URL absoluta com assetIconUrl.
 async function supplyOptions() {
   const db = await getData();
   const map = (cat: string) =>
     db.items
       .filter((i) => i.category === cat && i.npcPrice > 0)
       .sort((a, b) => a.npcPrice - b.npcPrice)
-      .map((i) => ({ id: i.id, name: i.name }));
+      .map((i) => ({ id: i.id, name: i.name, icon: i.icon }));
   return { potions: map("heal"), revives: map("revive") };
 }
 
