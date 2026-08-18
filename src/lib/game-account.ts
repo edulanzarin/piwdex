@@ -11,6 +11,16 @@ import type { Creature } from "./types";
 const num = (v: unknown, d = 0): number => (typeof v === "number" && Number.isFinite(v) ? v : d);
 const str = (v: unknown, d = ""): string => (typeof v === "string" ? v : d);
 
+// null se o payload nao trouxe stats (anuncio velho/incompleto) — a UI cai pros base.
+function normalizeMonStats(v: unknown): MonStats | null {
+  if (!v || typeof v !== "object") return null;
+  const s = v as Record<string, unknown>;
+  return {
+    hp: num(s.hp), atk: num(s.atk), def: num(s.def),
+    spAtk: num(s.spAtk), spDef: num(s.spDef), speed: num(s.speed),
+  };
+}
+
 // Pokemon individual ATIVO (do WebSocket ws<shard>, evento "pokes"). E o unico
 // lugar com os individuos + IV/quality/power; a REST so da o agregado.
 export interface ActivePoke {
@@ -31,7 +41,7 @@ export interface ActivePoke {
   type1: string;
   hp: number;
   maxHp: number;
-  stats: { hp: number; atk: number; def: number; spAtk: number; spDef: number; speed: number };
+  stats: MonStats;
 }
 
 export function normalizeActivePokes(list: unknown): ActivePoke[] {
@@ -356,6 +366,9 @@ export function normalizeAccount(parts: AccountParts): Account {
 
 export type Currency = "GOLD" | "DIAMONDS";
 
+// Stats individuais de um pokemon (mesmo shape do frame `pokes` e do anuncio do mercado).
+export interface MonStats { hp: number; atk: number; def: number; spAtk: number; spDef: number; speed: number }
+
 export interface MarketMon {
   listingId: string;
   speciesId: number;
@@ -365,6 +378,7 @@ export interface MarketMon {
   ivTotal: number | null;
   quality: number | null;
   power: number | null;
+  stats: MonStats | null; // stats REAIS do individuo a venda (o jogo manda no anuncio)
   type1: string | null;
   type2: string | null;
   price: number;
@@ -445,6 +459,7 @@ export function normalizeMarketMons(raw: unknown, creatures: Creature[]): Market
       ivTotal: o.ivTotal != null ? num(o.ivTotal) : null,
       quality: o.quality != null ? num(o.quality) : null,
       power: o.power != null ? num(o.power) : null,
+      stats: normalizeMonStats(o.stats),
       type1: (o.type1 as string) ?? species?.type1 ?? null,
       type2: (o.type2 as string) ?? species?.type2 ?? null,
       price: num(o.price),

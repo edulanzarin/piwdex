@@ -136,6 +136,7 @@ function monFromNotif(n: LiveNotification, name: string): MarketMon {
     ivTotal: nn(d.ivTotal),
     quality: nn(d.quality),
     power: nn(d.power),
+    stats: null, // o alerta nao carrega stats — o modal cai nos base
     type1: (d.type1 as PokeType) ?? null,
     type2: (d.type2 as PokeType) ?? null,
     price: Number(d.price ?? 0),

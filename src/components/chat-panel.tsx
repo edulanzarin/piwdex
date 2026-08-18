@@ -31,6 +31,7 @@ function toMarketMon(j: PokeLink, speciesId: number): MarketMon {
     listingId: "chat-link", speciesId, name: j.n, level: j.lv ?? 1, shiny: !!j.sh,
     ivTotal: j.iv ?? null, quality: j.q ?? null, power: j.pw ?? null,
     type1: j.t1 ?? null, type2: j.t2 ?? null,
+    stats: null,
     price: 0, currency: "GOLD", belowNpc: false, sellers: 0, fairPrice: null,
   };
 }

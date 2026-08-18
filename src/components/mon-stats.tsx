@@ -1,0 +1,109 @@
+"use client";
+
+// Stats REAIS de um pokemon individual (anuncio do mercado, time ou box) — nao os base
+// da especie. Com bases+nivel+qualidade em maos, cada barra compara com o stat PERFEITO
+// (IV 32) do mesmo nivel/qualidade e mostra o IV estimado por stat; sem bases, a barra
+// normaliza pelo maior stat do proprio bicho. Reusa StatCompareRow/StatBar (fonte unica
+// de layout de stat) e a formula verificada de stats.ts.
+
+import { STAT_KEYS, STAT_LABELS, projectStat, estimateIv } from "@/lib/stats";
+import type { MonStats } from "@/lib/game-account";
+import { StatBar, StatCompareRow } from "./stat-bar";
+import { StatTile } from "./stat-tile";
+import { Modal } from "./modal";
+import { CloseButton } from "./icon-button";
+import { Sprite } from "./sprite";
+import { spriteUrl } from "@/lib/sprites";
+import { Star } from "./icons";
+import { useT } from "./locale-provider";
+
+const IV_MAX = 32;
+
+// Mesmas faixas do ivColor do total (150/192 e 100/192), na escala de 1 stat (0..32).
+const ivClass = (iv: number) => (iv >= 25 ? "text-green" : iv >= 16.7 ? "text-yellow" : "text-text");
+
+export function MonStatsSection({
+  stats, bases, level, quality,
+}: {
+  stats: MonStats;
+  bases?: number[] | null; // 6 stats base na ordem STAT_KEYS (do catalogo da especie)
+  level: number;
+  quality: number | null;
+}) {
+  const t = useT();
+  const values = STAT_KEYS.map((k) => stats[k]);
+  const total = values.reduce((a, b) => a + b, 0);
+  const canCompare = !!bases && bases.length === 6 && quality != null && level > 0;
+
+  return (
+    <div className="flex flex-col gap-2.5">
+      <div className="section-title text-cyan">{t("mon.stats.title")}</div>
+      {canCompare
+        ? STAT_KEYS.map((k, i) => {
+            const perfect = projectStat(bases![i], IV_MAX, level, quality!, i);
+            const iv = Math.min(IV_MAX, Math.max(0, estimateIv(bases![i], stats[k], level, quality!, i)));
+            return (
+              <StatCompareRow key={k} iconIndex={i} label={STAT_LABELS[i]} value={stats[k]}
+                max={perfect} iv={iv} ivMax={IV_MAX} ivClass={ivClass(iv)} />
+            );
+          })
+        : STAT_KEYS.map((k, i) => (
+            <StatBar key={k} iconIndex={i} label={STAT_LABELS[i]} value={stats[k]}
+              max={Math.max(...values)} best={stats[k] === Math.max(...values)} />
+          ))}
+      <div className="mt-1 flex items-center justify-between border-t border-border pt-2 text-sm">
+        <span className="text-[0.82rem] uppercase tracking-wide text-text-dim">{t("cr.total")}</span>
+        <strong className="tabular-nums text-cyan">{total.toLocaleString("pt-BR")}</strong>
+      </div>
+      {canCompare && <p className="text-[0.75rem] leading-relaxed text-text-dim">{t("mon.stats.hint")}</p>}
+    </div>
+  );
+}
+
+// O minimo que o modal precisa de um pokemon PROPRIO (LiveTeamPoke e ActivePoke servem).
+export interface OwnedMonView {
+  speciesId: number;
+  name: string;
+  level: number;
+  shiny: boolean;
+  ivTotal: number;
+  quality: number;
+  power: number;
+  stats: MonStats;
+}
+
+const fmt = (n: number) => n.toLocaleString("pt-BR");
+
+/** Modal de stats de um pokemon SEU (time ou box): cabecalho + Power/IV/Q + stats reais. */
+export function PokeStatsModal({
+  poke, bases, onClose,
+}: {
+  poke: OwnedMonView;
+  bases?: number[] | null;
+  onClose: () => void;
+}) {
+  const t = useT();
+  return (
+    <Modal onClose={onClose} className="w-full max-w-md gap-5 p-5">
+      <div className="flex items-center gap-4">
+        <div className="relative flex h-20 w-20 shrink-0 items-center justify-center rounded bg-[var(--well-bg)]">
+          <Sprite src={spriteUrl(poke.speciesId, poke.shiny)} alt={poke.name} size={72} />
+          {poke.shiny && <span className="absolute right-1 top-1 text-yellow"><Star size={13} /></span>}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <h3 className="truncate pixel text-[0.9rem] text-text">{poke.name}</h3>
+            <span className="text-[0.82rem] text-text-dim">Lv.{poke.level}</span>
+          </div>
+        </div>
+        <CloseButton onClick={onClose} className="shrink-0 self-start" />
+      </div>
+      <div className="grid grid-cols-3 gap-2">
+        <StatTile label={t("account.col.power")} value={<span className="text-yellow">{fmt(poke.power)}</span>} />
+        <StatTile label={t("account.col.iv")} value={<><span className={poke.ivTotal >= 150 ? "text-green" : poke.ivTotal >= 100 ? "text-yellow" : "text-text"}>{poke.ivTotal}</span><span className="text-[0.82rem] text-text-dim">/192</span></>} />
+        <StatTile label={t("account.col.quality")} value={<span className="text-cyan">{poke.quality.toFixed(3)}</span>} />
+      </div>
+      <MonStatsSection stats={poke.stats} bases={bases} level={poke.level} quality={poke.quality} />
+    </Modal>
+  );
+}

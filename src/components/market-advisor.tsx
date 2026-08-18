@@ -16,6 +16,7 @@ import { PokemonCombobox, type ComboCreature } from "./pokemon-combobox";
 import { TypeBadges } from "./badges";
 import { TypeFilter } from "./type-filter";
 import { StatBar } from "./stat-bar";
+import { MonStatsSection } from "./mon-stats";
 import { Modal } from "./modal";
 import { Pagination } from "./pagination";
 import { Field, ShinyToggle } from "./filter-field";
@@ -320,8 +321,16 @@ export function MarketMonModal({ mon, dex, onClose, onBought }: { mon: MarketMon
           </div>
         )}
 
-        {/* Stats base da especie */}
-        {dex && (
+        {/* Stats REAIS do individuo a venda (o anuncio ja traz); sem eles, cai nos base
+            da especie. Com dex + qualidade, cada barra compara com o perfeito (IV 32). */}
+        {mon.stats ? (
+          <MonStatsSection
+            stats={mon.stats}
+            bases={dex ? [dex.baseHp, dex.baseAtk, dex.baseDef, dex.baseSpAtk, dex.baseSpDef, dex.baseSpeed] : null}
+            level={mon.level}
+            quality={mon.quality}
+          />
+        ) : dex && (
           <div className="flex flex-col gap-2.5">
             <div className="section-title text-cyan">{t("cr.statsBase")}</div>
             {STATS.map(([label, key], i) => (
