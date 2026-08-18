@@ -1,8 +1,11 @@
 "use client";
 
-// HUD fixo da area VIP: o monitor que fica em TODAS as telas. LED de conexao do robo,
-// modo (manual/auto/plano), hunt atual com sprite, XP/h e kills ao vivo, recursos da conta
-// (nivel + barra de XP, dolares, diamantes, pokebolas) e o progresso do plano de leveling.
+// HUD fixo da area VIP: o monitor que fica em TODAS as telas. Duas linhas de ALTURA
+// FIXA em que cada dado tem um slot permanente — valor ausente vira placeholder
+// esmaecido no MESMO lugar (classe slot-empty). O HUD e sticky: se a altura mudasse
+// quando um dado chega/some, a pagina inteira pulava. Nada aqui e renderizado
+// condicionalmente fora do seu slot; o unico conteudo que se alterna e o slot de
+// acao (contestada > vinculo expirado > conectar), um por vez.
 // Tudo vem do VipLiveProvider (SSE) — zero fetch proprio, zero F5.
 
 import { useEffect, useMemo, useState } from "react";
@@ -15,6 +18,9 @@ import { spriteUrl } from "@/lib/sprites";
 import { useT } from "./locale-provider";
 
 const fmt = (n: number) => Math.round(n).toLocaleString("pt-BR");
+// numeros grandes (ouro, xp/h) em notacao compacta: largura limitada, valor cheio no title
+const compact = new Intl.NumberFormat("pt-BR", { notation: "compact", maximumFractionDigits: 1 });
+const fmtC = (n: number) => (Math.abs(n) >= 100_000 ? compact.format(Math.round(n)) : fmt(n));
 
 const LED: Record<LiveStatus, string> = {
   idle: "var(--text-dim)",
@@ -35,10 +41,6 @@ function useCountdown(untilMs: number | null): number | null {
     return () => clearInterval(id);
   }, [untilMs]);
   return left;
-}
-
-function HudDivider() {
-  return <span className="hidden h-6 w-px shrink-0 bg-border sm:block" aria-hidden />;
 }
 
 export function VipHud({ hunts }: { hunts: HuntOption[] }) {
@@ -70,6 +72,7 @@ export function VipHud({ hunts }: { hunts: HuntOption[] }) {
   const xpPct = prof && prof.xpForNext > 0 ? Math.min(100, (prof.xpInLevel / prof.xpForNext) * 100) : 0;
 
   const lv = hunt?.leveling ?? null;
+  const lvOn = !!lv && !lv.done;
   const lvPct = lv
     ? Math.min(100, Math.max(0, ((lv.currentLevel - lv.startLevel) / Math.max(1, lv.targetLevel - lv.startLevel)) * 100))
     : 0;
@@ -84,6 +87,7 @@ export function VipHud({ hunts }: { hunts: HuntOption[] }) {
   };
 
   const contested = !!hunt?.contested;
+  const expired = account?.reason === "expired";
 
   // rotulo do monitor: contestada > religando > cacando > conectado > status cru
   const statusLabel = contested
@@ -95,131 +99,163 @@ export function VipHud({ hunts }: { hunts: HuntOption[] }) {
     : status === "connecting" ? t("robo.hunt.status.connecting")
     : t("vip.conn.off");
 
+  const rates = hunting && hunt?.analyzer ? hunt.analyzer : null;
+
   return (
-    <div className="hud flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2.5">
-      {/* monitor do robo: LED + status + reconexao + conectar rapido */}
-      <span className="inline-flex min-w-0 items-center gap-2">
-        <span
-          className={`hud-led shrink-0 ${connected || status === "connecting" || hunt?.reconnecting ? "pulse-soft" : ""}`}
-          style={{ "--led": troubled ? "var(--red)" : LED[status] } as React.CSSProperties}
-        />
-        <span className={`pixel text-sm uppercase tracking-wide ${troubled ? "text-red" : "text-text"}`}>{statusLabel}</span>
-        {/* stream SSE caiu = aviso discreto (nao confundir com a conexao do robo) */}
-        {link !== "open" && (
-          <span className="inline-flex items-center gap-1 text-xs text-yellow" title={t("vip.hud.streamDown")}>
+    <div className="hud overflow-hidden">
+      {/* ---- linha 1 (h fixa): monitor do robo + slot de acao | recursos da conta ---- */}
+      <div className="flex h-11 min-w-0 items-center gap-3 border-b border-border/60 px-3 sm:gap-4 sm:px-4">
+        <span className="inline-flex min-w-0 items-center gap-2">
+          <span
+            className={`hud-led shrink-0 ${connected || status === "connecting" || hunt?.reconnecting ? "pulse-soft" : ""}`}
+            style={{ "--led": troubled ? "var(--red)" : LED[status] } as React.CSSProperties}
+          />
+          <span className={`pixel truncate text-sm uppercase tracking-wide ${troubled ? "text-red" : "text-text"}`}>{statusLabel}</span>
+          {/* stream SSE caiu = aviso discreto; invisible reserva o espaco quando esta ok */}
+          <span
+            className={`inline-flex w-4 shrink-0 items-center text-yellow ${link !== "open" ? "" : "invisible"}`}
+            title={t("vip.hud.streamDown")}
+          >
             <Signal size={10} className="pulse-soft" />
           </span>
-        )}
-      </span>
-
-      {/* sessao contestada: a conta foi tomada (usuario entrou no jogo). O robo cedeu e
-          pausou; um clique religa. Some quando religa. */}
-      {contested && (
-        <button
-          type="button"
-          onClick={() => void connect()}
-          disabled={busy}
-          className="flash-in inline-flex items-center gap-1.5 rounded border border-[color:var(--yellow)]/60 bg-[color:var(--yellow)]/10 px-2 py-1 text-sm text-yellow disabled:opacity-40"
-          style={{ "--accent": "var(--yellow)" } as React.CSSProperties}
-          title={t("vip.contested.note")}
-        >
-          <span className="hud-led pulse-soft" style={{ "--led": "var(--yellow)" } as React.CSSProperties} />
-          {t("vip.contested.hud")} · {t("vip.contested.resume")}
-        </button>
-      )}
-
-      {/* vinculo com o jogo expirou: APITA e leva pro reconectar (uma vez so) */}
-      {account?.reason === "expired" && (
-        <a href="#conta" className="flash-in inline-flex items-center gap-1.5 rounded border border-red/60 bg-[color:var(--red)]/10 px-2 py-1 text-sm text-red"
-          style={{ "--accent": "var(--red)" } as React.CSSProperties}>
-          <span className="hud-led pulse-soft" style={{ "--led": "var(--red)" } as React.CSSProperties} />
-          {t("vip.conn.expired")}
-        </a>
-      )}
-
-      {/* conectar rapido direto do HUD */}
-      {!holdOpen && status !== "connecting" && account?.reason !== "expired" && (
-        <button type="button" onClick={() => void connect()} disabled={busy} className="btn btn-green !min-h-0 !px-2.5 !py-1 !text-xs disabled:opacity-40">
-          {t("vip.conn.connect")}
-        </button>
-      )}
-
-      {/* pokemon ATIVO (lider) ao vivo */}
-      {leader && (
-        <span className="inline-flex min-w-0 items-center gap-1.5" title={`IV ${leader.ivTotal} · Q ${leader.quality}`}>
-          <span className="relative flex h-6 w-6 shrink-0 items-center justify-center">
-            <Sprite src={spriteUrl(leader.speciesId, leader.shiny)} alt={leader.name} size={22} />
-            <span className="absolute -right-1 -top-1 text-yellow"><Star size={7} /></span>
-          </span>
-          <span className="truncate text-base text-yellow">{leader.name}</span>
-          <span className="pixel text-xs text-text-dim">Lv{hunt?.fighterLevel && hunt.fighterLevel > leader.level ? hunt.fighterLevel : leader.level}</span>
         </span>
-      )}
 
-      {/* modo do cerebro (so enquanto caca) */}
-      {hunt && hunting && (
+        {/* slot de ACAO: um estado por vez, sempre no mesmo lugar */}
+        <span className="inline-flex h-7 shrink-0 items-center">
+          {contested ? (
+            <button
+              type="button"
+              onClick={() => void connect()}
+              disabled={busy}
+              className="flash-in inline-flex h-7 items-center gap-1.5 rounded border border-[color:var(--yellow)]/60 bg-[color:var(--yellow)]/10 px-2 text-xs text-yellow disabled:opacity-40"
+              style={{ "--accent": "var(--yellow)" } as React.CSSProperties}
+              title={t("vip.contested.note")}
+            >
+              <span className="hud-led pulse-soft" style={{ "--led": "var(--yellow)" } as React.CSSProperties} />
+              {t("vip.contested.hud")} · {t("vip.contested.resume")}
+            </button>
+          ) : expired ? (
+            <a
+              href="#conta"
+              className="flash-in inline-flex h-7 items-center gap-1.5 rounded border border-red/60 bg-[color:var(--red)]/10 px-2 text-xs text-red"
+              style={{ "--accent": "var(--red)" } as React.CSSProperties}
+            >
+              <span className="hud-led pulse-soft" style={{ "--led": "var(--red)" } as React.CSSProperties} />
+              {t("vip.conn.expired")}
+            </a>
+          ) : !holdOpen && status !== "connecting" ? (
+            <button type="button" onClick={() => void connect()} disabled={busy} className="btn btn-green btn-sm disabled:opacity-40">
+              {t("vip.conn.connect")}
+            </button>
+          ) : null}
+        </span>
+
+        <span className="ms-auto" />
+
+        {/* recursos da conta — slots permanentes; sem dado = placeholder esmaecido */}
         <span
-          className="chip shrink-0"
-          style={{
-            background: hunt.mode === "manual" ? "var(--surface-2)" : hunt.mode === "auto" ? "var(--cyan)" : "var(--purple)",
-            color: hunt.mode === "manual" ? "var(--text-dim)" : hunt.mode === "auto" ? "#06131a" : "#140a26",
-          }}
+          className="hidden items-center gap-2 sm:inline-flex"
+          title={prof ? `XP ${fmt(prof.xpInLevel)} / ${fmt(prof.xpForNext)}` : undefined}
         >
-          {hunt.mode === "auto" && <Brain size={9} />}
-          {hunt.mode === "leveling" && <Flag size={9} />}
-          {t(`vip.hud.mode.${hunt.mode}`)}
-        </span>
-      )}
-
-      {/* hunt atual + rendimento ao vivo */}
-      {huntOpt && (
-        <span className="inline-flex min-w-0 items-center gap-1.5">
-          <Target size={10} className="shrink-0 text-cyan" />
-          {huntOpt.pokeId != null && <Sprite src={spriteUrl(huntOpt.pokeId)} alt={huntOpt.name} size={18} />}
-          <span className="truncate text-base text-text">{huntOpt.name}</span>
-        </span>
-      )}
-      {hunting && hunt?.analyzer && (
-        <span className="hidden items-center gap-3 text-sm tabular-nums md:inline-flex">
-          <span className="inline-flex items-center gap-1 text-cyan"><Xp size={10} />{fmt(hunt.analyzer.xpPerHour)}/h</span>
-          <span className="inline-flex items-center gap-1 text-text-dim"><Skull size={10} />{fmt(hunt.analyzer.kills)}</span>
-          <span className="inline-flex items-center gap-1 text-green"><Coin size={10} />{fmt(hunt.analyzer.goldPerHour)}/h</span>
-        </span>
-      )}
-
-      {/* progresso do plano de leveling (sempre visivel enquanto ha plano) */}
-      {lv && !lv.done && (
-        <span className="inline-flex min-w-0 items-center gap-2" title={`${lv.name}: ${lv.currentLevel} / ${lv.targetLevel}`}>
-          <Flag size={10} className="shrink-0 text-purple" />
-          <span className="pixel text-xs text-purple">{lv.currentLevel}<span className="text-text-dim">/{lv.targetLevel}</span></span>
-          <span className="hud-track w-16 shrink-0 sm:w-24">
-            <span className="hud-fill block bg-purple" style={{ width: `${lvPct}%` }} />
+          <span className={`pixel text-sm ${prof ? "text-yellow" : "slot-empty"}`}>{prof ? `Lv${prof.level}` : "Lv —"}</span>
+          <span className="hud-track w-14 shrink-0 sm:w-20">
+            <span className="hud-fill block bg-cyan" style={{ width: `${prof ? xpPct : 0}%` }} />
           </span>
         </span>
-      )}
+        <span className={`inline-flex min-w-[3.6rem] items-center justify-end gap-1 text-sm tabular-nums ${prof ? "text-green" : "slot-empty"}`} title={prof ? fmt(prof.gold) : undefined}>
+          <Coin size={11} />{prof ? fmtC(prof.gold) : "—"}
+        </span>
+        <span className={`inline-flex min-w-[3rem] items-center justify-end gap-1 text-sm tabular-nums ${prof ? "text-cyan" : "slot-empty"}`} title={prof ? fmt(prof.diamonds) : undefined}>
+          <Diamond size={11} />{prof ? fmtC(prof.diamonds) : "—"}
+        </span>
+        <span
+          className={`inline-flex min-w-[3rem] items-center justify-end gap-1 text-sm tabular-nums ${!prof ? "slot-empty" : ballLow ? "text-red" : "text-text"}`}
+          title={balls.length ? balls.map((b) => `${b.name}: ${b.count}`).join(" · ") : undefined}
+        >
+          <Pokeball size={12} className={ballLow ? "pulse-soft" : ""} />{prof ? fmt(ballTotal) : "—"}
+        </span>
+      </div>
 
-      <span className="ms-auto" />
+      {/* ---- linha 2 (h fixa; rola na horizontal se apertar): lider | modo | hunt | rendimento | plano ---- */}
+      <div className="flex h-11 items-center gap-3 overflow-x-auto px-3 [scrollbar-width:none] sm:gap-4 sm:px-4 [&::-webkit-scrollbar]:hidden">
+        {/* lider (pokemon ativo) */}
+        <span
+          className="inline-flex shrink-0 items-center gap-1.5"
+          title={leader ? `IV ${leader.ivTotal} · Q ${leader.quality}` : undefined}
+        >
+          <span className="relative flex h-6 w-6 shrink-0 items-center justify-center">
+            {leader ? (
+              <>
+                <Sprite src={spriteUrl(leader.speciesId, leader.shiny)} alt={leader.name} size={22} />
+                <span className="absolute -right-1 -top-1 text-yellow"><Star size={7} /></span>
+              </>
+            ) : (
+              <span className="slot-empty"><Pokeball size={16} /></span>
+            )}
+          </span>
+          <span className={`w-20 truncate text-sm sm:w-24 ${leader ? "text-yellow" : "slot-empty"}`}>{leader ? leader.name : "—"}</span>
+          <span className={`pixel shrink-0 text-xs ${leader ? "text-text-dim" : "slot-empty"}`}>
+            {leader ? `Lv${hunt?.fighterLevel && hunt.fighterLevel > leader.level ? hunt.fighterLevel : leader.level}` : "Lv —"}
+          </span>
+        </span>
 
-      {/* recursos da conta — ao vivo via stream */}
-      {prof && (
-        <>
-          <span className="inline-flex items-center gap-2" title={`XP ${fmt(prof.xpInLevel)} / ${fmt(prof.xpForNext)}`}>
-            <span className="pixel text-sm text-yellow">Lv{prof.level}</span>
-            <span className="hud-track w-14 shrink-0 sm:w-20">
-              <span className="hud-fill block bg-cyan" style={{ width: `${xpPct}%` }} />
+        {/* modo do cerebro */}
+        <span className="inline-flex w-20 shrink-0 justify-center">
+          {hunt && hunting ? (
+            <span
+              className="chip"
+              style={{
+                background: hunt.mode === "manual" ? "var(--surface-2)" : hunt.mode === "auto" ? "var(--cyan)" : "var(--purple)",
+                color: hunt.mode === "manual" ? "var(--text-dim)" : hunt.mode === "auto" ? "#06131a" : "#140a26",
+              }}
+            >
+              {hunt.mode === "auto" && <Brain size={9} />}
+              {hunt.mode === "leveling" && <Flag size={9} />}
+              {t(`vip.hud.mode.${hunt.mode}`)}
             </span>
+          ) : (
+            <span className="chip slot-empty bg-surface-2">—</span>
+          )}
+        </span>
+
+        {/* hunt atual */}
+        <span className="inline-flex shrink-0 items-center gap-1.5">
+          <Target size={10} className={`shrink-0 ${huntOpt ? "text-cyan" : "slot-empty"}`} />
+          <span className="flex h-5 w-5 shrink-0 items-center justify-center">
+            {huntOpt?.pokeId != null && <Sprite src={spriteUrl(huntOpt.pokeId)} alt={huntOpt.name} size={18} />}
           </span>
-          <HudDivider />
-          <span className="inline-flex items-center gap-1 text-base tabular-nums text-green"><Coin size={11} />{fmt(prof.gold)}</span>
-          <span className="inline-flex items-center gap-1 text-base tabular-nums text-cyan"><Diamond size={11} />{fmt(prof.diamonds)}</span>
-          <span
-            className={`inline-flex items-center gap-1 text-base tabular-nums ${ballLow ? "text-red" : "text-text"}`}
-            title={balls.map((b) => `${b.name}: ${b.count}`).join(" · ")}
-          >
-            <Pokeball size={12} className={ballLow ? "pulse-soft" : ""} />{fmt(ballTotal)}
+          <span className={`w-24 truncate text-sm sm:w-28 ${huntOpt ? "text-text" : "slot-empty"}`}>{huntOpt ? huntOpt.name : "—"}</span>
+        </span>
+
+        {/* rendimento ao vivo (md+) */}
+        <span className="hidden items-center gap-3 text-sm tabular-nums md:inline-flex">
+          <span className={`inline-flex min-w-[4.2rem] items-center gap-1 ${rates ? "text-cyan" : "slot-empty"}`} title={rates ? `${fmt(rates.xpPerHour)} XP/h` : undefined}>
+            <Xp size={10} />{rates ? `${fmtC(rates.xpPerHour)}/h` : "—/h"}
           </span>
-        </>
-      )}
+          <span className={`inline-flex min-w-[3rem] items-center gap-1 ${rates ? "text-text-dim" : "slot-empty"}`}>
+            <Skull size={10} />{rates ? fmt(rates.kills) : "—"}
+          </span>
+          <span className={`inline-flex min-w-[4.2rem] items-center gap-1 ${rates ? "text-green" : "slot-empty"}`} title={rates ? `${fmt(rates.goldPerHour)} ouro/h` : undefined}>
+            <Coin size={10} />{rates ? `${fmtC(rates.goldPerHour)}/h` : "—/h"}
+          </span>
+        </span>
+
+        <span className="ms-auto" />
+
+        {/* progresso do plano de leveling */}
+        <span
+          className="inline-flex shrink-0 items-center gap-2"
+          title={lvOn && lv ? `${lv.name}: ${lv.currentLevel} / ${lv.targetLevel}` : undefined}
+        >
+          <Flag size={10} className={`shrink-0 ${lvOn ? "text-purple" : "slot-empty"}`} />
+          <span className={`pixel text-xs ${lvOn ? "text-purple" : "slot-empty"}`}>
+            {lvOn && lv ? <>{lv.currentLevel}<span className="text-text-dim">/{lv.targetLevel}</span></> : "—/—"}
+          </span>
+          <span className="hud-track w-16 shrink-0 sm:w-24">
+            <span className="hud-fill block bg-purple" style={{ width: `${lvOn ? lvPct : 0}%` }} />
+          </span>
+        </span>
+      </div>
     </div>
   );
 }

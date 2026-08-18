@@ -122,9 +122,11 @@ function VipShellInner({ creatures, dex, hunts, itemIcons, lootByPoke, marketIte
       <SessionHoldNotice />
 
       <div className="flex flex-col gap-5 lg:flex-row">
-        {/* navegacao lateral (desktop) / fila horizontal (mobile) */}
+        {/* navegacao lateral (desktop) / trilho horizontal ROLAVEL de altura fixa
+            (mobile) — nada de wrap: a fila nunca cresce na vertical, e o rotulo fica
+            visivel. O badge de contagem e absoluto: aparecer nao empurra o vizinho. */}
         <aside className="shrink-0 lg:w-48">
-          <nav className="vnav max-lg:flex-row max-lg:flex-wrap lg:sticky lg:top-20">
+          <nav className="vnav max-lg:-mx-1 max-lg:flex-row max-lg:flex-nowrap max-lg:overflow-x-auto max-lg:px-1 max-lg:pb-1.5 max-lg:[scrollbar-width:none] max-lg:[&::-webkit-scrollbar]:hidden lg:sticky lg:top-20">
             {SECTIONS.map(({ key, accent, Icon }) => {
               const on = key === sec;
               const badge = badgeOf(key);
@@ -134,14 +136,16 @@ function VipShellInner({ creatures, dex, hunts, itemIcons, lootByPoke, marketIte
                   type="button"
                   onClick={() => go(key)}
                   aria-pressed={on}
-                  className={`vnav-item ${on ? "vnav-active" : ""}`}
+                  className={`vnav-item relative max-lg:shrink-0 ${on ? "vnav-active" : ""}`}
                   style={{ "--vn": accent } as React.CSSProperties}
                 >
                   <Icon size={12} />
-                  <span className="max-lg:hidden lg:flex-1">{t(`vip.sec.${key}`)}</span>
-                  {badge > 0 && (
-                    <span className="rounded-full bg-cyan px-1.5 py-0.5 text-xs text-[#06131a]">{badge}</span>
-                  )}
+                  <span className="lg:flex-1">{t(`vip.sec.${key}`)}</span>
+                  <span
+                    className={`rounded-full bg-cyan px-1.5 py-0.5 text-xs leading-none text-[#06131a] max-lg:absolute max-lg:-top-0.5 max-lg:right-0 lg:ml-auto ${badge > 0 ? "" : "invisible lg:hidden"}`}
+                  >
+                    {badge > 0 ? badge : 0}
+                  </span>
                 </button>
               );
             })}
