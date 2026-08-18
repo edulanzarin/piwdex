@@ -10,6 +10,7 @@ export function StatTile({
   icon,
   accent,
   hover = false,
+  live = false,
   className = "",
 }: {
   label: React.ReactNode;
@@ -19,6 +20,8 @@ export function StatTile({
   accent?: string;
   /** liga o realce neon no hover (borda + brilho + subida). */
   hover?: boolean;
+  /** tempo real: o valor PISCA no acento quando muda (remonta o span por key). */
+  live?: boolean;
   className?: string;
 }) {
   return (
@@ -29,8 +32,9 @@ export function StatTile({
       </span>
       {/* valor longo (ex.: preco de 1 bilhao) quebra em vez de estourar o tile */}
       <span
-        className="pixel min-w-0 text-sm tabular-nums [overflow-wrap:anywhere]"
-        style={accent ? ({ color: accent } as CSSProperties) : undefined}
+        key={live ? String(value) : undefined}
+        className={`pixel min-w-0 text-sm tabular-nums [overflow-wrap:anywhere] ${live ? "tick-glow" : ""}`}
+        style={accent ? ({ color: accent, "--accent": accent } as CSSProperties) : undefined}
       >
         {value}
       </span>

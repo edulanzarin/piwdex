@@ -347,8 +347,9 @@ export function ConfigPanel() {
 
   return (
     <div className="flex flex-col gap-6">
-      {/* barra de acao UNICA — sticky: um Confirmar pra secao inteira */}
-      <div className="card sticky top-2 z-40 flex flex-wrap items-center gap-3 p-4" style={{ background: "var(--surface-solid)" }}>
+      {/* barra de acao UNICA — sticky: um Confirmar pra secao inteira. Ancora ABAIXO
+          do HUD (que segura em 0.5rem do topo) pra nao brigarem pelo mesmo lugar. */}
+      <div className="card sticky top-[4.4rem] z-20 flex flex-wrap items-center gap-3 p-4" style={{ background: "var(--surface-solid)" }}>
         <span className="inline-flex text-blue"><Gear size={14} /></span>
         <div className="min-w-0 flex-1">
           <h2 className="section-title text-blue">{t("vip.sec.config")}</h2>

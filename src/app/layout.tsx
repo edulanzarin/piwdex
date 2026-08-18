@@ -1,13 +1,15 @@
 import type { Metadata } from "next";
-import { JetBrains_Mono, Press_Start_2P } from "next/font/google";
+import { JetBrains_Mono, Silkscreen } from "next/font/google";
 import { LocaleProvider } from "@/components/locale-provider";
 import { SiteNav } from "@/components/site-nav";
 import { VipCta } from "@/components/vip-cta";
 import { auth } from "@/lib/auth";
 import "./globals.css";
 
-const pixel = Press_Start_2P({
-  weight: "400",
+// Fonte pixel: Silkscreen no lugar da Press Start 2P — continua quadrada/pixelada, mas
+// com x-height generoso e formas abertas: legivel nos tamanhos pequenos dos titulos.
+const pixel = Silkscreen({
+  weight: ["400", "700"],
   subsets: ["latin"],
   variable: "--font-pixel",
   display: "swap",

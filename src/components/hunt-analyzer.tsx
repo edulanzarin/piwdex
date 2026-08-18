@@ -18,6 +18,8 @@ import { CloseButton } from "./icon-button";
 import { Sprite } from "./sprite";
 import { Pokeball } from "./pokeball";
 import { StatTile } from "./stat-tile";
+import { Panel } from "./ui/panel";
+import { Led } from "./ui/status";
 import { useToast } from "./toast";
 import { spriteUrl, assetIconUrl } from "@/lib/sprites";
 
@@ -181,44 +183,32 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
       {/* conexao segurada sem hunt: os modos ligam INSTANTANEO na mesma sessao */}
       {!huntOn && connected && (
         <div className="flex items-center gap-2.5 rounded border border-[color:var(--green)]/40 bg-[color:var(--green)]/5 px-3.5 py-2">
-          <span className="hud-led pulse-soft" style={{ "--led": "var(--green)" } as React.CSSProperties} />
+          <Led color="var(--green)" pulse />
           <span className="text-[0.66rem] text-green">{t("vip.conn.readyHint")}</span>
         </div>
       )}
 
-      {/* controle: desligado = 3 modos; ligado = status + parar */}
+      {/* controle: desligado = 3 modos; ligado = hero da hunt viva */}
       {!huntOn ? (
         <div className="grid gap-3 lg:grid-cols-3">
           {/* AUTO — o destaque: um botao e o robo se vira */}
-          <div className="card card-link flex flex-col gap-2.5 p-4" style={{ "--accent": "var(--cyan)" } as React.CSSProperties}>
-            <div className="flex items-center gap-2">
-              <Brain size={13} className="text-cyan" />
-              <h3 className="section-title text-cyan">{t("robo.mode.auto")}</h3>
-            </div>
+          <Panel icon={<Brain size={13} />} accent="var(--cyan)" title={<span className="text-cyan">{t("robo.mode.auto")}</span>} className="card-link">
             <p className="flex-1 text-[0.66rem] leading-relaxed text-text-dim">{t("robo.mode.autoDesc")}</p>
             <button type="button" onClick={startAuto} disabled={busy} className="btn btn-cyan self-start disabled:opacity-40">
               {t("robo.mode.autoStart")} <ChevronRight size={10} />
             </button>
-          </div>
+          </Panel>
 
           {/* UPAR — plano de leveling */}
-          <div className="card card-link flex flex-col gap-2.5 p-4" style={{ "--accent": "var(--purple)" } as React.CSSProperties}>
-            <div className="flex items-center gap-2">
-              <Flag size={13} className="text-purple" />
-              <h3 className="section-title text-purple">{t("robo.mode.leveling")}</h3>
-            </div>
+          <Panel icon={<Flag size={13} />} accent="var(--purple)" title={<span className="text-purple">{t("robo.mode.leveling")}</span>} className="card-link">
             <p className="flex-1 text-[0.66rem] leading-relaxed text-text-dim">{t("robo.mode.levelingDesc")}</p>
             <button type="button" onClick={openPlanModal} disabled={busy || team.length === 0} className="btn btn-purple self-start disabled:opacity-40" title={team.length === 0 ? t("robo.lv.needTeam") : undefined}>
               {t("robo.mode.levelingStart")} <ChevronRight size={10} />
             </button>
-          </div>
+          </Panel>
 
           {/* MANUAL — voce escolhe */}
-          <div className="card card-link flex flex-col gap-2.5 p-4">
-            <div className="flex items-center gap-2">
-              <Target size={13} className="text-text-dim" />
-              <h3 className="section-title">{t("robo.mode.manual")}</h3>
-            </div>
+          <Panel icon={<Target size={13} />} title={t("robo.mode.manual")} className="card-link">
             <div className="flex flex-1 flex-wrap items-center gap-2">
               <button type="button" onClick={() => setPickerOpen(true)} className="btn btn-ghost inline-flex items-center gap-2">
                 {selected ? (
@@ -235,7 +225,7 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
             <button type="button" onClick={openStart} disabled={busy || !slug.trim()} className="btn btn-ghost self-start disabled:opacity-40">
               {t("robo.hunt.start")} <ChevronRight size={10} />
             </button>
-          </div>
+          </Panel>
 
           {/* vender pokemon junto (vale pros 3 modos) */}
           <button
@@ -247,23 +237,48 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
             <span className="min-w-0 flex-1 text-[0.7rem]">{t("robo.hunt.sellPokesToo")}</span>
           </button>
         </div>
-      ) : (
-        <div className="card flex flex-wrap items-center gap-3 p-4">
-          <span className="inline-flex items-center gap-1.5 text-[0.72rem] font-semibold">
-            <span className={`inline-block h-2 w-2 rounded-full ${running ? "pulse-soft" : ""}`} style={{ background: STATUS_COLOR[huntStatus] }} />
-            {st?.reconnecting ? t("vip.ov.reconnecting") : t(`robo.hunt.status.${huntStatus}`)}
-          </span>
-          <span className="chip" style={{ background: mode === "manual" ? "var(--surface-2)" : mode === "auto" ? "var(--cyan)" : "var(--purple)", color: mode === "manual" ? "var(--text-dim)" : mode === "auto" ? "#06131a" : "#140a26" }}>
-            {mode === "auto" && <Brain size={9} />}
-            {mode === "leveling" && <Flag size={9} />}
-            {t(`vip.hud.mode.${mode}`)}
-          </span>
-          {st?.slug && <span className="text-[0.68rem] text-text-dim">{hunts.find((h) => h.slug === st.slug)?.name ?? st.slug}</span>}
-          <span className="ms-auto" />
-          {/* parar a hunt NAO derruba a conexao (o robo segue segurando a sessao) */}
-          <button type="button" onClick={() => void send({ action: "stop" }, t("toast.huntOff"))} disabled={busy} className="btn btn-ghost">{t("vip.conn.stopHunt")}</button>
-        </div>
-      )}
+      ) : (() => {
+        // HERO da hunt viva: sprite do alvo + nome/area + modo + status, parar a direita
+        const cur = hunts.find((h) => h.slug === st?.slug) ?? null;
+        return (
+          <section
+            className={`card flex flex-wrap items-center gap-x-4 gap-y-3 p-4 ${running ? "glow-pulse" : ""}`}
+            style={{ "--accent": STATUS_COLOR[huntStatus] } as React.CSSProperties}
+          >
+            {cur?.pokeId != null && (
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded bg-[var(--well-bg)]">
+                <Sprite src={spriteUrl(cur.pokeId)} alt={cur.name} size={40} />
+              </span>
+            )}
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="pixel text-[0.9rem] text-cyan">{cur?.name ?? st?.slug}</span>
+                <span className="chip" style={{ background: mode === "manual" ? "var(--surface-2)" : mode === "auto" ? "var(--cyan)" : "var(--purple)", color: mode === "manual" ? "var(--text-dim)" : mode === "auto" ? "#06131a" : "#140a26" }}>
+                  {mode === "auto" && <Brain size={9} />}
+                  {mode === "leveling" && <Flag size={9} />}
+                  {t(`vip.hud.mode.${mode}`)}
+                </span>
+              </div>
+              <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.62rem] text-text-dim">
+                <span className="inline-flex items-center gap-1.5">
+                  <Led color={STATUS_COLOR[huntStatus]} pulse={running} />
+                  {st?.reconnecting ? t("vip.ov.reconnecting") : t(`robo.hunt.status.${huntStatus}`)}
+                </span>
+                {cur && <span>Lv{cur.level} · {cur.area}</span>}
+                {a && (
+                  <>
+                    <span className="inline-flex items-center gap-1 text-cyan"><Xp size={9} />{fmt(a.xpPerHour)}/h</span>
+                    <span className="inline-flex items-center gap-1 text-green"><Coin size={9} />{fmt(a.goldPerHour)}/h</span>
+                  </>
+                )}
+              </div>
+            </div>
+            <span className="ms-auto" />
+            {/* parar a hunt NAO derruba a conexao (o robo segue segurando a sessao) */}
+            <button type="button" onClick={() => void send({ action: "stop" }, t("toast.huntOff"))} disabled={busy} className="btn btn-ghost">{t("vip.conn.stopHunt")}</button>
+          </section>
+        );
+      })()}
 
       {/* plano de leveling em andamento: rota com a faixa atual acesa */}
       {huntOn && lv && plan && plan.length > 0 && (
@@ -461,17 +476,17 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
         );
       })()}
 
-      {/* stats ao vivo */}
+      {/* stats ao vivo (piscam no acento quando o numero muda) */}
       {huntOn && a && (
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          <StatTile label={t("robo.hunt.kills")} value={fmt(a.kills)} icon={<Skull size={11} className="text-text-dim" />} />
+          <StatTile live label={t("robo.hunt.kills")} value={fmt(a.kills)} icon={<Skull size={11} className="text-text-dim" />} />
           <StatTile label={t("robo.hunt.time")} value={hm(a.seconds)} icon={<Clock size={11} className="text-text-dim" />} />
-          <StatTile label={t("robo.hunt.xph")} value={fmt(a.xpPerHour)} accent="var(--cyan)" icon={<Xp size={11} className="text-cyan" />} />
-          <StatTile label={t("robo.hunt.goldph")} value={fmt(a.goldPerHour)} accent="var(--green)" icon={<Coin size={11} />} />
-          <StatTile label={t("robo.hunt.loot")} value={fmt(a.lootGold)} icon={<Coin size={11} />} />
-          <StatTile label={t("robo.hunt.supply")} value={`-${fmt(a.supplyGold)}`} icon={<Coin size={11} />} />
-          <StatTile label={t("robo.hunt.captures")} value={fmt(a.captures)} icon={<Pokeball size={11} />} />
-          <StatTile label={t("robo.hunt.balance")} value={fmt(a.balance)} accent="var(--green)" icon={<Coin size={11} />} />
+          <StatTile live label={t("robo.hunt.xph")} value={fmt(a.xpPerHour)} accent="var(--cyan)" icon={<Xp size={11} className="text-cyan" />} />
+          <StatTile live label={t("robo.hunt.goldph")} value={fmt(a.goldPerHour)} accent="var(--green)" icon={<Coin size={11} />} />
+          <StatTile live label={t("robo.hunt.loot")} value={fmt(a.lootGold)} icon={<Coin size={11} />} />
+          <StatTile live label={t("robo.hunt.supply")} value={`-${fmt(a.supplyGold)}`} icon={<Coin size={11} />} />
+          <StatTile live label={t("robo.hunt.captures")} value={fmt(a.captures)} icon={<Pokeball size={11} />} />
+          <StatTile live label={t("robo.hunt.balance")} value={fmt(a.balance)} accent="var(--green)" icon={<Coin size={11} />} />
         </div>
       )}
 
@@ -479,12 +494,11 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
           sessao). Cresce a cada kill e drena conforme o jogo captura; fila vazia com a
           hunt viva = o auto-catch esta dando conta. */}
       {huntOn && st?.pending && (
-        <div className="card p-4">
-          <div className="mb-2 flex items-center gap-2">
-            <Pokeball size={12} />
-            <h3 className="section-title flex-1 text-green">{t("robo.hunt.queue")}</h3>
-            <span className="pixel text-[0.6rem] text-text">{st.pending.length}</span>
-          </div>
+        <Panel
+          icon={<Pokeball size={12} />} accent="var(--green)"
+          title={<span className="text-green">{t("robo.hunt.queue")}</span>}
+          right={<span className="pixel text-[0.66rem] text-text">{st.pending.length}</span>}
+        >
           {st.pending.length === 0 ? (
             <p className="text-[0.66rem] text-text-dim">{t("robo.hunt.queueEmpty")}</p>
           ) : (
@@ -502,19 +516,12 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
               ))}
             </div>
           )}
-        </div>
+        </Panel>
       )}
 
       {/* feed ao vivo — kills e capturas com flash de entrada; clique abre o detalhe */}
       {huntOn && st?.recentKills && st.recentKills.length > 0 && (
-        <div className="card p-4">
-          <div className="mb-2 flex items-center gap-2">
-            <h3 className="section-title flex-1 text-cyan">{t("robo.hunt.recent")}</h3>
-            <span className="inline-flex items-center gap-1.5 text-[0.55rem] uppercase text-green">
-              <span className="hud-led pulse-soft" style={{ "--led": "var(--green)" } as React.CSSProperties} />
-              {t("vip.ov.live")}
-            </span>
-          </div>
+        <Panel title={<span className="text-cyan">{t("robo.hunt.recent")}</span>} live>
           <div className="grid gap-1.5 sm:grid-cols-2">
             {st.recentKills.slice(0, 10).map((k, i) => {
               const pid = pokeIdOf(k.species);
@@ -558,7 +565,7 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
               );
             })}
           </div>
-        </div>
+        </Panel>
       )}
 
       {/* modal de detalhe de um evento (kill ou captura) */}
