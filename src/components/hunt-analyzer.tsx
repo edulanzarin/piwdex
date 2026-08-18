@@ -9,7 +9,7 @@
 // HuntState novo e aplicam na hora via applyHunt (o stream confirma em seguida).
 // Single-session: ligar desconecta o jogo no browser.
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useT } from "./locale-provider";
 import { useVipLive, type LiveHunt, type LivePlanStep, type LiveTeamPoke } from "./vip-live";
 import { Coin, Star, Xp, Skull, Clock, Check, ChevronRight, Brain, Flag, Target } from "./icons";
@@ -33,10 +33,9 @@ const fmt = (n: number) => Math.round(n).toLocaleString("pt-BR");
 const hm = (s: number) => `${Math.floor(s / 3600)}h ${Math.floor((s % 3600) / 60)}m`;
 const STATUS_COLOR: Record<string, string> = { idle: "var(--text-dim)", connecting: "var(--yellow)", running: "var(--green)", kicked: "var(--yellow)", error: "var(--pink)" };
 
-// "Vender pokemon junto" agora vive no SERVIDOR (robot_sessions.poke_sell_cfg, mesmo
-// interruptor do card de Configuracoes). O localStorage saiu: a config presa no navegador
-// so valia quando a hunt comecava por AQUI — pelo Painel a hunt nascia sem venda e toda
-// captura ia pro acervo. O servidor aplica a config salva em todo inicio de hunt sozinho.
+// A venda de pokemon e configurada SO em Configuracoes (robot_sessions.poke_sell_cfg);
+// o servidor aplica a config salva em todo inicio de hunt sozinho — esta tela nao tem
+// mais interruptor proprio (o checkbox daqui duplicava o das Configuracoes).
 
 export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunts: HuntOption[]; creatures: { pokeId: number; name: string }[]; itemIcons: Record<string, string>; lootByPoke: Record<number, DropOption[]> }) {
   const t = useT();
@@ -48,23 +47,6 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
   const [sellDropIds, setSellDropIds] = useState<Set<number>>(new Set());
   const [bestPoke, setBestPoke] = useState<{ pokeId: string; speciesId: number; name: string; level: number; power: number; eff: number } | null>(null);
   const [summonState, setSummonState] = useState<"idle" | "busy" | "done" | "fail">("idle");
-  // interruptor da venda: estado do SERVIDOR (GET no mount; toggle grava via save e o
-  // servidor aplica na sessao viva/na proxima hunt — sem passar config no start)
-  const [sellPokesToo, setSellPokesTooState] = useState(false);
-  useEffect(() => {
-    fetch("/api/vip/autosell", { cache: "no-store" })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((j: { on?: boolean } | null) => { if (j && "on" in j) setSellPokesTooState(!!j.on); })
-      .catch(() => {});
-  }, []);
-  const setSellPokesToo = (fn: (v: boolean) => boolean) => setSellPokesTooState((v) => {
-    const next = fn(v);
-    void fetch("/api/vip/autosell", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "save", on: next }), // sem config = mantem as travas salvas
-    }).catch(() => {});
-    return next;
-  });
   const [slug, setSlug] = useState("");
   const [busy, setBusy] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -227,15 +209,6 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
             </button>
           </Panel>
 
-          {/* vender pokemon junto (vale pros 3 modos) */}
-          <button
-            type="button"
-            onClick={() => setSellPokesToo((v) => !v)}
-            className={`flex items-center gap-2 rounded border p-2 text-left transition lg:col-span-3 ${sellPokesToo ? "border-cyan bg-[color:var(--cyan)]/10" : "border-border hover:bg-surface-2"}`}
-          >
-            <span className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border ${sellPokesToo ? "border-cyan bg-cyan text-[#06131a]" : "border-border text-transparent"}`}><Check size={10} /></span>
-            <span className="min-w-0 flex-1 text-[0.7rem]">{t("robo.hunt.sellPokesToo")}</span>
-          </button>
         </div>
       ) : (() => {
         // HERO da hunt viva: sprite do alvo + nome/area + modo + status, parar a direita

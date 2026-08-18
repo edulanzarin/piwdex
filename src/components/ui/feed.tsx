@@ -42,9 +42,17 @@ export function FeedRow({
   );
 }
 
-/** Estado vazio de um painel: mensagem curta + CTA opcional. Todo painel sem dado
- *  mostra isto em vez de um <p> solto cada um do seu jeito. */
-export function EmptyState({ message, action, className = "" }: { message: React.ReactNode; action?: React.ReactNode; className?: string }) {
+/** Estado vazio de um painel: mensagem curta + CTA opcional. `compact` vira uma LINHA
+ *  (mensagem a esquerda, acao a direita) — painel vazio nao ocupa um bloco em branco. */
+export function EmptyState({ message, action, compact = false, className = "" }: { message: React.ReactNode; action?: React.ReactNode; compact?: boolean; className?: string }) {
+  if (compact) {
+    return (
+      <div className={`flex items-center justify-between gap-3 py-1 ${className}`}>
+        <p className="min-w-0 text-[0.66rem] text-text-dim">{message}</p>
+        {action}
+      </div>
+    );
+  }
   return (
     <div className={`flex flex-col items-center justify-center gap-2.5 py-5 text-center ${className}`}>
       <p className="text-[0.68rem] text-text-dim">{message}</p>

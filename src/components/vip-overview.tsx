@@ -179,30 +179,26 @@ export function VipOverview({
         />
       )}
 
-      {/* ===== BARRA DE COMANDO DO ROBO (hero): status grande + acoes, largura cheia ===== */}
+      {/* ===== BARRA DE COMANDO DO ROBO: uma linha, status + meta + acoes ===== */}
       <section
-        className={`card flex flex-wrap items-center gap-x-5 gap-y-3 p-4 sm:p-5 ${connected ? "glow-pulse" : ""}`}
+        className={`card flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3 ${connected ? "glow-pulse" : ""}`}
         style={{ "--accent": troubled ? "var(--red)" : "var(--green)" } as React.CSSProperties}
       >
-        <Led color={troubled ? "var(--red)" : LED[status]} pulse={connected || status === "connecting" || !!hunt?.reconnecting} className="scale-125" />
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <Robot size={14} className={connected ? "text-green" : "text-text-dim"} />
-            <span className="pixel text-[1rem]" style={{ color: heroColor }}>{statusLabel}</span>
-            {holdOpen && <span className="chip" style={{ background: "var(--green)", color: "#052012" }}>{t("vip.ov.keepAlive")}</span>}
-          </div>
-          <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[0.62rem] text-text-dim">
-            {connected && hunt?.since && <span className="inline-flex items-center gap-1"><Clock size={10} />{hm(Math.floor((Date.now() - hunt.since) / 1000))}</span>}
-            {prof && <span className="inline-flex items-center gap-1"><Signal size={10} className={connected ? "text-green" : ""} />{prof.name}</span>}
-            {hunt?.mode && hunt.mode !== "manual" && hunting && (
-              <span className="inline-flex items-center gap-1 text-cyan">
-                {hunt.mode === "auto" ? <Brain size={10} /> : <Flag size={10} />}
-                {t(`vip.hud.mode.${hunt.mode}`)}
-              </span>
-            )}
-            {!holdOpen && <span>{t("vip.conn.connectDesc")}</span>}
-          </div>
-        </div>
+        <Led color={troubled ? "var(--red)" : LED[status]} pulse={connected || status === "connecting" || !!hunt?.reconnecting} />
+        <Robot size={14} className={connected ? "text-green" : "text-text-dim"} />
+        <span className="pixel text-[1.05rem]" style={{ color: heroColor }}>{statusLabel}</span>
+        {holdOpen && <span className="chip" style={{ background: "var(--green)", color: "#052012" }}>{t("vip.ov.keepAlive")}</span>}
+        <span className="hidden flex-wrap items-center gap-x-3 text-[0.62rem] text-text-dim sm:flex">
+          {connected && hunt?.since && <span className="inline-flex items-center gap-1"><Clock size={10} />{hm(Math.floor((Date.now() - hunt.since) / 1000))}</span>}
+          {prof && <span className="inline-flex items-center gap-1"><Signal size={10} className={connected ? "text-green" : ""} />{prof.name}</span>}
+          {hunt?.mode && hunt.mode !== "manual" && hunting && (
+            <span className="inline-flex items-center gap-1 text-cyan">
+              {hunt.mode === "auto" ? <Brain size={10} /> : <Flag size={10} />}
+              {t(`vip.hud.mode.${hunt.mode}`)}
+            </span>
+          )}
+          {!holdOpen && <span>{t("vip.conn.connectDesc")}</span>}
+        </span>
         <span className="ms-auto" />
         {!holdOpen ? (
           <button type="button" onClick={() => void send({ action: "connect" }, t("toast.connected"))} disabled={busy} className="btn btn-green disabled:opacity-40">
@@ -225,7 +221,6 @@ export function VipOverview({
             </button>
           </div>
         )}
-        {holdOpen && <p className="basis-full text-[0.56rem] leading-relaxed text-text-dim">{t("vip.conn.singleSession")}</p>}
       </section>
 
       {/* ===== régua de rendimento AO VIVO (hunt rodando) ===== */}
@@ -242,12 +237,13 @@ export function VipOverview({
         </div>
       )}
 
-      {/* ===== linha: time ativo · hunt + plano · progresso do treinador ===== */}
-      <div className="grid gap-4 lg:grid-cols-12">
-        <div className="lg:col-span-4"><TeamLive /></div>
+      {/* ===== linha principal: time · hunt+plano · progresso — colunas de MESMA altura,
+             vazios em linha compacta (nada de caixa em branco) ===== */}
+      <div className="grid items-stretch gap-4 lg:grid-cols-12">
+        <div className="flex lg:col-span-4 [&>*]:w-full"><TeamLive /></div>
 
         <div className="flex flex-col gap-4 lg:col-span-4">
-          <Panel icon={<Target size={12} />} accent="var(--cyan)" title={t("vip.ov.hunt")} live={hunting}>
+          <Panel icon={<Target size={12} />} accent="var(--cyan)" title={t("vip.ov.hunt")} live={hunting} className={huntOpt ? "flex-1" : ""}>
             {huntOpt ? (
               <div className="flex items-center gap-3">
                 {huntOpt.pokeId != null && (
@@ -256,7 +252,7 @@ export function VipOverview({
                   </span>
                 )}
                 <div className="min-w-0 flex-1">
-                  <div className="pixel truncate text-[0.8rem] text-cyan">{huntOpt.name}</div>
+                  <div className="pixel truncate text-[0.95rem] text-cyan">{huntOpt.name}</div>
                   <div className="text-[0.6rem] text-text-dim">Lv{huntOpt.level} · {huntOpt.area}</div>
                 </div>
                 {a && (
@@ -268,8 +264,9 @@ export function VipOverview({
               </div>
             ) : (
               <EmptyState
+                compact
                 message={t("vip.ov.noHunt")}
-                action={<button type="button" onClick={() => onGo("hunt")} className="btn btn-ghost">{t("vip.ov.turnOn")} <ChevronRight size={9} /></button>}
+                action={<button type="button" onClick={() => onGo("hunt")} className="btn btn-ghost shrink-0">{t("vip.ov.turnOn")} <ChevronRight size={9} /></button>}
               />
             )}
           </Panel>
@@ -277,13 +274,13 @@ export function VipOverview({
           <Panel
             icon={<Flag size={12} />} accent="var(--purple)" title={t("vip.ov.plan")}
             right={lv?.done ? <span className="chip" style={{ background: "var(--green)", color: "#052012" }}>{t("vip.ov.planDone")}</span> : undefined}
-            className="flex-1"
+            className={lv ? "flex-1" : ""}
           >
             {lv ? (
               <>
                 <div className="flex items-baseline gap-2">
-                  <span className="pixel text-[0.8rem] text-purple">{lv.name}</span>
-                  <span className="pixel text-[0.66rem] text-text">{lv.currentLevel}<span className="text-text-dim"> / {lv.targetLevel}</span></span>
+                  <span className="pixel text-[0.95rem] text-purple">{lv.name}</span>
+                  <span className="pixel text-[0.8rem] text-text">{lv.currentLevel}<span className="text-text-dim"> / {lv.targetLevel}</span></span>
                 </div>
                 <ProgressBar pct={lvPct} color="var(--purple)" />
                 {currentStep && !lv.done && (
@@ -294,66 +291,76 @@ export function VipOverview({
               </>
             ) : (
               <EmptyState
+                compact
                 message={t("vip.ov.noPlan")}
-                action={<button type="button" onClick={() => onGo("hunt")} className="btn btn-purple">{t("vip.ov.makePlan")} <ChevronRight size={9} /></button>}
+                action={<button type="button" onClick={() => onGo("hunt")} className="btn btn-purple shrink-0">{t("vip.ov.makePlan")} <ChevronRight size={9} /></button>}
               />
             )}
           </Panel>
-        </div>
 
-        <div className="lg:col-span-4">
+          {/* pokebolas entram na coluna do meio pra fechar a altura sem sobra */}
           {prof && (
             <Panel
-              icon={<Xp size={12} />} accent="var(--cyan)" title={t("vip.res.progress")}
-              right={<span className="pixel text-[0.78rem] text-yellow">Lv{prof.level}</span>}
-              className="h-full"
+              icon={<Pokeball size={13} />} title={t("vip.res.balls")}
+              right={<button type="button" onClick={() => onGo("config")} className="icon-btn" aria-label={t("vip.sec.config")}><ChevronRight size={11} /></button>}
+              className="flex-1"
             >
-              <ProgressBar pct={xpPct} color="var(--cyan)" leftLabel={`${fmt(prof.xpInLevel)} XP`} rightLabel={`${fmt(prof.xpForNext)} XP`} />
-              <div className="grid grid-cols-2 gap-2">
-                <StatTile live label={t("vip.res.gold")} value={fmt(prof.gold)} accent="var(--green)" icon={<Coin size={11} />} />
-                <StatTile label={t("vip.res.diamonds")} value={fmt(prof.diamonds)} accent="var(--cyan)" icon={<span className="text-cyan"><Diamond size={11} /></span>} />
-              </div>
-              {account?.account && (
-                <div className="grid grid-cols-2 gap-2">
-                  <StatTile label={t("vip.ov.streak")} value={fmt(account.account.streak.totalKills)} icon={<Skull size={11} className="text-yellow" />} />
-                  <StatTile label={t("vip.ov.bonusXp")} value={`+${account.account.streak.bonusExp}%`} accent="var(--cyan)" icon={<Xp size={11} className="text-cyan" />} />
+              {balls.length ? (
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  {balls.map((b) => {
+                    const low = !b.infinite && b.count < 100;
+                    return (
+                      <div key={b.id} className={`well flex items-center gap-2 ${low ? "border-red/50" : ""}`}>
+                        <span className="flex h-7 w-7 shrink-0 items-center justify-center">
+                          {b.iconUrl ? <Sprite src={b.iconUrl} alt={b.name} size={24} /> : <Pokeball size={18} />}
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-[0.58rem] text-text-dim">{b.name}</span>
+                          <span key={b.count} className={`pixel tick-glow block text-[0.9rem] tabular-nums ${low ? "text-red" : "text-text"}`}>
+                            {b.infinite ? "∞" : fmt(b.count)}
+                          </span>
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
+              ) : (
+                <EmptyState compact message={t("vip.res.noBalls")} />
               )}
             </Panel>
           )}
         </div>
-      </div>
 
-      {/* ===== pokebolas (sem Master Ball — ninguem tem, so ocupava espaco) ===== */}
-      {prof && (
-        <Panel
-          icon={<Pokeball size={13} />} title={t("vip.res.balls")}
-          right={<button type="button" onClick={() => onGo("config")} className="icon-btn" aria-label={t("vip.sec.config")}><ChevronRight size={11} /></button>}
-        >
-          {balls.length ? (
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
-              {balls.map((b) => {
-                const low = !b.infinite && b.count < 100;
-                return (
-                  <div key={b.id} className={`well flex items-center gap-2 ${low ? "border-red/50" : ""}`}>
-                    <span className="flex h-7 w-7 shrink-0 items-center justify-center">
-                      {b.iconUrl ? <Sprite src={b.iconUrl} alt={b.name} size={24} /> : <Pokeball size={18} />}
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-[0.58rem] text-text-dim">{b.name}</span>
-                      <span key={b.count} className={`pixel tick-glow block text-[0.78rem] tabular-nums ${low ? "text-red" : "text-text"}`}>
-                        {b.infinite ? "∞" : fmt(b.count)}
-                      </span>
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <EmptyState message={t("vip.res.noBalls")} />
+        <div className="flex lg:col-span-4">
+          {prof && (
+            <Panel
+              icon={<Xp size={12} />} accent="var(--cyan)" title={t("vip.res.progress")}
+              right={<span className="pixel text-[0.95rem] text-yellow">Lv{prof.level}</span>}
+              className="w-full"
+            >
+              <ProgressBar pct={xpPct} color="var(--cyan)" leftLabel={`${fmt(prof.xpInLevel)} XP`} rightLabel={`${fmt(prof.xpForNext)} XP`} />
+              <div className="grid flex-1 auto-rows-min grid-cols-2 gap-2">
+                <StatTile live label={t("vip.res.gold")} value={fmt(prof.gold)} accent="var(--green)" icon={<Coin size={11} />} />
+                <StatTile label={t("vip.res.diamonds")} value={fmt(prof.diamonds)} accent="var(--cyan)" icon={<span className="text-cyan"><Diamond size={11} /></span>} />
+                {account?.account && (
+                  <>
+                    <StatTile label={t("vip.ov.streak")} value={fmt(account.account.streak.totalKills)} icon={<Skull size={11} className="text-yellow" />} />
+                    <StatTile label={t("vip.ov.bonusXp")} value={`+${account.account.streak.bonusExp}%`} accent="var(--cyan)" icon={<Xp size={11} className="text-cyan" />} />
+                    <StatTile label={t("vip.ov.bonusLoot")} value={`+${account.account.streak.bonusLoot}%`} accent="var(--green)" icon={<Coin size={11} />} />
+                    <StatTile label={t("vip.ov.bonusShiny")} value={`+${account.account.streak.bonusShiny}%`} accent="var(--yellow)" icon={<Star size={11} className="text-yellow" />} />
+                  </>
+                )}
+                {totals && (
+                  <>
+                    <StatTile label={t("vip.ov.tCaptures")} value={fmt(totals.captures)} icon={<Pokeball size={11} />} />
+                    <StatTile label={t("vip.ov.tAcervo")} value={fmt(totals.acervo?.total ?? 0)} accent="var(--blue)" icon={<Backpack size={11} className="text-blue" />} />
+                  </>
+                )}
+              </div>
+            </Panel>
           )}
-        </Panel>
-      )}
+        </div>
+      </div>
 
       {/* ===== feeds: kills ao vivo + eventos recentes ===== */}
       <div className="grid gap-4 lg:grid-cols-2">
@@ -415,41 +422,29 @@ export function VipOverview({
               ))}
             </div>
           ) : (
-            <EmptyState message={t("vip.ov.noEvents")} />
+            <EmptyState compact message={t("vip.ov.noEvents")} />
           )}
         </Panel>
       </div>
 
-      {/* ===== acumulado de sempre + streak completo ===== */}
-      <div className="grid gap-4 lg:grid-cols-12">
-        {totals && (
-          <Panel
-            icon={<Chart size={12} />} accent="var(--purple)" title={t("vip.ov.totals")}
-            right={<button type="button" onClick={() => onGo("estatisticas")} className="icon-btn" aria-label={t("vip.sec.estatisticas")}><ChevronRight size={11} /></button>}
-            className="lg:col-span-8"
-          >
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-              <StatTile label={t("vip.ov.tHunts")} value={fmt(totals.hunts)} icon={<Target size={11} className="text-cyan" />} hover />
-              <StatTile label={t("vip.ov.tKills")} value={fmt(totals.kills)} icon={<Skull size={11} className="text-text-dim" />} hover />
-              <StatTile label={t("vip.ov.tXp")} value={fmt(totals.xpGained)} accent="var(--cyan)" icon={<Xp size={11} className="text-cyan" />} hover />
-              {/* so dolar RECEBIDO (vendas) — o valor do loot coletado vira venda depois, somar duplicaria */}
-              <StatTile label={t("vip.ov.tGold")} value={fmt(totals.itemsGold + totals.pokesGold)} accent="var(--green)" icon={<Coin size={11} />} hover />
-              <StatTile label={t("vip.ov.tCaptures")} value={fmt(totals.captures)} icon={<Pokeball size={11} />} hover />
-              <StatTile label={t("vip.ov.tAcervo")} value={fmt(totals.acervo?.total ?? 0)} accent="var(--blue)" icon={<Backpack size={11} className="text-blue" />} hover />
-            </div>
-          </Panel>
-        )}
-        {account?.account && (
-          <Panel icon={<Star size={12} />} accent="var(--yellow)" title={t("vip.res.streakTitle")} className="lg:col-span-4">
-            <div className="grid grid-cols-2 gap-2">
-              <StatTile label={t("vip.ov.streak")} value={fmt(account.account.streak.totalKills)} icon={<Skull size={11} className="text-yellow" />} />
-              <StatTile label={t("vip.ov.bonusXp")} value={`+${account.account.streak.bonusExp}%`} accent="var(--cyan)" icon={<Xp size={11} className="text-cyan" />} />
-              <StatTile label={t("vip.ov.bonusLoot")} value={`+${account.account.streak.bonusLoot}%`} accent="var(--green)" icon={<Coin size={11} />} />
-              <StatTile label={t("vip.ov.bonusShiny")} value={`+${account.account.streak.bonusShiny}%`} accent="var(--yellow)" icon={<Star size={11} className="text-yellow" />} />
-            </div>
-          </Panel>
-        )}
-      </div>
+      {/* ===== acumulado de sempre (expansivel — streak ja mora no Progresso) ===== */}
+      {totals && (
+        <Panel
+          collapsible
+          icon={<Chart size={12} />} accent="var(--purple)" title={t("vip.ov.totals")}
+          right={<button type="button" onClick={(e) => { e.stopPropagation(); onGo("estatisticas"); }} className="icon-btn" aria-label={t("vip.sec.estatisticas")}><ChevronRight size={11} /></button>}
+        >
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+            <StatTile label={t("vip.ov.tHunts")} value={fmt(totals.hunts)} icon={<Target size={11} className="text-cyan" />} hover />
+            <StatTile label={t("vip.ov.tKills")} value={fmt(totals.kills)} icon={<Skull size={11} className="text-text-dim" />} hover />
+            <StatTile label={t("vip.ov.tXp")} value={fmt(totals.xpGained)} accent="var(--cyan)" icon={<Xp size={11} className="text-cyan" />} hover />
+            {/* so dolar RECEBIDO (vendas) — o valor do loot coletado vira venda depois, somar duplicaria */}
+            <StatTile label={t("vip.ov.tGold")} value={fmt(totals.itemsGold + totals.pokesGold)} accent="var(--green)" icon={<Coin size={11} />} hover />
+            <StatTile label={t("vip.ov.tCaptures")} value={fmt(totals.captures)} icon={<Pokeball size={11} />} hover />
+            <StatTile label={t("vip.ov.tAcervo")} value={fmt(totals.acervo?.total ?? 0)} accent="var(--blue)" icon={<Backpack size={11} className="text-blue" />} hover />
+          </div>
+        </Panel>
+      )}
     </div>
   );
 }
