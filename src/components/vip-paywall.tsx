@@ -7,13 +7,13 @@
 
 import { useState } from "react";
 import { useT } from "./locale-provider";
-import { Star, ChevronRight, Robot, Brain, Chart, Coin, Signal } from "./icons";
+import { Star, ChevronRight, Robot, Brain, Chart, Dollar, Signal } from "./icons";
 
 // o que vem junto do robo (bullets da lista). Icone + chave de texto.
 const FEATURES: { Icon: (p: { size?: number; className?: string }) => React.ReactNode; k: string }[] = [
   { Icon: Brain, k: "vip.feat.brain" },
   { Icon: Chart, k: "vip.feat.analyzer" },
-  { Icon: Coin, k: "vip.feat.market" },
+  { Icon: Dollar, k: "vip.feat.market" }, // "$" herda currentColor (cyan) — combina com os outros
   { Icon: Signal, k: "vip.feat.alerts" },
 ];
 

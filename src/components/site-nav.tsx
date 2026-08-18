@@ -98,7 +98,7 @@ export function SiteNav({ user }: { user: NavUser | null }) {
               <>
                 <span className="max-w-[8rem] truncate pixel text-[0.58rem] text-text">{user.name ?? "conta"}</span>
                 <Link
-                  href="/vip#conta"
+                  href="/conta"
                   title={t("nav.account")}
                   aria-label={t("nav.account")}
                   className={`${ICON_BTN} text-text-dim hover:text-cyan`}
@@ -165,7 +165,7 @@ export function SiteNav({ user }: { user: NavUser | null }) {
             {user ? (
               <>
                 <Link
-                  href="/vip#conta"
+                  href="/conta"
                   className="flex items-center gap-3 border-b border-border/40 py-3 pixel text-[0.7rem] text-text-dim hover:text-cyan"
                   onClick={() => setOpen(false)}
                 >

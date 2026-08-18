@@ -1,4 +1,4 @@
-import { queryOne } from "@/lib/db";
+import { query, queryOne } from "@/lib/db";
 
 // Acesso aos usuarios do piwdex em SQL puro (sem ORM). Email sempre normalizado
 // (minusculo, sem espaco) — a coluna e UNIQUE nesse formato.
@@ -21,6 +21,17 @@ export function getUserById(id: string) {
 
 export function findUserByEmail(email: string) {
   return queryOne<UserRow>("SELECT * FROM users WHERE email = $1", [normEmail(email)]);
+}
+
+// Atualiza o nome de exibicao (null = limpa). A sessao revalida do banco a cada request
+// (ver auth.ts), entao reflete no proximo carregamento.
+export function updateUserName(id: string, nome: string | null) {
+  return query("UPDATE users SET nome = $2, atualizado_em = now() WHERE id = $1", [id, nome]);
+}
+
+// Troca o hash da senha (o caller ja validou a senha atual e gerou o novo hash).
+export function updateUserPassword(id: string, senhaHash: string) {
+  return query("UPDATE users SET senha_hash = $2, atualizado_em = now() WHERE id = $1", [id, senhaHash]);
 }
 
 // Cadastro por email/senha. Estoura se o email ja existe (UNIQUE) — o caller trata.
