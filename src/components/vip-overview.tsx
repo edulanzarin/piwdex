@@ -74,7 +74,8 @@ export function VipOverview({
   const connected = !!hunt?.wsOpen;
   const holdOpen = !!hunt?.holdOpen;
   const hunting = connected && !!hunt?.slug;
-  const troubled = holdOpen && !connected; // quer conectado mas nao esta -> APITA
+  const contested = !!hunt?.contested; // conta tomada (usuario no jogo) -> robo cedeu e pausou
+  const troubled = holdOpen && !connected && !contested; // quer conectado mas nao esta -> APITA
   const a = hunt?.analyzer ?? null;
   const lv = hunt?.leveling ?? null;
   const plan = hunt?.plan ?? null;
@@ -130,6 +131,21 @@ export function VipOverview({
           <span className="ms-auto" />
           <button type="button" onClick={() => onGo("conta")} className="btn btn-pink">
             {t("vip.conn.expiredCta")} <ChevronRight size={9} />
+          </button>
+        </div>
+      )}
+
+      {/* CEDEU A SESSAO: a conta foi tomada (usuario entrou no jogo). O robo pausou pra nao
+          brigar — nao e erro. Um clique religa. */}
+      {contested && (
+        <div className="flash-in flex flex-wrap items-center gap-3 rounded border border-[color:var(--yellow)]/60 bg-[color:var(--yellow)]/10 px-4 py-3"
+          style={{ "--accent": "var(--yellow)" } as React.CSSProperties}>
+          <span className="hud-led pulse-soft shrink-0" style={{ "--led": "var(--yellow)" } as React.CSSProperties} />
+          <span className="pixel text-[0.62rem] text-yellow">{t("vip.contested.status")}</span>
+          <span className="text-[0.62rem] text-text-dim">{t("vip.contested.note")}</span>
+          <span className="ms-auto" />
+          <button type="button" onClick={() => void send({ action: "connect" }, t("toast.connected"))} disabled={busy} className="btn btn-yellow disabled:opacity-40">
+            {t("vip.contested.resume")} <ChevronRight size={9} />
           </button>
         </div>
       )}
@@ -203,6 +219,8 @@ export function VipOverview({
               <button type="button" onClick={() => void send({ action: "disconnect" }, t("toast.disconnected"))} disabled={busy} className="btn btn-ghost disabled:opacity-40">
                 {t("vip.conn.disconnect")}
               </button>
+              {/* single-session: explica que o robo solta a conexao se voce entrar no jogo */}
+              <p className="basis-full text-[0.56rem] leading-relaxed text-text-dim">{t("vip.conn.singleSession")}</p>
             </div>
           )}
         </div>

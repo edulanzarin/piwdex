@@ -52,6 +52,14 @@ const BALL_TARGET = 500;  // repoe ate aqui (limitado pelo dinheiro)
 // (token vencido = conexao recusada direto, sem o retry-em-401 do REST).
 const RECONNECT_BASE_MS = 5_000;
 const RECONNECT_MAX_MS = 60_000;
+// SESSAO CONTESTADA (single-session): o jogo so aceita 1 conexao por conta — a mais nova
+// ganha. Se o robo e chutado LOGO depois de abrir, e porque outra sessao roubou (quase
+// sempre: o usuario entrou no jogo pelo navegador). Em vez de reconectar e brigar (cabo-de-
+// guerra que deixa a conta "presa"), o robo CEDE: apos alguns chutes-rapidos seguidos ele
+// PAUSA e avisa, e o usuario religa quando sair do jogo. Conexao que sobrevive a janela =
+// o robo "ganhou" a sessao -> zera os strikes.
+const CONTESTED_MS = 25_000;   // conexao tem que durar isso pra contar como "ganha"
+const CONTESTED_LIMIT = 3;     // chutes-rapidos seguidos ate ceder e pausar
 // chat do jogo: o snapshot da conexao traz o backlog (`history`) e as mensagens chegam
 // na sessao que o robo ja segura. O formato exato dos frames de chat nao e documentado —
 // o parser e TOLERANTE (varios nomes de campo) e o que nao casar cai num ring de frames
@@ -111,6 +119,7 @@ export interface HuntState {
   desiredOn: boolean;          // usuario quer o robo rodando (religa sozinho)
   reconnecting: boolean;       // ha tentativa de reconexao agendada
   nextRetryAt: number | null;  // quando a proxima tentativa dispara
+  contested: boolean;          // pausou porque a conta foi tomada (usuario entrou no jogo)
   fighterLevel: number | null; // nivel AO VIVO do pokemon que caca (frames do WS)
   // conexao-primeiro: o robo TOMA a sessao da conta e segura; hunt/venda sao jobs em cima
   holdOpen: boolean;           // usuario quer a conexao segurada (mesmo sem hunt)
@@ -198,6 +207,10 @@ class GameSession {
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private reconnectAttempt = 0;
   private nextRetryAt: number | null = null;
+  // sessao contestada (ver constantes acima): pausa em vez de brigar pela conexao
+  private contested = false;
+  private contestedStrikes = 0;
+  private contestedSurvive: ReturnType<typeof setTimeout> | null = null;
   // conexao-primeiro: "ligar o robo" = tomar a sessao da conta e SEGURAR, mesmo sem hunt.
   // Hunt/venda viram jobs em cima da conexao viva; parar a hunt nao derruba a conexao.
   private holdOpen = false;
@@ -240,6 +253,7 @@ class GameSession {
       pending: this.pending, autoSellCount: this.sellIds.size, pokeSellOn: this.pokeCfg != null,
       mode: this.mode, leveling: this.leveling, plan: this.plan,
       desiredOn: this.desiredOn, reconnecting: this.reconnectTimer != null, nextRetryAt: this.nextRetryAt,
+      contested: this.contested,
       fighterLevel: this.fighter?.level ?? null,
       holdOpen: this.holdOpen, wsOpen: this.ws != null && this.status === "running",
       team: this.liveTeam, teamAt: this.liveTeamAt,
@@ -251,6 +265,7 @@ class GameSession {
    *  conexao; hunt/auto/leveling entram como jobs por cima. Se cair, religa sozinho. */
   connectSession(userId: string, tokens: Tokens, shard: number, onTokens: (t: Tokens) => Promise<void>) {
     this.ctx(userId, tokens, shard, onTokens);
+    this.clearContested(); // "Religar" apos ceder a sessao passa por aqui
     this.holdOpen = true;
     this.desiredOn = true;
     this.cancelReconnect();
@@ -445,6 +460,7 @@ class GameSession {
     // totalizador cumulativo (robot_sales) NAO zera — vive no banco.
     this.analyzer = null; this.recentKills = []; this.soldItems = []; this.poke.soldBySpecies = {}; this.summaryLogged = false;
     this.pending = [];
+    this.clearContested(); // acao do usuario (comecar hunt) religa se estava pausado
     this.desiredOn = true;
     this.holdOpen = true; // cacar implica conexao segurada: parar a hunt depois NAO derruba
     this.cancelReconnect();
@@ -671,6 +687,10 @@ class GameSession {
       const wasRetry = this.reconnectAttempt > 0;
       this.rebaseline = true; // o 1o pokes desta conexao FUNDE na base (nao vira acervo)
       this.reconnectAttempt = 0; this.nextRetryAt = null;
+      // arma a janela de "sobrevivencia": se a conexao durar CONTESTED_MS, o robo ganhou
+      // a sessao e zera os strikes de contestacao. Se cair antes, o onGone conta o strike.
+      if (this.contestedSurvive) clearTimeout(this.contestedSurvive);
+      this.contestedSurvive = setTimeout(() => { this.contestedStrikes = 0; this.contestedSurvive = null; }, CONTESTED_MS);
       this.setStatus("running");
       if (wasRetry && this.userId) void logRobotEvent(this.userId, {
         kind: "reconnect", title: "Conexao restabelecida",
@@ -1070,14 +1090,46 @@ class GameSession {
 
   // a conexao caiu (kicked/error). Mantem os jobs configurados e, se o usuario QUER o robo
   // ligado (desiredOn), religa sozinho com backoff — e o "manter a conexao pra farmar sozinho".
+  // EXCECAO: sessao contestada (chutes-rapidos seguidos) -> CEDE e pausa, sem brigar.
   private onGone(status: SessStatus, code?: number) {
     this.clearTimers();
     this.ws = null;
+    // "chute-rapido": abriu mas caiu antes de sobreviver a janela (survive timer ainda de pe).
+    const quickKick = this.contestedSurvive != null;
+    if (this.contestedSurvive) { clearTimeout(this.contestedSurvive); this.contestedSurvive = null; }
     if (this.status === "running" || this.status === "connecting") {
       this.logSummary();
       this.setStatus(status, code != null ? `close ${code}` : undefined);
     }
-    if (this.desiredOn && this.jobsActive()) this.scheduleReconnect();
+    if (!(this.desiredOn && this.jobsActive())) return;
+
+    // Sessao contestada: chutado logo apos abrir = outra sessao roubou a conta (quase sempre
+    // o usuario entrou no jogo pelo navegador). Nao brigar reconectando (cabo-de-guerra que
+    // trava a conta pros dois). Conta o strike; apos o limite, PAUSA e avisa — o usuario
+    // religa quando sair do jogo. Chute avulso (rede) nao acumula porque a conexao anterior
+    // sobreviveu a janela e zerou os strikes.
+    if (quickKick) {
+      this.contestedStrikes++;
+      if (this.contestedStrikes >= CONTESTED_LIMIT) {
+        this.contested = true;
+        this.cancelReconnect();
+        if (this.userId) void logRobotEvent(this.userId, {
+          kind: "reconnect", title: "Robo pausado: conta em uso",
+          body: "A conta foi aberta em outro lugar (voce entrou no jogo?). O robo soltou a sessao pra nao brigar — religue quando sair do jogo.",
+          data: {},
+        });
+        this.emit("session");
+        return;
+      }
+    }
+    this.scheduleReconnect();
+  }
+
+  // religa apos ceder a sessao (chamado pelas acoes do usuario: connect / comecar hunt)
+  private clearContested() {
+    this.contested = false;
+    this.contestedStrikes = 0;
+    if (this.contestedSurvive) { clearTimeout(this.contestedSurvive); this.contestedSurvive = null; }
   }
 
   private cancelReconnect() {
@@ -1109,6 +1161,7 @@ class GameSession {
 
   private teardown() {
     this.clearTimers();
+    this.clearContested();
     if (this.ws) { try { this.ws.close(); } catch {} this.ws = null; }
     this.inv.clear(); this.pending = [];
     this.since = null; this.updatedAt = null;
@@ -1121,7 +1174,7 @@ class GameSession {
 // SESSION_REV: bump SEMPRE que a classe ganhar/mudar metodo — no dev, o hot-reload
 // re-avalia o modulo mas a instancia antiga (prototype velho) fica presa no globalThis;
 // sem o rev, chamar um metodo novo dava "is not a function" ate reiniciar o server.
-const SESSION_REV = 13;
+const SESSION_REV = 14;
 const g = globalThis as unknown as { __piwSession?: GameSession; __piwSessionRev?: number };
 if (!g.__piwSession || g.__piwSessionRev !== SESSION_REV) {
   // silencia a instancia velha SEM persistir nada (stop() gravaria enabled=false no banco
@@ -1133,7 +1186,9 @@ if (!g.__piwSession || g.__piwSessionRev !== SESSION_REV) {
       for (const k of ["analyzerPoll", "pokesPoll", "dropTimer", "buyTimer"]) {
         const t = old[k]; if (t) clearInterval(t as ReturnType<typeof setInterval>);
       }
-      const rt = old.reconnectTimer; if (rt) clearTimeout(rt as ReturnType<typeof setTimeout>);
+      for (const k of ["reconnectTimer", "contestedSurvive"]) {
+        const tm = old[k]; if (tm) clearTimeout(tm as ReturnType<typeof setTimeout>);
+      }
       (old.ws as { close?: () => void } | null | undefined)?.close?.();
     }
   } catch { /* melhor um socket orfao no dev que derrubar o modulo */ }

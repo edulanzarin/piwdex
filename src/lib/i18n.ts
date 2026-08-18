@@ -734,6 +734,11 @@ const pt: Dict = {
   "vip.conn.retrying": "religando sozinho...",
   "vip.conn.forceRetry": "Tentar agora",
   "vip.conn.readyHint": "Robo conectado segurando a sessao — ligar uma hunt aqui e instantaneo.",
+  "vip.conn.singleSession": "O jogo so aceita 1 conexao por conta. Enquanto o robo roda, ele segura a sessao — se voce abrir o jogo no navegador, o robo solta pra voce jogar e pausa. E so religar aqui quando terminar.",
+  "vip.contested.status": "Conta em uso no jogo",
+  "vip.contested.hud": "Voce entrou no jogo — robo pausado",
+  "vip.contested.resume": "Religar robo",
+  "vip.contested.note": "O robo soltou a sessao pra voce jogar (o jogo so permite uma conexao por conta). Quando sair do jogo, religue aqui.",
 
   // time ativo ao vivo
   "vip.team.title": "Time ativo",

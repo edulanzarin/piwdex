@@ -48,6 +48,7 @@ export interface LiveHunt {
   autoSellCount: number; pokeSellOn: boolean;
   mode: LiveMode; leveling: LiveLeveling | null; plan: LivePlanStep[] | null;
   desiredOn: boolean; reconnecting: boolean; nextRetryAt: number | null;
+  contested: boolean;          // pausou porque a conta foi tomada (usuario entrou no jogo)
   fighterLevel: number | null;
   // conexao-primeiro: o robo segura a sessao; hunt/venda sao jobs em cima
   holdOpen: boolean;

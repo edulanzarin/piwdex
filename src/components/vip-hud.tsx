@@ -83,8 +83,12 @@ export function VipHud({ hunts }: { hunts: HuntOption[] }) {
     } finally { setBusy(false); }
   };
 
-  // rotulo do monitor: religando > cacando > conectado > status cru
-  const statusLabel = troubled
+  const contested = !!hunt?.contested;
+
+  // rotulo do monitor: contestada > religando > cacando > conectado > status cru
+  const statusLabel = contested
+    ? t("vip.contested.status")
+    : troubled
     ? (retryIn != null ? t("vip.hud.retry", { s: retryIn }) : t(`robo.hunt.status.${status}`))
     : hunting ? t("vip.conn.hunting")
     : connected ? t("vip.conn.connected")
@@ -107,6 +111,22 @@ export function VipHud({ hunts }: { hunts: HuntOption[] }) {
           </span>
         )}
       </span>
+
+      {/* sessao contestada: a conta foi tomada (usuario entrou no jogo). O robo cedeu e
+          pausou; um clique religa. Some quando religa. */}
+      {contested && (
+        <button
+          type="button"
+          onClick={() => void connect()}
+          disabled={busy}
+          className="flash-in inline-flex items-center gap-1.5 rounded border border-[color:var(--yellow)]/60 bg-[color:var(--yellow)]/10 px-2 py-1 text-[0.56rem] font-semibold text-yellow disabled:opacity-40"
+          style={{ "--accent": "var(--yellow)" } as React.CSSProperties}
+          title={t("vip.contested.note")}
+        >
+          <span className="hud-led pulse-soft" style={{ "--led": "var(--yellow)" } as React.CSSProperties} />
+          {t("vip.contested.hud")} · {t("vip.contested.resume")}
+        </button>
+      )}
 
       {/* vinculo com o jogo expirou: APITA e leva pro reconectar (uma vez so) */}
       {account?.reason === "expired" && (
