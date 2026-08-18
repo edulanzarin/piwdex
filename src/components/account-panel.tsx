@@ -26,7 +26,10 @@ function Bookmarklet() {
   const t = useT();
   const ref = useRef<HTMLAnchorElement>(null);
   useEffect(() => {
-    const origin = window.location.origin;
+    // O bookmarklet abre <piwdex>/conectar a partir de onde foi arrastado. Em dev
+    // (localhost) isso gera um favorito quebrado — entao cai pro dominio de producao.
+    const here = window.location.origin;
+    const origin = /localhost|127\.0\.0\.1/.test(here) ? "https://piwdex.com.br" : here;
     const alertMsg = t("account.bm.alert").replace(/['\\]/g, " ");
     const code =
       "javascript:(function(){try{var r=sessionStorage.getItem('pokeweb:tokens')||localStorage.getItem('pokeweb:tokens');if(!r){alert('" +

@@ -6,7 +6,7 @@
 // hashes antigos (#robo, #conta...) continuam funcionando. Os dados vivos vem todos do
 // VipLiveProvider (SSE) — os paineis nao fazem mais polling proprio.
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { VipLiveProvider, useVipLive } from "./vip-live";
 import { VipHud } from "./vip-hud";
 import { VipOverview } from "./vip-overview";
@@ -69,9 +69,10 @@ export function VipShell(props: VipShellProps) {
 
 function VipShellInner({ creatures, dex, hunts, itemIcons, lootByPoke }: VipShellProps) {
   const t = useT();
-  const { events, alerts } = useVipLive();
+  const { events, alerts, account } = useVipLive();
   const [sec, setSec] = useState<Section>("painel");
   const [focusWish, setFocusWish] = useState<string | null>(null);
+  const autoRouted = useRef(false);
 
   useEffect(() => {
     const apply = () => {
@@ -84,6 +85,18 @@ function VipShellInner({ creatures, dex, hunts, itemIcons, lootByPoke }: VipShel
     window.addEventListener("hashchange", apply);
     return () => window.removeEventListener("hashchange", apply);
   }, []);
+
+  // Sem deep-link (URL sem hash) e conta do JOGO ainda nao conectada => abre em "Conta":
+  // conectar e o primeiro passo, o resto da area VIP depende disso. So uma vez, e nunca
+  // por cima de quem ja escolheu uma secao (hash presente) ou ja e conectado.
+  useEffect(() => {
+    if (autoRouted.current || !account) return;
+    autoRouted.current = true;
+    if (!window.location.hash && !account.connected) {
+      setSec("conta");
+      history.replaceState(null, "", "#conta");
+    }
+  }, [account]);
 
   const go = (v: Section) => {
     setSec(v);
