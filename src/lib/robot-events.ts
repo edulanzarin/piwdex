@@ -7,7 +7,8 @@ export type RobotEventKind =
   | "shiny" | "hunt-summary" | "poke-sold" | "item-sold" | "item-bought"
   | "brain"      // decisao do cerebro (trocou de hunt sozinho, escolheu hunt no modo auto)
   | "reconnect"  // conexao caiu e o robo religou sozinho
-  | "goal";      // meta de leveling atingida
+  | "goal"       // meta de leveling atingida
+  | "error";     // falha OPERACIONAL (venda/compra que nao rodou) — throttled na origem
 
 export interface RobotEvent {
   id: string;

@@ -1,5 +1,5 @@
 import { query, queryOne } from "@/lib/db";
-import type { PokeSellConfig } from "@/lib/poke-sell";
+import type { SavedPokeSellCfg } from "@/lib/poke-sell";
 
 // Persistencia do estado DESEJADO do robo (tabela robot_sessions). E o que permite:
 //   1. reconexao automatica: o motor sabe que o usuario QUER o bot ligado;
@@ -55,7 +55,7 @@ export interface RobotDesired {
   mode: RobotMode;
   slug: string | null;
   sellItemIds: number[];
-  pokeSellCfg: PokeSellConfig | null;
+  pokeSellCfg: SavedPokeSellCfg | null;
   autobuy: boolean;
   supplyCfg: SupplyCfg | null;
   leveling: LevelingGoal | null;
@@ -70,7 +70,7 @@ interface Row {
   mode: string;
   slug: string | null;
   sell_item_ids: number[];
-  poke_sell_cfg: PokeSellConfig | null;
+  poke_sell_cfg: SavedPokeSellCfg | null;
   autobuy: boolean;
   supply_cfg: SupplyCfg | null;
   leveling: LevelingGoal | null;

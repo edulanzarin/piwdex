@@ -59,8 +59,9 @@ function parseAuto(charRaw: unknown): AutoState {
 }
 
 // Aceita tanto { catalog:[...], counts:{...} } (endpoint /balls) quanto um array cru
-// com quantity inline (resposta do auto-helper).
-function parseBalls(raw: unknown): BallOpt[] {
+// com quantity inline (resposta do auto-helper). Exportado: a sessao WS usa pra ler o
+// frame `balls` ao vivo (gatilho da auto-compra quando o estoque cai).
+export function parseBalls(raw: unknown): BallOpt[] {
   const list = Array.isArray(raw)
     ? (raw as Record<string, unknown>[])
     : Array.isArray((raw as { catalog?: unknown })?.catalog)

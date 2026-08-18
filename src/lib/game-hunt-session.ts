@@ -25,11 +25,11 @@ import {
   type RobotMode, type LevelingGoal, type RobotDesired, type AnnounceCfg,
 } from "./robot-session-store";
 import { sellItems, sellPokes, fetchShop, buyBall, buyItem, fetchInventory } from "./game-shop";
-import { readAuto } from "./game-auto";
+import { readAuto, parseBalls } from "./game-auto";
 import { getData } from "./data";
 import { normalizeActivePokes, type ActivePoke } from "./game-account";
-import { saveTeamSnapshot } from "./game-link";
-import { filterSellable, type PokeSellConfig } from "./poke-sell";
+import { saveTeamSnapshot, getGameLink } from "./game-link";
+import { filterSellable, pokeSellOn, type PokeSellConfig } from "./poke-sell";
 import { logRobotEvent } from "./robot-events";
 import { addRobotSales } from "./robot-sales";
 import { recordCaptured } from "./captured-pokes";
@@ -43,10 +43,13 @@ const DROPS_MS = 30000;   // varredura de venda de drops
 // A venda de pokemon vende ASSIM QUE COLETA (a cada varredura de pokes que tenha match),
 // igual a de drops — sem throttle de 1h. Sem alerta por venda (poluia o feed): o vendido
 // aparece nos paineis "Itens/Pokemon vendidos" e no totalizador de Estatisticas.
-// auto-compra de consumiveis: reabastece 1x/h as bolas da automacao quando ficam baixas.
-const BUY_EVERY_MS = 60 * 60 * 1000;
-const BALL_FLOOR = 100;   // abaixo disso, repoe
-const BALL_TARGET = 500;  // repoe ate aqui (limitado pelo dinheiro)
+// auto-compra de consumiveis: varredura periodica + GATILHO ao vivo (frame `balls` do WS).
+// A varredura de 1h era LENTA demais: uma hunt queima ~700 bolas/h, entao a conta passava
+// a maior parte da hora com 0 bolas e o auto-catch do jogo travava a fila de captura.
+const BUY_EVERY_MS = 10 * 60 * 1000; // varredura de seguranca (o gatilho ao vivo e o principal)
+const BUY_TRIGGER_COOLDOWN_MS = 3 * 60 * 1000; // frame balls dispara no maximo 1 compra a cada 3min
+const BALL_FLOOR = 150;   // abaixo disso, repoe
+const BALL_TARGET = 1000; // repoe ate aqui (limitado pelo dinheiro) — bola e barata perto do ganho/h
 // pocoes/revives sao mais caros que bola e gastam menos rapido (auto-potion so no HP baixo,
 // auto-revive so quando desmaia) -> pisos/alvos menores pra nao drenar o ouro. Revive e o
 // mais caro (ate 2500), entao alvo bem baixo. Sempre limitado pelo dinheiro na hora.
@@ -200,6 +203,12 @@ class GameSession {
   private buyTokens: Tokens | null = null;
   private buyUserId: string | null = null;
   private buyPersist: ((t: Tokens) => Promise<void>) | null = null;
+  private buying = false;                 // lock: varredura + gatilho ao vivo nao sobrepoem
+  private wantedBallIds: number[] = [];   // bolas que a automacao usa (da ultima varredura) — gatilho ao vivo
+  private lastBuyTriggerAt = 0;
+  // falhas operacionais (venda/compra que nao rodou) viram Alerta — throttled por operacao
+  // pra nao inundar o feed quando o jogo fica fora um tempo.
+  private lastOpErrAt = new Map<string, number>();
 
   // cerebro (modo auto/leveling) + reconexao automatica
   private mode: RobotMode = "manual";
@@ -251,6 +260,32 @@ class GameSession {
     this.emit("session");
   }
 
+  // Tokens SEMPRE do banco antes de cada frente REST (venda de drops/pokemon, auto-compra).
+  // TRES frentes renovam token no jogo (WS/reconnect, snapshots do SSE, auto-compra) e o
+  // refresh ROTACIONA — a copia em memoria de uma frente ficava stale e cada venda/compra
+  // dela morria num 401 silencioso ("vive falhando"). O banco tem sempre o ultimo token
+  // persistido por qualquer frente; ler de la faz todas convergirem.
+  private async syncTokens(): Promise<boolean> {
+    if (this.userId) {
+      try {
+        const l = await getGameLink(this.userId);
+        if (l && l.status !== "expired") { this.tokens = l.tokens; return true; }
+      } catch { /* banco fora: tenta com o token em memoria */ }
+    }
+    return this.tokens != null;
+  }
+
+  // Falha operacional vira Alerta (kind "error") — no maximo 1 por operacao a cada 30min.
+  // Antes toda falha caia num catch{} mudo e o usuario so via "nao vendeu/nao comprou".
+  private logOpError(op: string, title: string, body: string | null) {
+    const uid = this.userId ?? this.buyUserId;
+    if (!uid) return;
+    const last = this.lastOpErrAt.get(op) ?? 0;
+    if (Date.now() - last < 30 * 60_000) return;
+    this.lastOpErrAt.set(op, Date.now());
+    void logRobotEvent(uid, { kind: "error", title, body, data: { op } });
+  }
+
   getState(): HuntState {
     return {
       status: this.status, error: this.error, slug: this.slug, since: this.since, updatedAt: this.updatedAt,
@@ -289,7 +324,9 @@ class GameSession {
     this.slug = null; this.sellIds.clear(); this.pokeCfg = null; this.poke.on = false;
     this.mode = "manual"; this.leveling = null; this.plan = null; this.currentTargetId = null; this.fighter = null;
     this.analyzer = null; this.recentKills = []; this.soldItems = []; this.poke.soldBySpecies = {};
-    this.persistDesired({ enabled: false, mode: "manual", slug: null, pokeSellCfg: null, leveling: null });
+    // NAO apaga poke_sell_cfg: desligar o robo nao e "desligar a venda" — a config do
+    // usuario sobrevive e religa junto com a proxima conexao/hunt.
+    this.persistDesired({ enabled: false, mode: "manual", slug: null, leveling: null });
     this.teardown();
   }
 
@@ -527,7 +564,8 @@ class GameSession {
   async resume(userId: string, tokens: Tokens, shard: number, onTokens: (t: Tokens) => Promise<void>, d: RobotDesired, fighter: FighterProfile | null) {
     this.ctx(userId, tokens, shard, onTokens);
     this.mode = d.mode; this.leveling = d.leveling; this.fighter = fighter;
-    if (d.pokeSellCfg) { this.pokeCfg = d.pokeSellCfg; this.poke.on = true; this.baselineIds = null; }
+    // config salva com on:false NAO religa a venda (as travas ficam guardadas, so isso)
+    if (pokeSellOn(d.pokeSellCfg)) { this.pokeCfg = d.pokeSellCfg; this.poke.on = true; this.baselineIds = null; }
     if (d.autobuy) this.setAutoBuy(userId, tokens, true, onTokens);
     const data = await getBrainData();
     if (d.mode === "leveling" && d.leveling && !d.leveling.done && fighter) {
@@ -565,8 +603,11 @@ class GameSession {
     this.slug = null; this.sellIds.clear(); this.inv.clear();
     this.analyzer = null; this.recentKills = []; this.soldItems = []; this.poke.soldBySpecies = {};
     this.mode = "manual"; this.leveling = null; this.plan = null; this.currentTargetId = null; this.fighter = null;
-    this.pokeCfg = null; this.poke.on = false;
-    this.persistDesired({ enabled: this.holdOpen, mode: "manual", slug: null, pokeSellCfg: null, leveling: null });
+    // A VENDA DE POKEMON NAO MORRE AQUI: parar a hunt parava a venda e ainda APAGAVA a
+    // config do banco — a proxima hunt nascia sem venda e tudo ia pro acervo (bug dos
+    // uncommon vendaveis "mantidos", ago/2026). Com a conexao segurada a venda continua;
+    // sem conexao, a config persiste e religa no proximo start.
+    this.persistDesired({ enabled: this.holdOpen, mode: "manual", slug: null, leveling: null });
     if (this.holdOpen) { this.refreshTimers(); this.emit("hunt"); this.emit("session"); return; }
     this.desiredOn = false;
     this.cancelReconnect();
@@ -581,14 +622,17 @@ class GameSession {
     this.poke.on = true;
     this.baselineIds = null; // refaz a base: a conta atual nao entra no acervo, so novas capturas
     this.desiredOn = true;
-    this.persistDesired({ enabled: true, pokeSellCfg: cfg });
+    this.persistDesired({ enabled: true, pokeSellCfg: { ...cfg, on: true } });
     this.applyOrConnect(false);
   }
 
   stopPokeSell() {
+    const cfg = this.pokeCfg;
     this.pokeCfg = null;
     this.poke.on = false;
-    this.persistDesired({ pokeSellCfg: null });
+    // desligar NAO apaga as travas: grava on:false com a config preservada (religar nao
+    // exige reconfigurar). Sem config em memoria, nao mexe no banco (a rota ja cuidou).
+    if (cfg) this.persistDesired({ pokeSellCfg: { ...cfg, on: false } });
     if (!this.jobsActive()) { this.desiredOn = false; this.cancelReconnect(); this.teardown(); } else this.refreshTimers();
   }
 
@@ -599,7 +643,8 @@ class GameSession {
     this.desiredOn = false; this.cancelReconnect();
     this.slug = null; this.sellIds.clear(); this.pokeCfg = null;
     this.mode = "manual"; this.leveling = null; this.plan = null; this.currentTargetId = null; this.fighter = null;
-    this.persistDesired({ enabled: false, mode: "manual", slug: null, pokeSellCfg: null, leveling: null });
+    // poke_sell_cfg fica no banco (so o interruptor da venda apaga/desliga a config)
+    this.persistDesired({ enabled: false, mode: "manual", slug: null, leveling: null });
     this.teardown();
   }
 
@@ -781,6 +826,8 @@ class GameSession {
       const items = Array.isArray(m.items) ? (m.items as Record<string, unknown>[]) : [];
       this.inv.clear();
       for (const it of items) this.inv.set(Number(it.itemId ?? 0), Number(it.quantity ?? it.qty ?? 0));
+    } else if (m.type === "balls") {
+      this.checkBallsFrame(m); // estoque ao vivo: repoe bola ANTES da fila de captura travar
     } else if (m.type === "pokes" && Array.isArray(m.list)) {
       this.trackLiveTeam(m.list);       // time AO VIVO no estado (HUD/painel, sem banco)
       void this.updateTeamSnapshot(m.list); // Conta reflete o time ao vivo (lider incluso)
@@ -891,14 +938,16 @@ class GameSession {
 
   // vende os drops marcados que tem na mochila (REST)
   private async sellDrops() {
-    if (this.sellingDrops || !this.tokens || this.sellIds.size === 0) return;
+    if (this.sellingDrops || this.sellIds.size === 0) return;
     const toSell: { itemId: number; qty: number }[] = [];
     for (const id of this.sellIds) { const q = this.inv.get(id) ?? 0; if (q > 0) toSell.push({ itemId: id, qty: q }); }
     if (!toSell.length) return;
     this.sellingDrops = true;
     try {
+      if (!(await this.syncTokens()) || !this.tokens) return;
       const w = await sellItems(this.tokens, toSell);
       if (w.changed) { this.tokens = w.tokens; await this.onTokens?.(w.tokens); }
+      if (!w.ok) this.logOpError("sell-drops", "Venda de itens falhou", `O jogo recusou a venda (HTTP ${w.status}). O robo tenta de novo na proxima varredura.`);
       if (w.ok) {
         const data = await getData();
         let qtyTotal = 0, goldTotal = 0;
@@ -926,7 +975,7 @@ class GameSession {
   // drops. Sem throttle de 1h: assim o capturado nao fica em limbo (nem vendido nem no
   // acervo). O lock sellingPokes evita varreduras sobrepostas.
   private async sellPokesSweep(list: unknown[]) {
-    if (this.sellingPokes || !this.tokens || !this.pokeCfg) return;
+    if (this.sellingPokes || !this.pokeCfg) return;
     this.sellingPokes = true;
     try {
       const all = normalizeActivePokes(list);
@@ -934,9 +983,11 @@ class GameSession {
       const rarityOf = (sid: number): Rarity => data.getCreature(sid)?.rarity ?? "COMMON";
       const matches = filterSellable(all, this.pokeCfg, rarityOf);
       if (!matches.length) return;
+      if (!(await this.syncTokens()) || !this.tokens) return;
       const ids = matches.map((p) => p.id);
       const w = await sellPokes(this.tokens, ids);
       if (w.changed) { this.tokens = w.tokens; await this.onTokens?.(w.tokens); }
+      if (!w.ok) this.logOpError("sell-pokes", "Venda de pokemon falhou", `O jogo recusou a venda (HTTP ${w.status}). O robo tenta de novo na proxima varredura.`);
       if (w.ok && w.data) {
         const sold = w.data.sold ?? 0, gold = w.data.goldGained ?? 0; // so conta o que o jogo CONFIRMOU
         if (sold > 0) {
@@ -1043,7 +1094,7 @@ class GameSession {
     if (qty <= 0) return gold;
     const w = await buy(this.buyTokens!, id, qty);
     if (w.changed) { this.buyTokens = w.tokens; await this.buyPersist?.(w.tokens); }
-    if (!w.ok) return gold;
+    if (!w.ok) { this.logOpError("autobuy", "Auto-compra falhou", `O jogo recusou a compra de ${name} (HTTP ${w.status}). O robo tenta de novo na proxima varredura.`); return gold; }
     const spent = qty * priceGold;
     if (this.buyUserId) void logRobotEvent(this.buyUserId, { kind: "item-bought", title: `Comprou ${qty} ${name}`, body: `-$${spent}`, data: { count: qty, gold: -spent } });
     return gold - spent;
@@ -1054,19 +1105,31 @@ class GameSession {
   // (supply_cfg); null = "a melhor" (a mais forte que da pra comprar). Tudo abaixo do piso, ate
   // o alvo, limitado pelo dinheiro. GASTA dolares do jogo — opt-in, cada compra vira Alerta.
   private async restockSupplies() {
-    if (!this.autoBuy || !this.buyTokens || !this.buyUserId) return;
+    if (!this.autoBuy || !this.buyUserId || this.buying) return;
+    this.buying = true;
     try {
+      // token mais fresco SEMPRE do banco (ver syncTokens): a copia em memoria da auto-
+      // compra ficava horas stale e toda varredura morria num 401 engolido pelo catch.
+      try {
+        const l = await getGameLink(this.buyUserId);
+        if (!l || l.status === "expired") { this.logOpError("autobuy", "Auto-compra parada", "O vinculo com o jogo expirou — reconecte a conta na secao Conta."); return; }
+        this.buyTokens = l.tokens;
+      } catch { /* banco fora: tenta com a copia em memoria */ }
+      if (!this.buyTokens) return;
+
       const a = await readAuto(this.buyTokens);
-      if (!a || "unauth" in a) return;
+      if (!a) { this.logOpError("autobuy", "Auto-compra nao rodou", "O jogo nao respondeu. O robo tenta de novo na proxima varredura."); return; }
+      if ("unauth" in a) { this.logOpError("autobuy", "Auto-compra nao rodou", "O jogo recusou o token (401). Se persistir, reconecte a conta."); return; }
       if (a.changed) { this.buyTokens = a.tokens; await this.buyPersist?.(a.tokens); }
       const shopRes = await fetchShop(this.buyTokens);
-      if (!shopRes) return;
+      if (!shopRes) { this.logOpError("autobuy", "Auto-compra nao rodou", "A loja do jogo nao respondeu. O robo tenta de novo na proxima varredura."); return; }
       if (shopRes.changed) { this.buyTokens = shopRes.tokens; await this.buyPersist?.(shopRes.tokens); }
       let gold = shopRes.shop.gold;
 
       // ---- BOLAS ----
       const ballCount = new Map(a.balls.map((b) => [b.id, b.count]));
       const wantBalls = [...new Set([a.auto.autoCatchBallId, a.auto.autoCatchShinyBallId, a.auto.selectedBallId].filter((id) => id > 0))];
+      this.wantedBallIds = wantBalls; // o gatilho ao vivo (frame balls) vigia exatamente estas
       for (const id of wantBalls) {
         const shopBall = shopRes.shop.balls.find((b) => b.id === id);
         if (!shopBall) continue;
@@ -1103,7 +1166,31 @@ class GameSession {
         const r = chooseId("revive", cfg?.reviveId ?? null);
         if (r) gold = await this.buyUpTo(buyItem, r.id, r.name, r.priceGold, invCount.get(r.id) ?? 0, REVIVE_FLOOR, REVIVE_TARGET, gold);
       }
-    } catch { /* proxima hora tenta */ }
+    } catch {
+      this.logOpError("autobuy", "Auto-compra nao rodou", "Erro inesperado na varredura. O robo tenta de novo na proxima.");
+    } finally { this.buying = false; }
+  }
+
+  // GATILHO AO VIVO da auto-compra: o jogo manda o frame `balls` na sessao segurada sempre
+  // que o estoque muda. Se uma das bolas que a automacao USA cair abaixo do piso, repoe JA
+  // (com cooldown) — e o que impede a fila de captura de travar no meio da hunt, em vez de
+  // esperar a varredura periodica.
+  private checkBallsFrame(m: Record<string, unknown>) {
+    if (!this.autoBuy || !this.wantedBallIds.length) return;
+    try {
+      // array direto em balls/list/items; formato {catalog, counts} o parseBalls resolve no frame cru
+      const raw = (Array.isArray(m.balls) ? m.balls : Array.isArray(m.list) ? m.list : Array.isArray(m.items) ? m.items : m) as unknown;
+      const balls = parseBalls(raw);
+      if (!balls.length) return;
+      const low = this.wantedBallIds.some((id) => {
+        const b = balls.find((x) => x.id === id);
+        return b != null && !b.infinite && b.count < BALL_FLOOR;
+      });
+      if (!low) return;
+      if (Date.now() - this.lastBuyTriggerAt < BUY_TRIGGER_COOLDOWN_MS) return;
+      this.lastBuyTriggerAt = Date.now();
+      void this.restockSupplies();
+    } catch { /* frame estranho nao derruba a sessao */ }
   }
 
   private logSummary() {
@@ -1209,7 +1296,7 @@ class GameSession {
 // SESSION_REV: bump SEMPRE que a classe ganhar/mudar metodo — no dev, o hot-reload
 // re-avalia o modulo mas a instancia antiga (prototype velho) fica presa no globalThis;
 // sem o rev, chamar um metodo novo dava "is not a function" ate reiniciar o server.
-const SESSION_REV = 14;
+const SESSION_REV = 15;
 const g = globalThis as unknown as { __piwSession?: GameSession; __piwSessionRev?: number };
 if (!g.__piwSession || g.__piwSessionRev !== SESSION_REV) {
   // silencia a instancia velha SEM persistir nada (stop() gravaria enabled=false no banco
