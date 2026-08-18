@@ -3,13 +3,12 @@
 // Ajustes da conta do piwdex: nome de exibicao e senha. Dois forms via server actions
 // (updateName / changePassword) com useActionState. A conta do JOGO fica na area VIP.
 
-import { useActionState, useEffect } from "react";
+import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import Link from "next/link";
 import { updateName, changePassword, type ActionResult } from "@/lib/actions/account";
 import { useT } from "./locale-provider";
-import { useToast } from "./toast";
-import { Star, ChevronRight } from "./icons";
+import { Star, ChevronRight, Check } from "./icons";
 
 function SubmitBtn({ label, loading }: { label: string; loading: string }) {
   const { pending } = useFormStatus();
@@ -20,15 +19,19 @@ function SubmitBtn({ label, loading }: { label: string; loading: string }) {
   );
 }
 
+// linha de sucesso inline (verde, com check) — o /conta vive fora do ToastProvider
+function Ok({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="inline-flex items-center gap-1.5 text-[0.72rem] font-semibold text-green">
+      <Check size={11} /> {children}
+    </p>
+  );
+}
+
 export function AccountSettings({ email, nome, vip }: { email: string; nome: string | null; vip: boolean }) {
   const t = useT();
-  const toast = useToast();
   const [nameState, nameAction] = useActionState<ActionResult | undefined, FormData>(updateName, undefined);
   const [passState, passAction] = useActionState<ActionResult | undefined, FormData>(changePassword, undefined);
-
-  // feedback de sucesso via toast (o erro fica inline no form)
-  useEffect(() => { if (nameState?.ok) toast.success(t("conta.name.saved")); }, [nameState]); // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => { if (passState?.ok) toast.success(t("conta.pass.saved")); }, [passState]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const errText = (r?: ActionResult) => (r && !r.ok && r.error ? t(`conta.err.${r.error}`) : null);
 
@@ -59,6 +62,7 @@ export function AccountSettings({ email, nome, vip }: { email: string; nome: str
           <input name="nome" type="text" defaultValue={nome ?? ""} maxLength={40} autoComplete="name" className="input" placeholder={t("conta.f.namePh")} />
         </label>
         {errText(nameState) && <p className="text-[0.72rem] font-semibold text-red">{errText(nameState)}</p>}
+        {nameState?.ok && <Ok>{t("conta.name.saved")}</Ok>}
         <SubmitBtn label={t("conta.name.btn")} loading={t("conta.saving")} />
       </form>
 
@@ -78,6 +82,7 @@ export function AccountSettings({ email, nome, vip }: { email: string; nome: str
           <input name="confirma" type="password" required minLength={6} autoComplete="new-password" className="input" />
         </label>
         {errText(passState) && <p className="text-[0.72rem] font-semibold text-red">{errText(passState)}</p>}
+        {passState?.ok && <Ok>{t("conta.pass.saved")}</Ok>}
         <SubmitBtn label={t("conta.pass.btn")} loading={t("conta.saving")} />
       </form>
 
