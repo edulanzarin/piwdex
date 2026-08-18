@@ -168,6 +168,10 @@ class GameSession {
   private dropTimer: ReturnType<typeof setInterval> | null = null;
   private sellingDrops = false;
   private sellingPokes = false;
+  // pokemon que o JOGO recusou vender (400) e a lista viva nao explica — tipicamente
+  // ANUNCIADO NO MERCADO (o frame `pokes` nao traz essa flag). Ignorados nas varreduras
+  // ate a config de venda mudar (setPokeSell limpa), pra nao travarem o lote de novo.
+  private pokeSellBlocked = new Set<string>();
   private summaryLogged = false;
 
   private userId: string | null = null;
@@ -623,6 +627,7 @@ class GameSession {
   setPokeSell(userId: string, tokens: Tokens, shard: number, cfg: PokeSellConfig, onTokens: (t: Tokens) => Promise<void>) {
     this.ctx(userId, tokens, shard, onTokens);
     this.pokeCfg = cfg;
+    this.pokeSellBlocked.clear(); // config nova = todo mundo re-testado (anuncio pode ter saido do mercado)
     this.poke.on = true;
     this.baselineIds = null; // refaz a base: a conta atual nao entra no acervo, so novas capturas
     this.desiredOn = true;
@@ -645,7 +650,7 @@ class GameSession {
     this.leaveField(); // best-effort: avisa o jogo antes de fechar o socket
     this.holdOpen = false;
     this.desiredOn = false; this.cancelReconnect();
-    this.slug = null; this.sellIds.clear(); this.pokeCfg = null;
+    this.slug = null; this.sellIds.clear(); this.pokeCfg = null; this.pokeSellBlocked.clear();
     this.mode = "manual"; this.leveling = null; this.plan = null; this.currentTargetId = null; this.fighter = null;
     // poke_sell_cfg fica no banco (so o interruptor da venda apaga/desliga a config)
     this.persistDesired({ enabled: false, mode: "manual", slug: null, leveling: null });
@@ -1001,32 +1006,58 @@ class GameSession {
       const all = normalizeActivePokes(list);
       const data = await getData();
       const rarityOf = (sid: number): Rarity => data.getCreature(sid)?.rarity ?? "COMMON";
-      const matches = filterSellable(all, this.pokeCfg, rarityOf);
+      const matches = filterSellable(all, this.pokeCfg, rarityOf).filter((p) => !this.pokeSellBlocked.has(p.id));
       if (!matches.length) return;
       if (!(await this.syncTokens()) || !this.tokens) return;
-      const ids = matches.map((p) => p.id);
-      const w = await sellPokes(this.tokens, ids);
-      if (w.changed) { this.tokens = w.tokens; await this.onTokens?.(w.tokens); }
-      if (!w.ok) {
-        const why = gameErrorMsg(w.data);
-        this.logOpError("sell-pokes", "Venda de pokemon falhou", `O jogo recusou (HTTP ${w.status}${why ? `: ${why}` : ""}). O robo tenta na proxima varredura.`);
+      const blockedBefore = this.pokeSellBlocked.size;
+      const r = await this.sellPokesResilient(matches.map((p) => p.id));
+      const newlyBlocked = this.pokeSellBlocked.size - blockedBefore;
+      if (newlyBlocked > 0) {
+        this.logOpError("sell-pokes-skip", "Pokemon invendaveis ignorados",
+          `O jogo recusou ${newlyBlocked} pokemon (anunciado no mercado, equipe ou shiny). O robo passa a ignora-los e vende o resto normalmente.`);
       }
-      if (w.ok && w.data) {
-        const sold = w.data.sold ?? 0, gold = w.data.goldGained ?? 0; // so conta o que o jogo CONFIRMOU
-        if (sold > 0) {
-          // agrega POR ESPECIE (os `sold` primeiros dos matches, ordenados do pior pro melhor)
-          // — o card mostra o bicho (icone+nome+raridade), so quantidade e valor. E totalizador.
-          for (const p of matches.slice(0, sold)) {
-            const cur = this.poke.soldBySpecies[p.speciesId] ?? { speciesId: p.speciesId, name: p.name, rarity: p.rarity, count: 0, gold: 0 };
-            cur.count += 1; cur.gold += p.sellValue;
-            this.poke.soldBySpecies[p.speciesId] = cur;
-          }
-          // sem alerta por venda (o vendido aparece em "Pokemon vendidos" e em Estatisticas).
-          if (this.userId) void addRobotSales(this.userId, { pokesCount: sold, pokesGold: gold });
-          this.emit("hunt");
+      if (r.soldIds.length) {
+        // agrega POR ESPECIE — o card mostra o bicho (icone+nome+raridade), so quantidade
+        // e valor. E totalizador. So conta o que o jogo CONFIRMOU (soldIds dos lotes ok).
+        const byId = new Map(matches.map((p) => [p.id, p]));
+        for (const id of r.soldIds) {
+          const p = byId.get(id);
+          if (!p) continue;
+          const cur = this.poke.soldBySpecies[p.speciesId] ?? { speciesId: p.speciesId, name: p.name, rarity: p.rarity, count: 0, gold: 0 };
+          cur.count += 1; cur.gold += p.sellValue;
+          this.poke.soldBySpecies[p.speciesId] = cur;
         }
+        // sem alerta por venda (o vendido aparece em "Pokemon vendidos" e em Estatisticas).
+        if (this.userId) void addRobotSales(this.userId, { pokesCount: r.soldIds.length, pokesGold: r.gold });
+        this.emit("hunt");
       }
     } catch { /* proxima varredura tenta */ } finally { this.sellingPokes = false; }
+  }
+
+  // Vende um lote com RESILIENCIA. O jogo recusa o lote INTEIRO (400) se UM pokemon for
+  // invendavel — na equipe, shiny ou anunciado no mercado — e o frame `pokes` nao expoe
+  // "anunciado no mercado", entao nao da pra filtrar antes de tentar. Bissecciona ate
+  // isolar os recusados, vende o resto e poe os isolados em pokeSellBlocked (um bicho
+  // ruim nao pode segurar a venda dos outros). Custo maximo: ~2 * bloqueados * log2(lote).
+  private async sellPokesResilient(ids: string[]): Promise<{ soldIds: string[]; gold: number }> {
+    if (!ids.length || !this.tokens) return { soldIds: [], gold: 0 };
+    const w = await sellPokes(this.tokens, ids);
+    if (w.changed) { this.tokens = w.tokens; await this.onTokens?.(w.tokens); }
+    if (w.ok) {
+      const sold = w.data?.sold ?? ids.length;
+      return { soldIds: ids.slice(0, sold), gold: w.data?.goldGained ?? 0 };
+    }
+    if (w.status === 400) {
+      if (ids.length === 1) { this.pokeSellBlocked.add(ids[0]); return { soldIds: [], gold: 0 }; }
+      const mid = Math.ceil(ids.length / 2);
+      const a = await this.sellPokesResilient(ids.slice(0, mid));
+      const b = await this.sellPokesResilient(ids.slice(mid));
+      return { soldIds: [...a.soldIds, ...b.soldIds], gold: a.gold + b.gold };
+    }
+    // falha nao-400 (rede/5xx/token) e transitoria: para aqui, a proxima varredura tenta
+    const why = gameErrorMsg(w.data);
+    this.logOpError("sell-pokes", "Venda de pokemon falhou", `O jogo recusou (HTTP ${w.status}${why ? `: ${why}` : ""}). O robo tenta na proxima varredura.`);
+    return { soldIds: [], gold: 0 };
   }
 
   // grava no acervo (captured_pokes) os pokemon MANTIDOS — os que NAO vao ser vendidos.
