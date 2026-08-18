@@ -13,11 +13,11 @@ export function CreatureCard({ creature, acq }: { creature: Creature; acq?: Acqu
     >
       {/* So marca as origens fora do comum (evolucao/especial); caca e o padrao. */}
       {acq && acq !== "hunt" && (
-        <AcqBadge kind={acq} className="absolute right-1.5 top-1.5 !text-[0.5rem] !px-1.5 !py-0.5" />
+        <AcqBadge kind={acq} className="absolute right-1.5 top-1.5 !text-[0.7rem] !px-1.5 !py-0.5" />
       )}
       <Sprite src={spriteUrl(creature.pokeId)} alt={creature.name} size={76} />
       <div className="text-center">
-        <div className="text-[0.6rem] text-text-dim">
+        <div className="text-[0.8rem] text-text-dim">
           #{String(creature.pokeId).padStart(3, "0")}
         </div>
         <div className="text-sm font-semibold leading-tight">{creature.name}</div>

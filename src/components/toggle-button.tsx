@@ -32,7 +32,7 @@ export function ToggleButton({
       onClick={onClick}
       aria-pressed={active}
       title={title}
-      className={`inline-flex min-h-9 items-center gap-2 rounded border px-3 text-[0.7rem] transition active:translate-y-px ${active ? ON[accent] : OFF}`}
+      className={`inline-flex min-h-9 items-center gap-2 rounded border px-3 text-[0.9rem] transition active:translate-y-px ${active ? ON[accent] : OFF}`}
     >
       {children}
     </button>

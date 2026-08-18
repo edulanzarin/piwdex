@@ -33,7 +33,7 @@ function GradeChip({ grade, label }: { grade: Grade; label: string }) {
   const c = GRADE_VAR[grade];
   return (
     <span
-      className="inline-flex items-center rounded px-1.5 py-0.5 text-[0.55rem] font-bold uppercase tracking-wide"
+      className="inline-flex items-center rounded px-1.5 py-0.5 text-[0.75rem] font-bold uppercase tracking-wide"
       style={{ background: `color-mix(in srgb, ${c} 20%, transparent)`, border: `1px solid ${c}`, color: c }}
     >
       {label}
@@ -110,14 +110,14 @@ export function MarketMonCard({ mon, onClick, right }: { mon: MarketMon; onClick
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
             <span className="truncate text-sm font-semibold">{mon.name}</span>
-            <span className="text-[0.58rem] text-text-dim">Lv.{mon.level}</span>
+            <span className="text-[0.78rem] text-text-dim">Lv.{mon.level}</span>
           </div>
-          <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[0.62rem] text-text-dim">
+          <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[0.82rem] text-text-dim">
             {mon.power != null && <span>{t("account.col.power")} <span className="text-yellow">{fmt(mon.power)}</span></span>}
             {mon.ivTotal != null && <span>{t("account.col.iv")} <span className={ivColor(mon.ivTotal)}>{mon.ivTotal}</span>/192</span>}
             {mon.quality != null && <span>{t("account.col.quality")} <span className={qualG ? GRADE_TEXT[qualG] : "text-cyan"}>{mon.quality.toFixed(3)}</span></span>}
           </div>
-          <div className="mt-1.5 flex flex-wrap items-center gap-1.5 pixel text-[0.7rem] text-text">
+          <div className="mt-1.5 flex flex-wrap items-center gap-1.5 pixel text-[0.9rem] text-text">
             <Price currency={mon.currency} value={mon.price} />
             {dGrade && <GradeChip grade={dGrade} label={t(`account.market.deal.${dGrade}`)} />}
             {mon.belowNpc && <span className="chip" style={{ background: "var(--green)", color: "#052012" }}>{t("account.market.belowNpc")}</span>}
@@ -153,7 +153,7 @@ export function MarketMonModal({ mon, dex, onClose }: { mon: MarketMon; dex?: Ma
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
               <h3 className="truncate pixel text-[0.9rem] text-text">{mon.name}</h3>
-              <span className="text-[0.62rem] text-text-dim">Lv.{mon.level}</span>
+              <span className="text-[0.82rem] text-text-dim">Lv.{mon.level}</span>
             </div>
             <div className="mt-2 flex flex-wrap items-center gap-1.5">
               {dex ? <TypeBadges t1={dex.type1} t2={dex.type2} /> : mon.type1 ? <TypeBadges t1={mon.type1 as PokeType} t2={null} /> : null}
@@ -170,7 +170,7 @@ export function MarketMonModal({ mon, dex, onClose }: { mon: MarketMon; dex?: Ma
         <div className="grid grid-cols-2 gap-2">
           <Tile label={t("account.col.power")}><span className="text-yellow">{mon.power != null ? fmt(mon.power) : "—"}</span></Tile>
           <Tile label={t("account.col.iv")}>
-            {mon.ivTotal != null ? <><span className={ivColor(mon.ivTotal)}>{mon.ivTotal}</span><span className="text-[0.62rem] text-text-dim">/192</span></> : "—"}
+            {mon.ivTotal != null ? <><span className={ivColor(mon.ivTotal)}>{mon.ivTotal}</span><span className="text-[0.82rem] text-text-dim">/192</span></> : "—"}
           </Tile>
           <Tile label={t("account.col.quality")}><span className={qual ? GRADE_TEXT[qual] : "text-cyan"}>{mon.quality != null ? mon.quality.toFixed(3) : "—"}</span></Tile>
           {mon.price > 0 && (
@@ -190,19 +190,19 @@ export function MarketMonModal({ mon, dex, onClose }: { mon: MarketMon; dex?: Ma
           <div className="flex flex-col gap-2 rounded border border-border bg-[var(--well-bg)] p-3">
             <div className="section-title text-purple">{t("account.market.verdict")}</div>
             {genes && (
-              <div className="flex items-center justify-between gap-2 text-[0.72rem]">
+              <div className="flex items-center justify-between gap-2 text-[0.92rem]">
                 <span className="text-text-dim">{t("account.market.genesLabel")}</span>
                 <GradeChip grade={genes} label={t(`account.market.genes.${genes}`)} />
               </div>
             )}
             {qual && (
-              <div className="flex items-center justify-between gap-2 text-[0.72rem]">
+              <div className="flex items-center justify-between gap-2 text-[0.92rem]">
                 <span className="text-text-dim">{t("account.market.qualityLabel")}</span>
                 <GradeChip grade={qual} label={t(`account.market.quality.${qual}`)} />
               </div>
             )}
             {deal && (
-              <div className="flex items-center justify-between gap-2 text-[0.72rem]">
+              <div className="flex items-center justify-between gap-2 text-[0.92rem]">
                 <span className="text-text-dim">{t("account.market.dealLabel")}</span>
                 <span className="flex items-center gap-2">
                   {pct != null && <span className="tabular-nums text-text-dim">{t("account.market.dealVs", { p: fmtPct(pct) })}</span>}
@@ -212,13 +212,13 @@ export function MarketMonModal({ mon, dex, onClose }: { mon: MarketMon; dex?: Ma
             )}
             {/* so pra anuncio com preco: no bicho do chat o valor ja esta no tile "valeria" */}
             {fair != null && mon.price > 0 && (
-              <div className="flex items-center justify-between gap-2 text-[0.62rem] text-text-dim">
+              <div className="flex items-center justify-between gap-2 text-[0.82rem] text-text-dim">
                 <span>{t("account.market.fairPrice")}</span>
                 <span className="inline-flex items-center gap-1"><span className="opacity-70">~</span><Price currency={mon.currency} value={fair} /></span>
               </div>
             )}
             {breeding && (
-              <p className="border-t border-border pt-2 text-[0.62rem] leading-relaxed text-text-dim">{t("account.market.breedingNote")}</p>
+              <p className="border-t border-border pt-2 text-[0.82rem] leading-relaxed text-text-dim">{t("account.market.breedingNote")}</p>
             )}
           </div>
         )}
@@ -231,7 +231,7 @@ export function MarketMonModal({ mon, dex, onClose }: { mon: MarketMon; dex?: Ma
               <StatBar key={key} iconIndex={i} label={label} value={dex[key] as number} best={(dex[key] as number) === best} />
             ))}
             <div className="mt-1 flex items-center justify-between border-t border-border pt-2 text-sm">
-              <span className="text-[0.62rem] uppercase tracking-wide text-text-dim">{t("cr.total")}</span>
+              <span className="text-[0.82rem] uppercase tracking-wide text-text-dim">{t("cr.total")}</span>
               <strong className="tabular-nums text-cyan">{total}</strong>
             </div>
           </div>
@@ -401,8 +401,8 @@ export function MarketAdvisor({
         </div>
       )}
       {mons && mons.length > PAGE_SIZE && <Pagination page={page} pageCount={pageCount} onPage={setPage} />}
-      <p className="text-[0.6rem] italic text-text-dim">{t("account.market.legend")}</p>
-      <p className="text-[0.6rem] italic text-text-dim">{t("account.market.hint")}</p>
+      <p className="text-[0.8rem] italic text-text-dim">{t("account.market.legend")}</p>
+      <p className="text-[0.8rem] italic text-text-dim">{t("account.market.hint")}</p>
 
       {selected && <MarketMonModal mon={selected} dex={dex?.[selected.speciesId]} onClose={() => setSelected(null)} />}
     </div>

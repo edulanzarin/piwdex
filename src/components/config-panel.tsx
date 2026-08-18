@@ -89,7 +89,7 @@ function BallSelect({ balls, value, onChange, disabled }: { balls: Ball[]; value
           )}
           <span className="truncate">{cur?.name ?? `#${value}`}</span>
           {cur && (
-            <span className={`shrink-0 text-[0.6rem] tabular-nums ${empty ? "font-bold text-red" : "text-text-dim"}`}>
+            <span className={`shrink-0 text-[0.8rem] tabular-nums ${empty ? "font-bold text-red" : "text-text-dim"}`}>
               {cur.infinite ? <Infinity_ size={11} /> : `x${cur.count}`}
             </span>
           )}
@@ -112,7 +112,7 @@ function BallSelect({ balls, value, onChange, disabled }: { balls: Ball[]; value
                 <img src={b.iconUrl} alt="" width={18} height={18} className="[image-rendering:pixelated]" />
               )}
               <span className="min-w-0 flex-1 truncate">{b.name}</span>
-              <span className="flex shrink-0 items-center text-[0.6rem] text-text-dim">{b.infinite ? <Infinity_ size={13} /> : b.count}</span>
+              <span className="flex shrink-0 items-center text-[0.8rem] text-text-dim">{b.infinite ? <Infinity_ size={13} /> : b.count}</span>
             </button>
           ))}
         </div>
@@ -183,7 +183,7 @@ function Row({ title, desc, children }: { title: string; desc?: string; children
     <div className="flex flex-col gap-2 border-t border-border py-3 first:border-t-0 first:pt-0 sm:flex-row sm:items-center sm:justify-between">
       <div className="min-w-0">
         <div className="text-sm font-semibold text-text">{title}</div>
-        {desc && <div className="mt-0.5 text-[0.68rem] text-text-dim">{desc}</div>}
+        {desc && <div className="mt-0.5 text-[0.88rem] text-text-dim">{desc}</div>}
       </div>
       <div className="shrink-0">{children}</div>
     </div>
@@ -216,7 +216,7 @@ function RarityBoxes({ selected, onToggle }: { selected: Rarity[]; onToggle: (r:
             className="chip inline-flex items-center gap-1.5 border transition"
             style={{ background: on ? color : "transparent", borderColor: color, color: on ? "#06111a" : color, opacity: on ? 1 : 0.5 }}
           >
-            <span className="inline-flex w-2 justify-center text-[0.6rem]">{on ? <Check size={9} /> : "·"}</span>
+            <span className="inline-flex w-2 justify-center text-[0.8rem]">{on ? <Check size={9} /> : "·"}</span>
             {r}
           </button>
         );
@@ -340,7 +340,7 @@ export function ConfigPanel() {
   const a = base.auto;
   const ballWarn = (id: number) =>
     ballEmpty(id) && (
-      <p className="mt-1.5 rounded border border-red/50 bg-[color:var(--red)]/10 px-2.5 py-1.5 text-[0.62rem] leading-relaxed text-red">
+      <p className="mt-1.5 rounded border border-red/50 bg-[color:var(--red)]/10 px-2.5 py-1.5 text-[0.82rem] leading-relaxed text-red">
         {t("config.ballEmpty")}
       </p>
     );
@@ -353,9 +353,9 @@ export function ConfigPanel() {
         <span className="inline-flex text-blue"><Gear size={14} /></span>
         <div className="min-w-0 flex-1">
           <h2 className="section-title text-blue">{t("vip.sec.config")}</h2>
-          <p className="mt-0.5 text-[0.66rem] text-text-dim">{t("config.desc")}</p>
+          <p className="mt-0.5 text-[0.86rem] text-text-dim">{t("config.desc")}</p>
         </div>
-        {saved && !dirty && <span className="text-[0.66rem] font-semibold text-green">{t("config.saved")}</span>}
+        {saved && !dirty && <span className="text-[0.86rem] font-semibold text-green">{t("config.saved")}</span>}
         {dirty && <span className="chip" style={{ background: "var(--yellow)", color: "#1a1405" }}>{t("config.pending", { n: pendingCount })}</span>}
         <button type="button" onClick={confirm} disabled={!dirty || busy} className="btn btn-cyan disabled:opacity-40">
           <Check size={11} /> {busy ? "…" : t("robo.pokes.commit")}
@@ -366,7 +366,7 @@ export function ConfigPanel() {
       <section className="flex flex-col gap-3">
         <div>
           <h3 className="section-title text-yellow">{t("robo.title")}</h3>
-          <p className="mt-1.5 max-w-2xl text-[0.72rem] text-text-dim">{t("robo.desc")}</p>
+          <p className="mt-1.5 max-w-2xl text-[0.92rem] text-text-dim">{t("robo.desc")}</p>
         </div>
         <div className="card z-20 flex flex-col p-5">
           <Row title={t("robo.autoCatch")} desc={a.isVip ? t("robo.autoCatch.desc") : t("robo.vipOnly")}>
@@ -377,7 +377,7 @@ export function ConfigPanel() {
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div className="min-w-0">
                   <div className="text-sm font-semibold text-text">{t("robo.catchBall")}</div>
-                  <div className="mt-0.5 text-[0.68rem] text-text-dim">{t("robo.catchBall.desc")}</div>
+                  <div className="mt-0.5 text-[0.88rem] text-text-dim">{t("robo.catchBall.desc")}</div>
                 </div>
                 <div className="shrink-0"><BallSelect balls={balls} value={d.auto.autoCatchBallId} onChange={(id) => editAuto({ autoCatchBallId: id })} /></div>
               </div>
@@ -393,7 +393,7 @@ export function ConfigPanel() {
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div className="min-w-0">
                   <div className="text-sm font-semibold text-text">{t("robo.shinyBall")}</div>
-                  <div className="mt-0.5 text-[0.68rem] text-text-dim">{t("robo.shinyBall.desc")}</div>
+                  <div className="mt-0.5 text-[0.88rem] text-text-dim">{t("robo.shinyBall.desc")}</div>
                 </div>
                 <div className="shrink-0"><BallSelect balls={balls} value={d.auto.autoCatchShinyBallId} onChange={(id) => editAuto({ autoCatchShinyBallId: id })} /></div>
               </div>
@@ -442,7 +442,7 @@ export function ConfigPanel() {
       <section className="flex flex-col gap-3">
         <div>
           <h3 className="section-title flex items-center gap-2 text-green"><Coin size={14} /> {t("robo.pokes.title")}</h3>
-          <p className="mt-1.5 max-w-2xl text-[0.72rem] text-text-dim">{t("config.sellDesc")}</p>
+          <p className="mt-1.5 max-w-2xl text-[0.92rem] text-text-dim">{t("config.sellDesc")}</p>
         </div>
         <div className="card flex flex-col p-5">
           <Row title={t("robo.pokes.sellOn")} desc={t("robo.pokes.sellOn.desc")}>
@@ -451,7 +451,7 @@ export function ConfigPanel() {
 
           <div className="border-t border-border py-3">
             <div className="text-sm font-semibold text-text">{t("robo.pokes.sellRarities")}</div>
-            <div className="mt-0.5 text-[0.68rem] text-text-dim">{t("robo.pokes.sellRarities.desc")}</div>
+            <div className="mt-0.5 text-[0.88rem] text-text-dim">{t("robo.pokes.sellRarities.desc")}</div>
             <RarityBoxes selected={d.sell.sellRarities} onToggle={toggleRarity} />
           </div>
 
@@ -471,13 +471,13 @@ export function ConfigPanel() {
       <section className="flex flex-col gap-3">
         <div>
           <h3 className="section-title flex items-center gap-2 text-yellow"><Pokeball size={13} /> {t("robo.autobuy.title")}</h3>
-          <p className="mt-1.5 max-w-2xl text-[0.72rem] text-text-dim">{t("robo.autobuy.desc")}</p>
+          <p className="mt-1.5 max-w-2xl text-[0.92rem] text-text-dim">{t("robo.autobuy.desc")}</p>
         </div>
         <div className="card flex flex-col gap-3 p-5">
           <Row title={t("robo.autobuy.toggle")} desc={t("robo.autobuy.toggleDesc")}>
             {sw(d.autobuy, () => edit({ autobuy: !d.autobuy }))}
           </Row>
-          <p className="rounded border border-[color:var(--yellow)]/40 bg-[rgba(240,200,60,0.06)] px-3 py-2 text-[0.62rem] leading-relaxed text-yellow">{t("robo.autobuy.warn")}</p>
+          <p className="rounded border border-[color:var(--yellow)]/40 bg-[rgba(240,200,60,0.06)] px-3 py-2 text-[0.82rem] leading-relaxed text-yellow">{t("robo.autobuy.warn")}</p>
         </div>
       </section>
     </div>

@@ -69,7 +69,7 @@ export function DexBrowser({ creatures, acq }: { creatures: Creature[]; acq: Rec
         </div>
       )}
 
-      <div className="text-[0.7rem] text-text-dim uppercase tracking-wide">{t("dex.count", { n: filtered.length })}</div>
+      <div className="text-[0.9rem] text-text-dim uppercase tracking-wide">{t("dex.count", { n: filtered.length })}</div>
 
       {filtered.length === 0 ? (
         <div className="card p-10 text-center text-text-dim">{t("dex.empty")}</div>

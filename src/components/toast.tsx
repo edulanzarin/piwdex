@@ -65,7 +65,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
             <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded" style={{ background: `color-mix(in srgb, ${ACCENT[t.kind]} 18%, transparent)`, color: ACCENT[t.kind] }}>
               {ICON[t.kind]}
             </span>
-            <span className="min-w-0 flex-1 text-[0.68rem] leading-snug text-text">{t.text}</span>
+            <span className="min-w-0 flex-1 text-[0.88rem] leading-snug text-text">{t.text}</span>
           </button>
         ))}
       </div>

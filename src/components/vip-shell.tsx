@@ -136,7 +136,7 @@ function VipShellInner({ creatures, dex, hunts, itemIcons, lootByPoke }: VipShel
                   <Icon size={12} />
                   <span className="max-lg:hidden lg:flex-1">{t(`vip.sec.${key}`)}</span>
                   {badge > 0 && (
-                    <span className="rounded-full bg-cyan px-1.5 py-0.5 text-[0.5rem] font-bold text-[#06131a]">{badge}</span>
+                    <span className="rounded-full bg-cyan px-1.5 py-0.5 text-[0.7rem] font-bold text-[#06131a]">{badge}</span>
                   )}
                 </button>
               );

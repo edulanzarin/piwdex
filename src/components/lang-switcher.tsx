@@ -55,7 +55,7 @@ export function LangSwitcher() {
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-1.5 rounded border border-border px-2 py-1.5 text-[0.6rem] font-bold uppercase text-text hover:bg-surface-2"
+        className="flex items-center gap-1.5 rounded border border-border px-2 py-1.5 text-[0.8rem] font-bold uppercase text-text hover:bg-surface-2"
         aria-haspopup="listbox"
         aria-expanded={open}
       >
@@ -72,7 +72,7 @@ export function LangSwitcher() {
               key={code}
               type="button"
               onClick={() => { setLocale(code); setOpen(false); }}
-              className={`flex w-full items-center gap-2.5 px-3 py-2 text-left text-[0.72rem] ${
+              className={`flex w-full items-center gap-2.5 px-3 py-2 text-left text-[0.92rem] ${
                 locale === code ? "bg-surface-2 text-text" : "text-text-dim hover:bg-surface-2 hover:text-text"
               }`}
             >

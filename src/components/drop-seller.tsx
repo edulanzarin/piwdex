@@ -30,10 +30,10 @@ export function DropSeller({ itemIcons }: { itemIcons: Record<string, string> })
 
       <div className="card p-4">
         {shown.length === 0 ? (
-          <p className="text-[0.72rem] text-text-dim">{count > 0 ? t("robo.sold.waiting") : t("robo.sold.empty")}</p>
+          <p className="text-[0.92rem] text-text-dim">{count > 0 ? t("robo.sold.waiting") : t("robo.sold.empty")}</p>
         ) : (
           <div className="flex flex-col gap-3">
-            <div className="flex items-center justify-between text-[0.72rem]">
+            <div className="flex items-center justify-between text-[0.92rem]">
               <span className="text-text-dim">{t("robo.sold.count").replace("{n}", String(shown.length))}</span>
               <span className="inline-flex items-center gap-1 text-green"><Coin size={11} />{fmt(huntGold)}</span>
             </div>
@@ -44,10 +44,10 @@ export function DropSeller({ itemIcons }: { itemIcons: Record<string, string> })
                   <div key={i.itemId} className={`flex items-center gap-2.5 rounded border border-border bg-[var(--well-bg)] p-2 ${idx === 0 ? "flash-in" : ""}`}>
                     <span className="flex h-8 w-8 shrink-0 items-center justify-center">{icon ? <Sprite src={assetIconUrl(icon)} alt={i.name} size={26} /> : null}</span>
                     <div className="min-w-0 flex-1">
-                      <div className="truncate text-[0.75rem]">{i.name}</div>
-                      <div className="text-[0.6rem] text-text-dim">×{fmt(i.qty)}</div>
+                      <div className="truncate text-[0.95rem]">{i.name}</div>
+                      <div className="text-[0.8rem] text-text-dim">×{fmt(i.qty)}</div>
                     </div>
-                    <span className="inline-flex shrink-0 items-center gap-1 text-[0.66rem] text-green"><Coin size={9} />{fmt(i.gold)}</span>
+                    <span className="inline-flex shrink-0 items-center gap-1 text-[0.86rem] text-green"><Coin size={9} />{fmt(i.gold)}</span>
                   </div>
                 );
               })}

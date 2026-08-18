@@ -33,7 +33,7 @@ const TABS: { key: string; href: string; Icon: (p: { size?: number }) => React.R
 const ICON_BTN = "group relative flex h-10 w-10 items-center justify-center rounded transition hover:bg-surface-2";
 function Tip({ children }: { children: React.ReactNode }) {
   return (
-    <span className="pointer-events-none absolute left-1/2 top-full z-40 mt-1.5 -translate-x-1/2 whitespace-nowrap rounded border border-border bg-[color:var(--surface-solid)] px-2 py-1 text-[0.55rem] uppercase tracking-wide text-text-dim opacity-0 transition group-hover:opacity-100">
+    <span className="pointer-events-none absolute left-1/2 top-full z-40 mt-1.5 -translate-x-1/2 whitespace-nowrap rounded border border-border bg-[color:var(--surface-solid)] px-2 py-1 text-[0.75rem] uppercase tracking-wide text-text-dim opacity-0 transition group-hover:opacity-100">
       {children}
     </span>
   );
@@ -55,8 +55,8 @@ export function SiteNav({ user }: { user: NavUser | null }) {
         <Link href="/" className="flex items-center gap-2.5" onClick={() => setOpen(false)}>
           <Pokeball size={28} />
           <div className="leading-tight">
-            <div className="pixel text-[0.72rem] text-text sm:text-[0.8rem]">PIWdex</div>
-            <div className="hidden text-[0.6rem] text-text-dim sm:block">Poke Idle World</div>
+            <div className="pixel text-[0.92rem] text-text sm:text-[1rem]">PIWdex</div>
+            <div className="hidden text-[0.8rem] text-text-dim sm:block">Poke Idle World</div>
           </div>
         </Link>
 
@@ -68,7 +68,7 @@ export function SiteNav({ user }: { user: NavUser | null }) {
             <Link
               href="/admin"
               title="Painel admin"
-              className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-[#e5484d] bg-[#e5484d]/12 px-2.5 py-1.5 pixel text-[0.58rem] text-[#ff6b6b] transition hover:bg-[#e5484d]/22"
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-[#e5484d] bg-[#e5484d]/12 px-2.5 py-1.5 pixel text-[0.9rem] text-[#ff6b6b] transition hover:bg-[#e5484d]/22"
             >
               ADM
             </Link>
@@ -76,7 +76,7 @@ export function SiteNav({ user }: { user: NavUser | null }) {
           <Link
             href="/vip"
             title={user?.vip ? t("vip.eyebrow") : t("vipcta.btn")}
-            className={`inline-flex shrink-0 items-center gap-1.5 rounded-md border border-[color:var(--yellow)] px-2.5 py-1.5 pixel text-[0.58rem] text-yellow transition ${user?.vip ? "bg-[color:var(--yellow)]/20 hover:bg-[color:var(--yellow)]/30" : "glow-pulse bg-[color:var(--yellow)]/12 hover:bg-[color:var(--yellow)]/22"}`}
+            className={`inline-flex shrink-0 items-center gap-1.5 rounded-md border border-[color:var(--yellow)] px-2.5 py-1.5 pixel text-[0.9rem] text-yellow transition ${user?.vip ? "bg-[color:var(--yellow)]/20 hover:bg-[color:var(--yellow)]/30" : "glow-pulse bg-[color:var(--yellow)]/12 hover:bg-[color:var(--yellow)]/22"}`}
             style={{ "--accent": "var(--yellow)" } as React.CSSProperties}
           >
             <Star size={10} /> VIP
@@ -105,7 +105,7 @@ export function SiteNav({ user }: { user: NavUser | null }) {
           <div className="hidden items-center gap-2 sm:flex">
             {user ? (
               <>
-                <span className="max-w-[8rem] truncate pixel text-[0.58rem] text-text">{user.name ?? "conta"}</span>
+                <span className="max-w-[8rem] truncate pixel text-[0.9rem] text-text">{user.name ?? "conta"}</span>
                 <Link
                   href="/conta"
                   title={t("nav.account")}
@@ -162,7 +162,7 @@ export function SiteNav({ user }: { user: NavUser | null }) {
               <Link
                 key={href}
                 href={href}
-                className={`flex items-center gap-3 border-b border-border/40 py-3 pixel text-[0.7rem] last:border-0 hover:text-cyan ${isActive(href) ? "text-cyan" : "text-text-dim"}`}
+                className={`flex items-center gap-3 border-b border-border/40 py-3 pixel text-[0.9rem] last:border-0 hover:text-cyan ${isActive(href) ? "text-cyan" : "text-text-dim"}`}
                 onClick={() => setOpen(false)}
               >
                 <Icon size={20} />
@@ -173,7 +173,7 @@ export function SiteNav({ user }: { user: NavUser | null }) {
             {user?.admin && (
               <Link
                 href="/admin"
-                className="flex items-center gap-3 border-b border-border/40 py-3 pixel text-[0.7rem] text-[#ff6b6b] hover:text-[#ff8a8a]"
+                className="flex items-center gap-3 border-b border-border/40 py-3 pixel text-[0.9rem] text-[#ff6b6b] hover:text-[#ff8a8a]"
                 onClick={() => setOpen(false)}
               >
                 <Star size={20} /> Painel admin
@@ -185,14 +185,14 @@ export function SiteNav({ user }: { user: NavUser | null }) {
               <>
                 <Link
                   href="/conta"
-                  className="flex items-center gap-3 border-b border-border/40 py-3 pixel text-[0.7rem] text-text-dim hover:text-cyan"
+                  className="flex items-center gap-3 border-b border-border/40 py-3 pixel text-[0.9rem] text-text-dim hover:text-cyan"
                   onClick={() => setOpen(false)}
                 >
                   <NavAccount size={20} />
                   <span className="flex items-center gap-2">{user.name ?? t("nav.account")} <VipChip /></span>
                 </Link>
                 <form action={logout}>
-                  <button type="submit" className="flex w-full items-center gap-3 py-3 pixel text-[0.7rem] text-text-dim hover:text-red" onClick={() => setOpen(false)}>
+                  <button type="submit" className="flex w-full items-center gap-3 py-3 pixel text-[0.9rem] text-text-dim hover:text-red" onClick={() => setOpen(false)}>
                     <NavLogout size={20} /> {t("auth.logout")}
                   </button>
                 </form>
@@ -200,7 +200,7 @@ export function SiteNav({ user }: { user: NavUser | null }) {
             ) : (
               <Link
                 href="/entrar"
-                className="flex items-center gap-3 py-3 pixel text-[0.7rem] text-cyan"
+                className="flex items-center gap-3 py-3 pixel text-[0.9rem] text-cyan"
                 onClick={() => setOpen(false)}
               >
                 <NavAccount size={20} /> {t("nav.account")}

@@ -74,7 +74,7 @@ export function RobotActivity() {
         )}
       </div>
       {shown.length === 0 ? (
-        <p className="text-[0.72rem] text-text-dim">{t("evt.empty")}</p>
+        <p className="text-[0.92rem] text-text-dim">{t("evt.empty")}</p>
       ) : (
         <div className="flex max-h-96 flex-col gap-1.5 overflow-y-auto pr-1">
           {shown.map((e, idx) => {
@@ -82,8 +82,8 @@ export function RobotActivity() {
             return (
               <div key={e.id} className={`flex items-center gap-2.5 rounded border border-border bg-[var(--well-bg)] p-2 ${idx === 0 ? "flash-in" : ""}`}>
                 <span className="flex h-6 w-6 shrink-0 items-center justify-center">{r.icon}</span>
-                <span className={`min-w-0 flex-1 truncate text-[0.72rem] ${r.tone ?? "text-text"}`}>{r.text}</span>
-                <span className="shrink-0 tabular-nums text-[0.55rem] text-text-dim">{when(e.createdAt)}</span>
+                <span className={`min-w-0 flex-1 truncate text-[0.92rem] ${r.tone ?? "text-text"}`}>{r.text}</span>
+                <span className="shrink-0 tabular-nums text-[0.75rem] text-text-dim">{when(e.createdAt)}</span>
               </div>
             );
           })}

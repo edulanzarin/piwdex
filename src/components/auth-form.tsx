@@ -48,7 +48,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
           />
         </label>
 
-        {state?.error && <p className="text-[0.72rem] font-semibold text-red">{state.error}</p>}
+        {state?.error && <p className="text-[0.92rem] font-semibold text-red">{state.error}</p>}
 
         <div className="mt-1">
           {mode === "login" ? (
@@ -59,7 +59,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
         </div>
       </form>
 
-      <p className="text-center text-[0.72rem] text-text-dim">
+      <p className="text-center text-[0.92rem] text-text-dim">
         {mode === "login" ? (
           <>
             {t("auth.toRegister")}{" "}

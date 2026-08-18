@@ -29,8 +29,8 @@ export function FeedRow({
     <>
       {leading && <span className="relative flex h-8 w-8 shrink-0 items-center justify-center">{leading}</span>}
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-[0.72rem] text-text">{title}</span>
-        {sub && <span className="mt-0.5 block truncate text-[0.58rem] text-text-dim">{sub}</span>}
+        <span className="block truncate text-[0.92rem] text-text">{title}</span>
+        {sub && <span className="mt-0.5 block truncate text-[0.78rem] text-text-dim">{sub}</span>}
       </span>
       {right && <span className="flex shrink-0 items-center gap-1.5">{right}</span>}
     </>
@@ -48,14 +48,14 @@ export function EmptyState({ message, action, compact = false, className = "" }:
   if (compact) {
     return (
       <div className={`flex items-center justify-between gap-3 py-1 ${className}`}>
-        <p className="min-w-0 text-[0.66rem] text-text-dim">{message}</p>
+        <p className="min-w-0 text-[0.86rem] text-text-dim">{message}</p>
         {action}
       </div>
     );
   }
   return (
     <div className={`flex flex-col items-center justify-center gap-2.5 py-5 text-center ${className}`}>
-      <p className="text-[0.68rem] text-text-dim">{message}</p>
+      <p className="text-[0.88rem] text-text-dim">{message}</p>
       {action}
     </div>
   );

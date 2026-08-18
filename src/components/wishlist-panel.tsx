@@ -189,7 +189,7 @@ function NewWish({ creatures, onCreated }: { creatures: ComboCreature[]; onCreat
           </div>
         </div>
         <div className="flex items-center justify-between gap-3">
-          <span className="text-[0.72rem] font-semibold text-red">{err ?? ""}</span>
+          <span className="text-[0.92rem] font-semibold text-red">{err ?? ""}</span>
           <button type="button" onClick={submit} disabled={busy} className="btn btn-cyan disabled:opacity-40">
             {busy ? `${t("wish.new.saving")}...` : <>{t("wish.new.save")} <ChevronRight size={10} /></>}
           </button>
@@ -265,10 +265,10 @@ function WishBlock({
             <div className="flex items-center gap-2">
               <span className="truncate text-sm font-semibold">{w.label ?? (w.speciesId ? `#${w.speciesId}` : t("alerts.anySpecies"))}</span>
               {matches.length > 0 && (
-                <span className="rounded-full bg-green px-1.5 py-0.5 text-[0.5rem] font-bold text-[#052012]">{matches.length}</span>
+                <span className="rounded-full bg-green px-1.5 py-0.5 text-[0.7rem] font-bold text-[#052012]">{matches.length}</span>
               )}
             </div>
-            <div className="truncate text-[0.62rem] text-text-dim">{wishSummary(w, t)}</div>
+            <div className="truncate text-[0.82rem] text-text-dim">{wishSummary(w, t)}</div>
           </div>
         </button>
         <ToggleButton active={w.active} onClick={() => onToggle(!w.active)} accent="green" title={t(w.active ? "alerts.pause" : "alerts.resume")}>
@@ -297,7 +297,7 @@ function WishBlock({
             {matches.length > MATCH_PAGE && <Pagination page={safePage} pageCount={pageCount} onPage={setPage} />}
           </div>
         ) : (
-          <p className="mt-3 text-[0.66rem] text-text-dim">{w.active ? t("wish.noMatches") : t("wish.paused")}</p>
+          <p className="mt-3 text-[0.86rem] text-text-dim">{w.active ? t("wish.noMatches") : t("wish.paused")}</p>
         ))}
     </div>
   );
@@ -389,9 +389,9 @@ export function WishlistPanel({ creatures, dex, focusWishId }: { creatures: Comb
         {wishes.status === "loading" ? (
           <div className="card p-4"><LoadingBall label={t("alerts.loading")} /></div>
         ) : wishes.status === "error" ? (
-          <div className="card p-4"><p className="text-[0.72rem] text-text-dim">{t("alerts.error")}</p></div>
+          <div className="card p-4"><p className="text-[0.92rem] text-text-dim">{t("alerts.error")}</p></div>
         ) : wishes.data.length === 0 ? (
-          <div className="card p-4"><p className="text-[0.72rem] text-text-dim">{t("wish.list.empty")}</p></div>
+          <div className="card p-4"><p className="text-[0.92rem] text-text-dim">{t("wish.list.empty")}</p></div>
         ) : (
           wishes.data.map((w) => (
             <WishBlock

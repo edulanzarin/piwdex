@@ -109,7 +109,7 @@ export function TeamLive() {
         <Trainer size={13} className="text-yellow" />
         <h3 className="section-title flex-1">{t("vip.team.title")}</h3>
         {live ? (
-          <span className="inline-flex items-center gap-1.5 text-[0.55rem] uppercase text-green">
+          <span className="inline-flex items-center gap-1.5 text-[0.75rem] uppercase text-green">
             <span className="hud-led pulse-soft" style={{ "--led": "var(--green)" } as React.CSSProperties} />
             {t("vip.ov.live")}
           </span>
@@ -119,7 +119,7 @@ export function TeamLive() {
       </div>
 
       {!leader ? (
-        <p className="py-3 text-center text-[0.68rem] text-text-dim">{t("vip.team.empty")}</p>
+        <p className="py-3 text-center text-[0.88rem] text-text-dim">{t("vip.team.empty")}</p>
       ) : (
         <>
           {/* lider em destaque */}
@@ -131,12 +131,12 @@ export function TeamLive() {
             </span>
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-baseline gap-2">
-                <span className="pixel text-[0.8rem] text-yellow">{leader.name}</span>
-                <span className="pixel text-[0.62rem] text-text">Lv{hunt?.fighterLevel && hunt.fighterLevel > leader.level ? hunt.fighterLevel : leader.level}</span>
+                <span className="pixel text-[1rem] text-yellow">{leader.name}</span>
+                <span className="pixel text-[0.82rem] text-text">Lv{hunt?.fighterLevel && hunt.fighterLevel > leader.level ? hunt.fighterLevel : leader.level}</span>
                 {leader.shiny && <span className="chip" style={{ background: "var(--yellow)", color: "#3a2c00" }}>shiny</span>}
               </div>
               <div className="mt-1.5"><HpBar hp={leader.hp} maxHp={leader.maxHp} /></div>
-              <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5 text-[0.6rem] tabular-nums text-text-dim">
+              <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5 text-[0.8rem] tabular-nums text-text-dim">
                 <span className="inline-flex items-center gap-1 text-cyan"><Xp size={9} />{fmt(leader.power)} {t("vip.team.power")}</span>
                 <span>IV {leader.ivTotal}</span>
                 <span>Q {leader.quality.toFixed(3)}</span>
@@ -168,11 +168,11 @@ export function TeamLive() {
                         {busy && <span className="absolute inset-0 rounded radar" />}
                       </span>
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate text-[0.66rem] text-text">{p.name}</span>
-                        <span className="block text-[0.55rem] tabular-nums text-text-dim">Lv{p.level} · {fmt(p.power)}</span>
+                        <span className="block truncate text-[0.86rem] text-text">{p.name}</span>
+                        <span className="block text-[0.75rem] tabular-nums text-text-dim">Lv{p.level} · {fmt(p.power)}</span>
                         <HpBar hp={p.hp} maxHp={p.maxHp} />
                       </span>
-                      <span className="shrink-0 text-[0.52rem] uppercase text-text-dim opacity-0 transition group-hover:opacity-100">
+                      <span className="shrink-0 text-[0.72rem] uppercase text-text-dim opacity-0 transition group-hover:opacity-100">
                         {fail ? <span className="text-red">{t("vip.team.retry")}</span> : busy ? "…" : <span className="inline-flex items-center gap-1 text-yellow"><Check size={9} />{t("vip.team.use")}</span>}
                       </span>
                     </button>
@@ -204,19 +204,19 @@ export function TeamLive() {
           <div className="mb-3 flex items-center justify-between">
             <h3 className="section-title flex items-center gap-2 text-cyan">
               <Backpack size={13} /> {t("vip.team.boxTitle")}
-              {boxList && <span className="pixel text-[0.6rem] text-text-dim">{boxList.length}</span>}
+              {boxList && <span className="pixel text-[0.8rem] text-text-dim">{boxList.length}</span>}
             </h3>
             <CloseButton onClick={() => setBoxOpen(false)} />
           </div>
-          {teamFull && <p className="mb-2 text-[0.66rem] text-yellow">{t("vip.team.teamFull")}</p>}
+          {teamFull && <p className="mb-2 text-[0.86rem] text-yellow">{t("vip.team.teamFull")}</p>}
           <input value={boxQ} onChange={(e) => setBoxQ(e.target.value)} placeholder={t("vip.team.boxSearch")} className="input mb-3" autoFocus />
           <div className="min-h-0 flex-1 overflow-auto pr-1">
             {boxErr ? (
-              <p className="py-10 text-center text-[0.75rem] text-red">{t("toast.err")}</p>
+              <p className="py-10 text-center text-[0.95rem] text-red">{t("toast.err")}</p>
             ) : boxList === null ? (
-              <p className="py-10 text-center text-[0.75rem] text-text-dim">…</p>
+              <p className="py-10 text-center text-[0.95rem] text-text-dim">…</p>
             ) : !boxShown || boxShown.length === 0 ? (
-              <p className="py-10 text-center text-[0.75rem] text-text-dim">{t("vip.team.boxEmpty")}</p>
+              <p className="py-10 text-center text-[0.95rem] text-text-dim">{t("vip.team.boxEmpty")}</p>
             ) : (
               <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                 {boxShown.map((p) => (
@@ -233,10 +233,10 @@ export function TeamLive() {
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className="flex items-baseline gap-1.5">
-                        <span className="truncate text-[0.75rem] font-semibold text-text">{p.name}</span>
-                        <span className="pixel shrink-0 text-[0.55rem] text-text-dim">Lv{p.level}</span>
+                        <span className="truncate text-[0.95rem] font-semibold text-text">{p.name}</span>
+                        <span className="pixel shrink-0 text-[0.75rem] text-text-dim">Lv{p.level}</span>
                       </span>
-                      <span className="mt-0.5 flex gap-2.5 text-[0.62rem] tabular-nums text-text-dim">
+                      <span className="mt-0.5 flex gap-2.5 text-[0.82rem] tabular-nums text-text-dim">
                         <span>IV <span className="text-text">{p.ivTotal}</span></span>
                         <span>Q <span className="text-cyan">{p.quality.toFixed(2)}</span></span>
                       </span>
@@ -257,10 +257,10 @@ export function TeamLive() {
               <Sprite src={spriteUrl(confirm.poke.speciesId, confirm.poke.shiny)} alt={confirm.poke.name} size={40} />
             </span>
             <div className="min-w-0 flex-1">
-              <p className="text-[0.78rem] text-text">
+              <p className="text-[0.98rem] text-text">
                 {t(confirm.action === "store" ? "vip.team.confirmStore" : "vip.team.confirmWithdraw", { name: confirm.poke.name })}
               </p>
-              <p className="mt-1 text-[0.6rem] text-text-dim">{t("vip.team.confirmNote")}</p>
+              <p className="mt-1 text-[0.8rem] text-text-dim">{t("vip.team.confirmNote")}</p>
             </div>
           </div>
           <div className="mt-4 flex justify-end gap-2">

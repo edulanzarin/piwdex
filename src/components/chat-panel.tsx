@@ -51,7 +51,7 @@ function renderBody(text: string, onPoke: (p: PokeLink) => void): React.ReactNod
     parts.push(
       j ? (
         <button key={k++} type="button" onClick={() => onPoke(j)}
-          className="mx-0.5 inline-flex items-center gap-1 rounded border border-[color:var(--cyan)]/40 bg-[color:var(--cyan)]/10 px-1.5 py-0.5 text-[0.6rem] text-cyan transition hover:border-cyan hover:bg-[color:var(--cyan)]/20">
+          className="mx-0.5 inline-flex items-center gap-1 rounded border border-[color:var(--cyan)]/40 bg-[color:var(--cyan)]/10 px-1.5 py-0.5 text-[0.8rem] text-cyan transition hover:border-cyan hover:bg-[color:var(--cyan)]/20">
           {j.sh ? <Star size={8} className="text-yellow" /> : null}
           {j.n} <span className="text-text-dim">Lv{j.lv ?? "?"} · IV {j.iv ?? "?"} · Q{typeof j.q === "number" ? j.q.toFixed(2) : "?"}</span>
         </button>
@@ -201,7 +201,7 @@ export function ChatPanel({ creatures, dex }: { creatures: { pokeId: number; nam
       {!connected && (
         <div className="flex items-center gap-2.5 rounded border border-yellow/40 bg-[color:var(--yellow)]/5 px-3.5 py-2">
           <Signal size={11} className="text-yellow" />
-          <span className="text-[0.66rem] text-yellow">{t("vip.chat.needLive")}</span>
+          <span className="text-[0.86rem] text-yellow">{t("vip.chat.needLive")}</span>
         </div>
       )}
 
@@ -211,7 +211,7 @@ export function ChatPanel({ creatures, dex }: { creatures: { pokeId: number; nam
           <div className="mb-2.5 flex items-center gap-2">
             <h3 className="section-title flex-1">{t("vip.chat.feed")}</h3>
             {connected && (
-              <span className="inline-flex items-center gap-1.5 text-[0.55rem] uppercase text-green">
+              <span className="inline-flex items-center gap-1.5 text-[0.75rem] uppercase text-green">
                 <span className="hud-led pulse-soft" style={{ "--led": "var(--green)" } as React.CSSProperties} />
                 {t("vip.ov.live")}
               </span>
@@ -220,21 +220,21 @@ export function ChatPanel({ creatures, dex }: { creatures: { pokeId: number; nam
 
           <div ref={feedRef} className="flex h-[26rem] flex-col gap-1 overflow-y-auto rounded border border-border bg-[var(--well-bg)] p-2.5">
             {msgs.length === 0 ? (
-              <p className="m-auto text-center text-[0.66rem] text-text-dim">
+              <p className="m-auto text-center text-[0.86rem] text-text-dim">
                 {connected ? t("vip.chat.empty") : t("vip.chat.emptyOff")}
               </p>
             ) : (
               msgs.map((m, i) => {
                 const self = m.mine || (selfName != null && m.from.toLowerCase() === selfName.toLowerCase());
                 return (
-                  <div key={`${m.at}-${i}`} className={`rounded px-2 py-1 text-[0.7rem] leading-relaxed ${self ? "bg-[color:var(--cyan)]/10" : ""} ${i === msgs.length - 1 ? "flash-in" : ""}`}
+                  <div key={`${m.at}-${i}`} className={`rounded px-2 py-1 text-[0.9rem] leading-relaxed ${self ? "bg-[color:var(--cyan)]/10" : ""} ${i === msgs.length - 1 ? "flash-in" : ""}`}
                     style={{ "--accent": "var(--cyan)" } as React.CSSProperties}>
-                    <span className="mr-1.5 text-[0.55rem] tabular-nums text-text-dim">{hhmm(m.at)}</span>
-                    <span className="mr-1 rounded px-1 text-[0.5rem] uppercase" style={{ color: CH_COLOR[(m.channel as Channel)] ?? "var(--text-dim)" }}>{m.channel}</span>
+                    <span className="mr-1.5 text-[0.75rem] tabular-nums text-text-dim">{hhmm(m.at)}</span>
+                    <span className="mr-1 rounded px-1 text-[0.7rem] uppercase" style={{ color: CH_COLOR[(m.channel as Channel)] ?? "var(--text-dim)" }}>{m.channel}</span>
                     <span className={`mr-1 font-semibold ${m.from === "?" ? "italic text-yellow" : m.admin ? "text-red" : self ? "text-cyan" : m.vip ? "text-yellow" : "text-text"}`}>
                       {m.from === "?" ? t("vip.chat.system") : m.from}
                     </span>
-                    {m.level != null && <span className="mr-1.5 text-[0.52rem] tabular-nums text-text-dim">Lv{m.level}</span>}
+                    {m.level != null && <span className="mr-1.5 text-[0.72rem] tabular-nums text-text-dim">Lv{m.level}</span>}
                     <span className="break-words text-text-dim">{renderBody(m.text, setPokeModal)}</span>
                   </div>
                 );
@@ -267,7 +267,7 @@ export function ChatPanel({ creatures, dex }: { creatures: { pokeId: number; nam
             </button>
           </div>
           {cooldownLeft > 0 && (
-            <p className="mt-1.5 inline-flex items-center gap-1 text-[0.58rem] text-text-dim">
+            <p className="mt-1.5 inline-flex items-center gap-1 text-[0.78rem] text-text-dim">
               <Clock size={9} className="text-yellow" /> {t("vip.chat.cooldownHint", { s: cooldownLeft })}
             </p>
           )}
@@ -280,7 +280,7 @@ export function ChatPanel({ creatures, dex }: { creatures: { pokeId: number; nam
             <h3 className="section-title flex-1">{t("vip.chat.annTitle")}</h3>
             {ann?.on && <span className="chip glow-pulse" style={{ background: "var(--green)", color: "#052012", "--accent": "var(--green)" } as React.CSSProperties}>{t("vip.chat.annOn")}</span>}
           </div>
-          <p className="text-[0.62rem] leading-relaxed text-text-dim">{t("vip.chat.annDesc")}</p>
+          <p className="text-[0.82rem] leading-relaxed text-text-dim">{t("vip.chat.annDesc")}</p>
 
           <div className="field-label">{t("vip.chat.annText")}</div>
           <textarea
@@ -295,7 +295,7 @@ export function ChatPanel({ creatures, dex }: { creatures: { pokeId: number; nam
             <div>
               <div className="field-label mb-1">{t("vip.chat.annEvery")}</div>
               <input value={annEvery} onChange={(e) => setAnnEvery(e.target.value.replace(/\D/g, ""))} inputMode="numeric" className="input" placeholder="600" />
-              <div className="mt-1 text-[0.55rem] text-text-dim">{fmtEvery(Number(annEvery) || 0)} · {t("vip.chat.annFloor")}</div>
+              <div className="mt-1 text-[0.75rem] text-text-dim">{fmtEvery(Number(annEvery) || 0)} · {t("vip.chat.annFloor")}</div>
             </div>
             <div>
               <div className="field-label mb-1">{t("vip.chat.annChannel")}</div>
@@ -314,7 +314,7 @@ export function ChatPanel({ creatures, dex }: { creatures: { pokeId: number; nam
             </button>
           )}
           {ann?.on && (
-            <p className="text-[0.58rem] text-text-dim">{t("vip.chat.annRunning", { n: fmtEvery(ann.everySec), c: t(`vip.chat.ch.${ann.channel}`) })}</p>
+            <p className="text-[0.78rem] text-text-dim">{t("vip.chat.annRunning", { n: fmtEvery(ann.everySec), c: t(`vip.chat.ch.${ann.channel}`) })}</p>
           )}
         </div>
       </div>

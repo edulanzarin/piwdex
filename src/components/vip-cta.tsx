@@ -33,7 +33,7 @@ export function VipCta({ vip }: { vip: boolean }) {
           <div className="section-title flex items-center gap-2 text-yellow">
             <Star size={13} /> {t("vipcta.title")}
           </div>
-          <p className="mt-2 max-w-2xl text-[0.72rem] leading-relaxed text-text-dim">{t("vipcta.desc")}</p>
+          <p className="mt-2 max-w-2xl text-[0.92rem] leading-relaxed text-text-dim">{t("vipcta.desc")}</p>
         </div>
         <div className="flex shrink-0 flex-wrap items-center gap-2">
           <a

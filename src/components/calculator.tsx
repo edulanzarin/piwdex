@@ -159,8 +159,8 @@ export function Calculator({ creatures }: { creatures: CalcCreature[] }) {
       </div>
 
       {Number.isFinite(lvl) && lvl > 0 && lvl < LOW_LEVEL && (
-        <div className="rounded border-l-2 border-yellow bg-[rgba(244,210,74,0.06)] px-4 py-3 text-[0.72rem] leading-relaxed text-text-dim">
-          <span className="pixel mr-1 text-[0.6rem] text-yellow">!</span>{t("calc.lowLevel")}
+        <div className="rounded border-l-2 border-yellow bg-[rgba(244,210,74,0.06)] px-4 py-3 text-[0.92rem] leading-relaxed text-text-dim">
+          <span className="pixel mr-1 text-[0.8rem] text-yellow">!</span>{t("calc.lowLevel")}
         </div>
       )}
 
@@ -184,7 +184,7 @@ export function Calculator({ creatures }: { creatures: CalcCreature[] }) {
           ))}
         </div>
         <div className="mt-4 flex flex-col gap-3 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between">
-          <p className="max-w-md text-[0.62rem] leading-relaxed text-text-dim">{t("calc.ivExplain")}</p>
+          <p className="max-w-md text-[0.82rem] leading-relaxed text-text-dim">{t("calc.ivExplain")}</p>
           <button
             type="button"
             onClick={calc}
@@ -224,7 +224,7 @@ export function Calculator({ creatures }: { creatures: CalcCreature[] }) {
             <StatTile label={t("calc.xpKill")} icon={<Xp size={12} className="text-cyan" />} accent="var(--cyan)" value={creature.xp.toLocaleString("pt-BR")} />
             <StatTile label={t("calc.goldKill")} icon={<Coin />} accent="var(--green)" value={creature.goldEV.toLocaleString("pt-BR")} />
           </div>
-          <p className="mt-3 text-[0.62rem] text-text-dim">{t("calc.bst")} <span className="pixel ml-1 text-[0.7rem] text-cyan">{profile.bst}</span></p>
+          <p className="mt-3 text-[0.82rem] text-text-dim">{t("calc.bst")} <span className="pixel ml-1 text-[0.9rem] text-cyan">{profile.bst}</span></p>
         </div>
       )}
 
@@ -265,9 +265,9 @@ export function Calculator({ creatures }: { creatures: CalcCreature[] }) {
                 <div className="statbar-fill" style={{ width: `${Math.min(100, (iv.total / IV_MAX_TOTAL) * 100)}%`, background: "var(--green)" }} />
               </div>
               {iv.ivs.some((v) => v > IV_MAX) && (
-                <p className="text-[0.62rem] font-semibold text-red">{t("calc.ivOver")}</p>
+                <p className="text-[0.82rem] font-semibold text-red">{t("calc.ivOver")}</p>
               )}
-              <p className="text-[0.62rem] text-text-dim">{t("calc.ivMaxNote")}</p>
+              <p className="text-[0.82rem] text-text-dim">{t("calc.ivMaxNote")}</p>
             </div>
           </div>
         )}
@@ -277,33 +277,33 @@ export function Calculator({ creatures }: { creatures: CalcCreature[] }) {
       {res && iv && perfect && creature && (
         <div className="card p-5">
           <h2 className="section-title mb-1 text-yellow">{t("calc.compare")}</h2>
-          <p className="mb-4 text-[0.62rem] leading-relaxed text-text-dim">{t("calc.compareHint")}</p>
+          <p className="mb-4 text-[0.82rem] leading-relaxed text-text-dim">{t("calc.compareHint")}</p>
           <div className="grid gap-4 sm:grid-cols-2">
             {/* Seu */}
             <div className="card p-4" style={{ borderColor: "var(--cyan)" }}>
               <div className="mb-3 flex items-center justify-between">
-                <span className="pixel text-[0.62rem] text-cyan">{t("calc.compareYou", { name: creature.name })}</span>
-                <span className="text-[0.58rem] tabular-nums text-text-dim">{iv.total.toFixed(0)}/{IV_MAX_TOTAL} · {Math.round((iv.total / IV_MAX_TOTAL) * 100)}%</span>
+                <span className="pixel text-[0.82rem] text-cyan">{t("calc.compareYou", { name: creature.name })}</span>
+                <span className="text-[0.78rem] tabular-nums text-text-dim">{iv.total.toFixed(0)}/{IV_MAX_TOTAL} · {Math.round((iv.total / IV_MAX_TOTAL) * 100)}%</span>
               </div>
               <div className="flex flex-col gap-1.5">
                 {STAT_LABELS.map((lb, i) => (
                   <StatCompareRow key={lb} label={lb} iconIndex={i} value={statVals[i]} max={perfect.stats[i]} iv={res.ivs[i]} ivClass={ivColor(res.ivs[i])} />
                 ))}
               </div>
-              <div className="mt-3 border-t border-border pt-2 field-label">{t("calc.power")} <span className="pixel ml-1 text-[0.7rem] text-yellow">{currentPower?.toLocaleString("pt-BR")}</span></div>
+              <div className="mt-3 border-t border-border pt-2 field-label">{t("calc.power")} <span className="pixel ml-1 text-[0.9rem] text-yellow">{currentPower?.toLocaleString("pt-BR")}</span></div>
             </div>
             {/* Perfeito */}
             <div className="card p-4" style={{ borderColor: "var(--green)" }}>
               <div className="mb-3 flex items-center justify-between">
-                <span className="pixel text-[0.62rem] text-green">{t("calc.comparePerfect")}</span>
-                <span className="text-[0.58rem] tabular-nums text-text-dim">{IV_MAX_TOTAL}/{IV_MAX_TOTAL} · 100%</span>
+                <span className="pixel text-[0.82rem] text-green">{t("calc.comparePerfect")}</span>
+                <span className="text-[0.78rem] tabular-nums text-text-dim">{IV_MAX_TOTAL}/{IV_MAX_TOTAL} · 100%</span>
               </div>
               <div className="flex flex-col gap-1.5">
                 {STAT_LABELS.map((lb, i) => (
                   <StatCompareRow key={lb} label={lb} iconIndex={i} value={perfect.stats[i]} max={perfect.stats[i]} iv={IV_MAX} ivClass="text-green" />
                 ))}
               </div>
-              <div className="mt-3 border-t border-border pt-2 field-label">{t("calc.power")} <span className="pixel ml-1 text-[0.7rem] text-yellow">{perfect.power.toLocaleString("pt-BR")}</span></div>
+              <div className="mt-3 border-t border-border pt-2 field-label">{t("calc.power")} <span className="pixel ml-1 text-[0.9rem] text-yellow">{perfect.power.toLocaleString("pt-BR")}</span></div>
             </div>
           </div>
         </div>
@@ -322,33 +322,33 @@ export function Calculator({ creatures }: { creatures: CalcCreature[] }) {
           <p className="mt-4 text-sm text-text-dim">{t("calc.projNeedCalc")}</p>
         ) : projection && perfectProjection && iv && creature ? (
           <div className="mt-4 flex flex-col gap-4">
-            <p className="text-[0.62rem] leading-relaxed text-text-dim">{t("calc.projCompareHint", { n: tgt })}</p>
+            <p className="text-[0.82rem] leading-relaxed text-text-dim">{t("calc.projCompareHint", { n: tgt })}</p>
             <div className="grid gap-4 sm:grid-cols-2">
               {/* Seu, projetado no nivel alvo */}
               <div className="card p-4" style={{ borderColor: "var(--cyan)" }}>
                 <div className="mb-3 flex items-center justify-between">
-                  <span className="pixel text-[0.62rem] text-cyan">{t("calc.compareYou", { name: creature.name })}</span>
-                  <span className="text-[0.58rem] tabular-nums text-text-dim">{iv.total.toFixed(0)}/{IV_MAX_TOTAL} · {Math.round((iv.total / IV_MAX_TOTAL) * 100)}%</span>
+                  <span className="pixel text-[0.82rem] text-cyan">{t("calc.compareYou", { name: creature.name })}</span>
+                  <span className="text-[0.78rem] tabular-nums text-text-dim">{iv.total.toFixed(0)}/{IV_MAX_TOTAL} · {Math.round((iv.total / IV_MAX_TOTAL) * 100)}%</span>
                 </div>
                 <div className="flex flex-col gap-1.5">
                   {STAT_LABELS.map((lb, i) => (
                     <StatCompareRow key={lb} label={lb} iconIndex={i} value={projection.stats[i]} max={perfectProjection.stats[i]} iv={res.ivs[i]} ivClass={ivColor(res.ivs[i])} />
                   ))}
                 </div>
-                <div className="mt-3 border-t border-border pt-2 field-label">{t("calc.powerAt", { n: tgt })} <span className="pixel ml-1 text-[0.7rem] text-yellow">{projection.power.toLocaleString("pt-BR")}</span></div>
+                <div className="mt-3 border-t border-border pt-2 field-label">{t("calc.powerAt", { n: tgt })} <span className="pixel ml-1 text-[0.9rem] text-yellow">{projection.power.toLocaleString("pt-BR")}</span></div>
               </div>
               {/* Perfeito, projetado no nivel alvo */}
               <div className="card p-4" style={{ borderColor: "var(--green)" }}>
                 <div className="mb-3 flex items-center justify-between">
-                  <span className="pixel text-[0.62rem] text-green">{t("calc.comparePerfect")}</span>
-                  <span className="text-[0.58rem] tabular-nums text-text-dim">{IV_MAX_TOTAL}/{IV_MAX_TOTAL} · 100%</span>
+                  <span className="pixel text-[0.82rem] text-green">{t("calc.comparePerfect")}</span>
+                  <span className="text-[0.78rem] tabular-nums text-text-dim">{IV_MAX_TOTAL}/{IV_MAX_TOTAL} · 100%</span>
                 </div>
                 <div className="flex flex-col gap-1.5">
                   {STAT_LABELS.map((lb, i) => (
                     <StatCompareRow key={lb} label={lb} iconIndex={i} value={perfectProjection.stats[i]} max={perfectProjection.stats[i]} iv={IV_MAX} ivClass="text-green" />
                   ))}
                 </div>
-                <div className="mt-3 border-t border-border pt-2 field-label">{t("calc.powerAt", { n: tgt })} <span className="pixel ml-1 text-[0.7rem] text-yellow">{perfectProjection.power.toLocaleString("pt-BR")}</span></div>
+                <div className="mt-3 border-t border-border pt-2 field-label">{t("calc.powerAt", { n: tgt })} <span className="pixel ml-1 text-[0.9rem] text-yellow">{perfectProjection.power.toLocaleString("pt-BR")}</span></div>
               </div>
             </div>
           </div>

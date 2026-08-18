@@ -43,7 +43,7 @@ export function DropSourcesTable({ sources }: { sources: DropRow[] }) {
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="text-left text-[0.62rem] uppercase tracking-wide text-text-dim">
+            <tr className="text-left text-[0.82rem] uppercase tracking-wide text-text-dim">
               <th className="pb-2 font-medium">{t("col.pokemon")}</th>
               <th className="pb-2 font-medium">{t("col.types")}</th>
               <th className="pb-2 text-right font-medium">{t("col.huntLvl")}</th>

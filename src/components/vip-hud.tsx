@@ -103,10 +103,10 @@ export function VipHud({ hunts }: { hunts: HuntOption[] }) {
           className={`hud-led shrink-0 ${connected || status === "connecting" || hunt?.reconnecting ? "pulse-soft" : ""}`}
           style={{ "--led": troubled ? "var(--red)" : LED[status] } as React.CSSProperties}
         />
-        <span className={`pixel text-[0.58rem] uppercase tracking-wide ${troubled ? "text-red" : "text-text"}`}>{statusLabel}</span>
+        <span className={`pixel text-[0.78rem] uppercase tracking-wide ${troubled ? "text-red" : "text-text"}`}>{statusLabel}</span>
         {/* stream SSE caiu = aviso discreto (nao confundir com a conexao do robo) */}
         {link !== "open" && (
-          <span className="inline-flex items-center gap-1 text-[0.55rem] text-yellow" title={t("vip.hud.streamDown")}>
+          <span className="inline-flex items-center gap-1 text-[0.75rem] text-yellow" title={t("vip.hud.streamDown")}>
             <Signal size={10} className="pulse-soft" />
           </span>
         )}
@@ -119,7 +119,7 @@ export function VipHud({ hunts }: { hunts: HuntOption[] }) {
           type="button"
           onClick={() => void connect()}
           disabled={busy}
-          className="flash-in inline-flex items-center gap-1.5 rounded border border-[color:var(--yellow)]/60 bg-[color:var(--yellow)]/10 px-2 py-1 text-[0.56rem] font-semibold text-yellow disabled:opacity-40"
+          className="flash-in inline-flex items-center gap-1.5 rounded border border-[color:var(--yellow)]/60 bg-[color:var(--yellow)]/10 px-2 py-1 text-[0.76rem] font-semibold text-yellow disabled:opacity-40"
           style={{ "--accent": "var(--yellow)" } as React.CSSProperties}
           title={t("vip.contested.note")}
         >
@@ -130,7 +130,7 @@ export function VipHud({ hunts }: { hunts: HuntOption[] }) {
 
       {/* vinculo com o jogo expirou: APITA e leva pro reconectar (uma vez so) */}
       {account?.reason === "expired" && (
-        <a href="#conta" className="flash-in inline-flex items-center gap-1.5 rounded border border-red/60 bg-[color:var(--red)]/10 px-2 py-1 text-[0.56rem] font-semibold text-red"
+        <a href="#conta" className="flash-in inline-flex items-center gap-1.5 rounded border border-red/60 bg-[color:var(--red)]/10 px-2 py-1 text-[0.76rem] font-semibold text-red"
           style={{ "--accent": "var(--red)" } as React.CSSProperties}>
           <span className="hud-led pulse-soft" style={{ "--led": "var(--red)" } as React.CSSProperties} />
           {t("vip.conn.expired")}
@@ -139,7 +139,7 @@ export function VipHud({ hunts }: { hunts: HuntOption[] }) {
 
       {/* conectar rapido direto do HUD */}
       {!holdOpen && status !== "connecting" && account?.reason !== "expired" && (
-        <button type="button" onClick={() => void connect()} disabled={busy} className="btn btn-green !min-h-0 !px-2.5 !py-1 !text-[0.5rem] disabled:opacity-40">
+        <button type="button" onClick={() => void connect()} disabled={busy} className="btn btn-green !min-h-0 !px-2.5 !py-1 !text-[0.7rem] disabled:opacity-40">
           {t("vip.conn.connect")}
         </button>
       )}
@@ -151,8 +151,8 @@ export function VipHud({ hunts }: { hunts: HuntOption[] }) {
             <Sprite src={spriteUrl(leader.speciesId, leader.shiny)} alt={leader.name} size={22} />
             <span className="absolute -right-1 -top-1 text-yellow"><Star size={7} /></span>
           </span>
-          <span className="truncate text-[0.66rem] text-yellow">{leader.name}</span>
-          <span className="pixel text-[0.55rem] text-text-dim">Lv{hunt?.fighterLevel && hunt.fighterLevel > leader.level ? hunt.fighterLevel : leader.level}</span>
+          <span className="truncate text-[0.86rem] text-yellow">{leader.name}</span>
+          <span className="pixel text-[0.75rem] text-text-dim">Lv{hunt?.fighterLevel && hunt.fighterLevel > leader.level ? hunt.fighterLevel : leader.level}</span>
         </span>
       )}
 
@@ -176,11 +176,11 @@ export function VipHud({ hunts }: { hunts: HuntOption[] }) {
         <span className="inline-flex min-w-0 items-center gap-1.5">
           <Target size={10} className="shrink-0 text-cyan" />
           {huntOpt.pokeId != null && <Sprite src={spriteUrl(huntOpt.pokeId)} alt={huntOpt.name} size={18} />}
-          <span className="truncate text-[0.68rem] text-text">{huntOpt.name}</span>
+          <span className="truncate text-[0.88rem] text-text">{huntOpt.name}</span>
         </span>
       )}
       {hunting && hunt?.analyzer && (
-        <span className="hidden items-center gap-3 text-[0.62rem] tabular-nums md:inline-flex">
+        <span className="hidden items-center gap-3 text-[0.82rem] tabular-nums md:inline-flex">
           <span className="inline-flex items-center gap-1 text-cyan"><Xp size={10} />{fmt(hunt.analyzer.xpPerHour)}/h</span>
           <span className="inline-flex items-center gap-1 text-text-dim"><Skull size={10} />{fmt(hunt.analyzer.kills)}</span>
           <span className="inline-flex items-center gap-1 text-green"><Coin size={10} />{fmt(hunt.analyzer.goldPerHour)}/h</span>
@@ -191,7 +191,7 @@ export function VipHud({ hunts }: { hunts: HuntOption[] }) {
       {lv && !lv.done && (
         <span className="inline-flex min-w-0 items-center gap-2" title={`${lv.name}: ${lv.currentLevel} / ${lv.targetLevel}`}>
           <Flag size={10} className="shrink-0 text-purple" />
-          <span className="pixel text-[0.55rem] text-purple">{lv.currentLevel}<span className="text-text-dim">/{lv.targetLevel}</span></span>
+          <span className="pixel text-[0.75rem] text-purple">{lv.currentLevel}<span className="text-text-dim">/{lv.targetLevel}</span></span>
           <span className="hud-track w-16 shrink-0 sm:w-24">
             <span className="hud-fill block bg-purple" style={{ width: `${lvPct}%` }} />
           </span>
@@ -204,16 +204,16 @@ export function VipHud({ hunts }: { hunts: HuntOption[] }) {
       {prof && (
         <>
           <span className="inline-flex items-center gap-2" title={`XP ${fmt(prof.xpInLevel)} / ${fmt(prof.xpForNext)}`}>
-            <span className="pixel text-[0.58rem] text-yellow">Lv{prof.level}</span>
+            <span className="pixel text-[0.78rem] text-yellow">Lv{prof.level}</span>
             <span className="hud-track w-14 shrink-0 sm:w-20">
               <span className="hud-fill block bg-cyan" style={{ width: `${xpPct}%` }} />
             </span>
           </span>
           <HudDivider />
-          <span className="inline-flex items-center gap-1 text-[0.68rem] tabular-nums text-green"><Coin size={11} />{fmt(prof.gold)}</span>
-          <span className="inline-flex items-center gap-1 text-[0.68rem] tabular-nums text-cyan"><Diamond size={11} />{fmt(prof.diamonds)}</span>
+          <span className="inline-flex items-center gap-1 text-[0.88rem] tabular-nums text-green"><Coin size={11} />{fmt(prof.gold)}</span>
+          <span className="inline-flex items-center gap-1 text-[0.88rem] tabular-nums text-cyan"><Diamond size={11} />{fmt(prof.diamonds)}</span>
           <span
-            className={`inline-flex items-center gap-1 text-[0.68rem] tabular-nums ${ballLow ? "text-red" : "text-text"}`}
+            className={`inline-flex items-center gap-1 text-[0.88rem] tabular-nums ${ballLow ? "text-red" : "text-text"}`}
             title={balls.map((b) => `${b.name}: ${b.count}`).join(" · ")}
           >
             <Pokeball size={12} className={ballLow ? "pulse-soft" : ""} />{fmt(ballTotal)}

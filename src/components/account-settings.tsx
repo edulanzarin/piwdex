@@ -22,7 +22,7 @@ function SubmitBtn({ label, loading }: { label: string; loading: string }) {
 // linha de sucesso inline (verde, com check) — o /conta vive fora do ToastProvider
 function Ok({ children }: { children: React.ReactNode }) {
   return (
-    <p className="inline-flex items-center gap-1.5 text-[0.72rem] font-semibold text-green">
+    <p className="inline-flex items-center gap-1.5 text-[0.92rem] font-semibold text-green">
       <Check size={11} /> {children}
     </p>
   );
@@ -61,7 +61,7 @@ export function AccountSettings({ email, nome, vip }: { email: string; nome: str
           <span className="field-label">{t("conta.f.name")}</span>
           <input name="nome" type="text" defaultValue={nome ?? ""} maxLength={40} autoComplete="name" className="input" placeholder={t("conta.f.namePh")} />
         </label>
-        {errText(nameState) && <p className="text-[0.72rem] font-semibold text-red">{errText(nameState)}</p>}
+        {errText(nameState) && <p className="text-[0.92rem] font-semibold text-red">{errText(nameState)}</p>}
         {nameState?.ok && <Ok>{t("conta.name.saved")}</Ok>}
         <SubmitBtn label={t("conta.name.btn")} loading={t("conta.saving")} />
       </form>
@@ -81,13 +81,13 @@ export function AccountSettings({ email, nome, vip }: { email: string; nome: str
           <span className="field-label">{t("conta.f.confirm")}</span>
           <input name="confirma" type="password" required minLength={6} autoComplete="new-password" className="input" />
         </label>
-        {errText(passState) && <p className="text-[0.72rem] font-semibold text-red">{errText(passState)}</p>}
+        {errText(passState) && <p className="text-[0.92rem] font-semibold text-red">{errText(passState)}</p>}
         {passState?.ok && <Ok>{t("conta.pass.saved")}</Ok>}
         <SubmitBtn label={t("conta.pass.btn")} loading={t("conta.saving")} />
       </form>
 
       {/* atalho pra area VIP (conta do jogo, robo etc) */}
-      <Link href="/vip" className="text-center text-[0.72rem] text-text-dim hover:text-cyan">
+      <Link href="/vip" className="text-center text-[0.92rem] text-text-dim hover:text-cyan">
         {t("conta.toVip")} <ChevronRight size={9} className="inline" />
       </Link>
     </div>

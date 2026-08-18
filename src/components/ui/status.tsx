@@ -16,7 +16,7 @@ export function Led({ color, pulse = false, className = "" }: { color: string; p
 /** Badge "AO VIVO" (ou rotulo custom): led verde pulsando + texto uppercase. */
 export function LiveBadge({ label = "ao vivo", color = "var(--green)" }: { label?: string; color?: string }) {
   return (
-    <span className="inline-flex shrink-0 items-center gap-1.5 text-[0.6rem] font-bold uppercase tracking-wide" style={{ color }}>
+    <span className="inline-flex shrink-0 items-center gap-1.5 text-[0.8rem] font-bold uppercase tracking-wide" style={{ color }}>
       <Led color={color} pulse />
       {label}
     </span>
@@ -47,8 +47,8 @@ export function AlertBanner({
       } as CSSProperties}
     >
       <Led color={color} pulse />
-      <span className="pixel text-[0.7rem]" style={{ color }}>{title}</span>
-      {detail && <span className="text-[0.62rem] text-text-dim">{detail}</span>}
+      <span className="pixel text-[0.9rem]" style={{ color }}>{title}</span>
+      {detail && <span className="text-[0.82rem] text-text-dim">{detail}</span>}
       <span className="ms-auto" />
       {action}
     </div>

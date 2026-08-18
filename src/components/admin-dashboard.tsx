@@ -32,7 +32,7 @@ function BookmarkletLink({ snippet, label }: { snippet: string; label: string })
       draggable
       onClick={(e) => e.preventDefault()}
       title="Arraste pra barra de favoritos; na aba do jogo, clique pra entrar"
-      className="inline-flex items-center gap-1 rounded border border-border px-2 py-1 pixel text-[0.5rem] text-text-dim hover:border-[color:var(--border-strong)] hover:text-cyan cursor-grab"
+      className="inline-flex items-center gap-1 rounded border border-border px-2 py-1 pixel text-[0.7rem] text-text-dim hover:border-[color:var(--border-strong)] hover:text-cyan cursor-grab"
     >
       ↗ {label}
     </a>
@@ -81,11 +81,11 @@ export function AdminDashboard({ users }: { users: AdminUser[] }) {
       </div>
 
       <div className="flex items-center justify-between">
-        <span className="text-[0.6rem] text-text-dim">Moedas puxadas ao vivo do jogo (REST, sem roubar a sessão).</span>
+        <span className="text-[0.8rem] text-text-dim">Moedas puxadas ao vivo do jogo (REST, sem roubar a sessão).</span>
         <button
           type="button"
           onClick={() => { setBusy(true); router.refresh(); setTimeout(() => setBusy(false), 1200); }}
-          className="rounded border border-border px-2.5 py-1 pixel text-[0.55rem] text-text-dim hover:text-cyan"
+          className="rounded border border-border px-2.5 py-1 pixel text-[0.75rem] text-text-dim hover:text-cyan"
         >
           {busy ? "atualizando…" : "atualizar"}
         </button>
@@ -93,9 +93,9 @@ export function AdminDashboard({ users }: { users: AdminUser[] }) {
 
       {/* tabela */}
       <div className="overflow-x-auto rounded border border-border">
-        <table className="w-full min-w-[52rem] border-collapse text-left text-[0.7rem]">
+        <table className="w-full min-w-[52rem] border-collapse text-left text-[0.9rem]">
           <thead>
-            <tr className="border-b border-border bg-surface-2 pixel text-[0.5rem] uppercase tracking-wide text-text-dim">
+            <tr className="border-b border-border bg-surface-2 pixel text-[0.7rem] uppercase tracking-wide text-text-dim">
               <Th>Usuário</Th>
               <Th>VIP</Th>
               <Th>Conta do jogo</Th>
@@ -113,7 +113,7 @@ export function AdminDashboard({ users }: { users: AdminUser[] }) {
                 <Td>
                   <div className="flex flex-col">
                     <span className="text-text">{u.nome ?? "—"}</span>
-                    <span className="text-[0.6rem] text-text-dim">{u.email}</span>
+                    <span className="text-[0.8rem] text-text-dim">{u.email}</span>
                   </div>
                 </Td>
                 <Td>
@@ -123,14 +123,14 @@ export function AdminDashboard({ users }: { users: AdminUser[] }) {
                     <span className="text-text-dim">—</span>
                   )}
                   {u.vip && u.vipAte && (
-                    <div className="mt-0.5 text-[0.55rem] text-text-dim">até {fmtDate(u.vipAte)}</div>
+                    <div className="mt-0.5 text-[0.75rem] text-text-dim">até {fmtDate(u.vipAte)}</div>
                   )}
                 </Td>
                 <Td>
                   {u.linked ? (
                     <div className="flex flex-col">
                       <span className="text-text">{u.playerName ?? "conectada"}</span>
-                      <span className={`text-[0.55rem] ${u.linkStatus === "active" ? "text-[color:var(--green,#35e08e)]" : "text-[color:#ff5555]"}`}>
+                      <span className={`text-[0.75rem] ${u.linkStatus === "active" ? "text-[color:var(--green,#35e08e)]" : "text-[color:#ff5555]"}`}>
                         {u.linkStatus === "active" ? "ativa" : "expirada"}
                       </span>
                     </div>
@@ -149,14 +149,14 @@ export function AdminDashboard({ users }: { users: AdminUser[] }) {
                       <button
                         type="button"
                         onClick={() => copyLogin(u)}
-                        className="rounded border border-[color:var(--border-strong)] bg-surface-2 px-2 py-1 pixel text-[0.5rem] text-cyan hover:bg-cyan/10"
+                        className="rounded border border-[color:var(--border-strong)] bg-surface-2 px-2 py-1 pixel text-[0.7rem] text-cyan hover:bg-cyan/10"
                       >
                         Copiar login
                       </button>
                       <BookmarkletLink snippet={loginSnippet(u.impersonate)} label="arraste" />
                     </div>
                   ) : (
-                    <span className="text-[0.6rem] text-text-dim">sem token</span>
+                    <span className="text-[0.8rem] text-text-dim">sem token</span>
                   )}
                 </Td>
               </tr>
@@ -170,7 +170,7 @@ export function AdminDashboard({ users }: { users: AdminUser[] }) {
       )}
 
       {toast && (
-        <div className="fixed bottom-5 left-1/2 z-50 -translate-x-1/2 rounded-md border border-[color:var(--border-strong)] bg-[color:var(--surface-solid)] px-4 py-2.5 text-center text-[0.7rem] text-text shadow-lg">
+        <div className="fixed bottom-5 left-1/2 z-50 -translate-x-1/2 rounded-md border border-[color:var(--border-strong)] bg-[color:var(--surface-solid)] px-4 py-2.5 text-center text-[0.9rem] text-text shadow-lg">
           {toast}
         </div>
       )}
@@ -181,8 +181,8 @@ export function AdminDashboard({ users }: { users: AdminUser[] }) {
 function Stat({ label, value, icon }: { label: string; value: string; icon?: React.ReactNode }) {
   return (
     <div className="rounded border border-border bg-surface-2 px-3 py-2">
-      <div className="flex items-center gap-1 text-[0.5rem] uppercase tracking-wide text-text-dim">{icon}{label}</div>
-      <div className="pixel text-[0.85rem] text-text">{value}</div>
+      <div className="flex items-center gap-1 text-[0.7rem] uppercase tracking-wide text-text-dim">{icon}{label}</div>
+      <div className="pixel text-[1.05rem] text-text">{value}</div>
     </div>
   );
 }

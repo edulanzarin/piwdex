@@ -44,9 +44,9 @@ function SummaryCard({ g, onOpen, t }: { g: Group; onOpen: () => void; t: (k: st
           <Bell size={9} /> {t("alerts.kind.snipe")}
         </div>
         <div className="mt-0.5 text-sm font-semibold text-text">{t("alerts.found", { n: g.total, name })}</div>
-        {g.unread > 0 && <div className="mt-0.5 text-[0.62rem] text-green">{t("alerts.newCount", { n: g.unread })}</div>}
+        {g.unread > 0 && <div className="mt-0.5 text-[0.82rem] text-green">{t("alerts.newCount", { n: g.unread })}</div>}
       </div>
-      <span className="inline-flex shrink-0 items-center gap-1 text-[0.6rem] text-cyan">{t("alerts.see")} <ChevronRight size={10} /></span>
+      <span className="inline-flex shrink-0 items-center gap-1 text-[0.8rem] text-cyan">{t("alerts.see")} <ChevronRight size={10} /></span>
     </button>
   );
 }
@@ -89,7 +89,7 @@ export function AlertsInbox({ onJumpToWish }: { onJumpToWish?: (watchlistId: str
       <div>
         <h2 className="section-title flex items-center gap-2 text-green">
           <Bell size={15} /> {t("alerts.inbox.title")}
-          {totalUnread > 0 && <span className="rounded-full bg-cyan px-1.5 py-0.5 text-[0.5rem] text-[#06131a]">{totalUnread}</span>}
+          {totalUnread > 0 && <span className="rounded-full bg-cyan px-1.5 py-0.5 text-[0.7rem] text-[#06131a]">{totalUnread}</span>}
         </h2>
         <p className="mt-2 max-w-2xl text-sm text-text-dim">{t("alerts.inbox.desc")}</p>
       </div>
@@ -105,7 +105,7 @@ export function AlertsInbox({ onJumpToWish }: { onJumpToWish?: (watchlistId: str
         ) : groups.length === 0 ? (
           <div className="flex flex-col items-center gap-3 py-8 text-center">
             <span className="text-text-dim/50"><Bell size={40} /></span>
-            <p className="max-w-sm text-[0.72rem] leading-relaxed text-text-dim">{t("alerts.inbox.empty")}</p>
+            <p className="max-w-sm text-[0.92rem] leading-relaxed text-text-dim">{t("alerts.inbox.empty")}</p>
           </div>
         ) : (
           <div className="grid gap-2">

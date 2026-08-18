@@ -129,10 +129,10 @@ export function PokeCaught({ creatures }: { creatures: ComboCreature[] }) {
       {/* grade */}
       <div className="card p-4">
         {rows.length === 0 ? (
-          <p className="text-[0.72rem] text-text-dim">{t("robo.caught.empty")}</p>
+          <p className="text-[0.92rem] text-text-dim">{t("robo.caught.empty")}</p>
         ) : (
           <div className="flex flex-col gap-3">
-            <div className="text-[0.72rem] text-text-dim">{t("robo.caught.count").replace("{n}", String(data?.total ?? 0))}</div>
+            <div className="text-[0.92rem] text-text-dim">{t("robo.caught.count").replace("{n}", String(data?.total ?? 0))}</div>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
               {rows.map((p) => (
                 <button key={p.pokeId} type="button" onClick={() => setSel(p)} className="card card-link flex flex-col items-center gap-1.5 p-3 text-center">
@@ -141,7 +141,7 @@ export function PokeCaught({ creatures }: { creatures: ComboCreature[] }) {
                     {p.shiny && <span className="absolute -right-1 -top-1 text-yellow"><Star size={11} /></span>}
                   </div>
                   <span className="truncate text-sm">{p.name}</span>
-                  <span className="text-[0.55rem] text-text-dim">Lv{p.level} · IV {p.ivTotal} · Q {p.quality.toFixed(2)}</span>
+                  <span className="text-[0.75rem] text-text-dim">Lv{p.level} · IV {p.ivTotal} · Q {p.quality.toFixed(2)}</span>
                   <RarityBadge rarity={p.rarity} />
                 </button>
               ))}
@@ -171,7 +171,7 @@ export function PokeCaught({ creatures }: { creatures: ComboCreature[] }) {
             <div className="well"><div className="field-label">{t("robo.caught.f.ivMin")}</div><div className="pixel text-sm tabular-nums">{sel.ivTotal} / 192</div></div>
             <div className="well"><div className="field-label">Quality</div><div className="pixel text-sm tabular-nums">{sel.quality.toFixed(2)}</div></div>
             <div className="well"><div className="field-label">Level</div><div className="pixel text-sm tabular-nums">{sel.level}</div></div>
-            <div className="well"><div className="field-label">{t("robo.caught.capturedAt")}</div><div className="pixel text-[0.7rem] tabular-nums">{whenDay(sel.seenEm)}</div></div>
+            <div className="well"><div className="field-label">{t("robo.caught.capturedAt")}</div><div className="pixel text-[0.9rem] tabular-nums">{whenDay(sel.seenEm)}</div></div>
           </div>
         </Modal>
       )}

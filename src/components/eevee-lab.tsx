@@ -84,12 +84,12 @@ function EvoNodeCard({ evo, compact }: { evo: NodeData; compact?: boolean }) {
     <Link href={`/dex/${evo.pokeId}`} className="card card-link flex flex-col items-center gap-2 p-3 text-center" style={compact ? undefined : { width: NODE_W }}>
       <Sprite src={spriteUrl(evo.pokeId)} alt={evo.name} size={56} />
       <div>
-        <div className="text-[0.55rem] text-text-dim">#{String(evo.pokeId).padStart(3, "0")}</div>
+        <div className="text-[0.75rem] text-text-dim">#{String(evo.pokeId).padStart(3, "0")}</div>
         <div className="text-sm font-semibold leading-tight">{evo.name}</div>
       </div>
       <TypeBadges t1={evo.t1} t2={evo.t2} />
       {evo.stoneName && (
-        <span className="inline-flex items-center gap-1 text-[0.58rem] text-text-dim">
+        <span className="inline-flex items-center gap-1 text-[0.78rem] text-text-dim">
           {evo.stoneIcon && (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={evo.stoneIcon} alt="" width={14} height={14} className="[image-rendering:pixelated]" />
@@ -99,7 +99,7 @@ function EvoNodeCard({ evo, compact }: { evo: NodeData; compact?: boolean }) {
       )}
       <div className="mt-0.5 grid w-full grid-cols-2 gap-x-3 gap-y-0.5 border-t border-border/60 pt-2">
         {STAT_LABELS.map((lb, i) => (
-          <div key={lb} className="flex justify-between text-[0.56rem]">
+          <div key={lb} className="flex justify-between text-[0.76rem]">
             <span className="inline-flex items-center gap-1 text-text-dim"><StatIcon index={i} size={9} />{lb}</span>
             <span className={`tabular-nums ${evo.stats ? (i === maxIdx ? "font-bold text-green" : "text-text") : "text-text-dim"}`}>
               {evo.stats ? evo.stats[i] : "???"}
@@ -197,7 +197,7 @@ export function EeveeLab({ eevee, evos }: { eevee: { pokeId: number; name: strin
           <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-h-[1.1rem]">
               {result && (
-                <span className="flex flex-wrap gap-x-3 gap-y-0.5 text-[0.58rem] text-text-dim">
+                <span className="flex flex-wrap gap-x-3 gap-y-0.5 text-[0.78rem] text-text-dim">
                   {STAT_LABELS.map((lb, i) => (
                     <span key={lb} className="inline-flex items-center gap-1"><StatIcon index={i} size={9} />{lb} <span className={result.ivs[i] > 32 ? "font-bold text-red" : "text-text"}>{result.ivs[i].toFixed(0)}</span></span>
                   ))}
@@ -217,10 +217,10 @@ export function EeveeLab({ eevee, evos }: { eevee: { pokeId: number; name: strin
             <div className="mt-4 flex flex-col gap-2 border-t border-border pt-3">
               <div className="flex flex-wrap items-center gap-x-6 gap-y-1">
                 <span className="field-label">
-                  {t("eevee.ivTotal")} <span className="pixel ml-1 text-[0.72rem] text-green">{result.ivTotal.toFixed(0)}<span className="text-text-dim">/192</span></span>
+                  {t("eevee.ivTotal")} <span className="pixel ml-1 text-[0.92rem] text-green">{result.ivTotal.toFixed(0)}<span className="text-text-dim">/192</span></span>
                 </span>
                 <span className="field-label">
-                  {t("calc.ivUsage")} <span className="pixel ml-1 text-[0.72rem] text-cyan">{Math.round((result.ivTotal / 192) * 100)}%</span>
+                  {t("calc.ivUsage")} <span className="pixel ml-1 text-[0.92rem] text-cyan">{Math.round((result.ivTotal / 192) * 100)}%</span>
                 </span>
               </div>
               <div className="statbar">
@@ -229,12 +229,12 @@ export function EeveeLab({ eevee, evos }: { eevee: { pokeId: number; name: strin
             </div>
           )}
           {result && result.ivs.some((v) => v > 32) && (
-            <p className="mt-2 text-[0.62rem] font-semibold leading-relaxed text-red">{t("eevee.ivOver")}</p>
+            <p className="mt-2 text-[0.82rem] font-semibold leading-relaxed text-red">{t("eevee.ivOver")}</p>
           )}
           {Number.isFinite(lvl) && lvl > 0 && lvl < 20 && (
-            <p className="mt-2 text-[0.62rem] leading-relaxed text-yellow">{t("calc.lowLevel")}</p>
+            <p className="mt-2 text-[0.82rem] leading-relaxed text-yellow">{t("calc.lowLevel")}</p>
           )}
-          <p className="mt-3 text-[0.62rem] leading-relaxed text-text-dim">{t("eevee.ivNote")}</p>
+          <p className="mt-3 text-[0.82rem] leading-relaxed text-text-dim">{t("eevee.ivNote")}</p>
         </div>
       </div>
 
@@ -256,11 +256,11 @@ export function EeveeLab({ eevee, evos }: { eevee: { pokeId: number; name: strin
           ) : (
             <>
               <h2 className="section-title mb-1 text-yellow">{t("calc.compare")}</h2>
-              <p className="mb-3 text-[0.62rem] leading-relaxed text-text-dim">{t("eevee.compareHint")}</p>
+              <p className="mb-3 text-[0.82rem] leading-relaxed text-text-dim">{t("eevee.compareHint")}</p>
               <div className="mb-4 flex flex-wrap gap-2">
                 {evos.map((e) => (
                   <button key={e.pokeId} type="button" onClick={() => setSelEvo(e.pokeId)}
-                    className={`inline-flex items-center gap-1.5 rounded border px-2.5 py-1 text-[0.7rem] transition ${selEvo === e.pokeId ? "border-[color:var(--cyan)] bg-surface-2 text-cyan" : "border-border text-text-dim hover:text-text"}`}>
+                    className={`inline-flex items-center gap-1.5 rounded border px-2.5 py-1 text-[0.9rem] transition ${selEvo === e.pokeId ? "border-[color:var(--cyan)] bg-surface-2 text-cyan" : "border-border text-text-dim hover:text-text"}`}>
                     <Sprite src={spriteUrl(e.pokeId)} alt={e.name} size={18} /> {e.name}
                   </button>
                 ))}
@@ -269,28 +269,28 @@ export function EeveeLab({ eevee, evos }: { eevee: { pokeId: number; name: strin
                 {/* Seu {evo} */}
                 <div className="card p-4" style={{ borderColor: "var(--cyan)" }}>
                   <div className="mb-3 flex items-center justify-between">
-                    <span className="inline-flex items-center gap-1.5 pixel text-[0.62rem] text-cyan"><Sprite src={spriteUrl(cmp.evo.pokeId)} alt="" size={18} />{t("calc.compareYou", { name: cmp.evo.name })}</span>
-                    <span className="text-[0.58rem] tabular-nums text-text-dim">{result.ivTotal.toFixed(0)}/192 · {Math.round((result.ivTotal / 192) * 100)}%</span>
+                    <span className="inline-flex items-center gap-1.5 pixel text-[0.82rem] text-cyan"><Sprite src={spriteUrl(cmp.evo.pokeId)} alt="" size={18} />{t("calc.compareYou", { name: cmp.evo.name })}</span>
+                    <span className="text-[0.78rem] tabular-nums text-text-dim">{result.ivTotal.toFixed(0)}/192 · {Math.round((result.ivTotal / 192) * 100)}%</span>
                   </div>
                   <div className="flex flex-col gap-1.5">
                     {STAT_LABELS.map((lb, i) => (
                       <StatCompareRow key={lb} label={lb} iconIndex={i} value={cmp.seu.stats[i]} max={cmp.perf.stats[i]} iv={result.ivs[i]} ivClass={ivColor(result.ivs[i])} />
                     ))}
                   </div>
-                  <div className="mt-3 border-t border-border pt-2 field-label">{t("calc.power")} <span className="pixel ml-1 text-[0.7rem] text-yellow">{cmp.seu.power.toLocaleString("pt-BR")}</span></div>
+                  <div className="mt-3 border-t border-border pt-2 field-label">{t("calc.power")} <span className="pixel ml-1 text-[0.9rem] text-yellow">{cmp.seu.power.toLocaleString("pt-BR")}</span></div>
                 </div>
                 {/* Perfeito {evo} */}
                 <div className="card p-4" style={{ borderColor: "var(--green)" }}>
                   <div className="mb-3 flex items-center justify-between">
-                    <span className="inline-flex items-center gap-1.5 pixel text-[0.62rem] text-green"><Sprite src={spriteUrl(cmp.evo.pokeId)} alt="" size={18} />{t("calc.comparePerfect")}</span>
-                    <span className="text-[0.58rem] tabular-nums text-text-dim">192/192 · 100%</span>
+                    <span className="inline-flex items-center gap-1.5 pixel text-[0.82rem] text-green"><Sprite src={spriteUrl(cmp.evo.pokeId)} alt="" size={18} />{t("calc.comparePerfect")}</span>
+                    <span className="text-[0.78rem] tabular-nums text-text-dim">192/192 · 100%</span>
                   </div>
                   <div className="flex flex-col gap-1.5">
                     {STAT_LABELS.map((lb, i) => (
                       <StatCompareRow key={lb} label={lb} iconIndex={i} value={cmp.perf.stats[i]} max={cmp.perf.stats[i]} iv={IV_MAX} ivClass="text-green" />
                     ))}
                   </div>
-                  <div className="mt-3 border-t border-border pt-2 field-label">{t("calc.power")} <span className="pixel ml-1 text-[0.7rem] text-yellow">{cmp.perf.power.toLocaleString("pt-BR")}</span></div>
+                  <div className="mt-3 border-t border-border pt-2 field-label">{t("calc.power")} <span className="pixel ml-1 text-[0.9rem] text-yellow">{cmp.perf.power.toLocaleString("pt-BR")}</span></div>
                 </div>
               </div>
             </>
@@ -318,14 +318,14 @@ export function EeveeLab({ eevee, evos }: { eevee: { pokeId: number; name: strin
               <Link href={`/dex/${eevee.pokeId}`} className="card card-link absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-2 p-3 text-center ring-1 ring-[color:var(--border-strong)]" style={{ left: `${CENTER.x}%`, top: `${CENTER.y}%`, width: NODE_W }}>
                 <Sprite src={spriteUrl(eevee.pokeId)} alt={eevee.name} size={56} />
                 <div>
-                  <div className="text-[0.55rem] text-text-dim">#{String(eevee.pokeId).padStart(3, "0")}</div>
+                  <div className="text-[0.75rem] text-text-dim">#{String(eevee.pokeId).padStart(3, "0")}</div>
                   <div className="text-sm font-semibold leading-tight">{eevee.name}</div>
                 </div>
                 <TypeBadges t1={eevee.t1} t2={eevee.t2} />
-                {result && <span className="text-[0.5rem] uppercase tracking-wide text-cyan">{t("eevee.atLevel", { n: result.target })}</span>}
+                {result && <span className="text-[0.7rem] uppercase tracking-wide text-cyan">{t("eevee.atLevel", { n: result.target })}</span>}
                 <div className="mt-0.5 grid w-full grid-cols-2 gap-x-3 gap-y-0.5 border-t border-border/60 pt-2">
                   {STAT_LABELS.map((lb, i) => (
-                    <div key={lb} className="flex justify-between text-[0.56rem]">
+                    <div key={lb} className="flex justify-between text-[0.76rem]">
                       <span className="inline-flex items-center gap-1 text-text-dim"><StatIcon index={i} size={9} />{lb}</span>
                       <span className={`tabular-nums ${eStats ? (i === eMax ? "font-bold text-green" : "text-text") : "text-text-dim"}`}>{eStats ? eStats[i] : "???"}</span>
                     </div>
@@ -344,14 +344,14 @@ export function EeveeLab({ eevee, evos }: { eevee: { pokeId: number; name: strin
               <Link href={`/dex/${eevee.pokeId}`} className="card card-link col-span-2 flex flex-col items-center gap-2 p-3 text-center ring-1 ring-[color:var(--border-strong)]">
                 <Sprite src={spriteUrl(eevee.pokeId)} alt={eevee.name} size={48} />
                 <div>
-                  <div className="text-[0.55rem] text-text-dim">#{String(eevee.pokeId).padStart(3, "0")}</div>
+                  <div className="text-[0.75rem] text-text-dim">#{String(eevee.pokeId).padStart(3, "0")}</div>
                   <div className="text-sm font-semibold leading-tight">{eevee.name}</div>
                 </div>
                 <TypeBadges t1={eevee.t1} t2={eevee.t2} />
-                {result && <span className="text-[0.5rem] uppercase tracking-wide text-cyan">{t("eevee.atLevel", { n: result.target })}</span>}
+                {result && <span className="text-[0.7rem] uppercase tracking-wide text-cyan">{t("eevee.atLevel", { n: result.target })}</span>}
                 <div className="mt-0.5 grid w-full max-w-[220px] grid-cols-2 gap-x-3 gap-y-0.5 border-t border-border/60 pt-2">
                   {STAT_LABELS.map((lb, i) => (
-                    <div key={lb} className="flex justify-between text-[0.56rem]">
+                    <div key={lb} className="flex justify-between text-[0.76rem]">
                       <span className="inline-flex items-center gap-1 text-text-dim"><StatIcon index={i} size={9} />{lb}</span>
                       <span className={`tabular-nums ${eStats ? (i === eMax ? "font-bold text-green" : "text-text") : "text-text-dim"}`}>{eStats ? eStats[i] : "???"}</span>
                     </div>
