@@ -36,6 +36,20 @@ function normalizeAnnounce(a: (AnnounceCfg & { everyMin?: number }) | null): Ann
   return { on: !!a.on, text: String(a.text ?? ""), everySec: Math.max(60, Math.round(sec)), channel: a.channel ?? "world" };
 }
 
+// Escolha do que a auto-compra repoe alem das bolas. O jogo escolhe a pocao/revive sozinho
+// (usa a melhor), entao a escolha vive aqui e so controla o que COMPRAMOS. null = "a melhor".
+export interface SupplyCfg {
+  potionId: number | null;
+  reviveId: number | null;
+}
+
+function normalizeSupply(s: unknown): SupplyCfg | null {
+  if (!s || typeof s !== "object") return null;
+  const o = s as Record<string, unknown>;
+  const pick = (v: unknown) => (typeof v === "number" && Number.isInteger(v) && v > 0 ? v : null);
+  return { potionId: pick(o.potionId), reviveId: pick(o.reviveId) };
+}
+
 export interface RobotDesired {
   enabled: boolean;
   mode: RobotMode;
@@ -43,6 +57,7 @@ export interface RobotDesired {
   sellItemIds: number[];
   pokeSellCfg: PokeSellConfig | null;
   autobuy: boolean;
+  supplyCfg: SupplyCfg | null;
   leveling: LevelingGoal | null;
   announce: AnnounceCfg | null;
   lastStatus: string;
@@ -57,6 +72,7 @@ interface Row {
   sell_item_ids: number[];
   poke_sell_cfg: PokeSellConfig | null;
   autobuy: boolean;
+  supply_cfg: SupplyCfg | null;
   leveling: LevelingGoal | null;
   announce: AnnounceCfg | null;
   last_status: string;
@@ -71,6 +87,7 @@ function fromRow(r: Row): RobotDesired {
     sellItemIds: Array.isArray(r.sell_item_ids) ? r.sell_item_ids.map(Number).filter((n) => Number.isInteger(n) && n > 0) : [],
     pokeSellCfg: r.poke_sell_cfg,
     autobuy: r.autobuy,
+    supplyCfg: normalizeSupply(r.supply_cfg),
     leveling: r.leveling,
     announce: normalizeAnnounce(r.announce),
     lastStatus: r.last_status,
@@ -97,10 +114,10 @@ export async function saveRobotDesired(
   patch: Partial<Omit<RobotDesired, "lastStatus" | "lastError">>,
 ): Promise<void> {
   await query(
-    `INSERT INTO robot_sessions (user_id, enabled, mode, slug, sell_item_ids, poke_sell_cfg, autobuy, leveling, announce)
+    `INSERT INTO robot_sessions (user_id, enabled, mode, slug, sell_item_ids, poke_sell_cfg, autobuy, leveling, announce, supply_cfg)
      VALUES ($1,
              COALESCE($2, false), COALESCE($3, 'manual'), $4,
-             COALESCE($5, '[]'::jsonb), $6, COALESCE($7, false), $8, $12)
+             COALESCE($5, '[]'::jsonb), $6, COALESCE($7, false), $8, $12, $14)
      ON CONFLICT (user_id) DO UPDATE SET
        enabled       = COALESCE($2, robot_sessions.enabled),
        mode          = COALESCE($3, robot_sessions.mode),
@@ -110,6 +127,7 @@ export async function saveRobotDesired(
        autobuy       = COALESCE($7, robot_sessions.autobuy),
        leveling      = CASE WHEN $11 THEN $8 ELSE robot_sessions.leveling END,
        announce      = CASE WHEN $13 THEN $12 ELSE robot_sessions.announce END,
+       supply_cfg    = CASE WHEN $15 THEN $14 ELSE robot_sessions.supply_cfg END,
        updated_at    = now()`,
     [
       userId,
@@ -120,11 +138,13 @@ export async function saveRobotDesired(
       patch.pokeSellCfg ? JSON.stringify(patch.pokeSellCfg) : null,
       patch.autobuy ?? null,
       patch.leveling ? JSON.stringify(patch.leveling) : null,
-      "slug" in patch,       // null tambem e valor valido pra slug/cfg/leveling/announce:
+      "slug" in patch,       // null tambem e valor valido pra slug/cfg/leveling/announce/supply:
       "pokeSellCfg" in patch, // flags dizem se o campo veio no patch
       "leveling" in patch,
       patch.announce ? JSON.stringify(patch.announce) : null,
       "announce" in patch,
+      patch.supplyCfg ? JSON.stringify(patch.supplyCfg) : null,
+      "supplyCfg" in patch,
     ],
   );
 }

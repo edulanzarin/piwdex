@@ -2,15 +2,29 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { getGameLink, updateGameTokens } from "@/lib/game-link";
 import { gameSession } from "@/lib/game-hunt-session";
-import { getRobotDesired } from "@/lib/robot-session-store";
+import { getRobotDesired, saveRobotDesired } from "@/lib/robot-session-store";
+import { getData } from "@/lib/data";
 
 export const runtime = "nodejs";
 
-// Auto-compra de consumiveis (o robo repoe as bolas da automacao sozinho). GET le o estado;
-// POST start/stop liga/desliga. Roda no proprio timer (REST), independe do WS de hunt/venda.
-// PERSISTENTE: o toggle vive em robot_sessions.autobuy — restart/hot-reload nao desliga.
-// O GET e self-healing: se o banco diz ligado e a memoria do processo perdeu (processo
-// novo), re-arma o timer na hora.
+// Auto-compra de consumiveis (o robo repoe as bolas + pocao + revive da automacao sozinho).
+// GET le o estado + as opcoes de pocao/revive; POST liga/desliga (action) e/ou grava qual
+// pocao/revive repor (supply). Roda no proprio timer (REST), independe do WS de hunt/venda.
+// PERSISTENTE: toggle em robot_sessions.autobuy, escolha em robot_sessions.supply_cfg.
+// O GET e self-healing: se o banco diz ligado e a memoria do processo perdeu, re-arma o timer.
+
+// Opcoes buyaveis (dados estaticos, sem tocar o jogo): pocao = categoria heal com preco NPC;
+// revive = categoria revive. Ordenadas da mais fraca (barata) pra mais forte.
+async function supplyOptions() {
+  const db = await getData();
+  const map = (cat: string) =>
+    db.items
+      .filter((i) => i.category === cat && i.npcPrice > 0)
+      .sort((a, b) => a.npcPrice - b.npcPrice)
+      .map((i) => ({ id: i.id, name: i.name }));
+  return { potions: map("heal"), revives: map("revive") };
+}
+
 async function ctx() {
   const s = await auth();
   if (!s?.user?.id) return { error: NextResponse.json({ error: "not_logged" }, { status: 401 }) };
@@ -33,13 +47,42 @@ export async function GET() {
       gameSession.setAutoBuy(userId, link.tokens, true, (t) => updateGameTokens(userId, t));
     }
   }
-  return NextResponse.json({ on: want });
+  const opts = await supplyOptions();
+  return NextResponse.json({
+    on: want,
+    potionId: desired?.supplyCfg?.potionId ?? null,
+    reviveId: desired?.supplyCfg?.reviveId ?? null,
+    ...opts,
+  });
 }
 
 export async function POST(req: Request) {
   const c = await ctx();
   if (c.error) return c.error;
-  const b = (await req.json().catch(() => ({}))) as { action?: string };
-  gameSession.setAutoBuy(c.userId, c.tokens, b.action === "start", (t) => updateGameTokens(c.userId, t));
+  const b = (await req.json().catch(() => ({}))) as {
+    action?: string;
+    supply?: { potionId?: unknown; reviveId?: unknown };
+  };
+
+  // grava a escolha de pocao/revive, se veio. So aceita ids que existem no catalogo (ou null).
+  if (b.supply) {
+    const opts = await supplyOptions();
+    const valid = (v: unknown, list: { id: number }[]): number | null =>
+      typeof v === "number" && list.some((o) => o.id === v) ? v : null;
+    const supplyCfg = {
+      potionId: valid(b.supply.potionId, opts.potions),
+      reviveId: valid(b.supply.reviveId, opts.revives),
+    };
+    await saveRobotDesired(c.userId, { supplyCfg });
+    // se a auto-compra ja esta ligada, re-arma pra aplicar a escolha nova AGORA (compra 1x).
+    if (gameSession.getAutoBuyOn()) {
+      gameSession.setAutoBuy(c.userId, c.tokens, true, (t) => updateGameTokens(c.userId, t));
+    }
+  }
+
+  if (b.action === "start" || b.action === "stop") {
+    gameSession.setAutoBuy(c.userId, c.tokens, b.action === "start", (t) => updateGameTokens(c.userId, t));
+  }
+
   return NextResponse.json({ on: gameSession.getAutoBuyOn() });
 }

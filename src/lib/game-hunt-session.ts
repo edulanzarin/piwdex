@@ -21,10 +21,10 @@ import {
   type PlanStep, type FighterProfile,
 } from "./hunt-brain";
 import {
-  saveRobotDesired, saveRobotStatus,
+  saveRobotDesired, saveRobotStatus, getRobotDesired,
   type RobotMode, type LevelingGoal, type RobotDesired, type AnnounceCfg,
 } from "./robot-session-store";
-import { sellItems, sellPokes, fetchShop, buyBall } from "./game-shop";
+import { sellItems, sellPokes, fetchShop, buyBall, buyItem, fetchInventory } from "./game-shop";
 import { readAuto } from "./game-auto";
 import { getData } from "./data";
 import { normalizeActivePokes, type ActivePoke } from "./game-account";
@@ -47,19 +47,24 @@ const DROPS_MS = 30000;   // varredura de venda de drops
 const BUY_EVERY_MS = 60 * 60 * 1000;
 const BALL_FLOOR = 100;   // abaixo disso, repoe
 const BALL_TARGET = 500;  // repoe ate aqui (limitado pelo dinheiro)
+// pocoes/revives sao mais caros que bola e gastam menos rapido (auto-potion so no HP baixo,
+// auto-revive so quando desmaia) -> pisos/alvos menores pra nao drenar o ouro. Revive e o
+// mais caro (ate 2500), entao alvo bem baixo. Sempre limitado pelo dinheiro na hora.
+const POTION_FLOOR = 25;
+const POTION_TARGET = 100;
+const REVIVE_FLOOR = 5;
+const REVIVE_TARGET = 20;
 // reconexao automatica: enquanto o usuario QUER o robo ligado (desiredOn), a conexao que
 // cai volta sozinha com backoff exponencial. Renova o access token antes de cada tentativa
 // (token vencido = conexao recusada direto, sem o retry-em-401 do REST).
 const RECONNECT_BASE_MS = 5_000;
 const RECONNECT_MAX_MS = 60_000;
 // SESSAO CONTESTADA (single-session): o jogo so aceita 1 conexao por conta — a mais nova
-// ganha. Se o robo e chutado LOGO depois de abrir, e porque outra sessao roubou (quase
-// sempre: o usuario entrou no jogo pelo navegador). Em vez de reconectar e brigar (cabo-de-
-// guerra que deixa a conta "presa"), o robo CEDE: apos alguns chutes-rapidos seguidos ele
-// PAUSA e avisa, e o usuario religa quando sair do jogo. Conexao que sobrevive a janela =
-// o robo "ganhou" a sessao -> zera os strikes.
-const CONTESTED_MS = 25_000;   // conexao tem que durar isso pra contar como "ganha"
-const CONTESTED_LIMIT = 3;     // chutes-rapidos seguidos ate ceder e pausar
+// ganha. Se o robo e chutado LOGO depois de abrir (dentro da janela abaixo), foi outra
+// sessao que roubou (quase sempre: o usuario entrou no jogo pelo navegador). O robo NAO
+// cede: reconecta na hora pra reclamar a sessao (segurar ate o usuario desligar). A janela
+// so serve pra distinguir "roubo" (reconecta rapido) de chute por rede (backoff normal).
+const CONTESTED_MS = 25_000;   // conexao tem que durar isso pra "chute-rapido" nao contar
 // chat do jogo: o snapshot da conexao traz o backlog (`history`) e as mensagens chegam
 // na sessao que o robo ja segura. O formato exato dos frames de chat nao e documentado —
 // o parser e TOLERANTE (varios nomes de campo) e o que nao casar cai num ring de frames
@@ -1020,16 +1025,35 @@ class GameSession {
     void saveRobotDesired(userId, { autobuy: on }).catch(() => {});
     if (this.buyTimer) { clearInterval(this.buyTimer); this.buyTimer = null; }
     if (on) {
-      void this.restockBalls();
-      this.buyTimer = setInterval(() => void this.restockBalls(), BUY_EVERY_MS);
+      void this.restockSupplies();
+      this.buyTimer = setInterval(() => void this.restockSupplies(), BUY_EVERY_MS);
     }
   }
   getAutoBuyOn() { return this.autoBuy; }
 
-  // reabastece SO as bolas que a automacao usa (auto-catch, shiny, selecionada) quando abaixo
-  // do piso, ate o alvo, limitado pelo dinheiro. GASTA dolares do jogo — por isso e opt-in e
-  // loga cada compra. "Calcula sozinho" = decide a quantidade pelo que falta pro alvo.
-  private async restockBalls() {
+  // compra 1 lote de um item ate o alvo (se abaixo do piso), limitado pelo dinheiro. Devolve
+  // o ouro restante. GASTA dolares do jogo — por isso loga cada compra. Compartilhado por
+  // bolas (buyBall) e consumiveis (buyItem).
+  private async buyUpTo(
+    buy: (t: Tokens, id: number, qty: number) => Promise<import("./game-shop").WriteResult>,
+    id: number, name: string, priceGold: number, have: number, floor: number, target: number, gold: number,
+  ): Promise<number> {
+    if (priceGold <= 0 || have >= floor) return gold;
+    const qty = Math.min(target - have, Math.floor(gold / priceGold));
+    if (qty <= 0) return gold;
+    const w = await buy(this.buyTokens!, id, qty);
+    if (w.changed) { this.buyTokens = w.tokens; await this.buyPersist?.(w.tokens); }
+    if (!w.ok) return gold;
+    const spent = qty * priceGold;
+    if (this.buyUserId) void logRobotEvent(this.buyUserId, { kind: "item-bought", title: `Comprou ${qty} ${name}`, body: `-$${spent}`, data: { count: qty, gold: -spent } });
+    return gold - spent;
+  }
+
+  // reabastece o que a automacao usa: as BOLAS (auto-catch, shiny, selecionada) e, se ligados,
+  // a POCAO (auto-potion) e o REVIVE (auto-revive). Qual pocao/revive vem da escolha do usuario
+  // (supply_cfg); null = "a melhor" (a mais forte que da pra comprar). Tudo abaixo do piso, ate
+  // o alvo, limitado pelo dinheiro. GASTA dolares do jogo — opt-in, cada compra vira Alerta.
+  private async restockSupplies() {
     if (!this.autoBuy || !this.buyTokens || !this.buyUserId) return;
     try {
       const a = await readAuto(this.buyTokens);
@@ -1039,22 +1063,45 @@ class GameSession {
       if (!shopRes) return;
       if (shopRes.changed) { this.buyTokens = shopRes.tokens; await this.buyPersist?.(shopRes.tokens); }
       let gold = shopRes.shop.gold;
-      const countById = new Map(a.balls.map((b) => [b.id, b.count]));
-      const wantIds = [...new Set([a.auto.autoCatchBallId, a.auto.autoCatchShinyBallId, a.auto.selectedBallId].filter((id) => id > 0))];
-      for (const id of wantIds) {
-        const have = countById.get(id) ?? 0;
-        if (have >= BALL_FLOOR) continue;
+
+      // ---- BOLAS ----
+      const ballCount = new Map(a.balls.map((b) => [b.id, b.count]));
+      const wantBalls = [...new Set([a.auto.autoCatchBallId, a.auto.autoCatchShinyBallId, a.auto.selectedBallId].filter((id) => id > 0))];
+      for (const id of wantBalls) {
         const shopBall = shopRes.shop.balls.find((b) => b.id === id);
-        if (!shopBall || shopBall.priceGold <= 0) continue;
-        const qty = Math.min(BALL_TARGET - have, Math.floor(gold / shopBall.priceGold));
-        if (qty <= 0) continue;
-        const w = await buyBall(this.buyTokens, id, qty);
-        if (w.changed) { this.buyTokens = w.tokens; await this.buyPersist?.(w.tokens); }
-        if (w.ok) {
-          gold -= qty * shopBall.priceGold;
-          const spent = qty * shopBall.priceGold;
-          void logRobotEvent(this.buyUserId, { kind: "item-bought", title: `Comprou ${qty} ${shopBall.name}`, body: `-$${spent}`, data: { count: qty, gold: -spent } });
-        }
+        if (!shopBall) continue;
+        gold = await this.buyUpTo(buyBall, id, shopBall.name, shopBall.priceGold, ballCount.get(id) ?? 0, BALL_FLOOR, BALL_TARGET, gold);
+      }
+
+      // ---- POCAO / REVIVE (so se a automacao correspondente esta ligada) ----
+      if (!a.auto.autoPotion && !a.auto.autoRevive) return;
+      const [data, invRes, desired] = await Promise.all([
+        getData(),
+        fetchInventory(this.buyTokens),
+        getRobotDesired(this.buyUserId),
+      ]);
+      if (!invRes) return;
+      if (invRes.changed) { this.buyTokens = invRes.tokens; await this.buyPersist?.(invRes.tokens); }
+      const invCount = new Map(invRes.items.map((i) => [i.id, i.quantity]));
+      const cfg = desired?.supplyCfg ?? null;
+
+      // candidatos buyaveis de uma categoria (a categoria vem dos DADOS estaticos, o preco/
+      // disponibilidade da LOJA), do mais forte (mais caro) pro mais fraco.
+      const chooseId = (cat: string, prefer: number | null): { id: number; name: string; priceGold: number } | null => {
+        const cands = shopRes.shop.items
+          .filter((it) => it.priceGold > 0 && data.getItem(it.id)?.category === cat)
+          .sort((x, y) => y.priceGold - x.priceGold);
+        const pick = (prefer && cands.find((c) => c.id === prefer)) || cands[0];
+        return pick ? { id: pick.id, name: pick.name, priceGold: pick.priceGold } : null;
+      };
+
+      if (a.auto.autoPotion) {
+        const p = chooseId("heal", cfg?.potionId ?? null);
+        if (p) gold = await this.buyUpTo(buyItem, p.id, p.name, p.priceGold, invCount.get(p.id) ?? 0, POTION_FLOOR, POTION_TARGET, gold);
+      }
+      if (a.auto.autoRevive) {
+        const r = chooseId("revive", cfg?.reviveId ?? null);
+        if (r) gold = await this.buyUpTo(buyItem, r.id, r.name, r.priceGold, invCount.get(r.id) ?? 0, REVIVE_FLOOR, REVIVE_TARGET, gold);
       }
     } catch { /* proxima hora tenta */ }
   }
@@ -1103,25 +1150,13 @@ class GameSession {
     }
     if (!(this.desiredOn && this.jobsActive())) return;
 
-    // Sessao contestada: chutado logo apos abrir = outra sessao roubou a conta (quase sempre
-    // o usuario entrou no jogo pelo navegador). Nao brigar reconectando (cabo-de-guerra que
-    // trava a conta pros dois). Conta o strike; apos o limite, PAUSA e avisa — o usuario
-    // religa quando sair do jogo. Chute avulso (rede) nao acumula porque a conexao anterior
-    // sobreviveu a janela e zerou os strikes.
-    if (quickKick) {
-      this.contestedStrikes++;
-      if (this.contestedStrikes >= CONTESTED_LIMIT) {
-        this.contested = true;
-        this.cancelReconnect();
-        if (this.userId) void logRobotEvent(this.userId, {
-          kind: "reconnect", title: "Robo pausado: conta em uso",
-          body: "A conta foi aberta em outro lugar (voce entrou no jogo?). O robo soltou a sessao pra nao brigar — religue quando sair do jogo.",
-          data: {},
-        });
-        this.emit("session");
-        return;
-      }
-    }
+    // Politica (pedido do Eduardo, ago/2026): o robo SEGURA a sessao e so a larga quando o
+    // usuario DESLIGA (stop()). Ele NAO cede pro navegador. Se a conta foi tomada (chute-
+    // rapido = outra sessao entrou, quase sempre o usuario abriu o jogo), reconecta NA HORA
+    // pra reclamar a sessao — o jogo da a conta pra conexao mais nova. Quem quer jogar no
+    // navegador desliga o robo antes (aviso fixado na UI). O antigo "ceder e pausar" saiu:
+    // deixava o robo desligar sozinho sem o usuario saber. Backoff so pros chutes por rede.
+    if (quickKick) this.reconnectAttempt = 0; // reclamar rapido, sem o backoff subir a toa
     this.scheduleReconnect();
   }
 
