@@ -43,7 +43,7 @@ export function AccountSettings({ email, nome, vip }: { email: string; nome: str
 
   return (
     <div className="flex flex-col gap-4">
-      {/* email (so leitura) + status VIP */}
+      {/* email (so leitura) + status do plano (BOT) */}
       <div className="card flex flex-col gap-3 p-5">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
@@ -51,7 +51,7 @@ export function AccountSettings({ email, nome, vip }: { email: string; nome: str
             <div className="mt-1 truncate text-sm text-text" title={email}>{email}</div>
           </div>
           {vip ? (
-            <span className="chip shrink-0 self-start" style={{ background: "var(--yellow)", color: "#3a2c00" }}>VIP</span>
+            <span className="chip shrink-0 self-start" style={{ background: "var(--yellow)", color: "#3a2c00" }}>BOT</span>
           ) : (
             <Link href="/vip" className="btn btn-yellow shrink-0 self-start" style={{ "--accent": "var(--yellow)" } as React.CSSProperties}>
               <Star size={14} /> {t("vipcta.btn")}
@@ -90,7 +90,7 @@ export function AccountSettings({ email, nome, vip }: { email: string; nome: str
         <SubmitBtn label={t("conta.pass.btn")} loading={t("conta.saving")} />
       </form>
 
-      {/* atalho pra area VIP (conta do jogo, robo etc) */}
+      {/* atalho pra area do BOT (conta do jogo, robo etc) */}
       {/* link de verdade: min-h-10 da o alvo de toque de 40px no celular */}
       <Link href="/vip" className="flex min-h-10 items-center justify-center gap-1 text-base text-text-dim hover:text-cyan">
         {t("conta.toVip")} <ChevronRight size={16} />

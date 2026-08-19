@@ -101,7 +101,7 @@ export function AdminDashboard({ users }: { users: AdminUser[] }) {
           <thead>
             <tr className="border-b border-border bg-surface-2 pixel text-xs uppercase tracking-wide text-text-dim">
               <Th>Usuário</Th>
-              <Th>VIP</Th>
+              <Th>BOT</Th>
               <Th>Conta do jogo</Th>
               <Th className="text-right">Nível</Th>
               <Th className="text-right">Dólares</Th>
@@ -122,7 +122,7 @@ export function AdminDashboard({ users }: { users: AdminUser[] }) {
                 </Td>
                 <Td>
                   {u.vip ? (
-                    <span className="chip" style={{ background: "var(--yellow)", color: "#3a2c00" }}>VIP</span>
+                    <span className="chip" style={{ background: "var(--yellow)", color: "#3a2c00" }}>BOT</span>
                   ) : (
                     <span className="slot-empty">—</span>
                   )}

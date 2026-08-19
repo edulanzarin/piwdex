@@ -1,18 +1,19 @@
 "use client";
 
-// Chamariz pra quem NAO e VIP: UM card no fim da pagina (ultimo bloco, no fluxo normal —
+// Chamariz pra quem NAO tem o bot: UM card no fim da pagina (ultimo bloco, no fluxo
+// normal —
 // so aparece quando voce rola ate la embaixo, sem nada fixo tapando a tela). Dois caminhos:
-//   - ADQUIRIR O BOT -> /vip.
-//   - ME APOIE -> abre o jogo com o codigo do Eduardo ja no link (o codigo NAO aparece
-//     no botao: quem so quer ajudar nao precisa decorar nada, e um clique).
+//   - ADQUIRIR O BOT -> /vip. UM caminho so: o pedido de apoio mora no balao fixo
+//     (SupportBadge) e nao se repete aqui — pedir nos dois lugares dilui os dois.
 // O argumento NAO e "caca sozinho": o jogo ja e idle. O argumento e VELOCIDADE.
-// Some na propria area VIP e nas telas de login/conexao, e pra quem ja e VIP.
+// Some na propria area do bot e nas telas de login/conexao, e pra quem ja tem o bot.
+// NOTA: 'vip' segue sendo o nome INTERNO do plano (rota /vip, users.vip_ate, /api/vip/*).
+// So o nome de tela virou BOT — renomear o interno quebraria links salvos e o webhook.
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useT } from "./locale-provider";
 import { Star, ChevronRight } from "./icons";
-import { SUPPORT_URL } from "@/lib/support";
 
 const HIDDEN = ["/vip", "/entrar", "/criar-conta", "/conectar"];
 
@@ -44,15 +45,6 @@ export function VipCta({ vip }: { vip: boolean }) {
         {/* degrau mobile: botoes empilhados em largura cheia (alvo de toque folgado),
             lado a lado so a partir do sm — sem flex-wrap mudando a altura */}
         <div className="flex w-full shrink-0 flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
-          <a
-            href={SUPPORT_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="btn btn-ghost w-full sm:w-auto"
-            title={t("vipcta.playHint")}
-          >
-            {t("vipcta.play")} <ChevronRight size={14} />
-          </a>
           <Link href="/vip" className="btn btn-yellow w-full sm:w-auto">
             {t("vipcta.btn")} <ChevronRight size={14} />
           </Link>

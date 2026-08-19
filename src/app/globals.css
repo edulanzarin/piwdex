@@ -21,6 +21,9 @@
   --yellow: #f4d24a;
   --pink: #fb7185;
   --red: #ff5a5a;
+  /* marrom de casca de ovo: cor do Breeding. Entrou porque o rosa do breeding e o
+     vermelho da Pokedex se confundiam lado a lado na home. */
+  --brown: #d1935f;
 
   --accent: var(--cyan);
   --glow: 0 0 0 1px rgba(55, 211, 230, 0.35), 0 0 22px -6px rgba(55, 211, 230, 0.55);
@@ -58,6 +61,7 @@
   --color-yellow: var(--yellow);
   --color-pink: var(--pink);
   --color-red: var(--red);
+  --color-brown: var(--brown);
   --font-pixel: var(--font-pixel), monospace;
   --font-mono: var(--font-mono), ui-monospace, monospace;
 }
@@ -250,6 +254,7 @@ img { image-rendering: pixelated; }
   .btn-yellow { background: var(--yellow); color: #2a2200; }
   .btn-pink { background: var(--pink); color: #2a0a10; }
   .btn-red { background: var(--red); color: #2a0808; }
+  .btn-brown { background: var(--brown); color: #2a1608; }
   .btn-ghost {
     background: transparent;
     border-color: var(--border);
@@ -552,6 +557,9 @@ img { image-rendering: pixelated; }
     --vn: var(--cyan);
     display: flex;
     align-items: center;
+    /* <button> centraliza texto por padrao: sem isto o rotulo fica no meio do item.
+       Rotulo a esquerda, contador a direita (ml-auto no proprio badge). */
+    text-align: left;
     gap: 0.6rem;
     padding: 0.5rem 0.7rem;
     border-radius: 0.3rem;

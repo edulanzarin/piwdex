@@ -133,7 +133,7 @@ export default async function Home() {
           descKey="home.card6.desc"
           href="/breed"
           ctaKey="home.card6.cta"
-          color="var(--pink)"
+          color="var(--brown)"
           ctaText="#2a0a12"
           icon={<BreedIcon size={64} />}
         />

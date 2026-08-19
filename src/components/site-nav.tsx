@@ -7,7 +7,7 @@ import { Pokeball } from "./pokeball";
 import { NavAccount, NavLogout } from "./nav-icons";
 import { PokedexIcon } from "./pokedex-icon";
 import { ItemsIcon, HuntIcon, CalcIcon, LabIcon, BreedIcon } from "./tool-icons";
-import { Star } from "./icons";
+import { Robot, Gear } from "./icons";
 import { useT } from "./locale-provider";
 import { LangSwitcher } from "./lang-switcher";
 import { logout } from "@/lib/actions/auth";
@@ -29,11 +29,11 @@ const TABS: { key: string; href: string; Icon: (p: { size?: number }) => React.R
   { key: "nav.calc", href: "/calc", Icon: CalcIcon },
   { key: "nav.eevee", href: "/eevee", Icon: LabIcon },
   { key: "nav.breed", href: "/breed", Icon: BreedIcon },
-  // Conta saiu do topo: virou aba do /vip (depende da sessao de jogo, que e VIP).
-  // Entra pelo botao VIP.
+  // Conta saiu do topo: virou aba do /vip (depende da sessao de jogo, que so o BOT
+  // abre). Entra pelo botao BOT.
 ];
 
-// Botao-icone do header (mesmo grid 40x40 da nav) + tooltip no hover. VIP, Entrar e
+// Botao-icone do header (mesmo grid 40x40 da nav) + tooltip no hover. BOT, Entrar e
 // Sair usam o mesmo chrome que os icones de navegacao, so mudando a cor.
 const ICON_BTN = "group relative flex h-10 w-10 items-center justify-center rounded transition hover:bg-surface-2";
 function Tip({ children }: { children: React.ReactNode }) {
@@ -49,9 +49,10 @@ export function SiteNav({ user }: { user: NavUser | null }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
-  const VipChip = () =>
+  // chip do plano pago do piwdex (nosso), nao o VIP do jogo
+  const BotChip = () =>
     user?.vip ? (
-      <span className="chip" style={{ background: "var(--yellow)", color: "#3a2c00" }}>VIP</span>
+      <span className="chip" style={{ background: "var(--yellow)", color: "#3a2c00" }}>BOT</span>
     ) : null;
 
   return (
@@ -63,9 +64,9 @@ export function SiteNav({ user }: { user: NavUser | null }) {
         </Link>
 
         <div className="flex items-center gap-2 sm:gap-3">
-          {/* Botao VIP na nav sticky (aparece na entrada, segue o scroll, desktop+mobile).
-              Nao-VIP: convite dourado pulsante -> paywall. VIP: entrada da area (cockpit),
-              sem pulso. Sempre visivel: pra o VIP e o caminho pro cockpit. */}
+          {/* Botao BOT na nav sticky (aparece na entrada, segue o scroll, desktop+mobile).
+              Sem o bot: convite dourado pulsante -> paywall. Com o bot: entrada do
+              cockpit, sem pulso. Sempre visivel: pra quem tem, e o caminho pro cockpit. */}
           {user?.admin && (
             <Link
               href="/admin"
@@ -81,7 +82,7 @@ export function SiteNav({ user }: { user: NavUser | null }) {
             className={`inline-flex h-10 shrink-0 items-center gap-1.5 rounded-md border border-[color:var(--yellow)] px-2.5 pixel text-base text-yellow transition ${user?.vip ? "bg-[color:var(--yellow)]/20 hover:bg-[color:var(--yellow)]/30" : "glow-pulse bg-[color:var(--yellow)]/12 hover:bg-[color:var(--yellow)]/22"}`}
             style={{ "--accent": "var(--yellow)" } as React.CSSProperties}
           >
-            <Star size={16} /> VIP
+            <Robot size={16} /> BOT
           </Link>
           {/* Desktop: icones com tooltip */}
           <nav className="hidden items-center gap-1 sm:flex">
@@ -103,7 +104,7 @@ export function SiteNav({ user }: { user: NavUser | null }) {
           </nav>
           <span className="hidden h-6 w-px bg-border sm:block" />
 
-          {/* conta / login-logout (desktop) — so o icone de conta; sem VIP no topo */}
+          {/* conta / login-logout (desktop) — so o icone de conta; sem o BOT no topo */}
           <div className="hidden items-center gap-2 sm:flex">
             {user ? (
               <>
@@ -182,11 +183,11 @@ export function SiteNav({ user }: { user: NavUser | null }) {
                 className="flex items-center gap-3 border-b border-border/40 py-3 pixel text-base text-[#ff6b6b] hover:text-[#ff8a8a]"
                 onClick={() => setOpen(false)}
               >
-                <Star size={20} /> Painel admin
+                <Gear size={20} /> Painel admin
               </Link>
             )}
 
-            {/* conta / login-logout (mobile) — sem VIP no topo */}
+            {/* conta / login-logout (mobile) — sem o BOT no topo */}
             {user ? (
               <>
                 <Link
@@ -195,7 +196,7 @@ export function SiteNav({ user }: { user: NavUser | null }) {
                   onClick={() => setOpen(false)}
                 >
                   <NavAccount size={20} />
-                  <span className="flex items-center gap-2">{user.name ?? t("nav.account")} <VipChip /></span>
+                  <span className="flex items-center gap-2">{user.name ?? t("nav.account")} <BotChip /></span>
                 </Link>
                 <form action={logout}>
                   <button type="submit" className="flex w-full items-center gap-3 py-3 pixel text-base text-text-dim hover:text-red" onClick={() => setOpen(false)}>

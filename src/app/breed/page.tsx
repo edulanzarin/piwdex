@@ -25,9 +25,9 @@ export default async function BreedPage() {
           abaixo (cards) nao fica solto na pagina. */}
       <header className="card p-5 sm:p-6">
         <p className="eyebrow"><T k="breed.eyebrow" /></p>
-        <h1 className="pixel mt-1 flex flex-wrap items-center gap-2 text-3xl [overflow-wrap:anywhere]" style={{ color: "var(--pink)" }}>
+        <h1 className="pixel mt-1 flex flex-wrap items-center gap-2 text-3xl [overflow-wrap:anywhere]" style={{ color: "var(--brown)" }}>
           <T k="breed.title" />
-          <span className="chip" style={{ background: "var(--pink)", color: "#2a0a12" }}><T k="breed.alpha" /></span>
+          <span className="chip" style={{ background: "var(--brown)", color: "#2a1608" }}><T k="breed.alpha" /></span>
         </h1>
         <p className="mt-3 max-w-2xl text-base text-text-dim"><T k="breed.desc" /></p>
       </header>
