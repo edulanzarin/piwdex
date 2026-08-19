@@ -35,10 +35,12 @@ type Section =
 
 // So a chave: a nav do VIP e texto puro, sem icone e sem cor por secao (pedido do
 // Eduardo). O ativo se distingue por superficie + peso, via .vnav-active.
+// Ordem definida pelo Eduardo: o que ele mais abre primeiro (operar a hunt e o que
+// ela rende), depois mercado/desejos, e a cauda de ajuste/leitura no fim.
 const SECTIONS: { key: Section }[] = [
-  { key: "painel" }, { key: "pokemons" }, { key: "hunt" }, { key: "chat" },
-  { key: "config" }, { key: "capturados" }, { key: "estatisticas" },
-  { key: "mercado" }, { key: "desejos" }, { key: "alertas" }, { key: "conta" },
+  { key: "painel" }, { key: "hunt" }, { key: "capturados" }, { key: "mercado" },
+  { key: "desejos" }, { key: "chat" }, { key: "pokemons" }, { key: "estatisticas" },
+  { key: "config" }, { key: "alertas" }, { key: "conta" },
 ];
 const isSection = (v: string): v is Section => SECTIONS.some((s) => s.key === v);
 // hashes antigos -> secao nova (links salvos continuam funcionando)
