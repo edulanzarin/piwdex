@@ -13,7 +13,7 @@ import { Sprite } from "./sprite";
 import { spriteUrl } from "@/lib/sprites";
 import { useT } from "./locale-provider";
 import { PokeStatsModal } from "./mon-stats";
-import { RarityBadge } from "./badges";
+import { QualityBadge } from "./badges";
 import type { MarketDex } from "./market-advisor";
 
 const fmt = (n: number) => Math.round(n).toLocaleString("pt-BR");
@@ -85,7 +85,7 @@ export function TeamLive({ dex, onManage }: { dex?: Record<number, MarketDex>; o
               <span className={`chip shrink-0 ${leader.shiny ? "" : "invisible"}`} style={{ background: "var(--yellow)", color: "#3a2c00" }}>shiny</span>
               {/* raridade so do sm pra cima: a 360px o chip comia os ~75px que sobravam
                   pro NOME do lider (Lv + shiny + raridade nao cabem os tres) */}
-              {leaderRarity && <span className="hidden shrink-0 sm:inline-flex"><RarityBadge rarity={leaderRarity} /></span>}
+              <span className="hidden shrink-0 sm:inline-flex"><QualityBadge quality={leader.quality} /></span>
             </span>
             <span className="mt-1.5 block"><HpBar hp={leader.hp} maxHp={leader.maxHp} /></span>
             <span className="mt-1.5 flex h-5 items-center gap-x-3 overflow-hidden text-sm tabular-nums text-text-dim">

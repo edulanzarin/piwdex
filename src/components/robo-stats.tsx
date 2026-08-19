@@ -7,7 +7,7 @@
 
 import { StatTile } from "./stat-tile";
 import { Panel } from "./ui/panel";
-import { useT } from "./locale-provider";
+import { useT, useRarityLabel } from "./locale-provider";
 import { useVipLive } from "./vip-live";
 import { Coin, Dollar, Loot, Xp, Skull, Star, Robot } from "./icons";
 import { Pokeball } from "./pokeball";
@@ -57,6 +57,7 @@ export function RoboStats() {
   const goldMax = Math.max(1, d?.itemsGold ?? 0, d?.pokesGold ?? 0, d?.supplyGold ?? 0);
   // acervo por raridade: TODAS as raridades, sempre, na ordem oficial — raridade sem
   // bicho fica com o trilho vazio (slot), a lista nunca cresce/encolhe ao vivo
+  const rarLabel = useRarityLabel();
   const rarMax = Math.max(1, ...RARITY_ORDER.map((r) => d?.acervo.byRarity[r] ?? 0));
   // valor de tile antes do stream chegar: placeholder esmaecido no mesmo slot
   const sv = (n: number | null | undefined): React.ReactNode => (d ? fmt(n ?? 0) : <span className="slot-empty">—</span>);
@@ -121,7 +122,7 @@ export function RoboStats() {
         <div className="flex flex-col gap-2.5">
           {RARITY_ORDER.map((r) => {
             const v = d?.acervo.byRarity[r] ?? 0;
-            return <Bar key={r} label={r} value={v} max={rarMax} color={RARITY_COLOR[r]} empty={v === 0} />;
+            return <Bar key={r} label={rarLabel(r)} value={v} max={rarMax} color={RARITY_COLOR[r]} empty={v === 0} />;
           })}
         </div>
       </Card>

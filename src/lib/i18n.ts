@@ -2,6 +2,7 @@
 // pokemon/itens NAO se traduzem (o jogo e em ingles). Chave ausente cai no pt.
 
 import type { PokeType } from "./types";
+import type { RarityTier } from "@/lib/rarity";
 
 export type Locale = "pt" | "en" | "es";
 
@@ -2854,6 +2855,22 @@ const es: Dict = {
 export const DICTS: Record<Locale, Dict> = { pt, en, es };
 
 // Nome do tipo por idioma (o resto do label do tipo e so cor/icone).
+/** Rotulo das faixas de raridade por idioma (os nomes que o JOGO mostra). */
+export const RARITY_LABEL: Record<Locale, Record<RarityTier, string>> = {
+  pt: {
+    WEAK: "FRACA", COMMON: "COMUM", UNCOMMON: "INCOMUM", RARE: "RARA", EPIC: "EPICA",
+    LEGENDARY: "LENDARIA", MYTHIC: "MITICA", ANCIENT: "ANCIA", DIVINE: "DIVINA",
+  },
+  en: {
+    WEAK: "WEAK", COMMON: "COMMON", UNCOMMON: "UNCOMMON", RARE: "RARE", EPIC: "EPIC",
+    LEGENDARY: "LEGENDARY", MYTHIC: "MYTHIC", ANCIENT: "ANCIENT", DIVINE: "DIVINE",
+  },
+  es: {
+    WEAK: "DEBIL", COMMON: "COMUN", UNCOMMON: "POCO COMUN", RARE: "RARA", EPIC: "EPICA",
+    LEGENDARY: "LEGENDARIA", MYTHIC: "MITICA", ANCIENT: "ANCIANA", DIVINE: "DIVINA",
+  },
+};
+
 export const TYPE_LABEL: Record<Locale, Record<PokeType, string>> = {
   pt: {
     NORMAL: "NORMAL", FIRE: "FOGO", WATER: "AGUA", ELECTRIC: "ELETRICO", GRASS: "PLANTA",

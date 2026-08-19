@@ -19,7 +19,7 @@ import { EmptyState } from "./ui/feed";
 import { LoadingBall } from "./loaders";
 import { SelectMenu } from "./select-menu";
 import { PokeStatsModal } from "./mon-stats";
-import { RarityBadge } from "./badges";
+import { QualityBadge } from "./badges";
 import type { MarketDex } from "./market-advisor";
 
 const fmt = (n: number) => Math.round(n).toLocaleString("pt-BR");
@@ -149,7 +149,7 @@ export function MyPokemons({ dex }: { dex?: Record<number, MarketDex> }) {
                       <span className="truncate text-base text-text" title={p.name}>{p.name}</span>
                       <span className="pixel shrink-0 text-xs text-text-dim">Lv{p.level}</span>
                       {isLeader && <span className="chip shrink-0" style={{ background: "var(--yellow)", color: "#3a2c00" }}>{t("account.team.leader")}</span>}
-                      {rar && <span className="shrink-0"><RarityBadge rarity={rar} /></span>}
+                      <span className="shrink-0"><QualityBadge quality={p.quality} /></span>
                     </div>
                     <div className={`${METAROW} h-6 gap-x-2.5 text-sm tabular-nums text-text-dim`}>
                       <span className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-cyan"><Xp size={14} />{fmt(p.power)}</span>
@@ -239,7 +239,7 @@ export function MyPokemons({ dex }: { dex?: Record<number, MarketDex> }) {
                       <span className="flex h-7 items-center gap-1.5 overflow-hidden">
                         <span className="truncate text-base text-text" title={p.name}>{p.name}</span>
                         <span className="pixel shrink-0 text-xs text-text-dim">Lv{p.level}</span>
-                        {rar && <span className="shrink-0"><RarityBadge rarity={rar} /></span>}
+                        <span className="shrink-0"><QualityBadge quality={p.quality} /></span>
                       </span>
                       <span className="flex h-6 items-center gap-x-2.5 overflow-hidden text-sm tabular-nums text-text-dim">
                         <span className="shrink-0 whitespace-nowrap">IV <span className={ivColor(p.ivTotal)}>{p.ivTotal}</span></span>

@@ -1,9 +1,10 @@
 "use client";
 
 import type { PokeType, Rarity } from "@/lib/types";
-import { RARITY_COLOR, TYPE_COLOR } from "@/lib/typing";
+import { TYPE_COLOR } from "@/lib/typing";
+import { TIER_COLOR, qualityTier, rarityTier, type RarityTier } from "@/lib/rarity";
 import { TypeIcon } from "./type-icon";
-import { useTypeLabel } from "./locale-provider";
+import { useRarityLabel, useTypeLabel } from "./locale-provider";
 
 export function TypeBadge({
   type,
@@ -75,10 +76,22 @@ export function TypePill({ type, mult }: { type: PokeType; mult?: string }) {
   );
 }
 
+/** Raridade da ESPECIE (traco do catalogo). Rotulo traduzido, cor da escada do jogo. */
 export function RarityBadge({ rarity }: { rarity: Rarity }) {
+  return <TierBadge tier={rarityTier(rarity)} />;
+}
+
+/** Faixa do INDIVIDUO, derivada da Quality — e o que o JOGO mostra no bicho.
+ *  Use esta em tela de pokemon capturado/anunciado; a da especie so no catalogo. */
+export function QualityBadge({ quality }: { quality: number }) {
+  return <TierBadge tier={qualityTier(quality)} />;
+}
+
+function TierBadge({ tier }: { tier: RarityTier }) {
+  const label = useRarityLabel();
   return (
-    <span className="chip" style={{ background: RARITY_COLOR[rarity], color: "#06111a" }}>
-      {rarity}
+    <span className="chip" style={{ background: TIER_COLOR[tier], color: "#06111a" }}>
+      {label(tier)}
     </span>
   );
 }

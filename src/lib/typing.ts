@@ -1,3 +1,4 @@
+import { TIER_COLOR } from "./rarity";
 // Cores e efetividade de tipo. As cores sao as canonicas (Bulbapedia); ficam como
 // tokens de dado (acento por tipo), separados do acento de UI.
 
@@ -11,9 +12,11 @@ export const TYPE_COLOR: Record<PokeType, string> = {
   STEEL: "#5a8ea1", FAIRY: "#ec8fe6",
 };
 
+/** Cor da raridade da especie — reusa a escada unica das faixas do jogo, pra
+ *  raridade ter UMA cor so no site inteiro. Ver src/lib/rarity.ts. */
 export const RARITY_COLOR: Record<Rarity, string> = {
-  COMMON: "#9ca3af", UNCOMMON: "#4ade80", RARE: "#38bdf8",
-  EPIC: "#c084fc", LEGENDARY: "#fbbf24", MYTHIC: "#fb7185",
+  COMMON: TIER_COLOR.COMMON, UNCOMMON: TIER_COLOR.UNCOMMON, RARE: TIER_COLOR.RARE,
+  EPIC: TIER_COLOR.EPIC, LEGENDARY: TIER_COLOR.LEGENDARY, MYTHIC: TIER_COLOR.MYTHIC,
 };
 
 export const RARITY_ORDER: Rarity[] = [

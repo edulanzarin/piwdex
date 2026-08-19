@@ -2,7 +2,8 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import type { PokeType } from "@/lib/types";
-import { DEFAULT_LOCALE, isLocale, TYPE_LABEL, translate, type Locale } from "@/lib/i18n";
+import type { RarityTier } from "@/lib/rarity";
+import { DEFAULT_LOCALE, isLocale, TYPE_LABEL, translate, type Locale, RARITY_LABEL } from "@/lib/i18n";
 
 interface Ctx {
   locale: Locale;
@@ -50,6 +51,11 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
 
 export const useLocale = () => useContext(LocaleCtx);
 export const useT = () => useContext(LocaleCtx).t;
+export const useRarityLabel = () => {
+  const { locale } = useContext(LocaleCtx);
+  return (tier: RarityTier) => RARITY_LABEL[locale][tier] ?? String(tier);
+};
+
 export const useTypeLabel = () => {
   const { locale } = useContext(LocaleCtx);
   return (type: PokeType | string) => TYPE_LABEL[locale][type as PokeType] ?? String(type);

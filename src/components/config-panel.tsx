@@ -15,7 +15,7 @@ import { LoadingBall } from "./loaders";
 import { ToggleButton } from "./toggle-button";
 import { Pokeball } from "./pokeball";
 import { Caret, Infinity_, Check, Coin, Gear } from "./icons";
-import { useT } from "./locale-provider";
+import { useT, useRarityLabel } from "./locale-provider";
 import { useToast } from "./toast";
 import { useVipLive } from "./vip-live";
 import { assetIconUrl } from "@/lib/sprites";
@@ -216,6 +216,7 @@ function Slider({ value, min, max, step, decimals, onChange }: { value: number; 
 }
 
 function RarityBoxes({ selected, onToggle }: { selected: Rarity[]; onToggle: (r: Rarity) => void }) {
+  const label = useRarityLabel();
   return (
     <div className="mt-2 flex flex-wrap gap-1.5">
       {RARITY_ORDER.map((r) => {
@@ -233,7 +234,7 @@ function RarityBoxes({ selected, onToggle }: { selected: Rarity[]; onToggle: (r:
             {/* calha do marcador: 1rem segura o Check de 14px sem empurrar o rotulo
                 (o w-2 antigo foi calibrado pro glifo pixel de 9px) */}
             <span className="inline-flex w-4 shrink-0 justify-center text-sm">{on ? <Check size={14} /> : "·"}</span>
-            {r}
+            {label(r)}
           </button>
         );
       })}

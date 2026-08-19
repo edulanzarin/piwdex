@@ -13,7 +13,7 @@ import { ivGrade, qualityGrade, monGrade, isBreedingStock, priceGrade, dealPct, 
 import { Sprite } from "./sprite";
 import { LoadingBall } from "./loaders";
 import { PokemonCombobox, type ComboCreature } from "./pokemon-combobox";
-import { TypeBadges, RarityBadge } from "./badges";
+import { TypeBadges, RarityBadge, QualityBadge } from "./badges";
 import { TypeFilter } from "./type-filter";
 import { StatBar } from "./stat-bar";
 import { MonStatsSection } from "./mon-stats";
@@ -129,7 +129,11 @@ export function MarketMonCard({ mon, onClick, right, rarity }: { mon: MarketMon;
           <div className="flex h-7 items-center gap-1.5 overflow-hidden">
             <span className="pixel truncate text-base">{mon.name}</span>
             <span className="shrink-0 text-sm text-text-dim">Lv.{mon.level}</span>
-            {rarity && <span className="shrink-0"><RarityBadge rarity={rarity} /></span>}
+            {/* faixa do INDIVIDUO (o rotulo que o jogo mostra). Anuncio sem quality
+                mantem o slot com invisible, pra linha nao mudar de largura. */}
+            <span className={`shrink-0 ${mon.quality != null ? "" : "invisible"}`}>
+              <QualityBadge quality={mon.quality ?? 1} />
+            </span>
           </div>
           <div className={`${METAROW} h-6 gap-x-3 text-sm text-text-dim`}>
             <span className="shrink-0 whitespace-nowrap">{t("account.col.power")} <span className={mon.power != null ? "font-bold text-yellow" : "slot-empty"}>{mon.power != null ? fmt(mon.power) : "—"}</span></span>

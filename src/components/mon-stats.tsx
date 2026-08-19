@@ -9,7 +9,7 @@
 import { STAT_KEYS, STAT_LABELS, projectStat, estimateIv } from "@/lib/stats";
 import type { MonStats } from "@/lib/game-account";
 import type { MarketDex } from "./market-advisor";
-import { TypeBadges, RarityBadge } from "./badges";
+import { TypeBadges, RarityBadge, QualityBadge } from "./badges";
 import { StatBar, StatCompareRow } from "./stat-bar";
 import { StatTile } from "./stat-tile";
 import { Modal } from "./modal";
@@ -104,7 +104,8 @@ export function PokeStatsModal({
           {dex && (
             <div className="mt-2 flex flex-wrap items-center gap-1.5">
               <TypeBadges t1={dex.type1} t2={dex.type2} />
-              <RarityBadge rarity={dex.rarity} />
+              {/* o jogo rotula o INDIVIDUO pela quality; sem ela, sobra a da especie */}
+              {poke.quality != null ? <QualityBadge quality={poke.quality} /> : <RarityBadge rarity={dex.rarity} />}
             </div>
           )}
         </div>

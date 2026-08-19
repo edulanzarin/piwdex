@@ -14,13 +14,13 @@ import { SelectMenu } from "./select-menu";
 import { TypeFilter } from "./type-filter";
 import { Field, ShinyToggle } from "./filter-field";
 import { PokemonCombobox, type ComboCreature } from "./pokemon-combobox";
-import { TypeBadges, RarityBadge } from "./badges";
+import { TypeBadges, QualityBadge } from "./badges";
 import { Panel } from "./ui/panel";
 import { EmptyState } from "./ui/feed";
 import { Star, Gear, Backpack } from "./icons";
 import { spriteUrl } from "@/lib/sprites";
 import { RARITY_ORDER } from "@/lib/typing";
-import { useT } from "./locale-provider";
+import { useT, useRarityLabel } from "./locale-provider";
 import { useVipLive } from "./vip-live";
 import type { PokeType, Rarity } from "@/lib/types";
 
@@ -83,7 +83,8 @@ export function PokeCaught({ creatures }: { creatures: ComboCreature[] }) {
     finally { setClearing(false); }
   };
 
-  const rarityOpts = [{ value: "", label: t("robo.caught.allRarities") }, ...RARITY_ORDER.map((r) => ({ value: r, label: r }))];
+  const rarLabel = useRarityLabel();
+  const rarityOpts = [{ value: "", label: t("robo.caught.allRarities") }, ...RARITY_ORDER.map((r) => ({ value: r, label: rarLabel(r) }))];
   const sortOpts = [
     { value: "recent", label: t("robo.caught.sort.recent") },
     { value: "iv", label: t("robo.caught.sort.iv") },
@@ -147,7 +148,7 @@ export function PokeCaught({ creatures }: { creatures: ComboCreature[] }) {
                       Em 2 colunas de celular o corte e certo — o valor cheio fica no title. */}
                   <span className="w-full truncate pixel text-base" title={p.name}>{p.name}</span>
                   <span className="w-full truncate text-xs text-text-dim" title={`Lv${p.level} · IV ${p.ivTotal} · Q ${p.quality.toFixed(2)}`}>Lv{p.level} · IV {p.ivTotal} · Q {p.quality.toFixed(2)}</span>
-                  <RarityBadge rarity={p.rarity} />
+                  <QualityBadge quality={p.quality} />
                 </button>
               ))}
             </div>
@@ -172,7 +173,7 @@ export function PokeCaught({ creatures }: { creatures: ComboCreature[] }) {
             </div>
             <div className="flex flex-col items-start gap-2">
               <TypeBadges t1={sel.type1} t2={sel.type2} />
-              <RarityBadge rarity={sel.rarity} />
+              <QualityBadge quality={sel.quality} />
             </div>
           </div>
           <div className="mt-4 grid grid-cols-2 gap-2">
