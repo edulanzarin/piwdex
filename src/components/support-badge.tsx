@@ -1,13 +1,15 @@
 "use client";
 
-// Balao FIXO no canto direito: "me apoie com meu codigo". Nasce ABERTO (o visitante
-// ve o pedido de cara, pedido do Eduardo) e tem dois niveis de saida, pra "sai da
-// frente" nao virar "some pra sempre":
-//   - X do cartao        -> recolhe pra pilula;
-//   - X da pilula        -> dispensa de vez.
-// Os dois estados moram no localStorage, entao a escolha sobrevive a navegacao.
-// Some nas telas de login/conexao, onde seria ruido. No celular encosta nas bordas de
-// baixo e o cartao respeita a largura da tela: nunca empurra nem tapa na horizontal.
+// Balao FIXO no canto direito: "me apoie com meu codigo".
+// Regra do Eduardo: aparece ABERTO em TODA pagina, pra VIP e pra nao-VIP, e volta a
+// aparecer mesmo depois de fechado — por isso NAO ha persistencia nenhuma (nem
+// localStorage nem cookie). Fechar vale so pra tela atual; trocar de rota reabre.
+// Dois niveis de saida pra nao ser agressivo dentro da mesma tela:
+//   - X do cartao -> recolhe pra pilula (continua a um clique de reabrir);
+//   - X da pilula -> some ate a proxima navegacao.
+// Fica fora das telas de login/conexao, onde taparia campo de formulario no celular.
+// No celular encosta nas bordas de baixo e respeita a largura da tela: nunca empurra
+// nem tapa o conteudo na horizontal.
 
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
@@ -16,29 +18,19 @@ import { Heart, Close, Check, ChevronRight } from "./icons";
 import { SUPPORT_CODE, SUPPORT_URL } from "@/lib/support";
 
 const HIDDEN = ["/entrar", "/criar-conta", "/conectar"];
-// vazio/ausente = primeira visita (nasce aberto) | "collapsed" = pilula | "dismissed" = fora
-const STATE_KEY = "piwdex.support.state";
-type State = "open" | "collapsed" | "dismissed";
+type State = "open" | "collapsed" | "hidden";
 
 export function SupportBadge() {
   const t = useT();
   const pathname = usePathname();
-  const [ready, setReady] = useState(false);
   const [state, setState] = useState<State>("open");
   const [copied, setCopied] = useState(false);
 
-  // o estado salvo so pode ser lido DEPOIS da hidratacao (nao existe localStorage no
-  // SSR): fica invisivel ate o efeito rodar, senao da hydration mismatch
+  // toda troca de pagina reabre o balao (pedido do Eduardo: sempre visivel de cara)
   useEffect(() => {
-    const saved = localStorage.getItem(STATE_KEY);
-    if (saved === "collapsed" || saved === "dismissed") setState(saved);
-    setReady(true);
-  }, []);
-
-  const go = (next: State) => {
-    setState(next);
-    localStorage.setItem(STATE_KEY, next);
-  };
+    setState("open");
+    setCopied(false);
+  }, [pathname]);
 
   useEffect(() => {
     if (!copied) return;
@@ -55,7 +47,7 @@ export function SupportBadge() {
     }
   };
 
-  if (!ready || state === "dismissed") return null;
+  if (state === "hidden") return null;
   if (HIDDEN.some((h) => pathname === h || pathname.startsWith(`${h}/`))) return null;
 
   return (
@@ -73,7 +65,7 @@ export function SupportBadge() {
             </div>
             <button
               type="button"
-              onClick={() => go("collapsed")}
+              onClick={() => setState("collapsed")}
               aria-label={t("support.hide")}
               title={t("support.hide")}
               className="icon-btn h-8 w-8 shrink-0"
@@ -82,7 +74,7 @@ export function SupportBadge() {
             </button>
           </div>
 
-          {/* o codigo em si: fonte tabular e selecionavel, pra dar pra copiar na mao */}
+          {/* o codigo em si: selecionavel, pra dar pra copiar na mao se o clipboard falhar */}
           <div className="well mt-3 flex items-center justify-between gap-2">
             <code className="select-all truncate pixel text-lg tracking-widest text-text">{SUPPORT_CODE}</code>
             <button type="button" onClick={() => void copy()} className="btn btn-ghost btn-sm shrink-0">
@@ -103,7 +95,7 @@ export function SupportBadge() {
         <div className="flex items-center gap-1">
           <button
             type="button"
-            onClick={() => go("open")}
+            onClick={() => setState("open")}
             className="card flex min-h-10 items-center gap-2 px-3 text-sm text-yellow transition hover:brightness-125"
             style={{ borderColor: "color-mix(in srgb, var(--yellow) 45%, transparent)" }}
           >
@@ -112,7 +104,7 @@ export function SupportBadge() {
           </button>
           <button
             type="button"
-            onClick={() => go("dismissed")}
+            onClick={() => setState("hidden")}
             aria-label={t("support.close")}
             title={t("support.close")}
             className="icon-btn h-10 w-10 shrink-0"
