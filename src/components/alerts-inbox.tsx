@@ -34,7 +34,9 @@ function SummaryCard({ g, onOpen, t }: { g: Group; onOpen: () => void; t: (k: st
       className="card card-link flex w-full items-center gap-3 p-3 text-left"
       style={{
         borderColor: g.unread > 0 ? "var(--green)" : "var(--border)",
-        background: g.unread > 0 ? "color-mix(in srgb, var(--green) 8%, transparent)" : "transparent",
+        // com achados novos o vidro ganha um veu verde; sem eles fica o vidro puro do
+        // .card (nada de "transparent" aqui: apagava a superficie e chapava o card)
+        background: g.unread > 0 ? "color-mix(in srgb, var(--green) 12%, var(--surface))" : undefined,
       }}
     >
       <div className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded bg-[var(--well-bg)]">
@@ -45,15 +47,15 @@ function SummaryCard({ g, onOpen, t }: { g: Group; onOpen: () => void; t: (k: st
       </div>
       <div className="min-w-0 flex-1">
         <div className="field-label flex items-center gap-1 text-green">
-          <Bell size={9} /> {t("alerts.kind.snipe")}
+          <Bell size={14} /> {t("alerts.kind.snipe")}
         </div>
-        <div className="mt-0.5 truncate pixel text-base text-text">{t("alerts.found", { n: g.total, name })}</div>
+        <div className="mt-0.5 truncate pixel text-base text-text" title={t("alerts.found", { n: g.total, name })}>{t("alerts.found", { n: g.total, name })}</div>
         {/* linha de nao lidos SEMPRE presente: sem novos vira slot esmaecido (card de altura fixa) */}
         <div className={`mt-0.5 text-sm ${g.unread > 0 ? "text-green" : "slot-empty"}`}>
           {g.unread > 0 ? t("alerts.newCount", { n: g.unread }) : "—"}
         </div>
       </div>
-      <span className="inline-flex shrink-0 items-center gap-1 text-sm text-cyan">{t("alerts.see")} <ChevronRight size={10} /></span>
+      <span className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-sm text-cyan">{t("alerts.see")} <ChevronRight size={14} /></span>
     </button>
   );
 }
@@ -95,7 +97,7 @@ export function AlertsInbox({ onJumpToWish, itemIcons }: { onJumpToWish?: (watch
   return (
     <div className="flex flex-col gap-4">
       <Panel
-        icon={<Bell size={12} />} accent="var(--green)"
+        icon={<Bell size={18} />} accent="var(--green)"
         title={<span className="text-green">{t("alerts.inbox.title")}{totalUnread > 0 ? ` (${totalUnread})` : ""}</span>}
         // botao sempre no slot: invisible reserva o espaco (o cabecalho nao muda de altura)
         right={<button type="button" onClick={markAll} className={`btn btn-ghost btn-sm ${totalUnread > 0 ? "" : "invisible"}`}>{t("alerts.markAll")}</button>}

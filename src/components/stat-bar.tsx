@@ -7,7 +7,7 @@ import { StatIcon } from "./stat-icons";
 
 export const MAX_STAT = 200;
 
-/** Larguras dos slots FIXOS da linha de comparacao. Recalibradas pra Chakra Petch
+/** Larguras dos slots FIXOS da linha de comparacao. Recalibradas pra Quantico
  *  (bem mais larga que a pixel antiga) na base 16px: o pior rotulo e "SP.ATK" em
  *  caixa alta (~55px a 16px) e o pior valor tem 5 digitos. Continuam FIXAS — nao
  *  variam com o dado. As linhas VAZIAS espelhadas em calculator.tsx e eevee-lab.tsx
@@ -36,7 +36,7 @@ export function StatBar({
       <div className="flex w-20 shrink-0 items-center gap-1.5 text-sm uppercase tracking-wide text-text-dim">
         <StatIcon index={iconIndex} size={14} />{label}
       </div>
-      {/* valor e destaque: peso 600 + tabular, largura fixa pra 5 digitos */}
+      {/* valor e destaque: peso 700 + tabular, largura fixa pra 5 digitos */}
       <div className={`w-12 shrink-0 text-right text-sm font-bold tabular-nums ${best ? "text-yellow" : ""}`}>{value}</div>
       <div className="statbar flex-1">
         <div className="statbar-fill" style={{ width: `${pct}%`, background: `hsl(${hueFor(pct)} 68% 48%)` }} />

@@ -24,7 +24,7 @@ export function HuntTool({
   const [mode, setMode] = useState<Mode>("route");
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex min-w-0 flex-col gap-5">
       <Tabs
         active={mode}
         onChange={(k) => setMode(k as Mode)}

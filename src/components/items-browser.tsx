@@ -60,15 +60,18 @@ export function ItemsBrowser({ items }: { items: Item[] }) {
         <div className="card p-10 text-center text-text-dim">{t("items.empty")}</div>
       ) : (
         <>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
+        {/* Uma coluna so ate 400px: o card e HORIZONTAL (icone 44 + texto), e com duas
+            colunas em 360px sobravam ~76px pro nome — truncava em 5 letras. Do 400px em
+            diante volta a escada normal 2 -> 3 -> 4. O ItemsSkeleton espelha esta grade. */}
+        <div className="grid grid-cols-1 gap-2 min-[400px]:grid-cols-2 sm:grid-cols-3 md:grid-cols-4">
           {paged.map((i) => (
-            <Link key={i.id} href={`/items/${i.id}`} className="card card-link flex items-center gap-3 p-3">
+            <Link key={i.id} href={`/items/${i.id}`} title={i.name} className="card card-link flex items-center gap-3 p-3">
               <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded bg-[var(--well-bg)]">
                 <Sprite src={itemIconUrl(i)} alt={i.name} size={30} />
               </span>
               <div className="min-w-0 flex-1">
                 <div className="truncate text-sm">{i.name}</div>
-                <div className="truncate text-sm text-text-dim uppercase tracking-wide">
+                <div className="truncate text-sm text-text-dim uppercase tracking-wide" title={i.category}>
                   {i.category}
                   {i.rare ? <> · {t("items.rare")}</> : ""}
                 </div>

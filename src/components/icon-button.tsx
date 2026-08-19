@@ -34,7 +34,9 @@ export function IconButton({
       onClick={onClick}
       title={title}
       aria-label={title}
-      className={`icon-btn h-9 w-9 shrink-0 ${HOVER[hover]} ${className}`}
+      // h-10/w-10 = 40px: e botao de verdade, entao cumpre o alvo de toque do celular
+      // (h-9 dava 36px depois que a base caiu de 18px pra 16px)
+      className={`icon-btn h-10 w-10 shrink-0 ${HOVER[hover]} ${className}`}
     >
       {children}
     </button>
@@ -46,7 +48,8 @@ export function IconButton({
 export function CloseButton({
   onClick,
   title = "Fechar",
-  size = 12,
+  // 16: o X sozinho dentro de um botao de 40px sumia a 12px (traco lucide fino)
+  size = 16,
   className = "",
 }: {
   onClick?: () => void;

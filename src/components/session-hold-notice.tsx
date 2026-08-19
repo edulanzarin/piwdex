@@ -17,8 +17,11 @@ export function SessionHoldNotice() {
   const holding = !!hunt && (hunt.desiredOn || hunt.holdOpen);
 
   return (
+    // vidro tingido de amarelo (glass + a cor por cima) no lugar do rgba chapado que
+    // estava inventado aqui: mesmo material do card/modal, so que na cor do aviso
     <div
-      className={`flex min-h-[2.75rem] items-center gap-2.5 rounded-md border border-[color:var(--yellow)]/50 bg-[rgba(240,200,60,0.08)] px-3 py-2 text-base leading-relaxed text-yellow ${holding ? "" : "invisible"}`}
+      className={`glass flex min-h-[2.75rem] items-center gap-2.5 rounded-md border border-[color:var(--yellow)]/50 px-3 py-2 text-base leading-relaxed text-yellow ${holding ? "" : "invisible"}`}
+      style={{ background: "color-mix(in srgb, var(--yellow) 12%, var(--surface))" }}
       role="status"
       aria-hidden={!holding}
     >

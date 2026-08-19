@@ -3,9 +3,9 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { spriteUrl } from "@/lib/sprites";
-import { TYPE_COLOR } from "@/lib/typing";
 import type { PokeType } from "@/lib/types";
 import { Sprite } from "./sprite";
+import { TypeBadges } from "./badges";
 import { Close } from "./icons";
 import { useT } from "./locale-provider";
 
@@ -35,7 +35,7 @@ export function PokemonCombobox<T extends ComboCreature>({
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [hi, setHi] = useState(0);
-  const [rect, setRect] = useState<{ top: number; left: number; width: number } | null>(null);
+  const [rect, setRect] = useState<{ top: number; left: number; width: number; maxH: number; up: boolean } | null>(null);
   const boxRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -48,13 +48,24 @@ export function PokemonCombobox<T extends ComboCreature>({
   }, [creatures, query]);
 
   // Posiciona o menu ancorado na caixa; reposiciona em scroll/resize enquanto aberto.
+  // O teto de altura vem do espaco livre da tela (no celular 288px fixos vazavam pra
+  // fora da viewport) e, quando falta espaco embaixo, o menu abre PRA CIMA.
   useLayoutEffect(() => {
     if (!open) return;
     const place = () => {
       const el = boxRef.current;
       if (!el) return;
       const r = el.getBoundingClientRect();
-      setRect({ top: r.bottom + 4, left: r.left, width: r.width });
+      const below = window.innerHeight - r.bottom - 12;
+      const above = r.top - 12;
+      const up = below < 200 && above > below;
+      setRect({
+        top: up ? r.top - 4 : r.bottom + 4,
+        left: r.left,
+        width: r.width,
+        maxH: Math.max(160, Math.min(288, up ? above : below)),
+        up,
+      });
     };
     place();
     window.addEventListener("scroll", place, true);
@@ -86,8 +97,19 @@ export function PokemonCombobox<T extends ComboCreature>({
       ? createPortal(
           <div
             ref={menuRef}
-            className="fixed z-[9999] max-h-72 overflow-y-auto rounded border border-[color:var(--border-strong)] bg-[#0b1122] shadow-[0_10px_40px_-10px_rgba(0,0,0,0.8)]"
-            style={{ top: rect.top, left: rect.left, width: rect.width }}
+            // VIDRO no flutuante: era bg-[#0b1122] chapado, agora e o mesmo material do
+            // card (.glass = blur + fio de luz). So a opacidade da superficie sobe AQUI —
+            // menu com lista densa precisa de leitura limpa, nao de mais transparencia.
+            className="glass fadein fixed z-[9999] overflow-y-auto p-1"
+            style={{
+              top: rect.top,
+              left: rect.left,
+              width: rect.width,
+              maxHeight: rect.maxH,
+              transform: rect.up ? "translateY(-100%)" : undefined,
+              background: "color-mix(in srgb, var(--surface-solid) 88%, transparent)",
+              borderColor: "var(--border-strong)",
+            }}
           >
             {results.length === 0 ? (
               <div className="p-4 text-center text-sm text-text-dim">{tr("dex.empty")}</div>
@@ -99,15 +121,15 @@ export function PokemonCombobox<T extends ComboCreature>({
                   type="button"
                   onMouseDown={(e) => { e.preventDefault(); choose(c); }}
                   onMouseEnter={() => setHi(i)}
-                  className={`flex h-11 w-full items-center gap-3 px-3 text-left ${i === hi ? "bg-surface-2" : ""}`}
+                  className={`flex h-11 w-full items-center gap-2 rounded px-2 text-left ${i === hi ? "bg-surface-2" : ""}`}
                 >
                   <Sprite src={spriteUrl(c.pokeId)} alt="" size={32} className="shrink-0" />
-                  <span className="min-w-0 flex-1 truncate text-sm">{c.name}</span>
-                  <span className="shrink-0 text-xs text-text-dim">#{String(c.pokeId).padStart(3, "0")}</span>
-                  <span className="flex shrink-0 gap-1">
-                    {[c.type1, c.type2].filter(Boolean).map((t) => (
-                      <span key={t} className="chip" style={{ background: TYPE_COLOR[t as PokeType], color: "#fff" }}>{t}</span>
-                    ))}
+                  <span className="min-w-0 flex-1 truncate text-sm" title={c.name}>{c.name}</span>
+                  <span className="shrink-0 text-xs tabular-nums text-text-dim">#{String(c.pokeId).padStart(3, "0")}</span>
+                  {/* badge padrao do site: no celular o chip fica so no icone (labelFrom),
+                      senao dois rotulos em caixa alta comiam a largura toda do nome */}
+                  <span className="shrink-0">
+                    <TypeBadges t1={c.type1} t2={c.type2} labelFrom="sm" />
                   </span>
                 </button>
               ))
@@ -138,11 +160,11 @@ export function PokemonCombobox<T extends ComboCreature>({
           // alvo de toque de 40px sem engordar o input (margem negativa compensa)
           <button
             type="button"
-            className="icon-btn -my-2 -me-2 h-9 w-9 shrink-0 hover:text-red"
+            className="icon-btn -my-2 -me-2 h-10 w-10 shrink-0 hover:text-red"
             onClick={(e) => { e.stopPropagation(); onSelect(null); setQuery(""); }}
             aria-label="limpar"
           >
-            <Close size={12} />
+            <Close size={16} />
           </button>
         )}
       </div>

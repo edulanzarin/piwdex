@@ -25,13 +25,19 @@ export function VipCta({ vip }: { vip: boolean }) {
 
   return (
     <div className="container-page pb-10 pt-4">
+      {/* o card continua sendo VIDRO: o amarelo entra misturado na propria superficie do
+          token (o rgba chapado de antes matava a translucidez do material) */}
       <div
         className="card flex flex-col items-start gap-4 p-5 sm:flex-row sm:items-center sm:justify-between"
-        style={{ borderColor: "color-mix(in srgb, var(--yellow) 45%, transparent)", background: "rgba(240,200,60,0.05)" }}
+        style={{
+          borderColor: "color-mix(in srgb, var(--yellow) 45%, transparent)",
+          background: "color-mix(in srgb, var(--yellow) 7%, var(--surface))",
+        }}
       >
         <div className="min-w-0">
+          {/* titulo longo quebra em duas linhas no celular: a estrela nao pode encolher junto */}
           <div className="section-title flex items-center gap-2 text-yellow">
-            <Star size={18} /> {t("vipcta.title")}
+            <span className="shrink-0"><Star size={18} /></span> {t("vipcta.title")}
           </div>
           <p className="mt-2 max-w-2xl text-base leading-relaxed text-text-dim">{t("vipcta.desc")}</p>
         </div>

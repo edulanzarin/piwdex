@@ -131,7 +131,7 @@ export default async function CreaturePage({
         </Link>
 
         {/* Cabecalho */}
-        <div className="card flex flex-col gap-6 p-6 sm:flex-row sm:items-center">
+        <div className="card flex flex-col gap-6 p-5 sm:flex-row sm:items-center sm:p-6">
           <HeroSprite pokeId={c.pokeId} name={c.name} />
           <div className="flex flex-1 flex-col gap-3">
             <div className="pixel text-sm text-text-dim">#{String(c.pokeId).padStart(3, "0")}</div>
@@ -151,7 +151,9 @@ export default async function CreaturePage({
             )}
 
             {/* grade de mini-stats — preenche o cabecalho com dado util */}
-            <div className="mt-1 grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {/* 4 colunas so no md: no sm o cabecalho vira linha (sprite ao lado) e a
+                coluna dos tiles encolhe — 4 tiles ali espremiam o rotulo em duas linhas */}
+            <div className="mt-1 grid grid-cols-2 gap-2 md:grid-cols-4">
               <StatTile label={<T k="cr.totalBase" />} value={total} accent="var(--cyan)" />
               <StatTile label={<T k="cr.huntLvl" />} value={c.huntLevel} accent="var(--cyan)" />
               <StatTile
@@ -185,8 +187,11 @@ export default async function CreaturePage({
               </div>
               {bestMove && bestMove.power > 0 && (
                 <div className="mt-1 flex items-baseline justify-between gap-3 text-base text-text-dim">
-                  <span><T k="cr.bestMove" /></span>
-                  <span className="text-text">{bestMove.name} <span className="font-bold tabular-nums text-yellow">{bestMove.power}</span></span>
+                  <span className="shrink-0"><T k="cr.bestMove" /></span>
+                  {/* nome de golpe longo trunca em vez de esticar o card em 360px */}
+                  <span className="min-w-0 truncate text-text" title={`${bestMove.name} ${bestMove.power}`}>
+                    {bestMove.name} <span className="font-bold tabular-nums text-yellow">{bestMove.power}</span>
+                  </span>
                 </div>
               )}
             </div>
@@ -261,7 +266,7 @@ export default async function CreaturePage({
                       <span className="text-sm uppercase tracking-wide text-text-dim">{h.area}</span>
                     </div>
                     {h.level ? (
-                      <span className="chip ml-auto" style={{ background: "var(--surface-2)", color: "var(--text)" }}>lvl {h.level}</span>
+                      <span className="chip ml-auto shrink-0" style={{ background: "var(--surface-2)", color: "var(--text)" }}>lvl {h.level}</span>
                     ) : null}
                   </div>
                 ))}

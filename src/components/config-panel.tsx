@@ -101,7 +101,10 @@ function BallSelect({ balls, value, onChange, disabled }: { balls: Ball[]; value
         </span>
       </button>
       {open && (
-        <div role="listbox" className="card fadein absolute z-30 mt-1 max-h-64 w-full overflow-auto p-1" style={{ background: "var(--surface-solid)" }}>
+        // flutuante em VIDRO: mantem o card (blur + fio de luz) e sobe a OPACIDADE da
+        // superficie so aqui (88%, mesma densidade do HUD) pra o conteudo de baixo nao
+        // "vazar" no meio da lista. Nada de voltar pro fundo 100% chapado.
+        <div role="listbox" className="card fadein absolute z-30 mt-1 max-h-64 w-full overflow-auto p-1" style={{ background: "color-mix(in srgb, var(--surface-solid) 88%, transparent)" }}>
           {balls.map((b) => (
             <button
               key={b.id}
@@ -152,7 +155,10 @@ function SupplySelect({ opts, value, onChange, bestLabel }: { opts: Opt[]; value
         </span>
       </button>
       {open && (
-        <div role="listbox" className="card fadein absolute z-30 mt-1 max-h-64 w-full overflow-auto p-1" style={{ background: "var(--surface-solid)" }}>
+        // flutuante em VIDRO: mantem o card (blur + fio de luz) e sobe a OPACIDADE da
+        // superficie so aqui (88%, mesma densidade do HUD) pra o conteudo de baixo nao
+        // "vazar" no meio da lista. Nada de voltar pro fundo 100% chapado.
+        <div role="listbox" className="card fadein absolute z-30 mt-1 max-h-64 w-full overflow-auto p-1" style={{ background: "color-mix(in srgb, var(--surface-solid) 88%, transparent)" }}>
           <button
             type="button"
             onClick={() => { onChange(null); setOpen(false); }}
@@ -359,29 +365,42 @@ export function ConfigPanel() {
     <div className="flex flex-col gap-6">
       {/* barra de acao UNICA — sticky: um Confirmar pra secao inteira. Ancora ABAIXO
           do HUD (que segura em 0.5rem do topo) pra nao brigarem pelo mesmo lugar.
-          Linha sem wrap: o texto e flexivel e o par status+botao fica preso a direita
-          — pendencia aparecendo/sumindo troca SO o conteudo do slot, o botao nao pula. */}
-      <div className="card sticky top-[4.4rem] z-20 flex items-center gap-3 p-4" style={{ background: "var(--surface-solid)" }}>
-        <span className="hidden shrink-0 text-blue sm:inline-flex"><Gear size={18} /></span>
-        <div className="min-w-0 flex-1">
-          <h2 className="section-title text-blue">{t("vip.sec.config")}</h2>
-          <p className="mt-0.5 hidden text-sm text-text-dim sm:block">{t("config.desc")}</p>
+          Sendo FLUTUANTE (passa por cima do conteudo que rola), o fundo e vidro com a
+          superficie mais densa (88%, igual ao HUD) em vez do 100% chapado: continua
+          legivel e o conteudo desliza desfocado por baixo.
+          O par status+botao fica preso a direita e nunca quebra linha — pendencia
+          aparecendo/sumindo troca SO o conteudo do slot, o botao nao pula. No celular
+          o par cai pra uma segunda linha (a 360px chip + botao somavam ~330px numa
+          calha de 288); as duas linhas existem SEMPRE, so a forma muda por breakpoint. */}
+      <div
+        className="card sticky top-[4.4rem] z-20 flex flex-col gap-2 p-4 sm:flex-row sm:items-center sm:gap-3"
+        style={{ background: "color-mix(in srgb, var(--surface-solid) 88%, transparent)" }}
+      >
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="hidden shrink-0 text-blue sm:inline-flex"><Gear size={18} /></span>
+          <div className="min-w-0 flex-1">
+            <h2 className="section-title truncate text-blue">{t("vip.sec.config")}</h2>
+            <p className="mt-0.5 hidden text-sm text-text-dim sm:block">{t("config.desc")}</p>
+          </div>
         </div>
-        {/* slot de status: um estado por vez (pendencias > salvo > vazio), mesma altura */}
-        <span className="inline-flex h-8 shrink-0 items-center">
-          {dirty ? (
-            <span className="chip" style={{ background: "var(--yellow)", color: "#1a1405" }}>{t("config.pending", { n: pendingCount })}</span>
-          ) : saved ? (
-            <span className="text-base text-green">{t("config.saved")}</span>
-          ) : (
-            <span className="slot-empty text-base">—</span>
-          )}
-        </span>
-        {/* 11rem = pior caso do rotulo em CAIXA ALTA ("CONFIRMAR"/"CONFIRM") + Check de
-            14px na Chakra: a largura nao muda quando o rotulo vira "…" durante o save */}
-        <button type="button" onClick={confirm} disabled={!dirty || busy} className="btn btn-cyan min-w-[11rem] shrink-0 disabled:opacity-40">
-          <Check size={14} /> {busy ? "…" : t("robo.pokes.commit")}
-        </button>
+        <div className="flex items-center gap-2 sm:ms-auto sm:gap-3">
+          {/* slot de status: um estado por vez (pendencias > salvo > vazio), mesma altura */}
+          <span className="inline-flex h-8 min-w-0 flex-1 items-center overflow-hidden sm:flex-none">
+            {dirty ? (
+              <span className="chip" style={{ background: "var(--yellow)", color: "#1a1405" }}>{t("config.pending", { n: pendingCount })}</span>
+            ) : saved ? (
+              <span className="text-base text-green">{t("config.saved")}</span>
+            ) : (
+              <span className="slot-empty text-base">—</span>
+            )}
+          </span>
+          {/* 11rem = pior caso do rotulo em CAIXA ALTA ("CONFIRMAR"/"CONFIRM") + Check de
+              14px na Chakra: a largura nao muda quando o rotulo vira "…" durante o save.
+              No celular 9.5rem ja cobre o mesmo rotulo e devolve calha pro status. */}
+          <button type="button" onClick={confirm} disabled={!dirty || busy} className="btn btn-cyan min-w-[9.5rem] shrink-0 disabled:opacity-40 sm:min-w-[11rem]">
+            <Check size={14} /> {busy ? "…" : t("robo.pokes.commit")}
+          </button>
+        </div>
       </div>
 
       {/* ---- automacao nativa do jogo ---- */}
@@ -390,7 +409,7 @@ export function ConfigPanel() {
           <h3 className="section-title text-yellow">{t("robo.title")}</h3>
           <p className="mt-1.5 max-w-2xl text-base text-text-dim">{t("robo.desc")}</p>
         </div>
-        <div className="card z-20 flex flex-col p-5">
+        <div className="card z-20 flex flex-col p-4 sm:p-5">
           <Row title={t("robo.autoCatch")} desc={a.isVip ? t("robo.autoCatch.desc") : t("robo.vipOnly")}>
             {sw(d.auto.autoCatch, () => editAuto({ autoCatch: !d.auto.autoCatch }), !a.isVip, !a.isVip ? t("robo.vipOnly") : undefined)}
           </Row>
@@ -466,7 +485,7 @@ export function ConfigPanel() {
           <h3 className="section-title flex items-center gap-2 text-green"><Coin size={18} /> {t("robo.pokes.title")}</h3>
           <p className="mt-1.5 max-w-2xl text-base text-text-dim">{t("config.sellDesc")}</p>
         </div>
-        <div className="card flex flex-col p-5">
+        <div className="card flex flex-col p-4 sm:p-5">
           <Row title={t("robo.pokes.sellOn")} desc={t("robo.pokes.sellOn.desc")}>
             {sw(d.sellOn, () => edit({ sellOn: !d.sellOn }))}
           </Row>
@@ -495,11 +514,11 @@ export function ConfigPanel() {
           <h3 className="section-title flex items-center gap-2 text-yellow"><Pokeball size={18} /> {t("robo.autobuy.title")}</h3>
           <p className="mt-1.5 max-w-2xl text-base text-text-dim">{t("robo.autobuy.desc")}</p>
         </div>
-        <div className="card flex flex-col gap-3 p-5">
+        <div className="card flex flex-col gap-3 p-4 sm:p-5">
           <Row title={t("robo.autobuy.toggle")} desc={t("robo.autobuy.toggleDesc")}>
             {sw(d.autobuy, () => edit({ autobuy: !d.autobuy }))}
           </Row>
-          <p className="rounded border border-[color:var(--yellow)]/40 bg-[rgba(240,200,60,0.06)] px-3 py-2 text-sm leading-relaxed text-yellow">{t("robo.autobuy.warn")}</p>
+          <p className="rounded border border-[color:var(--yellow)]/40 bg-[color:var(--yellow)]/5 px-3 py-2 text-sm leading-relaxed text-yellow">{t("robo.autobuy.warn")}</p>
         </div>
       </section>
     </div>

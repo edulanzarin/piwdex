@@ -91,13 +91,16 @@ export default async function HuntPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
+      {/* Cabecalho da ferramenta: sem a moldura colorida quem da corpo e o vidro do
+          card — eyebrow, titulo e descricao ficam num painel so, e o conteudo
+          abaixo (cards) nao fica solto na pagina. */}
+      <header className="card p-5 sm:p-6">
         <p className="eyebrow"><T k="hunt.eyebrow" /></p>
-        <h1 className="pixel mt-1 text-3xl" style={{ color: "var(--yellow)" }}><T k="hunt.title" /></h1>
+        <h1 className="pixel mt-1 text-3xl [overflow-wrap:anywhere]" style={{ color: "var(--yellow)" }}><T k="hunt.title" /></h1>
         <p className="mt-3 max-w-2xl text-base text-text-dim">
           <T k="hunt.route.desc" />
         </p>
-      </div>
+      </header>
       <HuntTool rows={rows} areas={areas} species={species} enemies={enemies} />
     </div>
   );

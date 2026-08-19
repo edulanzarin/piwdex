@@ -59,13 +59,18 @@ function ConnectForm({ expired }: { expired?: boolean }) {
     <div className="card p-5">
       <h2 className="section-title text-cyan">{t("account.connect.title")}</h2>
       {expired && (
-        <div className="mt-3 rounded border border-[color:var(--yellow)]/50 bg-[rgba(240,200,60,0.08)] px-3 py-2 text-base text-yellow">
+        <div
+          className="glass mt-3 rounded border border-[color:var(--yellow)]/50 px-3 py-2 text-base text-yellow"
+          style={{ background: "color-mix(in srgb, var(--yellow) 12%, var(--surface))" }}
+        >
           {t("account.expired")}
         </div>
       )}
       <p className="mt-3 text-sm text-text-dim">{t("account.connect.help")}</p>
 
-      <div className="mt-4 rounded border border-[color:var(--cyan)]/40 bg-[rgba(57,139,240,0.06)] p-4">
+      {/* poco CHAPADO dentro do card de vidro (nada de vidro sobre vidro): o rgba azul
+          solto que estava aqui nem batia com a borda cyan da caixa */}
+      <div className="mt-4 rounded border border-[color:var(--cyan)]/40 bg-[color:var(--cyan)]/5 p-4">
         <div className="section-title text-cyan">{t("account.bm.title")}</div>
         <ol className="mt-2 flex flex-col gap-1 text-base leading-relaxed text-text-dim">
           {["s1", "s2", "s3"].map((s) => (
@@ -116,7 +121,9 @@ function Overview({ account }: { account: Account }) {
   const skin = skinName(account.trainer.lookType);
   return (
     <div className="card p-4">
-      <div className="flex items-start gap-4">
+      {/* celular: skin em cima, ficha embaixo — lado a lado sobravam ~200px pros seis
+          tiles a 360px. Muda por breakpoint, nunca por dado. */}
+      <div className="flex flex-col items-start gap-4 sm:flex-row">
         {/* moldura da skin SEMPRE presente: sem sprite = pokebola esmaecida no mesmo
             quadro, e a linha do nome vira "—" — nada empurra o resto quando carrega */}
         <div className="shrink-0 text-center">
@@ -136,7 +143,7 @@ function Overview({ account }: { account: Account }) {
             <span className={`chip ${account.trainer.vip ? "" : "invisible"}`} style={{ background: "var(--yellow)", color: "#3a2c00" }}>VIP</span>
             <span className="text-xs uppercase tracking-wide text-text-dim">{t(`account.gender.${account.trainer.gender}`)}</span>
           </div>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
             <Stat label={t("account.profile.level")} value={fmt(p.level)} color="text-cyan" icon={<Xp size={14} className="text-cyan" />} />
             <Stat label={t("account.profile.gold")} value={fmt(p.gold)} color="text-green" icon={<Coin size={14} />} />
             <Stat label={t("account.profile.diamonds")} value={fmt(p.diamonds)} color="text-cyan" icon={<Diamond size={14} className="text-cyan" />} />
@@ -202,7 +209,7 @@ function StreakCard({ account }: { account: Account }) {
   const s = account.streak;
   return (
     <Section title={t("account.sec.streak")} color="text-yellow">
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
         <Stat label={t("account.f.streakPoints")} value={fmt(s.available)} color="text-yellow" icon={<Coin size={14} />} />
         <Stat label={t("account.f.streakKills")} value={fmt(s.totalKills)} icon={<Skull size={14} className="text-text-dim" />} />
         <Stat label={t("account.f.streakBonus")} value={<span className="text-green">{pct(s.bonusExp + s.bonusLoot + s.bonusShiny)}</span>} icon={<Xp size={14} className="text-green" />} />
@@ -231,7 +238,7 @@ function BattlePassCard({ account }: { account: Account }) {
   if (bp.points === 0 && !bp.premium && activities.length === 0) return null;
   return (
     <Section title={t("account.sec.pass")} color="text-purple">
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
         <Stat label={t("account.f.passPoints")} value={fmt(bp.points)} color="text-purple" icon={<Star size={14} className="text-purple" />} />
         <Stat label={t("account.f.passTier")} value={bp.premium
           ? <span className="text-yellow">{t("account.f.passPremium")}</span>
@@ -240,7 +247,7 @@ function BattlePassCard({ account }: { account: Account }) {
         <Stat label={t("account.f.passTotal")} value={fmt(bp.claimed + bp.claimedPremium)} />
       </div>
       {activities.length > 0 && (
-        <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
           {activities.map((a) => (
             <Stat key={a.key} label={t(`account.f.pts.${a.key}`)} value={fmt(a.value)} />
           ))}
@@ -319,7 +326,7 @@ function BallsCard({ account }: { account: Account }) {
   }
   return (
     <Section title={t("account.sec.balls")} color="text-cyan">
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
         {balls.map((b) => {
           const owned = b.infinite || b.count > 0;
           return (

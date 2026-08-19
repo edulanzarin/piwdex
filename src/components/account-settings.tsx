@@ -24,11 +24,11 @@ function SubmitBtn({ label, loading }: { label: string; loading: string }) {
 // sumir nao empurra o formulario.
 function StatusLine({ error, ok }: { error: string | null; ok: string | null }) {
   return (
-    <p className="min-h-5 text-sm">
+    <p className="min-h-6 text-sm">
       {error ? (
         <span className="text-red">{error}</span>
       ) : ok ? (
-        <span className="inline-flex items-center gap-1.5 text-green"><Check size={11} /> {ok}</span>
+        <span className="inline-flex items-center gap-1.5 text-green"><Check size={14} /> {ok}</span>
       ) : null}
     </p>
   );
@@ -45,16 +45,16 @@ export function AccountSettings({ email, nome, vip }: { email: string; nome: str
     <div className="flex flex-col gap-4">
       {/* email (so leitura) + status VIP */}
       <div className="card flex flex-col gap-3 p-5">
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
             <div className="field-label">{t("conta.f.email")}</div>
-            <div className="mt-1 truncate text-sm text-text">{email}</div>
+            <div className="mt-1 truncate text-sm text-text" title={email}>{email}</div>
           </div>
           {vip ? (
-            <span className="chip shrink-0" style={{ background: "var(--yellow)", color: "#3a2c00" }}>VIP</span>
+            <span className="chip shrink-0 self-start" style={{ background: "var(--yellow)", color: "#3a2c00" }}>VIP</span>
           ) : (
-            <Link href="/vip" className="btn btn-yellow shrink-0" style={{ "--accent": "var(--yellow)" } as React.CSSProperties}>
-              <Star size={10} /> {t("vipcta.btn")}
+            <Link href="/vip" className="btn btn-yellow shrink-0 self-start" style={{ "--accent": "var(--yellow)" } as React.CSSProperties}>
+              <Star size={14} /> {t("vipcta.btn")}
             </Link>
           )}
         </div>
@@ -91,8 +91,9 @@ export function AccountSettings({ email, nome, vip }: { email: string; nome: str
       </form>
 
       {/* atalho pra area VIP (conta do jogo, robo etc) */}
-      <Link href="/vip" className="text-center text-base text-text-dim hover:text-cyan">
-        {t("conta.toVip")} <ChevronRight size={9} className="inline" />
+      {/* link de verdade: min-h-10 da o alvo de toque de 40px no celular */}
+      <Link href="/vip" className="flex min-h-10 items-center justify-center gap-1 text-base text-text-dim hover:text-cyan">
+        {t("conta.toVip")} <ChevronRight size={16} />
       </Link>
     </div>
   );

@@ -37,13 +37,16 @@ export default async function ItemPage({
   const sources = dropSourcesOf(item.name);
 
   return (
-    // mesma moldura verde da lista /items: a ficha nao e uma pagina "solta" da ferramenta
+    // sem moldura de ferramenta (ToolFrame morreu): a ficha se sustenta nos proprios
+    // cards de vidro, igual a home. O verde aparece so no titulo da secao.
   <div className="flex flex-col gap-5">
     <Link href="/items" className="inline-flex min-h-10 items-center gap-1.5 self-start text-base uppercase tracking-wide text-text-dim hover:text-cyan">
       <ChevronLeft size={16} /> <T k="item.back" />
     </Link>
 
-    <div className="card flex items-center gap-4 p-6">
+    {/* p-5 no celular: em 360px o p-6 deixava ~176px pro nome do item. O poco fica em
+        80px (o icone de 48 + o padding do well nao cabem em nada menor) */}
+    <div className="card flex items-center gap-3 p-5 sm:gap-4 sm:p-6">
       <span className="well flex h-20 w-20 shrink-0 items-center justify-center">
         <Sprite src={itemIconUrl(item)} alt={item.name} size={48} />
       </span>
@@ -68,7 +71,7 @@ export default async function ItemPage({
       </p>
 
       {sources.length === 0 ? (
-        <div className="rounded bg-[var(--well-bg)] p-6 text-center text-sm text-text-dim">
+        <div className="well p-6 text-center text-sm text-text-dim">
           <T k="item.noDrop" />
         </div>
       ) : (

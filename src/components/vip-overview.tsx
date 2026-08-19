@@ -211,7 +211,10 @@ export function VipOverview({
           </span>
         </div>
 
-        <div className="flex h-14 items-center gap-3 px-4">
+        {/* h FIXA + trilho rolavel (mesmo recurso do HUD): a 360px "Ligar o robo" +
+            "Desligar o robo" em caixa alta somam ~360px e estouravam o card. Rolar na
+            horizontal AQUI mantem a altura fechada e a pagina sem rolagem lateral. */}
+        <div className="flex h-14 items-center gap-3 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {/* meta (sm+): slots permanentes quando o robo esta ligado; desligado, o
               MESMO espaco explica o que o botao faz — um conteudo por vez, altura igual */}
           <span className="hidden min-w-0 flex-1 items-center gap-x-4 text-sm text-text-dim sm:flex">
@@ -269,8 +272,9 @@ export function VipOverview({
       {/* ===== regua de rendimento AO VIVO: grade estavel SEMPRE renderizada —
              sem hunt rodando, cada tile mostra o placeholder no MESMO slot.
              As 8 colunas so entram no xl: com a fonte nova (mais larga) rotulo tipo
-             "Dolares / hora" nao cabe no tile de ~85px que o lg dava. ===== */}
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 xl:grid-cols-8">
+             "Dolares / hora" nao cabe no tile de ~85px que o lg dava. Degraus 2-3-4-8
+             (sem pular): a 360px sao duas colunas de ~150px, que seguram o valor. ===== */}
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-8">
         <StatTile live={!!rv} label={t("robo.hunt.kills")} value={rv ? fmt(rv.kills) : undefined} icon={<Skull size={14} className="text-text-dim" />} />
         <StatTile label={t("robo.hunt.time")} value={rv ? hm(rv.seconds) : undefined} icon={<Clock size={14} className="text-text-dim" />} />
         <StatTile live={!!rv} label={t("robo.hunt.xph")} value={rv ? fmt(rv.xpPerHour) : undefined} accent="var(--cyan)" icon={<Xp size={14} className="text-cyan" />} />
@@ -492,7 +496,7 @@ export function VipOverview({
         icon={<Chart size={18} />} accent="var(--purple)" title={t("vip.ov.totals")}
         right={<button type="button" onClick={(e) => { e.stopPropagation(); onGo("estatisticas"); }} className="icon-btn" aria-label={t("vip.sec.estatisticas")}><ChevronRight size={16} /></button>}
       >
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
           <StatTile label={t("vip.ov.tHunts")} value={totals ? fmt(totals.hunts) : undefined} icon={<Target size={14} className="text-cyan" />} hover />
           <StatTile label={t("vip.ov.tKills")} value={totals ? fmt(totals.kills) : undefined} icon={<Skull size={14} className="text-text-dim" />} hover />
           <StatTile label={t("vip.ov.tXp")} value={totals ? fmt(totals.xpGained) : undefined} accent="var(--cyan)" icon={<Xp size={14} className="text-cyan" />} hover />

@@ -49,7 +49,7 @@ export default function ConectarPage() {
   // espaco (w-full max-w-md + min-h) — mudar de estado nao muda a altura nem a largura.
   return (
     <div className="container-page flex min-h-[60vh] items-center justify-center py-16">
-      <div className="card w-full max-w-md p-8 text-center">
+      <div className="card w-full max-w-md p-6 text-center sm:p-8">
         <div className="flex min-h-[13rem] flex-col items-center justify-center gap-3">
           {status === "working" && (
             <>

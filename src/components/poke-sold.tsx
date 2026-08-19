@@ -25,7 +25,7 @@ export function PokeSold() {
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <h2 className="section-title flex items-center gap-2 text-green"><Coin size={14} /> {t("robo.pokesold.title")}</h2>
+        <h2 className="section-title flex items-center gap-2 text-green"><Coin size={18} /> {t("robo.pokesold.title")}</h2>
         <p className="mt-2 max-w-2xl text-sm text-text-dim">{t("robo.pokesold.desc")}</p>
       </div>
 
@@ -38,18 +38,18 @@ export function PokeSold() {
         ) : (
           <div className="grid gap-1.5 sm:grid-cols-2">
             {sold.map((p) => (
-              <div key={p.speciesId} className="flex items-center gap-2.5 rounded border border-border bg-[var(--well-bg)] p-2">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded bg-[var(--well-bg)]">
+              <div key={p.speciesId} className="well flex min-w-0 items-center gap-2.5 p-2">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded bg-surface-2">
                   <Sprite src={spriteUrl(p.speciesId)} alt={p.name} size={34} />
                 </span>
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex min-w-0 items-center gap-1.5">
                     <span className="truncate text-sm">{p.name}</span>
-                    <RarityBadge rarity={p.rarity as Rarity} />
+                    <span className="shrink-0"><RarityBadge rarity={p.rarity as Rarity} /></span>
                   </div>
                   <div className="text-sm text-text-dim">×{fmt(p.count)}</div>
                 </div>
-                <span className="inline-flex shrink-0 items-center gap-1 text-base text-green tabular-nums"><Coin size={10} />{fmt(p.gold)}</span>
+                <span className="inline-flex shrink-0 items-center gap-1 text-base text-green tabular-nums"><Coin size={14} />{fmt(p.gold)}</span>
               </div>
             ))}
           </div>

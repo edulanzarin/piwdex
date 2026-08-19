@@ -51,7 +51,7 @@ function HuntRowModal({ row, onClose }: { row: HuntRow; onClose: () => void }) {
   return (
     <Modal onClose={onClose} className="w-full max-w-md gap-5 p-5">
       <div className="flex items-center gap-4">
-        <div className="well flex h-20 w-20 shrink-0 items-center justify-center">
+        <div className="well flex h-20 w-20 shrink-0 items-center justify-center p-1">
           <Sprite src={spriteUrl(row.pokeId)} alt={row.name} size={72} />
         </div>
         <div className="min-w-0 flex-1">
@@ -70,19 +70,19 @@ function HuntRowModal({ row, onClose }: { row: HuntRow; onClose: () => void }) {
         <StatTile
           label={t("hunt.col.xp")}
           value={row.xp.toLocaleString("pt-BR")}
-          icon={<Xp size={11} className="text-yellow" />}
+          icon={<Xp size={14} className="text-yellow" />}
           accent="var(--yellow)"
         />
         <StatTile
           label={t("hunt.col.gold")}
           value={row.gold.toLocaleString("pt-BR")}
-          icon={<Coin size={11} />}
+          icon={<Coin size={14} />}
           accent="var(--yellow)"
         />
         <StatTile
           label={t("hunt.col.sell")}
           value={row.sell > 0 ? row.sell.toLocaleString("pt-BR") : "—"}
-          icon={<Coin size={11} />}
+          icon={<Coin size={14} />}
         />
       </div>
 
@@ -120,7 +120,7 @@ function HuntRowModal({ row, onClose }: { row: HuntRow; onClose: () => void }) {
         </div>
       </div>
 
-      <a href={`/dex/${row.pokeId}`} className="btn btn-cyan self-start">{t("hunt.viewDex")} <ChevronRight size={10} /></a>
+      <a href={`/dex/${row.pokeId}`} className="btn btn-cyan self-start">{t("hunt.viewDex")} <ChevronRight size={14} /></a>
     </Modal>
   );
 }
@@ -221,7 +221,7 @@ export function EconomyTable({ rows, areas }: { rows: HuntRow[]; areas: string[]
         <div className="card flex min-h-[14rem] items-center justify-center p-10 text-center text-text-dim">{t("hunt.empty")}</div>
       ) : (
       <>
-        <div className="card p-0">
+        <div className="card overflow-hidden p-0">
           {/* tabela larga rola DENTRO deste wrapper — a pagina nunca rola na horizontal */}
           <div className="overflow-x-auto">
           <table className="w-full min-w-[46rem] text-sm">
@@ -285,7 +285,7 @@ export function EconomyTable({ rows, areas }: { rows: HuntRow[]; areas: string[]
                   <td className="px-4 py-2.5 text-right">
                     {r.sell > 0 ? (
                       <span className="inline-flex items-center gap-1 tabular-nums text-text-dim">
-                        <Coin /> {r.sell.toLocaleString("pt-BR")}
+                        <Coin size={14} /> {r.sell.toLocaleString("pt-BR")}
                       </span>
                     ) : (
                       <span className="text-text-dim">—</span>

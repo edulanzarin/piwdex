@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { AdminUser } from "@/lib/admin-data";
-import { Coin, Diamond, Star, Trainer } from "@/components/icons";
+import { ArrowDown, Coin, Diamond, Star, Trainer } from "@/components/icons";
 
 const GAME_URL = "https://poke.idleworld.online";
 
@@ -34,7 +34,8 @@ function BookmarkletLink({ snippet, label }: { snippet: string; label: string })
       title="Arraste pra barra de favoritos; na aba do jogo, clique pra entrar"
       className="btn btn-ghost cursor-grab select-none text-text-dim"
     >
-      ↗ {label}
+      {/* icone de verdade no lugar da seta unicode: mesmo glifo do bookmarklet da Conta */}
+      <ArrowDown size={14} /> {label}
     </a>
   );
 }
@@ -72,7 +73,7 @@ export function AdminDashboard({ users }: { users: AdminUser[] }) {
   return (
     <div className="flex flex-col gap-4">
       {/* resumo */}
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
         <Stat label="Usuários" value={fmt(totals.total)} />
         <Stat label="VIPs" value={fmt(totals.vip)} icon={<Star size={14} />} />
         <Stat label="Conta ligada" value={fmt(totals.linked)} icon={<Trainer size={14} />} />
@@ -173,7 +174,12 @@ export function AdminDashboard({ users }: { users: AdminUser[] }) {
       )}
 
       {toast && (
-        <div className="fixed bottom-5 left-1/2 z-50 -translate-x-1/2 rounded-md border border-[color:var(--border-strong)] bg-[color:var(--surface-solid)] px-4 py-2.5 text-center text-base text-text shadow-lg">
+        // flutuante em vidro denso (mesma receita do HUD) e com teto de largura:
+        // inset-x-4 + max-w-md garante que a 360px ele nao passa da tela
+        <div
+          className="glass fixed inset-x-4 bottom-5 z-50 mx-auto max-w-md rounded-md border border-[color:var(--border-strong)] px-4 py-2.5 text-center text-base text-text shadow-lg"
+          style={{ background: "color-mix(in srgb, var(--surface-solid) 88%, transparent)" }}
+        >
           {toast}
         </div>
       )}
@@ -183,8 +189,10 @@ export function AdminDashboard({ users }: { users: AdminUser[] }) {
 
 function Stat({ label, value, icon }: { label: string; value: string; icon?: React.ReactNode }) {
   return (
-    <div className="rounded border border-border bg-surface-2 px-3 py-2">
-      <div className="field-label flex items-center gap-1">{icon}{label}</div>
+    // .well e o poco padrao do site (borda + fundo do token + blur): substitui o
+    // border/bg montado a mao, que era o unico tile fora do material do resto
+    <div className="well min-w-0">
+      <div className="field-label flex items-center gap-1.5">{icon}{label}</div>
       <div className="pixel text-lg tabular-nums text-text">{value}</div>
     </div>
   );

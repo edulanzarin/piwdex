@@ -27,9 +27,11 @@ export function HeroSprite({ pokeId, name, size = 132 }: { pokeId: number; name:
 
   return (
     <div className="flex flex-col items-center gap-2">
+      {/* fundo pelo token do poco (era um rgba inventado) + blur: a moldura do sprite
+          vira vidro como o resto do site. max-w-full: em 360px a caixa nunca estoura. */}
       <div
-        className="relative flex items-center justify-center rounded bg-[rgba(6,11,22,0.7)] ring-1 ring-[color:var(--border)]"
-        style={{ width: size, height: size }}
+        className="relative flex items-center justify-center rounded bg-[var(--well-bg)] ring-1 ring-[color:var(--border)] backdrop-blur-sm"
+        style={{ width: size, height: size, maxWidth: "100%" }}
       >
         <span className="pointer-events-none absolute inset-0 overflow-hidden rounded">
           <span className="pkdx-scan absolute inset-0" />
@@ -43,7 +45,7 @@ export function HeroSprite({ pokeId, name, size = 132 }: { pokeId: number; name:
         accent="yellow"
         title={shiny ? t("cr.seeNormal") : t("cr.seeShiny")}
       >
-        <Star size={12} /> {shiny ? t("cr.seeNormal") : t("cr.seeShiny")}
+        <Star size={16} /> {shiny ? t("cr.seeNormal") : t("cr.seeShiny")}
       </ToggleButton>
     </div>
   );

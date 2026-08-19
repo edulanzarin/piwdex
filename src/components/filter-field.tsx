@@ -21,7 +21,8 @@ export function ShinyToggle({ active, onChange }: { active: boolean; onChange: (
   const t = useT();
   return (
     <ToggleButton active={active} onClick={() => onChange(!active)} accent="yellow">
-      <Star size={12} /> {t("filter.shiny")}
+      {/* 16: o rotulo do toggle e text-base, entao a estrela acompanha a altura da letra */}
+      <Star size={16} /> {t("filter.shiny")}
     </ToggleButton>
   );
 }

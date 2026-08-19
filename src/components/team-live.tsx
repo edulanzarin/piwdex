@@ -83,7 +83,9 @@ export function TeamLive({ dex, onManage }: { dex?: Record<number, MarketDex>; o
               <span className="truncate pixel text-base text-yellow">{leader.name}</span>
               <span className="pixel shrink-0 text-sm text-text">Lv{hunt?.fighterLevel && hunt.fighterLevel > leader.level ? hunt.fighterLevel : leader.level}</span>
               <span className={`chip shrink-0 ${leader.shiny ? "" : "invisible"}`} style={{ background: "var(--yellow)", color: "#3a2c00" }}>shiny</span>
-              {leaderRarity && <span className="shrink-0"><RarityBadge rarity={leaderRarity} /></span>}
+              {/* raridade so do sm pra cima: a 360px o chip comia os ~75px que sobravam
+                  pro NOME do lider (Lv + shiny + raridade nao cabem os tres) */}
+              {leaderRarity && <span className="hidden shrink-0 sm:inline-flex"><RarityBadge rarity={leaderRarity} /></span>}
             </span>
             <span className="mt-1.5 block"><HpBar hp={leader.hp} maxHp={leader.maxHp} /></span>
             <span className="mt-1.5 flex h-5 items-center gap-x-3 overflow-hidden text-sm tabular-nums text-text-dim">

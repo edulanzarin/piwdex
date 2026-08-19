@@ -49,8 +49,9 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
         </label>
 
         {/* slot RESERVADO da linha de erro: existe sempre com min-h — a mensagem
-            aparecer/sumir nao empurra o formulario */}
-        <p className="min-h-5 text-sm text-red">{state?.error ?? ""}</p>
+            aparecer/sumir nao empurra o formulario. min-h-6 = a linha inteira de
+            text-sm (21px); com min-h-5 a mensagem ainda ganhava 1px de altura. */}
+        <p className="min-h-6 text-sm text-red">{state?.error ?? ""}</p>
 
         <div className="mt-1">
           {mode === "login" ? (

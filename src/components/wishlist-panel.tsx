@@ -27,6 +27,10 @@ import { useT, useTypeLabel } from "./locale-provider";
 import { Star, Heart, ChevronRight, Loot, Caret } from "./icons";
 import { useVipLive, type LiveNotification } from "./vip-live";
 
+// Linha densa de numeros do card: altura fechada, nunca quebra e ROLA na horizontal
+// quando o card fica estreito (celular) — mesmo dialeto do card do mercado.
+const METAROW = "flex items-center overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden";
+
 const fmt = (n: number) => n.toLocaleString("pt-BR");
 const numI = (s: string) => {
   const v = parseInt(s.replace(/\D/g, ""), 10);
@@ -74,10 +78,12 @@ function ItemPicker({ items, value, onSelect, placeholder }: { items: WishItem[]
           {value?.icon && <Sprite src={assetIconUrl(value.icon)} alt="" size={18} />}
           <span className={`truncate ${value ? "" : "text-text-dim"}`}>{value?.name ?? placeholder}</span>
         </span>
-        <span className="inline-flex text-cyan"><Caret size={9} /></span>
+        <span className="inline-flex shrink-0 text-cyan"><Caret size={16} /></span>
       </button>
       {open && (
-        <div className="card fadein absolute z-30 mt-1 w-full p-1" style={{ background: "var(--surface-solid)" }}>
+        // menu flutuante em vidro (o .card ja traz blur): a superficie sobe pra 92% do
+        // solido SO aqui — e o unico jeito de ter menu sobre lista sem texto no texto
+        <div className="card fadein absolute z-30 mt-1 w-full p-1" style={{ background: "color-mix(in srgb, var(--surface-solid) 92%, transparent)" }}>
           <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder={placeholder} className="input input-sm mb-1" />
           <div className="max-h-56 overflow-auto">
             {value && (
@@ -111,8 +117,8 @@ function ItemMatchCard({ item, onBuy, right }: { item: MarketItemRow; onBuy: () 
           {item.icon ? <Sprite src={assetIconUrl(item.icon)} alt={item.name} size={34} /> : <Loot size={20} />}
         </span>
         <div className="min-w-0 flex-1">
-          <span className="pixel block h-6 truncate text-base">{item.name}</span>
-          <div className="flex h-6 items-center gap-x-3 overflow-hidden text-sm text-text-dim">
+          <span className="pixel block h-7 truncate text-base" title={item.name}>{item.name}</span>
+          <div className={`${METAROW} h-7 gap-x-3 text-sm text-text-dim`}>
             <span className="pixel shrink-0 whitespace-nowrap text-base text-text">{item.price.toLocaleString("pt-BR")} <span className="text-text-dim">{item.currency === "DIAMONDS" ? "dia" : "$"} {t("market.it.unit")}</span></span>
             <span className="shrink-0 whitespace-nowrap">x{item.quantity.toLocaleString("pt-BR")}</span>
             <span className={`chip shrink-0 ${item.belowNpc ? "" : "invisible"}`} style={{ background: "var(--green)", color: "#052012" }}>{t("account.market.belowNpc")}</span>
@@ -245,7 +251,7 @@ function NewWish({ creatures, items, onCreated }: { creatures: ComboCreature[]; 
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h2 className="section-title flex items-center gap-2 text-cyan">
-            <Heart size={14} className="text-pink" /> {t("wish.new.title")}
+            <Heart size={18} className="text-pink" /> {t("wish.new.title")}
           </h2>
           <p className="mt-2 max-w-2xl text-sm text-text-dim">{t("wish.new.help")}</p>
         </div>
@@ -255,7 +261,7 @@ function NewWish({ creatures, items, onCreated }: { creatures: ComboCreature[]; 
           <button type="button" onClick={() => setKind("item")} className={`tab ${kind === "item" ? "tab-active" : ""}`}>{t("market.tab.items")}</button>
         </div>
       </div>
-      <div className="card z-20 flex flex-col gap-4 p-5">
+      <div className="card z-20 flex flex-col gap-4 p-4 sm:p-5">
         <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
           {kind === "item" ? (
             <>
@@ -331,7 +337,7 @@ function NewWish({ creatures, items, onCreated }: { creatures: ComboCreature[]; 
         <div className="flex items-center justify-between gap-3">
           <span className="text-base text-red">{err ?? ""}</span>
           <button type="button" onClick={submit} disabled={busy} className="btn btn-cyan disabled:opacity-40">
-            {busy ? `${t("wish.new.saving")}...` : <>{t("wish.new.save")} <ChevronRight size={10} /></>}
+            {busy ? `${t("wish.new.saving")}...` : <>{t("wish.new.save")} <ChevronRight size={14} /></>}
           </button>
         </div>
       </div>
@@ -392,11 +398,13 @@ function WishBlock({
   const paged = matches.slice(safePage * MATCH_PAGE, safePage * MATCH_PAGE + MATCH_PAGE);
 
   return (
-    <div id={`wish-${w.id}`} className={`card p-4 ${w.active ? "" : "opacity-60"}`}>
-      <div className="flex items-center gap-3">
+    <div id={`wish-${w.id}`} className={`card p-3 sm:p-4 ${w.active ? "" : "opacity-60"}`}>
+      {/* em 360px o cabecalho carrega chevron + tile + texto + liga/desliga + excluir:
+          os gaps encolhem no celular pra sobrar largura de nome */}
+      <div className="flex items-center gap-2 sm:gap-3">
         {/* cabecalho clicavel = expande/recolhe */}
-        <button type="button" onClick={onToggleExpand} className="flex min-w-0 flex-1 items-center gap-3 text-left" aria-expanded={expanded}>
-          <span className="inline-flex text-cyan" style={{ transform: expanded ? "rotate(90deg)" : "none", transition: "transform .15s" }}><ChevronRight size={9} /></span>
+        <button type="button" onClick={onToggleExpand} className="flex min-w-0 flex-1 items-center gap-2 text-left sm:gap-3" aria-expanded={expanded}>
+          <span className="inline-flex shrink-0 text-cyan" style={{ transform: expanded ? "rotate(90deg)" : "none", transition: "transform .15s" }}><ChevronRight size={16} /></span>
           <div className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded bg-[var(--well-bg)]">
             {w.kind === "item" ? (
               w.itemId != null && itemIconOf(w.itemId)
@@ -409,17 +417,17 @@ function WishBlock({
             ) : (
               <Sprite src={w.speciesId ? spriteUrl(w.speciesId, w.shinyOnly) : null} alt={w.label ?? "any"} size={38} />
             )}
-            {w.shinyOnly && <span className="absolute right-0.5 top-0.5 text-yellow"><Star size={10} /></span>}
+            {w.shinyOnly && <span className="absolute right-0.5 top-0.5 text-yellow"><Star size={14} /></span>}
             {/* contagem de achados: badge ABSOLUTO no canto do tile — nunca in-flow */}
             {matches.length > 0 && (
               <span className="absolute -bottom-1 -right-1 rounded-full bg-green px-1.5 py-0.5 text-xs text-[#052012]">{matches.length}</span>
             )}
           </div>
           <div className="min-w-0 flex-1">
-            <div className="flex h-6 items-center gap-2 overflow-hidden">
-              <span className="pixel truncate text-base">{w.label ?? (w.speciesId ? `#${w.speciesId}` : t("alerts.anySpecies"))}</span>
+            <div className="flex h-7 items-center gap-2 overflow-hidden">
+              <span className="pixel truncate text-base" title={w.label ?? undefined}>{w.label ?? (w.speciesId ? `#${w.speciesId}` : t("alerts.anySpecies"))}</span>
             </div>
-            <div className="truncate text-sm text-text-dim">{wishSummary(w, t)}</div>
+            <div className="h-6 truncate text-sm text-text-dim" title={wishSummary(w, t)}>{wishSummary(w, t)}</div>
           </div>
         </button>
         <ToggleButton active={w.active} onClick={() => onToggle(!w.active)} accent="green" title={t(w.active ? "alerts.pause" : "alerts.resume")}>
@@ -462,7 +470,7 @@ function WishBlock({
         ) : (
           // estado vazio com a MESMA altura de uma linha de achados: quando o primeiro
           // achado chegar ao vivo, o bloco nao pula
-          <div className="mt-3 flex min-h-28 items-center justify-center rounded border border-border bg-[var(--well-bg)] p-3">
+          <div className="well mt-3 flex min-h-28 items-center justify-center">
             <p className="text-base text-text-dim">{w.active ? t("wish.noMatches") : t("wish.paused")}</p>
           </div>
         ))}
@@ -557,7 +565,7 @@ export function WishlistPanel({ creatures, items, dex, focusWishId }: { creature
 
       <div className="flex flex-col gap-3">
         <h3 className="section-title flex items-center gap-2 text-cyan">
-          <Heart size={12} className="text-pink" /> {t("wish.list.title")}
+          <Heart size={18} className="text-pink" /> {t("wish.list.title")}
         </h3>
         {/* estados com a mesma altura minima de um desejo recolhido: a lista nao pula
             quando sai do carregando pro vazio/erro/cheio */}

@@ -169,7 +169,7 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
           altura fixa — conectado acende o verde, desligado mostra o placeholder no
           mesmo lugar (nada empurra os paineis quando a conexao chega/cai) */}
       {!huntOn && (
-        <div className={`flex min-h-11 items-center gap-2.5 rounded border px-3.5 ${connected ? "border-[color:var(--green)]/40 bg-[color:var(--green)]/5" : "border-border bg-[var(--well-bg)]"}`}>
+        <div className={`well flex min-h-11 items-center gap-2.5 px-3.5 ${connected ? "border-[color:var(--green)]/40 bg-[color:var(--green)]/5" : ""}`}>
           <Led color={connected ? "var(--green)" : "var(--text-dim)"} pulse={connected} />
           <span className={`text-base ${connected ? "text-green" : "slot-empty"}`}>{connected ? t("vip.conn.readyHint") : t("vip.conn.off")}</span>
         </div>
@@ -198,12 +198,12 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
           {/* MANUAL — voce escolhe */}
           <Panel icon={<Target size={18} />} title={t("robo.mode.manual")} className="card-link">
             <div className="flex flex-1 items-start">
-              <button type="button" onClick={() => setPickerOpen(true)} className="btn btn-ghost inline-flex items-center gap-2">
+              <button type="button" onClick={() => setPickerOpen(true)} className="btn btn-ghost inline-flex max-w-full items-center gap-2">
                 {selected ? (
                   <>
                     {selected.pokeId != null && <Sprite src={spriteUrl(selected.pokeId)} alt={selected.name} size={18} />}
                     <span className="max-w-[11rem] truncate">{selected.name}</span>
-                    <span className="text-text-dim">Lv{selected.level}</span>
+                    <span className="shrink-0 text-text-dim">Lv{selected.level}</span>
                   </>
                 ) : (
                   t("robo.hunt.pick")
@@ -284,7 +284,7 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
                 const active = !lv.done && lv.currentLevel >= s.from && lv.currentLevel <= s.to;
                 const past = lv.currentLevel > s.to;
                 return (
-                  <div key={i} className={`flex items-center gap-2.5 rounded border p-2 text-base transition ${active ? "border-[color:var(--purple)] bg-[color:var(--purple)]/10 glow-pulse" : "border-border"} ${past ? "opacity-45" : ""}`}
+                  <div key={i} className={`well flex min-w-0 items-center gap-2.5 p-2 text-base transition ${active ? "border-[color:var(--purple)] bg-[color:var(--purple)]/10 glow-pulse" : ""} ${past ? "opacity-45" : ""}`}
                     style={active ? ({ "--accent": "var(--purple)" } as React.CSSProperties) : undefined}>
                     <span className={`pixel w-20 shrink-0 text-sm tabular-nums ${active ? "text-purple" : "text-text-dim"}`}>{s.from}-{s.to}</span>
                     <span className="min-w-0 flex-1 truncate">{s.huntName} <span className="font-normal text-text-dim">· {s.area}</span></span>
@@ -395,7 +395,7 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
               </>
             ) : planSteps ? (
               planSteps.map((s, i) => (
-                <div key={i} className="flex shrink-0 items-center gap-2.5 rounded border border-border p-2 text-base">
+                <div key={i} className="well flex min-w-0 shrink-0 items-center gap-2.5 p-2 text-base">
                   <span className="pixel w-20 shrink-0 text-sm tabular-nums text-purple">{s.from}-{s.to}</span>
                   <span className="min-w-0 flex-1 truncate">{s.huntName} <span className="font-normal text-text-dim">· {s.area}</span></span>
                   <span className="inline-flex shrink-0 items-center gap-1 tabular-nums text-cyan"><Xp size={16} />{fmt(s.xpH)}/h</span>
@@ -426,7 +426,7 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
 
               {/* sugestao de melhor pokemon: box SEMPRE renderizado — enquanto o fetch
                   nao volta (ou nao ha sugestao) os slots ficam esmaecidos no mesmo lugar */}
-              <div className="mt-3 flex min-h-20 items-center gap-2.5 rounded border border-[color:var(--cyan)]/40 bg-[var(--well-bg)] p-2.5">
+              <div className="well mt-3 flex min-h-20 items-center gap-2.5 border-[color:var(--cyan)]/40 p-2.5">
                 <span className="flex h-8 w-8 shrink-0 items-center justify-center">
                   {bestPoke ? (
                     <Sprite src={spriteUrl(bestPoke.speciesId)} alt={bestPoke.name} size={30} />
@@ -520,7 +520,7 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
                 {st.pending.map((p, i) => (
                   <span
                     key={p.id}
-                    className={`relative flex items-center gap-1.5 rounded border border-border bg-[var(--well-bg)] px-1.5 py-1 ${i === st.pending.length - 1 ? "flash-in" : ""}`}
+                    className={`well relative flex items-center gap-1.5 px-1.5 py-1 ${i === st.pending.length - 1 ? "flash-in" : ""}`}
                     title={`${p.name} Lv${p.level}`}
                   >
                     <Sprite src={spriteUrl(p.speciesId, p.shiny)} alt={p.name} size={24} />
@@ -552,10 +552,10 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
                   key={k.at + "-" + i}
                   type="button"
                   onClick={() => setDetail(k)}
-                  className={`flex items-center gap-2.5 rounded border border-border bg-[var(--well-bg)] p-2 text-left transition hover:border-[color:var(--border-strong)] hover:bg-surface-2 ${i === 0 ? "flash-in" : ""}`}
+                  className={`well flex min-w-0 items-center gap-2.5 p-2 text-left transition hover:border-[color:var(--border-strong)] hover:bg-surface-2 ${i === 0 ? "flash-in" : ""}`}
                   style={i === 0 ? ({ "--accent": isCatch ? "var(--green)" : "var(--cyan)" } as React.CSSProperties) : undefined}
                 >
-                  <span className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded bg-[var(--well-bg)]">
+                  <span className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded bg-surface-2">
                     {pid != null && <Sprite src={spriteUrl(pid, k.shiny)} alt={k.species} size={34} />}
                     {k.shiny && <span className="absolute -right-1 -top-1 text-yellow"><Star size={14} /></span>}
                     {isCatch && <span className="absolute -bottom-1 -left-1"><Pokeball size={16} /></span>}
@@ -634,7 +634,7 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
                         {k.loot.map((l, j) => {
                           const icon = itemIcon(l.name);
                           return (
-                            <div key={j} className="flex items-center gap-2 rounded border border-border p-1.5 text-base">
+                            <div key={j} className="well flex min-w-0 items-center gap-2 p-1.5 text-base">
                               <span className="flex h-6 w-6 shrink-0 items-center justify-center">{icon ? <Sprite src={assetIconUrl(icon)} alt={l.name} size={20} /> : null}</span>
                               <span className="min-w-0 flex-1 truncate">{l.name}</span>
                               <span className="shrink-0 text-text-dim">x{l.qty}</span>

@@ -47,8 +47,11 @@ export function FeedRow({
  *  (mensagem a esquerda, acao a direita) — painel vazio nao ocupa um bloco em branco. */
 export function EmptyState({ message, action, compact = false, className = "" }: { message: React.ReactNode; action?: React.ReactNode; compact?: boolean; className?: string }) {
   if (compact) {
+    // celular: mensagem em cima, acao embaixo — a 360px a linha unica espremia o texto
+    // em ~130px (sete linhas de quebra) ao lado do botao. A forma e por BREAKPOINT, nao
+    // por estado: os dois elementos estao sempre presentes, a altura nao dança.
     return (
-      <div className={`flex items-center justify-between gap-3 py-1 ${className}`}>
+      <div className={`flex flex-col items-start gap-2 py-1 sm:flex-row sm:items-center sm:justify-between sm:gap-3 ${className}`}>
         <p className="min-w-0 text-base text-text-dim">{message}</p>
         {action}
       </div>

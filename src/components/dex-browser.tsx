@@ -62,9 +62,16 @@ export function DexBrowser({ creatures, acq }: { creatures: Creature[]; acq: Rec
       </div>
 
       {type && (
-        <div className="flex flex-wrap gap-2 text-xs">
-          <button className="chip inline-flex items-center gap-1" style={{ background: TYPE_COLOR[type], color: "#fff" }} onClick={() => setType("")}>
-            <TypeIcon type={type} size={11} /> {typeLabel(type)} <Close size={9} />
+        <div className="flex flex-wrap gap-2">
+          {/* min-h-10: o chip do filtro ativo e clicavel (remove o filtro), entao vale o
+              alvo de toque de 40px. Icones a 14 — a 9/11px o traco lucide virava borrao. */}
+          <button
+            type="button"
+            className="chip inline-flex min-h-10 items-center gap-1.5 px-3"
+            style={{ background: TYPE_COLOR[type], color: "#fff" }}
+            onClick={() => setType("")}
+          >
+            <TypeIcon type={type} size={14} /> {typeLabel(type)} <Close size={14} />
           </button>
         </div>
       )}

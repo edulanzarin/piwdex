@@ -55,7 +55,7 @@ export function SiteNav({ user }: { user: NavUser | null }) {
     ) : null;
 
   return (
-    <header className="sticky top-0 z-30 border-b border-border bg-[rgba(7,11,22,0.82)] backdrop-blur">
+    <header className="sticky top-0 z-30 border-b border-border bg-[rgba(7,11,22,0.72)] backdrop-blur-xl backdrop-saturate-150">
       <div className="container-page flex h-16 items-center justify-between gap-3">
         <Link href="/" className="flex items-center gap-2.5" onClick={() => setOpen(false)}>
           <Pokeball size={28} />
@@ -165,7 +165,7 @@ export function SiteNav({ user }: { user: NavUser | null }) {
       {/* menu mobile: overlay ABSOLUTO sob o header — abre por cima do conteudo,
           nunca empurra a pagina pra baixo */}
       {open && (
-        <nav className="absolute inset-x-0 top-full max-h-[calc(100dvh-4rem)] overflow-y-auto border-t border-border bg-[rgba(7,11,22,0.97)] shadow-[0_24px_40px_-20px_rgba(0,0,0,0.9)] backdrop-blur sm:hidden">
+        <nav className="absolute inset-x-0 top-full max-h-[calc(100dvh-4rem)] overflow-y-auto border-t border-border bg-[rgba(7,11,22,0.88)] shadow-[0_24px_40px_-20px_rgba(0,0,0,0.9)] backdrop-blur-xl backdrop-saturate-150 sm:hidden">
           <div className="container-page flex flex-col py-1">
             {TABS.map(({ key, href, Icon }) => (
               <Link

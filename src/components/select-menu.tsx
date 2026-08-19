@@ -46,7 +46,8 @@ export function SelectMenu({
 
   return (
     // cap de largura recalibrado: 13rem valia 234px na base 18px e virou 208px, apertado
-    // pra rotulo longo ("Cualquier origen") na Chakra, que e mais larga que a fonte antiga
+    // pra rotulo longo ("Cualquier origen") na Quantico, mais larga que a fonte antiga.
+    // w-full sem cap ate o sm: no celular o filtro ocupa a linha inteira e nada estoura
     <div ref={box} className={`relative w-full ${className ?? "sm:max-w-[14rem]"}`}>
       <button
         type="button"
@@ -57,15 +58,19 @@ export function SelectMenu({
       >
         <span className="truncate">{current?.label ?? ""}</span>
         <span className="inline-flex text-cyan" style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform .15s" }}>
-          <Caret size={14} />
+          <Caret size={16} />
         </span>
       </button>
 
       {open && (
         <div
           role="listbox"
-          className="card fadein absolute z-30 mt-1 max-h-72 w-full overflow-auto p-1"
-          style={{ background: "var(--surface-solid)" }}
+          // VIDRO tambem no flutuante: material do card (blur + fio de luz) em vez do
+          // fundo chapado. So a OPACIDADE da superficie sobe aqui — por cima de uma grade
+          // de cards o vidro padrao deixava texto brigando com texto.
+          // Teto de altura em vh: no celular o menu cabe na tela e a lista rola por dentro.
+          className="card fadein absolute z-30 mt-1 max-h-[min(18rem,60vh)] w-full overflow-y-auto p-1"
+          style={{ background: "color-mix(in srgb, var(--surface-solid) 86%, transparent)" }}
         >
           {options.map((o) => (
             <button

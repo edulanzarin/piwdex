@@ -196,7 +196,7 @@ export function BuyItemModal({ item, onClose, onBought }: { item: MarketItemRow;
     onClose();
   };
   return (
-    <Modal onClose={onClose} className="w-full max-w-sm gap-4 p-5">
+    <Modal onClose={onClose} className="w-full max-w-sm gap-4 p-4 sm:p-5">
       <div className="flex items-center gap-3">
         <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded bg-[var(--well-bg)]">
           {item.icon ? <Sprite src={assetIconUrl(item.icon)} alt={item.name} size={36} /> : <Loot size={22} />}
@@ -214,7 +214,7 @@ export function BuyItemModal({ item, onClose, onBought }: { item: MarketItemRow;
         <input type="number" min={1} max={item.quantity} value={qty}
           onChange={(e) => setQty(clamp(Number(e.target.value)))} className="input" />
       </label>
-      <div className="flex items-center justify-between rounded border border-border bg-[var(--well-bg)] px-3 py-2">
+      <div className="well flex items-center justify-between">
         <span className="field-label">{t("market.buy.total")}</span>
         <span className="pixel text-lg"><Price currency={item.currency} value={total} size={16} /></span>
       </div>
@@ -254,27 +254,27 @@ export function MarketMonModal({ mon, dex, onClose, onBought }: { mon: MarketMon
   const breeding = isBreedingStock(mon.quality) && genes === "great";
 
   return (
-    <Modal onClose={onClose} className="w-full max-w-md gap-5 p-5">
+    <Modal onClose={onClose} className="w-full max-w-md gap-5 p-4 sm:p-5">
         {/* Cabecalho */}
-        <div className="flex items-center gap-4">
-          <div className="relative flex h-20 w-20 shrink-0 items-center justify-center rounded bg-[var(--well-bg)]">
-            <Sprite src={spriteUrl(mon.speciesId, mon.shiny)} alt={mon.name} size={72} />
-            {mon.shiny && <span className="absolute right-1 top-1 text-yellow"><Star size={16} /></span>}
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2">
-              <h3 className="section-title truncate">{mon.name}</h3>
-              <span className="text-sm text-text-dim">Lv.{mon.level}</span>
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <div className="relative flex h-20 w-20 shrink-0 items-center justify-center rounded bg-[var(--well-bg)]">
+              <Sprite src={spriteUrl(mon.speciesId, mon.shiny)} alt={mon.name} size={72} />
+              {mon.shiny && <span className="absolute right-1 top-1 text-yellow"><Star size={16} /></span>}
             </div>
-            <div className="mt-2 flex flex-wrap items-center gap-1.5">
-              {dex ? <TypeBadges t1={dex.type1} t2={dex.type2} /> : mon.type1 ? <TypeBadges t1={mon.type1 as PokeType} t2={null} /> : null}
-              {dex && <RarityBadge rarity={dex.rarity} />}
-              {mon.belowNpc && (
-                <span className="chip" style={{ background: "var(--green)", color: "#052012" }}>{t("account.market.belowNpc")}</span>
-              )}
+            <div className="flex min-w-0 flex-1 items-center gap-2">
+              <h3 className="section-title truncate" title={mon.name}>{mon.name}</h3>
+              <span className="shrink-0 text-sm text-text-dim">Lv.{mon.level}</span>
             </div>
+            <CloseButton onClick={onClose} className="shrink-0 self-start" />
           </div>
-          <CloseButton onClick={onClose} className="shrink-0 self-start" />
+          <div className="flex flex-wrap items-center gap-1.5">
+            {dex ? <TypeBadges t1={dex.type1} t2={dex.type2} /> : mon.type1 ? <TypeBadges t1={mon.type1 as PokeType} t2={null} /> : null}
+            {dex && <RarityBadge rarity={dex.rarity} />}
+            {mon.belowNpc && (
+              <span className="chip" style={{ background: "var(--green)", color: "#052012" }}>{t("account.market.belowNpc")}</span>
+            )}
+          </div>
         </div>
 
         {/* Numeros reais do anuncio — 2 colunas fixas, SEMPRE 4 tiles: cabem valores ate
@@ -299,7 +299,7 @@ export function MarketMonModal({ mon, dex, onClose, onBought }: { mon: MarketMon
 
         {/* Veredito: genes (IV), Quality (Q) e preco (vale a pena). Quality manda na nota.
             Linhas de altura fixa SEMPRE presentes: nota ausente vira slot esmaecido. */}
-        <div className="flex flex-col gap-2 rounded border border-border bg-[var(--well-bg)] p-3">
+        <div className="well flex flex-col gap-2">
           <div className="section-title text-purple">{t("account.market.verdict")}</div>
           <div className="flex h-7 items-center justify-between gap-2 text-base">
             <span className="text-text-dim">{t("account.market.genesLabel")}</span>
@@ -384,17 +384,17 @@ function MarketItemCard({ item, onBuy }: { item: MarketItemRow; onBuy: () => voi
   const t = useT();
   const npc = item.npcPrice != null && item.npcPrice > 0 ? item.npcPrice : null;
   return (
-    <div className="card flex min-h-[4.6rem] items-center gap-3 p-3">
+    <div className="card flex min-h-20 items-center gap-3 p-3">
       <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded bg-[var(--well-bg)]">
         {item.icon ? <Sprite src={assetIconUrl(item.icon)} alt={item.name} size={34} /> : <Loot size={20} />}
       </span>
       <div className="min-w-0 flex-1">
-        <div className="flex h-6 items-center gap-1.5 overflow-hidden">
-          <span className="pixel truncate text-base">{item.name}</span>
+        <div className="flex h-7 items-center gap-1.5 overflow-hidden">
+          <span className="pixel truncate text-base" title={item.name}>{item.name}</span>
           <span className="shrink-0 text-xs uppercase text-text-dim">{item.category}</span>
         </div>
-        <div className="flex h-6 items-center gap-x-3 overflow-hidden text-sm text-text-dim">
-          <span className="pixel shrink-0 whitespace-nowrap text-base text-text"><Price currency={item.currency} value={item.price} size={11} /> <span className="text-text-dim">{t("market.it.unit")}</span></span>
+        <div className={`${METAROW} h-7 gap-x-3 text-sm text-text-dim`}>
+          <span className="pixel shrink-0 whitespace-nowrap text-base text-text"><Price currency={item.currency} value={item.price} size={16} /> <span className="text-text-dim">{t("market.it.unit")}</span></span>
           <span className="shrink-0 whitespace-nowrap">x{fmt(item.quantity)}</span>
           <span className="shrink-0 whitespace-nowrap">{t("market.it.sellers", { n: item.sellers })}</span>
           <span className={`shrink-0 whitespace-nowrap ${npc != null ? "" : "slot-empty"}`}>NPC {npc != null ? fmt(npc) : "—"}</span>
@@ -514,8 +514,8 @@ export function MarketAdvisor({
         const itPaged = itRows ? itRows.slice(itPage * IT_PAGE, itPage * IT_PAGE + IT_PAGE) : [];
         return (
           <>
-            <Panel icon={<Loot size={12} />} accent="var(--green)" title={t("robo.caught.filters")} className="z-20 p-5" bodyClassName="gap-4">
-              <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+            <Panel icon={<Loot size={18} />} accent="var(--green)" title={t("robo.caught.filters")} className="z-20 p-4 sm:p-5" bodyClassName="gap-4">
+              <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
                 <label className="flex flex-col gap-1">
                   <span className="field-label">{t("market.it.q")}</span>
                   <input className="input" value={itQ} onChange={(e) => setItQ(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") void searchItems(); }} placeholder={t("market.it.qPh")} />
@@ -554,7 +554,7 @@ export function MarketAdvisor({
               </div>
               <div className="flex items-center justify-end">
                 <button type="button" onClick={() => void searchItems()} disabled={itBusy} className="btn btn-green disabled:opacity-40">
-                  {itBusy ? `${t("account.market.searching")}...` : <>{t("account.market.search")} <ChevronRight size={10} /></>}
+                  {itBusy ? `${t("account.market.searching")}...` : <>{t("account.market.search")} <ChevronRight size={14} /></>}
                 </button>
               </div>
             </Panel>
@@ -577,7 +577,7 @@ export function MarketAdvisor({
         );
       })() : (
       <>
-      <Panel icon={<Dollar size={12} />} accent="var(--purple)" title={t("robo.caught.filters")} className="z-20 p-5" bodyClassName="gap-4">
+      <Panel icon={<Dollar size={18} />} accent="var(--purple)" title={t("robo.caught.filters")} className="z-20 p-4 sm:p-5" bodyClassName="gap-4">
         <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
           {/* Especie e Tipo sao mutuamente exclusivos: uma especie ja e de um tipo so.
               Escolher um zera o outro. */}
@@ -651,7 +651,7 @@ export function MarketAdvisor({
         </div>
         <div className="flex items-center justify-end gap-3">
           <button type="button" onClick={() => search()} disabled={busy} className="btn btn-cyan disabled:opacity-40">
-            {busy ? `${t("account.market.searching")}...` : <>{t("account.market.search")} <ChevronRight size={10} /></>}
+            {busy ? `${t("account.market.searching")}...` : <>{t("account.market.search")} <ChevronRight size={14} /></>}
           </button>
         </div>
       </Panel>
@@ -671,7 +671,7 @@ export function MarketAdvisor({
         </div>
       )}
       {mons && mons.length > PAGE_SIZE && <Pagination page={page} pageCount={pageCount} onPage={setPage} />}
-      <div className="rounded border border-border bg-[var(--well-bg)] px-3 py-2 text-sm leading-relaxed text-text-dim">
+      <div className="well text-sm leading-relaxed text-text-dim">
         {t("account.market.legend")} {t("account.market.hint")}
       </div>
 

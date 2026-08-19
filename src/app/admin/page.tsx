@@ -22,7 +22,7 @@ export default async function AdminPage() {
     <div className="container-vip">
       <div className="flex flex-col gap-5">
         <div>
-          <h1 className="pixel text-3xl" style={{ color: ACCENT }}>Contas do PIWdex</h1>
+          <h1 className="pixel text-3xl break-words" style={{ color: ACCENT }}>Contas do PIWdex</h1>
         </div>
         <AdminDashboard users={users} />
       </div>

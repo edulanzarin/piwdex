@@ -15,7 +15,8 @@ export function Pagination({ page, pageCount, onPage }: { page: number; pageCoun
         onClick={() => onPage(Math.max(0, page - 1))}
         aria-label={t("hunt.pagePrev")}
       >
-        <ChevronLeft size={11} />
+        {/* 18: a seta e o UNICO conteudo de um botao de 40px — a 11px ela sumia */}
+        <ChevronLeft size={18} />
       </button>
       {/* largura minima + tabular-nums: o rotulo nao dança quando o numero de digitos muda */}
       <span className="min-w-[7rem] text-center text-base uppercase tracking-wide text-text-dim tabular-nums">{t("hunt.page", { a: page + 1, b: pageCount })}</span>
@@ -26,7 +27,7 @@ export function Pagination({ page, pageCount, onPage }: { page: number; pageCoun
         onClick={() => onPage(Math.min(pageCount - 1, page + 1))}
         aria-label={t("hunt.pageNext")}
       >
-        <ChevronRight size={11} />
+        <ChevronRight size={18} />
       </button>
     </div>
   );

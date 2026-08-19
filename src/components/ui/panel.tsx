@@ -4,6 +4,8 @@
 // cabecalho com icone/titulo/slot a direita) e abre so a variacao: acento, badge ao
 // vivo, acao, e o modo EXPANSIVEL (cabecalho recolhe/abre o corpo — tela densa sem
 // caixa vazia ocupando espaco). Substitui as copias soltas de `card p-4` + header.
+// O `card` e VIDRO (superficie translucida + blur): tudo que mora DENTRO do Panel usa
+// fundo chapado (--well-bg) — vidro sobre vidro em varios niveis suja a leitura.
 
 import { useState, type CSSProperties } from "react";
 import { LiveBadge } from "./status";
@@ -50,7 +52,9 @@ export function Panel({
       {right}
       {collapsible && (
         <span className="inline-flex shrink-0 text-cyan" style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform .15s" }}>
-          <Caret size={9} />
+          {/* 18px: e o chevron do CABECALHO do card — no tamanho antigo (9px) o traco
+              lucide sumia. Mesmo degrau do icone de titulo ao lado. */}
+          <Caret size={18} />
         </span>
       )}
     </>

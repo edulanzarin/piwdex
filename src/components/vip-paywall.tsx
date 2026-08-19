@@ -59,12 +59,12 @@ export function VipPaywall({ status }: { status: string | null }) {
         <p className="mx-auto mt-3 max-w-md text-base text-text-dim">{t("vip.paywall.desc")}</p>
       </div>
 
-      {banner && <div className={`rounded border px-4 py-2 text-base ${banner.cls}`}>{t(banner.k)}</div>}
+      {banner && <div className={`glass rounded border px-4 py-2 text-base ${banner.cls}`}>{t(banner.k)}</div>}
 
       {/* HERO do robo — o carro-chefe, ja pronto */}
       <div
-        className="glow-pulse card relative overflow-hidden p-6"
-        style={{ "--accent": "var(--yellow)", borderColor: "color-mix(in srgb, var(--yellow) 55%, transparent)", background: "rgba(240,200,60,0.06)" } as React.CSSProperties}
+        className="glow-pulse card relative overflow-hidden p-5 sm:p-6"
+        style={{ "--accent": "var(--yellow)", borderColor: "color-mix(in srgb, var(--yellow) 55%, transparent)", background: "color-mix(in srgb, var(--yellow) 8%, var(--surface))" } as React.CSSProperties}
       >
         <div className="flex items-start gap-4">
           <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg border border-[color:var(--yellow)]/50 bg-[var(--well-bg)] text-yellow">
@@ -88,7 +88,7 @@ export function VipPaywall({ status }: { status: string | null }) {
       </div>
 
       {/* o que mais vem junto */}
-      <div className="card flex flex-col gap-4 p-6">
+      <div className="card flex flex-col gap-4 p-5 sm:p-6">
         <div className="section-title text-cyan">{t("vip.included")}</div>
         <ul className="flex flex-col gap-3">
           {FEATURES.map(({ Icon, k }) => (
@@ -99,14 +99,15 @@ export function VipPaywall({ status }: { status: string | null }) {
           ))}
         </ul>
 
-        <div className="flex items-end justify-between gap-3 border-t border-border pt-4">
-          <div>
+        <div className="flex flex-col items-stretch gap-3 border-t border-border pt-4 sm:flex-row sm:items-end sm:justify-between">
+          <div className="min-w-0">
             <div className="pixel text-lg text-yellow">{t("vip.price")}</div>
             <div className="text-sm text-text-dim">{t("vip.priceNote")}</div>
           </div>
           {/* min-w cabe o rotulo mais largo ("Assinando...") em caixa alta: trocar de
-              estado nao muda a largura do botao */}
-          <button type="button" onClick={subscribe} disabled={busy} className="btn btn-yellow min-w-[11rem] disabled:opacity-50">
+              estado nao muda a largura do botao. No celular ele ocupa a linha inteira —
+              a 360px os 11rem do botao nao deixavam calha pro preco do lado. */}
+          <button type="button" onClick={subscribe} disabled={busy} className="btn btn-yellow w-full shrink-0 disabled:opacity-50 sm:w-auto sm:min-w-[11rem]">
             {busy ? `${t("vip.subscribing")}...` : <>{t("vip.subscribe")} <ChevronRight size={14} /></>}
           </button>
         </div>

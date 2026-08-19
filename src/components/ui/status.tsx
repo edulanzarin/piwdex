@@ -38,17 +38,20 @@ export function AlertBanner({
   action?: React.ReactNode;
 }) {
   return (
+    // vidro tingido pelo acento: a faixa usa o MESMO material do card (glass = blur +
+    // fio de luz) com a cor por cima, em vez de uma cor chapada solta sobre o fundo.
+    // px menor no celular: a 360px cada 8px de padding sai do texto do alerta.
     <div
-      className="flash-in flex min-h-[3.9rem] flex-wrap items-center gap-x-3 gap-y-2 rounded border px-4 py-2"
+      className="glass flash-in flex min-h-[3.9rem] flex-wrap items-center gap-x-3 gap-y-2 rounded border px-3 py-2 sm:px-4"
       style={{
         "--accent": color,
         borderColor: `color-mix(in srgb, ${color} 60%, transparent)`,
-        background: `color-mix(in srgb, ${color} 10%, transparent)`,
+        background: `color-mix(in srgb, ${color} 14%, var(--surface))`,
       } as CSSProperties}
     >
       <Led color={color} pulse />
-      <span className="pixel text-base" style={{ color }}>{title}</span>
-      {detail && <span className="text-sm text-text-dim">{detail}</span>}
+      <span className="pixel min-w-0 text-base" style={{ color }}>{title}</span>
+      {detail && <span className="min-w-0 text-sm text-text-dim">{detail}</span>}
       <span className="ms-auto" />
       {action}
     </div>

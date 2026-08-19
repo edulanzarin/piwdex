@@ -55,18 +55,23 @@ export function LangSwitcher() {
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-1.5 rounded border border-border px-2 py-1.5 text-sm uppercase text-text hover:bg-surface-2"
+        className="flex h-10 items-center gap-1.5 rounded border border-border px-2 text-sm uppercase text-text hover:bg-surface-2"
         aria-haspopup="listbox"
         aria-expanded={open}
       >
         <Flag code={current.code} />
         <span>{current.label}</span>
         <span className="inline-flex text-text-dim" style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform .15s" }}>
-          <Caret size={8} />
+          <Caret size={14} />
         </span>
       </button>
       {open && (
-        <div className="absolute right-0 z-50 mt-1 w-40 overflow-hidden rounded border border-[color:var(--border-strong)] bg-[#0b1122] shadow-[0_10px_40px_-10px_rgba(0,0,0,0.8)]">
+        // vidro tambem no flutuante: mesmo material do card, so com a superficie mais
+        // opaca (88%) pra o texto de baixo nao vazar por tras dos rotulos
+        <div
+          className="glass absolute right-0 z-50 mt-1 w-40 overflow-hidden border-[color:var(--border-strong)] shadow-[0_10px_40px_-10px_rgba(0,0,0,0.8)]"
+          style={{ background: "color-mix(in srgb, var(--surface-solid) 88%, transparent)" }}
+        >
           {LOCALES.map(({ code, name }) => (
             <button
               key={code}

@@ -26,10 +26,11 @@ export function useToast(): ToastApi {
 }
 
 const ACCENT: Record<Kind, string> = { success: "var(--green)", error: "var(--red)", info: "var(--cyan)" };
+// 16: o icone fica ao lado de um texto text-base; a 11px o traco de linha sumia
 const ICON: Record<Kind, React.ReactNode> = {
-  success: <Check size={11} />,
-  error: <Close size={11} />,
-  info: <Signal size={11} />,
+  success: <Check size={16} />,
+  error: <Close size={16} />,
+  info: <Signal size={16} />,
 };
 const TTL_MS = 3_500;
 
@@ -52,17 +53,21 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   return (
     <Ctx.Provider value={api}>
       {children}
-      {/* pilha fixa: acima de modal (z-60), nao captura clique fora dos cards */}
-      <div className="pointer-events-none fixed bottom-4 right-4 z-[60] flex w-72 flex-col gap-2">
+      {/* pilha fixa: acima de modal (z-60), nao captura clique fora dos cards.
+          No celular ela ocupa a largura entre as margens (w-72 fixo passava perto demais
+          da borda em 360px); do sm pra cima volta a coluna de 288px na direita. */}
+      <div className="pointer-events-none fixed bottom-4 left-4 right-4 z-[60] flex flex-col gap-2 sm:left-auto sm:w-72">
         {toasts.map((t) => (
           <button
             key={t.id}
             type="button"
             onClick={() => setToasts((ts) => ts.filter((x) => x.id !== t.id))}
-            className="pointer-events-auto flash-in flex items-center gap-2.5 rounded border bg-[color:var(--surface-solid)]/95 px-3.5 py-2.5 text-left shadow-lg backdrop-blur"
-            style={{ borderColor: `color-mix(in srgb, ${ACCENT[t.kind]} 55%, transparent)`, boxShadow: `0 8px 24px -12px ${ACCENT[t.kind]}`, "--accent": ACCENT[t.kind] } as React.CSSProperties}
+            // vidro (.glass) no lugar do fundo chapado; a opacidade sobe pra 92% porque o
+            // toast pousa em cima de qualquer tela e precisa ser lido de primeira
+            className="pointer-events-auto glass flash-in flex items-center gap-2.5 px-3.5 py-2.5 text-left"
+            style={{ background: "color-mix(in srgb, var(--surface-solid) 92%, transparent)", borderColor: `color-mix(in srgb, ${ACCENT[t.kind]} 55%, transparent)`, boxShadow: `inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 8px 24px -12px ${ACCENT[t.kind]}`, "--accent": ACCENT[t.kind] } as React.CSSProperties}
           >
-            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded" style={{ background: `color-mix(in srgb, ${ACCENT[t.kind]} 18%, transparent)`, color: ACCENT[t.kind] }}>
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded" style={{ background: `color-mix(in srgb, ${ACCENT[t.kind]} 18%, transparent)`, color: ACCENT[t.kind] }}>
               {ICON[t.kind]}
             </span>
             <span className="min-w-0 flex-1 text-base leading-snug text-text">{t.text}</span>

@@ -39,7 +39,9 @@ export function Modal({
         role="dialog"
         aria-modal="true"
         aria-labelledby={labelledBy}
-        className={`card relative flex max-h-[88vh] flex-col overflow-y-auto ${className}`}
+        // dvh (e nao vh): no celular a barra do navegador entra na conta e o modal
+        // deixava de caber. O teto de altura fica no dialogo e o conteudo rola por dentro.
+        className={`card relative flex max-h-[88dvh] flex-col overflow-y-auto ${className}`}
         onClick={(e) => e.stopPropagation()}
       >
         {children}

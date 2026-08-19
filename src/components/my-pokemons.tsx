@@ -25,6 +25,15 @@ import type { MarketDex } from "./market-advisor";
 const fmt = (n: number) => Math.round(n).toLocaleString("pt-BR");
 const ivColor = (v: number) => (v >= 150 ? "text-green" : v >= 100 ? "text-yellow" : "text-text");
 
+// Linha densa de numeros do card: altura fechada, nunca quebra e ROLA na horizontal
+// quando o card fica estreito (celular) — mesmo dialeto do trilho do HUD/mercado.
+const METAROW = "flex items-center overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden";
+// Botao de acao do card (ver stats, virar lider, guardar, tirar do box): quadrado
+// fechado de 36px, a mesma geometria do IconButton do site — alvo de toque de verdade
+// e espaco pro icone de 16 (com 11px o traco lucide virava borrao).
+// h-10/w-10 = 40px: mesmo alvo de toque do IconButton do site (h-9 dava 36px)
+const ACT_BTN = "inline-flex h-10 w-10 shrink-0 items-center justify-center rounded border border-border text-text-dim transition";
+
 export function MyPokemons({ dex }: { dex?: Record<number, MarketDex> }) {
   const t = useT();
   const toast = useToast();
@@ -109,10 +118,11 @@ export function MyPokemons({ dex }: { dex?: Record<number, MarketDex> }) {
       </div>
 
       {/* ===== time ativo: trocar lider + guardar no box ===== */}
-      <Panel icon={<Trainer size={12} />} accent="var(--yellow)" title={t("vip.team.title")} className="p-5" bodyClassName="gap-3">
+      <Panel icon={<Trainer size={18} />} accent="var(--yellow)" title={t("vip.team.title")} className="p-4 sm:p-5" bodyClassName="gap-3">
         {team.length === 0 ? (
-          // vazio com a altura de uma linha de cards do time: o painel nao pula quando o time chega
-          <EmptyState className="min-h-24 justify-center" message={t("vip.team.empty")} />
+          // vazio com a altura de uma linha de cards do time (136px: os 3 slots de acao
+          // de 36px mandam na altura do card): o painel nao pula quando o time chega
+          <EmptyState className="min-h-[8.5rem] justify-center" message={t("vip.team.empty")} />
         ) : (
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {team.map((p) => {
@@ -126,20 +136,23 @@ export function MyPokemons({ dex }: { dex?: Record<number, MarketDex> }) {
                   <span className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded bg-surface-2">
                     <Sprite src={spriteUrl(p.speciesId, p.shiny)} alt={p.name} size={40} />
                     {(p.shiny || isLeader) && (
-                      <span className="absolute -right-1 -top-1 text-yellow"><Star size={10} /></span>
+                      <span className="absolute -right-1 -top-1 text-yellow"><Star size={14} /></span>
                     )}
                     {busyId === p.id && <span className="absolute inset-0 rounded radar" />}
                   </span>
                   <div className="min-w-0 flex-1">
-                    {/* linhas de ALTURA FIXA (nada de wrap): cards da grade ficam iguais */}
-                    <div className="flex h-6 items-center gap-1.5 overflow-hidden">
-                      <span className="truncate text-base text-text">{p.name}</span>
+                    {/* linhas de ALTURA FIXA (nada de wrap): cards da grade ficam iguais.
+                        h-7 na linha de 16px e h-6 na de 15px — com a Quantico os antigos
+                        h-6/h-5 cortavam o topo e a barriga dos glifos. A linha densa ROLA
+                        na horizontal quando nao cabe (360px), em vez de perder o ultimo dado. */}
+                    <div className="flex h-7 items-center gap-1.5 overflow-hidden">
+                      <span className="truncate text-base text-text" title={p.name}>{p.name}</span>
                       <span className="pixel shrink-0 text-xs text-text-dim">Lv{p.level}</span>
                       {isLeader && <span className="chip shrink-0" style={{ background: "var(--yellow)", color: "#3a2c00" }}>{t("account.team.leader")}</span>}
                       {rar && <span className="shrink-0"><RarityBadge rarity={rar} /></span>}
                     </div>
-                    <div className="flex h-5 items-center gap-x-2.5 overflow-hidden text-sm tabular-nums text-text-dim">
-                      <span className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-cyan"><Xp size={9} />{fmt(p.power)}</span>
+                    <div className={`${METAROW} h-6 gap-x-2.5 text-sm tabular-nums text-text-dim`}>
+                      <span className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-cyan"><Xp size={14} />{fmt(p.power)}</span>
                       <span className="shrink-0 whitespace-nowrap">IV <span className={ivColor(p.ivTotal)}>{p.ivTotal}</span></span>
                       <span className="shrink-0 whitespace-nowrap">Q <span className="text-cyan">{p.quality.toFixed(2)}</span></span>
                     </div>
@@ -148,17 +161,17 @@ export function MyPokemons({ dex }: { dex?: Record<number, MarketDex> }) {
                       (reserva o espaco) — lider e reserva geram cards da MESMA altura */}
                   <div className="flex shrink-0 flex-col gap-1">
                     <button type="button" onClick={() => setStatsPoke(p)} title={t("vip.team.viewStats")}
-                      className={`rounded border border-border p-1.5 text-text-dim transition hover:border-[color:var(--cyan)]/60 hover:text-cyan ${p.stats ? "" : "invisible"}`}>
-                      <Chart size={11} />
+                      className={`${ACT_BTN} hover:border-[color:var(--cyan)]/60 hover:text-cyan ${p.stats ? "" : "invisible"}`}>
+                      <Chart size={16} />
                     </button>
                     <button type="button" onClick={() => void summon(p)} disabled={busyId != null} title={t("vip.team.makeLeader")}
-                      className={`rounded border border-border p-1.5 text-text-dim transition hover:border-[color:var(--yellow)]/60 hover:text-yellow disabled:opacity-30 ${isLeader ? "invisible" : ""}`}>
-                      <Check size={11} />
+                      className={`${ACT_BTN} hover:border-[color:var(--yellow)]/60 hover:text-yellow disabled:opacity-30 ${isLeader ? "invisible" : ""}`}>
+                      <Check size={16} />
                     </button>
                     <button type="button" onClick={() => setConfirm({ action: "store", poke: p })} disabled={moveBusy || p.starter}
                       title={p.starter ? t("vip.team.starterStay") : t("vip.team.store")}
-                      className={`rounded border border-border p-1.5 text-text-dim transition hover:border-[color:var(--cyan)]/60 hover:text-cyan disabled:opacity-30 ${isLeader ? "invisible" : ""}`}>
-                      <Backpack size={11} />
+                      className={`${ACT_BTN} hover:border-[color:var(--cyan)]/60 hover:text-cyan disabled:opacity-30 ${isLeader ? "invisible" : ""}`}>
+                      <Backpack size={16} />
                     </button>
                   </div>
                 </div>
@@ -170,19 +183,21 @@ export function MyPokemons({ dex }: { dex?: Record<number, MarketDex> }) {
 
       {/* ===== box completo: buscar, ordenar, tirar pro time ===== */}
       <Panel
-        icon={<Backpack size={12} />}
+        icon={<Backpack size={18} />}
         accent="var(--cyan)"
         // contagem com slot permanente: sem lista carregada mostra o placeholder esmaecido
         title={<>{t("vip.team.boxTitle")}<span className={`ms-2 pixel text-sm ${boxList ? "text-text-dim" : "slot-empty"}`}>{boxList ? boxList.length : "—"}</span></>}
-        className="p-5"
+        className="p-4 sm:p-5"
         bodyClassName="gap-3"
       >
         {/* aviso de time cheio SEMPRE no slot: invisible reserva a linha (nada empurra) */}
         <p className={`text-base text-yellow ${teamFull ? "" : "invisible"}`}>{t("vip.team.teamFull")}</p>
-        {/* barra de ferramentas em LINHA de altura fixa: se nao couber, rola na horizontal */}
-        <div className="flex flex-nowrap items-center gap-2 overflow-x-auto">
-          <input value={boxQ} onChange={(e) => setBoxQ(e.target.value)} placeholder={t("vip.team.boxSearch")} className="input min-w-40 max-w-xs flex-1" />
-          <div className="w-40 shrink-0">
+        {/* barra de ferramentas: uma linha de altura fixa a partir de sm; em 360px
+            empilha (nada de trilho horizontal aqui — ele cortaria o menu do seletor,
+            que e um dropdown absoluto, e esconderia o botao fora da tela) */}
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <input value={boxQ} onChange={(e) => setBoxQ(e.target.value)} placeholder={t("vip.team.boxSearch")} className="input w-full sm:max-w-xs sm:flex-1" />
+          <div className="w-full sm:w-40 sm:shrink-0">
             <SelectMenu value={boxSort} onChange={setBoxSort} className="" options={[
               { value: "quality", label: t("account.market.sort.quality") },
               { value: "iv", label: t("account.market.sort.iv") },
@@ -190,7 +205,7 @@ export function MyPokemons({ dex }: { dex?: Record<number, MarketDex> }) {
               { value: "level", label: "Level" },
             ]} />
           </div>
-          <button type="button" onClick={loadBox} className="btn btn-ghost shrink-0">{t("vip.poke.reload")}</button>
+          <button type="button" onClick={loadBox} className="btn btn-ghost w-full sm:w-auto sm:shrink-0">{t("vip.poke.reload")}</button>
         </div>
 
         {/* os 4 estados do box na MESMA caixa minima: trocar de estado nao pula o painel */}
@@ -216,16 +231,17 @@ export function MyPokemons({ dex }: { dex?: Record<number, MarketDex> }) {
                   >
                     <span className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded bg-surface-2">
                       <Sprite src={spriteUrl(p.speciesId, p.shiny)} alt={p.name} size={40} />
-                      {p.shiny && <span className="absolute -right-1 -top-1 text-yellow"><Star size={10} /></span>}
+                      {p.shiny && <span className="absolute -right-1 -top-1 text-yellow"><Star size={14} /></span>}
                     </span>
                     <span className="min-w-0 flex-1">
-                      {/* linhas de altura fixa (sem wrap): cards do box todos iguais */}
-                      <span className="flex h-6 items-center gap-1.5 overflow-hidden">
-                        <span className="truncate text-base text-text">{p.name}</span>
+                      {/* linhas de altura fixa (sem wrap): cards do box todos iguais —
+                          mesma regua do card do time (h-7 pra 16px, h-6 pra 15px) */}
+                      <span className="flex h-7 items-center gap-1.5 overflow-hidden">
+                        <span className="truncate text-base text-text" title={p.name}>{p.name}</span>
                         <span className="pixel shrink-0 text-xs text-text-dim">Lv{p.level}</span>
                         {rar && <span className="shrink-0"><RarityBadge rarity={rar} /></span>}
                       </span>
-                      <span className="flex h-5 items-center gap-x-2.5 overflow-hidden text-sm tabular-nums text-text-dim">
+                      <span className="flex h-6 items-center gap-x-2.5 overflow-hidden text-sm tabular-nums text-text-dim">
                         <span className="shrink-0 whitespace-nowrap">IV <span className={ivColor(p.ivTotal)}>{p.ivTotal}</span></span>
                         <span className="shrink-0 whitespace-nowrap">Q <span className="text-cyan">{p.quality.toFixed(2)}</span></span>
                       </span>
@@ -236,9 +252,9 @@ export function MyPokemons({ dex }: { dex?: Record<number, MarketDex> }) {
                     onClick={() => setConfirm({ action: "withdraw", poke: p })}
                     disabled={moveBusy || teamFull}
                     title={t("vip.team.withdraw")}
-                    className="shrink-0 rounded border border-border p-1.5 text-text-dim transition hover:border-[color:var(--green)]/60 hover:text-green disabled:opacity-30"
+                    className={`${ACT_BTN} hover:border-[color:var(--green)]/60 hover:text-green disabled:opacity-30`}
                   >
-                    <Plus size={11} />
+                    <Plus size={16} />
                   </button>
                 </div>
               );
@@ -249,7 +265,7 @@ export function MyPokemons({ dex }: { dex?: Record<number, MarketDex> }) {
 
       {/* confirmacao: store/withdraw MUDAM a conta no jogo de verdade */}
       {confirm && (
-        <Modal onClose={() => setConfirm(null)} className="w-full max-w-sm p-5">
+        <Modal onClose={() => setConfirm(null)} className="w-full max-w-sm p-4 sm:p-5">
           <div className="flex items-center gap-3">
             <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded bg-[var(--well-bg)]">
               <Sprite src={spriteUrl(confirm.poke.speciesId, confirm.poke.shiny)} alt={confirm.poke.name} size={40} />

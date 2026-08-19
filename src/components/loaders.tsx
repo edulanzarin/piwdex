@@ -23,14 +23,14 @@ export function GridSkeleton({ count = 20 }: { count?: number }) {
   );
 }
 
-// Skeleton da lista de itens: MESMA grid (2/3/4) e MESMO card horizontal do
-// ItemsBrowser (icone 44px + tres linhas de texto).
+// Skeleton da lista de itens: MESMA grid (1 ate 400px, depois 2/3/4) e MESMO card
+// horizontal do ItemsBrowser (icone 44px + tres linhas de texto).
 // O bloco de texto do card mede 68px na base 16px (text-sm 21 + text-sm 21 +
 // mt-0.5 2 + text-base 24); tres barras h-5 com gap-1 dao os mesmos 68px, entao os
 // dois cards tem a mesma altura fechada.
 export function ItemsSkeleton({ count = 16 }: { count?: number }) {
   return (
-    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
+    <div className="grid grid-cols-1 gap-2 min-[400px]:grid-cols-2 sm:grid-cols-3 md:grid-cols-4">
       {Array.from({ length: count }).map((_, i) => (
         <div key={i} className="card flex items-center gap-3 p-3">
           <div className="skeleton h-11 w-11 shrink-0 rounded" />

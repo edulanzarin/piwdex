@@ -27,7 +27,7 @@ export function CreatureCard({ creature, acq }: { creature: Creature; acq?: Acqu
         <div className="text-sm text-text-dim tabular-nums">
           #{String(creature.pokeId).padStart(3, "0")}
         </div>
-        {/* .pixel = peso 600 da Chakra: o nome salta do #id sem precisar de caixa alta */}
+        {/* .pixel = peso 700 da Quantico: o nome salta do #id sem precisar de caixa alta */}
         <div className="pixel truncate text-lg leading-tight">{creature.name}</div>
       </div>
       <TypeBadges t1={creature.type1} t2={creature.type2} labelFrom="sm" />

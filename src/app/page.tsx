@@ -26,17 +26,26 @@ function ToolCard({
   return (
     <Link
       href={href}
-      className="card card-link flex items-center gap-5 p-6 sm:gap-6 sm:p-8"
+      className="card card-link flex items-center gap-4 p-5 sm:gap-5 sm:p-6 lg:gap-6 lg:p-8"
     >
       {/* o icone de linha herda o acento do card (currentColor): mesma cor do titulo e
-          do CTA, entao a ferramenta se identifica pela cor e nao so pelo desenho */}
-      {icon && <span className="shrink-0" style={{ color }}>{icon}</span>}
+          do CTA, entao a ferramenta se identifica pela cor e nao so pelo desenho.
+          O tamanho do glifo e responsivo pelo CSS (48px ate o md, 64px depois): em
+          360px — e na fileira de 2 colunas do sm — os 64px comiam a coluna do texto e
+          o CTA estourava o card. */}
+      {icon && (
+        <span className="shrink-0 [&>svg]:size-12 md:[&>svg]:size-16" style={{ color }}>
+          {icon}
+        </span>
+      )}
       {/* coluna estica na altura do card (auto-rows-fr na grade) e o CTA ancora embaixo:
           todos os cards da fileira ficam com a mesma altura e botoes alinhados */}
       <div className="flex min-w-0 flex-1 flex-col gap-2.5 self-stretch">
-        <h2 className="pixel text-xl" style={{ color }}><T k={titleKey} /></h2>
+        <h2 className="pixel text-xl break-words" style={{ color }}><T k={titleKey} /></h2>
         <p className="text-sm text-text-dim leading-relaxed"><T k={descKey} /></p>
-        <span className="btn mt-auto self-start whitespace-nowrap" style={{ background: color, color: ctaText }}>
+        {/* sem whitespace-nowrap: rotulo longo (es: "Abrir planificador") quebra dentro
+            do botao em vez de vazar pra fora do card */}
+        <span className="btn mt-auto max-w-full self-start text-center" style={{ background: color, color: ctaText }}>
           <T k={ctaKey} /> <ChevronRight size={14} />
         </span>
       </div>

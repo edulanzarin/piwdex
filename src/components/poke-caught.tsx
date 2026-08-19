@@ -94,12 +94,12 @@ export function PokeCaught({ creatures }: { creatures: ComboCreature[] }) {
   return (
     <div className="flex flex-col gap-5">
       <div>
-        <h2 className="section-title flex items-center gap-2 text-green"><Star size={13} /> {t("robo.caught.title")}</h2>
+        <h2 className="section-title flex items-center gap-2 text-green"><Star size={18} /> {t("robo.caught.title")}</h2>
         <p className="mt-2 max-w-2xl text-sm text-text-dim">{t("robo.caught.desc")}</p>
       </div>
 
       {/* filtros — Panel expansivel (recolhe quando nao esta filtrando) */}
-      <Panel collapsible icon={<Gear size={12} />} accent="var(--cyan)" title={t("robo.caught.filters")} className="p-5" bodyClassName="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+      <Panel collapsible icon={<Gear size={18} />} accent="var(--cyan)" title={t("robo.caught.filters")} className="p-4 sm:p-5" bodyClassName="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
         <label className="flex flex-col gap-1"><span className="field-label">{t("robo.caught.f.species")}</span>
           <PokemonCombobox creatures={creatures} value={species} onSelect={(c) => { setSpecies(c); if (c) setType(""); }} />
         </label>
@@ -125,7 +125,7 @@ export function PokeCaught({ creatures }: { creatures: ComboCreature[] }) {
 
       {/* grade — contagem no cabecalho, limpar a direita */}
       <Panel
-        icon={<Backpack size={12} />} accent="var(--green)"
+        icon={<Backpack size={18} />} accent="var(--green)"
         title={t("robo.caught.count").replace("{n}", String(data?.total ?? 0))}
         // botao sempre no slot: invisible reserva o espaco (cabecalho de altura estavel)
         right={<button type="button" onClick={clear} disabled={clearing} className={`btn btn-ghost btn-sm disabled:opacity-40 ${(data?.total ?? 0) > 0 ? "" : "invisible"}`}>{t("robo.caught.clear")}</button>}
@@ -141,11 +141,12 @@ export function PokeCaught({ creatures }: { creatures: ComboCreature[] }) {
                   <div className="relative">
                     <Sprite src={spriteUrl(p.speciesId, p.shiny)} alt={p.name} size={56} />
                     {/* estrela shiny sempre no slot: invisible reserva o canto */}
-                    <span className={`absolute -right-1 -top-1 text-yellow ${p.shiny ? "" : "invisible"}`}><Star size={11} /></span>
+                    <span className={`absolute -right-1 -top-1 text-yellow ${p.shiny ? "" : "invisible"}`}><Star size={14} /></span>
                   </div>
-                  {/* linhas truncadas (nunca quebram): todo card da grade tem a mesma altura */}
-                  <span className="w-full truncate pixel text-base">{p.name}</span>
-                  <span className="w-full truncate text-xs text-text-dim">Lv{p.level} · IV {p.ivTotal} · Q {p.quality.toFixed(2)}</span>
+                  {/* linhas truncadas (nunca quebram): todo card da grade tem a mesma altura.
+                      Em 2 colunas de celular o corte e certo — o valor cheio fica no title. */}
+                  <span className="w-full truncate pixel text-base" title={p.name}>{p.name}</span>
+                  <span className="w-full truncate text-xs text-text-dim" title={`Lv${p.level} · IV ${p.ivTotal} · Q ${p.quality.toFixed(2)}`}>Lv{p.level} · IV {p.ivTotal} · Q {p.quality.toFixed(2)}</span>
                   <RarityBadge rarity={p.rarity} />
                 </button>
               ))}
@@ -156,17 +157,20 @@ export function PokeCaught({ creatures }: { creatures: ComboCreature[] }) {
       </Panel>
 
       {sel && (
-        <Modal onClose={() => setSel(null)} className="w-full max-w-sm p-5" labelledBy="caught-name">
+        <Modal onClose={() => setSel(null)} className="w-full max-w-sm p-4 sm:p-5" labelledBy="caught-name">
           <div className="mb-3 flex items-start justify-between gap-3">
-            <h3 id="caught-name" className="section-title truncate">{sel.name}</h3>
+            <h3 id="caught-name" className="section-title truncate" title={sel.name}>{sel.name}</h3>
             <CloseButton onClick={() => setSel(null)} />
           </div>
-          <div className="flex items-center gap-4">
+          {/* em 360px os dois tipos com rotulo nao cabem ao lado do sprite (o par mais
+              largo passa de 220px): abaixo de sm o bloco desce pra linha propria e usa
+              a largura inteira do modal, em vez de espremer ou vazar */}
+          <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:gap-4">
             <div className="relative shrink-0">
               <Sprite src={spriteUrl(sel.speciesId, sel.shiny)} alt={sel.name} size={72} />
               {sel.shiny && <span className="absolute -right-1 -top-1 text-yellow"><Star size={14} /></span>}
             </div>
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col items-start gap-2">
               <TypeBadges t1={sel.type1} t2={sel.type2} />
               <RarityBadge rarity={sel.rarity} />
             </div>

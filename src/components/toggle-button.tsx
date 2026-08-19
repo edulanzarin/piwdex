@@ -33,8 +33,7 @@ export function ToggleButton({
       aria-pressed={active}
       title={title}
       // min-h-10 (40px): na base 18px antiga o min-h-9 dava 40.5px e cumpria o alvo de
-      // toque; na base 16px ele caiu pra 36px. porque a Chakra tem peso de
-      // verdade — antes a diferenca on/off era so cor.
+      // toque; na base 16px ele caiu pra 36px, entao a altura passou a ser fechada aqui.
       className={`inline-flex min-h-10 items-center gap-2 rounded border px-3 text-base transition active:translate-y-px ${active ? ON[accent] : OFF}`}
     >
       {children}

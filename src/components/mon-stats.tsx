@@ -88,7 +88,9 @@ export function PokeStatsModal({
   const t = useT();
   const bases = dex ? [dex.baseHp, dex.baseAtk, dex.baseDef, dex.baseSpAtk, dex.baseSpDef, dex.baseSpeed] : null;
   return (
-    <Modal onClose={onClose} className="w-full max-w-md gap-5 p-5">
+    // p-4 na base: a 360px o modal ja perde 32px pro overlay, e o p-5 deixava a
+    // regua de stats com trilho de ~70px
+    <Modal onClose={onClose} className="w-full max-w-md gap-5 p-4 sm:p-5">
       <div className="flex items-center gap-4">
         <div className="relative flex h-20 w-20 shrink-0 items-center justify-center rounded bg-[var(--well-bg)]">
           <Sprite src={spriteUrl(poke.speciesId, poke.shiny)} alt={poke.name} size={72} />
@@ -106,9 +108,12 @@ export function PokeStatsModal({
             </div>
           )}
         </div>
-        <CloseButton onClick={onClose} className="shrink-0 self-start" />
+        {/* 16px: o X e a acao do cabecalho do modal — no default de 12 o traco sumia */}
+        <CloseButton onClick={onClose} size={16} className="shrink-0 self-start" />
       </div>
-      <div className="grid grid-cols-3 gap-2">
+      {/* 2 colunas no celular: a 360px as tres calhas davam ~67px de conteudo e o
+          Power de 7 digitos quebrava em tres linhas dentro do tile */}
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
         <StatTile label={t("account.col.power")} value={<span className="text-yellow">{fmt(poke.power)}</span>} />
         <StatTile label={t("account.col.iv")} value={<><span className={poke.ivTotal >= 150 ? "text-green" : poke.ivTotal >= 100 ? "text-yellow" : "text-text"}>{poke.ivTotal}</span><span className="text-sm text-text-dim">/192</span></>} />
         <StatTile label={t("account.col.quality")} value={<span className="text-cyan">{poke.quality.toFixed(3)}</span>} />

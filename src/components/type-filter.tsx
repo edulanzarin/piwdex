@@ -72,15 +72,17 @@ export function TypeFilter({
           )}
         </span>
         <span className="inline-flex text-cyan" style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform .15s" }}>
-          <Caret size={14} />
+          <Caret size={16} />
         </span>
       </button>
 
       {open && (
         <div
           role="listbox"
-          className="card fadein absolute z-30 mt-1 max-h-72 w-full overflow-auto p-1"
-          style={{ background: "var(--surface-solid)" }}
+          // mesmo vidro do SelectMenu: superficie do card com a opacidade mais alta so
+          // aqui (flutuante precisa de leitura limpa) e teto de altura pra caber no celular
+          className="card fadein absolute z-30 mt-1 max-h-[min(18rem,60vh)] w-full overflow-y-auto p-1"
+          style={{ background: "color-mix(in srgb, var(--surface-solid) 86%, transparent)" }}
         >
           <button
             type="button"

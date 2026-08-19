@@ -8,7 +8,7 @@ import { estimateIvs, powerOf, projectAll, STAT_LABELS } from "@/lib/stats";
 import { Sprite } from "./sprite";
 import { TypeBadges } from "./badges";
 import { StatIcon } from "./stat-icons";
-import { StatCompareRow } from "./stat-bar";
+import { StatCompareRow, CMP_SLOT } from "./stat-bar";
 import { Coin, Xp, ChevronRight } from "./icons";
 import { Tabs } from "./tabs";
 import { StatTile } from "./stat-tile";
@@ -67,7 +67,7 @@ function Field({
   return (
     <label className="flex flex-col gap-1">
       <span className="field-label inline-flex items-center gap-1">
-        {iconIndex != null && <StatIcon index={iconIndex} size={12} />}{label}
+        {iconIndex != null && <StatIcon index={iconIndex} size={14} />}{label}
       </span>
       <input className="input" inputMode="decimal" value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} />
     </label>
@@ -79,12 +79,12 @@ function Field({
 function CompareRowEmpty({ label, iconIndex }: { label: string; iconIndex: number }) {
   return (
     <div className="flex items-center gap-2 text-base">
-      <span className="inline-flex w-14 shrink-0 items-center gap-1 text-text-dim">
-        <StatIcon index={iconIndex} size={11} />{label}
+      <span className={`inline-flex ${CMP_SLOT.label} shrink-0 items-center gap-1 text-text-dim`}>
+        <StatIcon index={iconIndex} size={16} />{label}
       </span>
       <div className="statbar flex-1" />
-      <span className="slot-empty w-10 shrink-0 text-right tabular-nums">—</span>
-      <span className="slot-empty w-11 shrink-0 text-right tabular-nums">—</span>
+      <span className={`slot-empty ${CMP_SLOT.value} shrink-0 text-right tabular-nums`}>—</span>
+      <span className={`slot-empty ${CMP_SLOT.iv} shrink-0 text-right tabular-nums`}>—</span>
     </div>
   );
 }
@@ -159,7 +159,7 @@ export function Calculator({ creatures }: { creatures: CalcCreature[] }) {
       <div className="card p-5">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
           <div className="flex shrink-0 flex-col items-center gap-2">
-            <div className="flex h-24 w-24 items-center justify-center rounded bg-[var(--well-bg)]">
+            <div className="well flex h-24 w-24 items-center justify-center p-0">
               <Sprite src={creature ? spriteUrl(creature.pokeId) : null} alt={creature?.name ?? ""} size={80} />
             </div>
             {/* slot dos tipos: reservado mesmo sem pokemon escolhido */}
@@ -179,7 +179,7 @@ export function Calculator({ creatures }: { creatures: CalcCreature[] }) {
       </div>
 
       {Number.isFinite(lvl) && lvl > 0 && lvl < LOW_LEVEL && (
-        <div className="rounded border-l-2 border-yellow bg-[rgba(244,210,74,0.06)] px-4 py-3 text-base leading-relaxed text-text-dim">
+        <div className="rounded border-l-2 border-yellow bg-[color:var(--yellow)]/10 px-4 py-3 text-base leading-relaxed text-text-dim">
           <span className="pixel mr-1 text-sm text-yellow">!</span>{t("calc.lowLevel")}
         </div>
       )}
@@ -188,7 +188,7 @@ export function Calculator({ creatures }: { creatures: CalcCreature[] }) {
         <div className="card flex flex-col items-center gap-3 p-8 text-center">
           <p className="max-w-sm text-sm text-text-dim">{t("calc.eeveeHint")}</p>
           <Link href="/eevee" className="btn btn-cyan">
-            {t("eevee.open")} <ChevronRight size={10} />
+            {t("eevee.open")} <ChevronRight size={14} />
           </Link>
         </div>
       ) : (
@@ -211,7 +211,7 @@ export function Calculator({ creatures }: { creatures: CalcCreature[] }) {
             disabled={!canCalc || computing}
             className="btn btn-cyan shrink-0 self-start disabled:opacity-40 sm:self-auto"
           >
-            {computing ? `${t("calc.calcing")}...` : <>{t("calc.calcBtn")} <ChevronRight size={10} /></>}
+            {computing ? `${t("calc.calcing")}...` : <>{t("calc.calcBtn")} <ChevronRight size={14} /></>}
           </button>
         </div>
       </div>
@@ -222,8 +222,8 @@ export function Calculator({ creatures }: { creatures: CalcCreature[] }) {
         active={tab}
         onChange={(k) => setTab(k as "analise" | "projetar")}
         tabs={[
-          { key: "analise", label: t("calc.tab.analise"), icon: <StatIcon index={0} size={13} /> },
-          { key: "projetar", label: t("calc.tab.projetar"), icon: <Xp size={13} /> },
+          { key: "analise", label: t("calc.tab.analise"), icon: <StatIcon index={0} size={16} /> },
+          { key: "projetar", label: t("calc.tab.projetar"), icon: <Xp size={16} /> },
         ]}
       />
 
@@ -233,19 +233,21 @@ export function Calculator({ creatures }: { creatures: CalcCreature[] }) {
           de escolher o pokemon — mesmas dimensoes com e sem dado */}
       <div className="card p-5">
         <h2 className="section-title mb-3 text-yellow">{t("calc.profile")}</h2>
-        <div className="flex min-h-[1.85rem] flex-wrap items-center gap-2">
+        {/* trilho rolavel: a fila de papeis NUNCA quebra linha — a altura da faixa e a
+            mesma com um, tres ou nenhum papel */}
+        <div className="flex min-h-[1.85rem] flex-nowrap items-center gap-2 overflow-x-auto">
           {profile ? (
             profile.roles.map((r) => (
-              <span key={r} className="chip" style={{ background: "var(--surface-2)", color: "var(--text)" }}>{t(r)}</span>
+              <span key={r} className="chip shrink-0" style={{ background: "var(--surface-2)", color: "var(--text)" }}>{t(r)}</span>
             ))
           ) : (
             <span className="slot-empty text-sm">—</span>
           )}
         </div>
         <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <StatTile label={t("calc.strongStat")} icon={profile ? <StatIcon index={profile.maxI} size={12} /> : undefined} accent="var(--green)" value={profile ? STAT_LABELS[profile.maxI] : <span className="slot-empty">—</span>} />
-          <StatTile label={t("calc.weakStat")} icon={profile ? <StatIcon index={profile.minI} size={12} /> : undefined} accent="var(--red)" value={profile ? STAT_LABELS[profile.minI] : <span className="slot-empty">—</span>} />
-          <StatTile label={t("calc.xpKill")} icon={<Xp size={12} className="text-cyan" />} accent="var(--cyan)" value={creature ? creature.xp.toLocaleString("pt-BR") : <span className="slot-empty">—</span>} />
+          <StatTile label={t("calc.strongStat")} icon={profile ? <StatIcon index={profile.maxI} size={14} /> : undefined} accent="var(--green)" value={profile ? STAT_LABELS[profile.maxI] : <span className="slot-empty">—</span>} />
+          <StatTile label={t("calc.weakStat")} icon={profile ? <StatIcon index={profile.minI} size={14} /> : undefined} accent="var(--red)" value={profile ? STAT_LABELS[profile.minI] : <span className="slot-empty">—</span>} />
+          <StatTile label={t("calc.xpKill")} icon={<Xp size={14} className="text-cyan" />} accent="var(--cyan)" value={creature ? creature.xp.toLocaleString("pt-BR") : <span className="slot-empty">—</span>} />
           <StatTile label={t("calc.goldKill")} icon={<Coin />} accent="var(--green)" value={creature ? creature.goldEV.toLocaleString("pt-BR") : <span className="slot-empty">—</span>} />
         </div>
         <p className="mt-3 text-sm text-text-dim">{t("calc.bst")} <span className={`pixel ml-1 text-base ${profile ? "text-cyan" : "slot-empty"}`}>{profile ? profile.bst : "—"}</span></p>
@@ -262,13 +264,15 @@ export function Calculator({ creatures }: { creatures: CalcCreature[] }) {
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             {STAT_LABELS.map((label, i) => (
               <div key={label} className="well">
-                <div className="field-label inline-flex items-center gap-1"><StatIcon index={i} size={11} />{label}</div>
+                <div className="field-label inline-flex items-center gap-1"><StatIcon index={i} size={14} />{label}</div>
                 <div className={`tabular-nums text-lg ${iv ? (iv.ivs[i] > IV_MAX ? "text-red" : "text-text") : "slot-empty"}`}>{iv ? iv.ivs[i].toFixed(1) : "—"}</div>
               </div>
             ))}
           </div>
           <div className="flex flex-col gap-3 border-t border-border pt-3">
-            <div className="flex flex-wrap gap-6">
+            {/* tres slots em GRADE: numero grande (poder de 6 digitos) nao reflui a
+                linha nem muda a altura do card, como fazia o flex-wrap */}
+            <div className="grid grid-cols-3 gap-3">
               <div>
                 <div className="field-label">{t("calc.ivTotal")}</div>
                 <div className={`pixel text-base ${iv ? "text-green" : "slot-empty"}`}>{iv ? <>{iv.total.toFixed(0)}<span className="text-text-dim">/{IV_MAX_TOTAL}</span></> : `—/${IV_MAX_TOTAL}`}</div>
@@ -300,10 +304,10 @@ export function Calculator({ creatures }: { creatures: CalcCreature[] }) {
         <p className="mb-4 text-sm leading-relaxed text-text-dim">{t("calc.compareHint")}</p>
         <div className="grid gap-4 sm:grid-cols-2">
           {/* Seu */}
-          <div className="card p-4" style={{ borderColor: "var(--cyan)" }}>
-            <div className="mb-3 flex items-center justify-between">
-              <span className="pixel text-sm text-cyan">{t("calc.compareYou", { name: creature?.name ?? "—" })}</span>
-              <span className={`text-sm tabular-nums ${iv ? "text-text-dim" : "slot-empty"}`}>{iv ? `${iv.total.toFixed(0)}/${IV_MAX_TOTAL} · ${Math.round((iv.total / IV_MAX_TOTAL) * 100)}%` : `—/${IV_MAX_TOTAL}`}</span>
+          <div className="well p-3 sm:p-4" style={{ borderColor: "var(--cyan)" }}>
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <span className="pixel min-w-0 truncate text-sm text-cyan" title={creature?.name ?? undefined}>{t("calc.compareYou", { name: creature?.name ?? "—" })}</span>
+              <span className={`shrink-0 text-sm tabular-nums ${iv ? "text-text-dim" : "slot-empty"}`}>{iv ? `${iv.total.toFixed(0)}/${IV_MAX_TOTAL} · ${Math.round((iv.total / IV_MAX_TOTAL) * 100)}%` : `—/${IV_MAX_TOTAL}`}</span>
             </div>
             <div className="flex flex-col gap-1.5">
               {STAT_LABELS.map((lb, i) => (
@@ -315,10 +319,10 @@ export function Calculator({ creatures }: { creatures: CalcCreature[] }) {
             <div className="mt-3 border-t border-border pt-2 field-label">{t("calc.power")} <span className={`pixel ml-1 text-base ${currentPower != null ? "text-yellow" : "slot-empty"}`}>{currentPower != null ? currentPower.toLocaleString("pt-BR") : "—"}</span></div>
           </div>
           {/* Perfeito */}
-          <div className="card p-4" style={{ borderColor: "var(--green)" }}>
-            <div className="mb-3 flex items-center justify-between">
-              <span className="pixel text-sm text-green">{t("calc.comparePerfect")}</span>
-              <span className="text-sm tabular-nums text-text-dim">{IV_MAX_TOTAL}/{IV_MAX_TOTAL} · 100%</span>
+          <div className="well p-3 sm:p-4" style={{ borderColor: "var(--green)" }}>
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <span className="pixel min-w-0 truncate text-sm text-green">{t("calc.comparePerfect")}</span>
+              <span className="shrink-0 text-sm tabular-nums text-text-dim">{IV_MAX_TOTAL}/{IV_MAX_TOTAL} · 100%</span>
             </div>
             <div className="flex flex-col gap-1.5">
               {STAT_LABELS.map((lb, i) => (
@@ -336,7 +340,7 @@ export function Calculator({ creatures }: { creatures: CalcCreature[] }) {
       ) : (
       /* Aba: Projetar nivel */
       <div className="card p-5">
-        <h2 className="section-title mb-2 inline-flex items-center gap-2 text-cyan"><Xp size={14} />{t("calc.project")}</h2>
+        <h2 className="section-title mb-2 inline-flex items-center gap-2 text-cyan"><Xp size={18} />{t("calc.project")}</h2>
         <p className="mb-4 mt-1 text-sm text-text-dim">{t("calc.projectHint")}</p>
         <div className="max-w-[10rem]">
           <Field label={t("calc.targetLevel")} value={target} onChange={setTarget} placeholder="ex: 100" />
@@ -347,10 +351,10 @@ export function Calculator({ creatures }: { creatures: CalcCreature[] }) {
         </p>
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           {/* Seu, projetado no nivel alvo — placeholder ate ter projecao */}
-          <div className="card p-4" style={{ borderColor: "var(--cyan)" }}>
-            <div className="mb-3 flex items-center justify-between">
-              <span className="pixel text-sm text-cyan">{t("calc.compareYou", { name: creature?.name ?? "—" })}</span>
-              <span className={`text-sm tabular-nums ${iv ? "text-text-dim" : "slot-empty"}`}>{iv ? `${iv.total.toFixed(0)}/${IV_MAX_TOTAL} · ${Math.round((iv.total / IV_MAX_TOTAL) * 100)}%` : `—/${IV_MAX_TOTAL}`}</span>
+          <div className="well p-3 sm:p-4" style={{ borderColor: "var(--cyan)" }}>
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <span className="pixel min-w-0 truncate text-sm text-cyan" title={creature?.name ?? undefined}>{t("calc.compareYou", { name: creature?.name ?? "—" })}</span>
+              <span className={`shrink-0 text-sm tabular-nums ${iv ? "text-text-dim" : "slot-empty"}`}>{iv ? `${iv.total.toFixed(0)}/${IV_MAX_TOTAL} · ${Math.round((iv.total / IV_MAX_TOTAL) * 100)}%` : `—/${IV_MAX_TOTAL}`}</span>
             </div>
             <div className="flex flex-col gap-1.5">
               {STAT_LABELS.map((lb, i) => (
@@ -362,10 +366,10 @@ export function Calculator({ creatures }: { creatures: CalcCreature[] }) {
             <div className="mt-3 border-t border-border pt-2 field-label">{t("calc.powerAt", { n: projection ? tgt : "—" })} <span className={`pixel ml-1 text-base ${projection ? "text-yellow" : "slot-empty"}`}>{projection ? projection.power.toLocaleString("pt-BR") : "—"}</span></div>
           </div>
           {/* Perfeito, projetado no nivel alvo */}
-          <div className="card p-4" style={{ borderColor: "var(--green)" }}>
-            <div className="mb-3 flex items-center justify-between">
-              <span className="pixel text-sm text-green">{t("calc.comparePerfect")}</span>
-              <span className="text-sm tabular-nums text-text-dim">{IV_MAX_TOTAL}/{IV_MAX_TOTAL} · 100%</span>
+          <div className="well p-3 sm:p-4" style={{ borderColor: "var(--green)" }}>
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <span className="pixel min-w-0 truncate text-sm text-green">{t("calc.comparePerfect")}</span>
+              <span className="shrink-0 text-sm tabular-nums text-text-dim">{IV_MAX_TOTAL}/{IV_MAX_TOTAL} · 100%</span>
             </div>
             <div className="flex flex-col gap-1.5">
               {STAT_LABELS.map((lb, i) => (

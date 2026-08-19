@@ -21,9 +21,13 @@ const fmt = (n: number) => Math.round(n).toLocaleString("pt-BR");
 function Bar({ label, value, max, color, valueText, empty = false }: { label: React.ReactNode; value: number; max: number; color: string; valueText?: string; empty?: boolean }) {
   const pctW = max > 0 ? Math.max(value > 0 ? 3 : 0, (value / max) * 100) : 0; // piso de 3% pra barra nao sumir
   return (
-    <div className="flex items-center gap-3">
-      <span className="w-28 shrink-0 truncate text-base text-text-dim">{label}</span>
-      <div className="h-2.5 flex-1 overflow-hidden rounded-sm bg-[var(--well-bg)]">
+    // celular: o rotulo ocupa a linha inteira e o trilho+valor caem embaixo — a 360px
+    // sobravam ~60px de trilho e "Pokemon vendidos" virava "Pokemon ve...". Do sm pra
+    // cima volta a linha unica com a calha fixa de 7rem. A forma muda por BREAKPOINT,
+    // nunca por dado: a altura da linha e a mesma cheia ou vazia.
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+      <span className="w-full shrink-0 truncate text-base text-text-dim sm:w-28">{label}</span>
+      <div className="h-2.5 min-w-0 flex-1 overflow-hidden rounded-sm bg-[var(--well-bg)]">
         <div className="h-full rounded-sm transition-[width] duration-500" style={{ width: `${empty ? 0 : pctW}%`, background: color }} />
       </div>
       <span className={`w-20 shrink-0 pixel text-right text-sm tabular-nums ${empty ? "slot-empty" : ""}`} style={empty ? undefined : { color }}>
@@ -36,7 +40,9 @@ function Bar({ label, value, max, color, valueText, empty = false }: { label: Re
 // secao do dashboard: Panel colapsavel (primitivo de ui/) com acento proprio
 function Card({ title, accent, icon, children }: { title: string; accent: string; icon?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <Panel collapsible icon={icon} accent={accent} title={<span style={{ color: accent }}>{title}</span>} className="p-5" bodyClassName="gap-4">
+    // sm:p-5 (e nao p-5): o Panel ja entrega p-4, que e o padding certo a 360px —
+    // sobrescrever a partir do sm evita duas classes de padding brigando na base
+    <Panel collapsible icon={icon} accent={accent} title={<span style={{ color: accent }}>{title}</span>} className="sm:p-5" bodyClassName="gap-4">
       {children}
     </Panel>
   );
@@ -96,7 +102,7 @@ export function RoboStats() {
 
       {/* Vendas — itens e pokemon vendidos pelo robo (contagem + dolar) */}
       <Card title={t("robo.stats.sellTitle")} accent="var(--green)" icon={<Coin size={18} />}>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
           <StatTile live label={t("robo.stats.itemsSold")} value={sv(d?.itemsCount)} icon={<Loot size={14} className="text-text-dim" />} />
           <StatTile live label={t("robo.stats.itemsSoldGold")} value={sv(d?.itemsGold)} accent="var(--green)" icon={<Coin size={14} />} />
           <StatTile live label={t("robo.stats.pokesSold")} value={sv(d?.pokesCount)} icon={<Pokeball size={14} />} />

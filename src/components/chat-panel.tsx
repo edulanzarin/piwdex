@@ -53,8 +53,10 @@ function renderBody(text: string, onPoke: (p: PokeLink) => void): React.ReactNod
     const j = decodePoke(mt[1]);
     parts.push(
       j ? (
+        // max-w-full + flex-wrap: o chip carrega nome + Lv/IV/Q (~290px) e a 360px
+        // o feed tem ~268px — sem isso o balao do chat empurrava a pagina pro lado
         <button key={k++} type="button" onClick={() => onPoke(j)}
-          className="mx-0.5 inline-flex items-center gap-1 rounded border border-[color:var(--cyan)]/40 bg-[color:var(--cyan)]/10 px-1.5 py-0.5 text-sm text-cyan transition hover:border-cyan hover:bg-[color:var(--cyan)]/20">
+          className="mx-0.5 inline-flex max-w-full flex-wrap items-center gap-1 rounded border border-[color:var(--cyan)]/40 bg-[color:var(--cyan)]/10 px-1.5 py-0.5 text-left text-sm text-cyan transition hover:border-cyan hover:bg-[color:var(--cyan)]/20">
           {j.sh ? <Star size={14} className="text-yellow" /> : null}
           {j.n} <span className="text-text-dim">Lv{j.lv ?? "?"} · IV {j.iv ?? "?"} · Q{typeof j.q === "number" ? j.q.toFixed(2) : "?"}</span>
         </button>

@@ -41,7 +41,9 @@ export function DropSourcesTable({ sources }: { sources: DropRow[] }) {
   return (
     <div className="flex flex-col gap-4">
       <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+        {/* min-w: sem largura minima a tabela ENCOLHIA dentro do overflow-x-auto em vez
+            de rolar, e as cinco colunas viravam papa no celular. Agora ela rola. */}
+        <table className="w-full min-w-[36rem] text-sm">
           <thead>
             <tr className="text-left text-sm uppercase tracking-wide text-text-dim">
               <th className="pb-2 font-normal">{t("col.pokemon")}</th>
@@ -58,7 +60,7 @@ export function DropSourcesTable({ sources }: { sources: DropRow[] }) {
                   <Link href={`/dex/${s.pokeId}`} className="flex items-center gap-2 text-cyan group-hover:underline">
                     <Sprite src={spriteUrl(s.pokeId)} alt="" size={30} />
                     <span>{s.name}</span>
-                    <span className="text-text-dim opacity-0 transition group-hover:opacity-100"><ChevronRight size={10} /></span>
+                    <span className="text-text-dim opacity-0 transition group-hover:opacity-100"><ChevronRight size={14} /></span>
                   </Link>
                 </td>
                 <td className="py-1.5"><TypeBadges t1={s.type1} t2={s.type2} /></td>

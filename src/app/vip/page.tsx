@@ -90,7 +90,7 @@ export default async function VipPage({ searchParams }: { searchParams: Promise<
     <div className="container-vip">
       <div className="flex flex-col gap-5">
         <div>
-          <h1 className="pixel text-3xl" style={{ color: ACCENT }}><T k="vip.active.title" /></h1>
+          <h1 className="pixel text-3xl break-words" style={{ color: ACCENT }}><T k="vip.active.title" /></h1>
         </div>
 
         <VipShell creatures={slim} dex={dex} hunts={huntOptions} itemIcons={itemIcons} lootByPoke={lootByPoke} marketItems={marketItems} />

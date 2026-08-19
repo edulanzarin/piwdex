@@ -29,9 +29,11 @@ const SIM_IVS = Array<number>(6).fill(SIM_IV);
 
 function StatIn({ label, value, onChange, iconIndex }: { label: string; value: string; onChange: (v: string) => void; iconIndex: number }) {
   return (
-    <label className="flex flex-col gap-1">
-      <span className="field-label inline-flex items-center gap-1">
-        <StatIcon index={iconIndex} size={10} />{label}
+    <label className="flex min-w-0 flex-col gap-1">
+      {/* min-w-0 + truncate: em 360px a coluna e estreita e "SP.ATK" com o icone de
+          14 nao pode esticar a grade (a pagina nunca rola na horizontal) */}
+      <span className="field-label inline-flex min-w-0 items-center gap-1">
+        <StatIcon index={iconIndex} size={14} /><span className="truncate">{label}</span>
       </span>
       <input className="input" inputMode="decimal" value={value} onChange={(e) => onChange(e.target.value)} />
     </label>
@@ -120,16 +122,16 @@ export function RouteGenerator({ species, enemies }: { species: Species[]; enemi
             <span className="field-label">{t("hunt.route.statsOpt")}</span>
             <button type="button" className="btn btn-ghost btn-sm disabled:opacity-40" onClick={fillBase} disabled={!picked}>{t("hunt.route.useBase")}</button>
           </div>
-          <div className="grid grid-cols-3 gap-2.5">
+          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
             {STAT_LABELS.map((lb, i) => (
               <StatIn key={lb} iconIndex={i} label={lb} value={stats[i]} onChange={(v) => setStat(i, v)} />
             ))}
           </div>
           {/* IV/Power: linha SEMPRE renderizada — sem stats completos os slots ficam
               esmaecidos com "—" no mesmo lugar (nada aparece do nada) */}
-          <div className="mt-3 flex h-6 items-center gap-x-6">
-            <span className="text-sm uppercase tracking-wide text-text-dim">{t("hunt.route.ivTotal")} <span className={`pixel ml-1 text-base tabular-nums ${ivInfo.total != null ? "text-green" : "slot-empty"}`}>{ivInfo.total != null ? ivInfo.total.toFixed(1) : "—"}</span></span>
-            <span className="text-sm uppercase tracking-wide text-text-dim">{t("hunt.route.power")} <span className={`pixel ml-1 text-base tabular-nums ${ivInfo.power != null ? "text-yellow" : "slot-empty"}`}>{ivInfo.power != null ? ivInfo.power.toLocaleString("pt-BR") : "—"}</span></span>
+          <div className="mt-3 flex h-6 items-center gap-x-4 overflow-x-auto sm:gap-x-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <span className="shrink-0 text-sm uppercase tracking-wide text-text-dim">{t("hunt.route.ivTotal")} <span className={`pixel ml-1 text-base tabular-nums ${ivInfo.total != null ? "text-green" : "slot-empty"}`}>{ivInfo.total != null ? ivInfo.total.toFixed(1) : "—"}</span></span>
+            <span className="shrink-0 text-sm uppercase tracking-wide text-text-dim">{t("hunt.route.power")} <span className={`pixel ml-1 text-base tabular-nums ${ivInfo.power != null ? "text-yellow" : "slot-empty"}`}>{ivInfo.power != null ? ivInfo.power.toLocaleString("pt-BR") : "—"}</span></span>
           </div>
         </div>
 
@@ -145,10 +147,10 @@ export function RouteGenerator({ species, enemies }: { species: Species[]; enemi
               <span className="field-label">{t("hunt.route.priority")}</span>
               <div className="flex gap-1.5">
                 <ToggleButton active={mode === "xp"} onClick={() => setMode("xp")} accent="green">
-                  <Xp size={12} /> {t("hunt.route.priorityXp")}
+                  <Xp size={16} /> {t("hunt.route.priorityXp")}
                 </ToggleButton>
                 <ToggleButton active={mode === "gold"} onClick={() => setMode("gold")} accent="yellow">
-                  <Coin /> {t("hunt.route.priorityGold")}
+                  <Coin size={16} /> {t("hunt.route.priorityGold")}
                 </ToggleButton>
               </div>
             </div>
@@ -156,7 +158,7 @@ export function RouteGenerator({ species, enemies }: { species: Species[]; enemi
             <div className="flex flex-col gap-1">
               <span className="field-label">VIP</span>
               <ToggleButton active={vip} onClick={() => setVip((v) => !v)} accent="cyan">
-                <Diamond size={14} /> {t("hunt.vip")}
+                <Diamond size={16} /> {t("hunt.vip")}
               </ToggleButton>
             </div>
           </div>
@@ -168,7 +170,7 @@ export function RouteGenerator({ species, enemies }: { species: Species[]; enemi
             disabled={!canCalc || computing}
             className="btn btn-yellow min-w-[11rem] self-start disabled:opacity-40 lg:self-auto"
           >
-            {computing ? `${t("hunt.route.calcing")}...` : <>{t("hunt.route.calc")} <ChevronRight size={10} /></>}
+            {computing ? `${t("hunt.route.calcing")}...` : <>{t("hunt.route.calc")} <ChevronRight size={14} /></>}
           </button>
         </div>
       </div>
@@ -195,7 +197,7 @@ export function RouteGenerator({ species, enemies }: { species: Species[]; enemi
                   <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded bg-[var(--well-bg)]">
                     <Sprite src={spriteUrl(e.pokeId)} alt={e.name} size={34} />
                   </span>
-                  <span className="flex flex-col gap-1">
+                  <span className="flex min-w-0 flex-col gap-1">
                     <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
                       <span className="text-text">{e.name}</span>
                       <span className="text-sm uppercase tracking-wide text-text-dim">{e.areas.map(area).join(", ")} · lvl {e.huntLevel}</span>
@@ -206,23 +208,27 @@ export function RouteGenerator({ species, enemies }: { species: Species[]; enemi
 
                 <div className="flex items-center gap-2 lg:w-32 lg:shrink-0" title={t("hunt.effHint")}>
                   <span className="chip inline-flex items-center gap-1" style={{ background: TYPE_COLOR[est.moveName], color: "#fff" }}>
-                    <TypeIcon type={est.moveName} size={11} /> {typeLabel(est.moveName)}
+                    <TypeIcon type={est.moveName} size={14} /> {typeLabel(est.moveName)}
                   </span>
                   <span className={`pixel text-base ${est.eff >= 2 ? "text-green" : est.eff > 1 ? "text-cyan" : "text-text-dim"}`}>{effLabel(est.eff)}</span>
                 </div>
 
-                <div className="grid grid-cols-3 gap-3 border-t border-border/50 pt-3 text-right lg:w-56 lg:shrink-0 lg:border-l lg:border-t-0 lg:pl-4 lg:pt-0">
-                  <div className="flex flex-col items-end gap-0.5">
-                    <span className="text-xs uppercase tracking-wide text-text-dim">{t("hunt.col.kosh")}</span>
+                {/* tres metricas em 360px: gap menor e celula min-w-0 — o rotulo mais
+                    longo ("Dolares/h") trunca com title em vez de esticar o card */}
+                <div className="grid grid-cols-3 gap-2 border-t border-border/50 pt-3 text-right lg:w-56 lg:shrink-0 lg:gap-3 lg:border-l lg:border-t-0 lg:pl-4 lg:pt-0">
+                  <div className="flex min-w-0 flex-col items-end gap-0.5">
+                    <span className="truncate text-xs uppercase tracking-wide text-text-dim" title={t("hunt.col.kosh")}>{t("hunt.col.kosh")}</span>
                     <span className="tabular-nums text-sm text-cyan">{compact(est.kosH)}</span>
                   </div>
-                  <div className="flex flex-col items-end gap-0.5">
-                    <span className="inline-flex items-center gap-1 text-xs uppercase tracking-wide text-text-dim"><StatIcon index={0} size={9} />{t("hunt.col.xph")}</span>
+                  <div className="flex min-w-0 flex-col items-end gap-0.5">
+                    <span className="inline-flex min-w-0 max-w-full items-center gap-1 text-xs uppercase tracking-wide text-text-dim" title={t("hunt.col.xph")}>
+                      <StatIcon index={0} size={14} /><span className="truncate">{t("hunt.col.xph")}</span>
+                    </span>
                     <span className="tabular-nums text-sm text-green">{compact(est.xpH)}</span>
                   </div>
-                  <div className="flex flex-col items-end gap-0.5">
-                    <span className="text-xs uppercase tracking-wide text-text-dim">{t("hunt.col.goldh")}</span>
-                    <span className="inline-flex items-center gap-1 tabular-nums text-sm text-green"><Coin />{compact(est.goldH)}</span>
+                  <div className="flex min-w-0 flex-col items-end gap-0.5">
+                    <span className="truncate text-xs uppercase tracking-wide text-text-dim" title={t("hunt.col.goldh")}>{t("hunt.col.goldh")}</span>
+                    <span className="inline-flex items-center gap-1 tabular-nums text-sm text-green"><Coin size={14} />{compact(est.goldH)}</span>
                   </div>
                 </div>
               </div>
