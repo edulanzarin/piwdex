@@ -313,7 +313,7 @@ class GameSession {
   private heroMaxHp = 0;
   private downSince: number | null = null;   // quando o lider caiu (null = de pe)
   private reviveSentAt = 0;                  // ultimo field-revive
-  private recovering = false;                // saiu do campo pra curar; volta sozinho
+  private owesEnter = false;                 // deve uma entrada em `slug` (esta fora do campo)
   private recoverWarned = false;             // ja avisou que a cura esta demorando
   private reviveIds: Set<number> | null = null; // itens de categoria "revive" (dado estatico)
   private deaths = new Map<number, number>();  // alvo -> desmaios seguidos nele
@@ -388,7 +388,7 @@ class GameSession {
       desiredOn: this.desiredOn, reconnecting: this.reconnectTimer != null, nextRetryAt: this.nextRetryAt,
       contested: this.contested,
       fighterLevel: this.fighter?.level ?? null,
-      reviving: this.downSince != null || this.recovering,
+      reviving: this.downSince != null || this.owesEnter,
       heroHp: this.heroMaxHp > 0 ? this.heroHp : null,
       heroMaxHp: this.heroMaxHp > 0 ? this.heroMaxHp : null,
       holdOpen: this.holdOpen, wsOpen: this.ws != null && this.status === "running",
@@ -713,6 +713,8 @@ class GameSession {
     this.logSummary();
     this.leaveField(); // sai do campo no servidor (a conexao segurada continua viva)
     this.slug = null; this.sellIds.clear(); this.inv.clear();
+    // parar a hunt cancela a divida de entrada: nao ha pra onde voltar depois da cura
+    this.owesEnter = false; this.downSince = null; this.healNoticed = false; this.recoverWarned = false;
     this.analyzer = null; this.recentKills = []; this.soldItems = []; this.poke.soldBySpecies = {};
     this.mode = "manual"; this.leveling = null; this.plan = null; this.currentTargetId = null; this.fighter = null;
     this.queue = []; // parar a hunt cancela a fila (ela e da hunt, nao da conexao)
@@ -896,10 +898,14 @@ class GameSession {
   private enterHunt(slug: string) {
     // com o lider caido o jogo RECUSA a entrada — entrar em cima do corpo era a hunt
     // "ligada" que nao matava nada. Levanta primeiro; o retorno ao campo e automatico.
-    if (this.leaderDown()) { void this.reviveLeader(); return; }
+    if (this.leaderDown()) {
+      this.owesEnter = true; // divida registrada ANTES: quem levantar o bicho re-entra
+      void this.reviveLeader();
+      return;
+    }
     this.send({ type: "enter-hunt", slug });
     this.send({ type: "pending-get" });
-    this.recovering = false;
+    this.owesEnter = false;
   }
 
   /** Lider caido pelo ultimo estado conhecido (campo primeiro, senao a lista `pokes`). */
@@ -1039,8 +1045,8 @@ class GameSession {
   /** Lider de pe: fecha o episodio de desmaio e, se o robo tinha saido do campo pra
    *  curar, volta pra hunt sozinho. */
   private leaderIsUp() {
-    if (this.downSince == null && !this.recovering && !this.healPending) return;
-    const wasDown = this.downSince != null || this.recovering;
+    if (this.downSince == null && !this.owesEnter && !this.healPending) return;
+    const wasDown = this.downSince != null;
     this.downSince = null;
     this.healNoticed = false;   // episodio fechou: o proximo desmaio avisa de novo
     this.recoverWarned = false;
@@ -1048,15 +1054,13 @@ class GameSession {
       kind: "heal", title: "Time curado na enfermeira Joy", body: null, data: {},
     });
     this.healPending = false;
-    if (this.recovering) {
-      this.recovering = false;
-      if (this.slug && this.ws) {
-        this.enterHunt(this.slug); // de volta ao campo, mesma hunt
-        this.refreshTimers();
-        if (this.userId) void logRobotEvent(this.userId, {
-          kind: "heal", title: "De pe de novo — hunt retomada", body: this.slug, data: { slug: this.slug },
-        });
-      }
+    if (this.owesEnter && this.slug && this.ws) {
+      this.owesEnter = false;
+      this.enterHunt(this.slug); // paga a divida: de volta ao campo, mesma hunt
+      this.refreshTimers();
+      if (this.userId) void logRobotEvent(this.userId, {
+        kind: "heal", title: "De pe de novo — hunt retomada", body: this.slug, data: { slug: this.slug },
+      });
     }
     if (wasDown) this.emit("session");
   }
@@ -1084,27 +1088,30 @@ class GameSession {
       }
       this.emit("session");
     }
-    if (!this.ws || this.recovering) return;
+    if (!this.ws) return;
 
-    // 1) Revive da bolsa: levanta em campo, a hunt nem para
-    if (this.slug && now - this.reviveSentAt >= REVIVE_COOLDOWN_MS && this.hasRevive()) {
+    // 1) Revive da bolsa — so faz sentido EM CAMPO (owesEnter = estamos fora dele)
+    if (this.slug && !this.owesEnter && now - this.reviveSentAt >= REVIVE_COOLDOWN_MS && this.hasRevive()) {
       this.reviveSentAt = now;
       this.send({ type: "field-revive" });
-      return; // o proximo frame `field` confirma (fainted=false), nao o ack
+      return; // quem confirma e o proximo frame `field` (fainted:false), nao o ack
     }
-    // 2) sem Revive, ou ele nao pegou: cura de graca — mas so FORA do campo
-    if (now - this.downSince >= REVIVE_GRACE_MS) this.retreatToJoy();
+    // 2) sem Revive, ou ele nao pegou: Joy de graca, fora do campo. Cooldown proprio — se
+    // a cura nao pegar, a proxima varredura de `pokes` tenta de novo em vez de travar.
+    if (now - this.downSince >= REVIVE_GRACE_MS && now - this.healSentAt >= HEAL_COOLDOWN_MS) this.goToJoy();
   }
 
-  /** Sai do campo e passa na Joy. Guarda o slug: `leaderIsUp` re-entra quando o HP volta. */
-  private retreatToJoy() {
-    if (this.recovering || !this.ws) return;
-    this.recovering = true;
-    if (this.slug) this.send({ type: "leave-hunt" }); // fora do campo a Joy funciona
+  /** Passa na Joy (de graca) — saindo do campo antes, que e a pre-condicao dela. Guarda a
+   *  divida de entrada: `leaderIsUp` volta pra hunt quando o HP encher. */
+  private goToJoy() {
+    if (!this.ws) return;
+    const first = !this.owesEnter;
+    if (this.slug && first) this.send({ type: "leave-hunt" }); // estava em campo: sai
+    if (this.slug) this.owesEnter = true;
     this.healTeam();
     this.healPending = true; // ha alguem caido: o HP que voltar vira evento de cura
-    if (this.userId) void logRobotEvent(this.userId, {
-      kind: "heal", title: "Sem Revive na bolsa — curando na Joy",
+    if (first && this.userId) void logRobotEvent(this.userId, {
+      kind: "heal", title: "Curando na enfermeira Joy",
       body: this.slug ? `A hunt ${this.slug} volta sozinha quando o HP encher.` : null,
       data: { slug: this.slug },
     });
@@ -1132,9 +1139,8 @@ class GameSession {
     // quem decide curar e o usuario, pelo botao.
     if (!this.ws || !this.slug) return;
     void this.reviveLeader(leader!.name);
-    // curando ha tempo demais (Joy nao pegou): insiste no cooldown e avisa UMA vez
-    if (this.recovering && Date.now() - this.healSentAt >= HEAL_COOLDOWN_MS) this.healTeam();
-    if (this.recovering && !this.recoverWarned && this.downSince != null
+    // caido ha tempo demais (nem Revive nem Joy pegaram): avisa UMA vez por episodio
+    if (!this.recoverWarned && this.downSince != null
         && Date.now() - this.downSince >= RECOVER_MAX_MS && this.userId) {
       this.recoverWarned = true;
       void logRobotEvent(this.userId, {
