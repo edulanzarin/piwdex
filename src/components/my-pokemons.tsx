@@ -113,7 +113,7 @@ export function MyPokemons({ dex }: { dex?: Record<number, MarketDex> }) {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h2 className="section-title text-yellow">{t("vip.poke.title")}</h2>
+        <h2 className="section-title">{t("vip.poke.title")}</h2>
         <p className="mt-2 max-w-2xl text-sm text-text-dim">{t("vip.poke.desc")}</p>
       </div>
 

@@ -196,7 +196,7 @@ export function Calculator({ creatures }: { creatures: CalcCreature[] }) {
 
       {/* Stats atuais (acima das abas — o Calcular gera analise E projecao) */}
       <div className="card p-5">
-        <h2 className="section-title mb-3 text-cyan">{t("calc.currentStats")}</h2>
+        <h2 className="section-title mb-3">{t("calc.currentStats")}</h2>
         <p className="mb-4 text-sm text-text-dim">{t("calc.currentHint")}</p>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {STAT_LABELS.map((label, i) => (
@@ -232,7 +232,7 @@ export function Calculator({ creatures }: { creatures: CalcCreature[] }) {
       {/* Perfil / analise a partir do base: card SEMPRE presente, slots vazios antes
           de escolher o pokemon — mesmas dimensoes com e sem dado */}
       <div className="card p-5">
-        <h2 className="section-title mb-3 text-yellow">{t("calc.profile")}</h2>
+        <h2 className="section-title mb-3">{t("calc.profile")}</h2>
         {/* trilho rolavel: a fila de papeis NUNCA quebra linha — a altura da faixa e a
             mesma com um, tres ou nenhum papel */}
         <div className="flex min-h-[1.85rem] flex-nowrap items-center gap-2 overflow-x-auto">
@@ -255,7 +255,7 @@ export function Calculator({ creatures }: { creatures: CalcCreature[] }) {
 
       {/* Resultado: IVs estimados — grade SEMPRE presente, placeholder ate calcular */}
       <div className="card p-5">
-        <h2 className="section-title text-green">{t("calc.ivEstimated")}</h2>
+        <h2 className="section-title">{t("calc.ivEstimated")}</h2>
         {/* linha de status: um estado por vez no mesmo slot */}
         <p className="mt-3 min-h-[1.35rem] text-sm text-text-dim">
           {computing ? `${t("calc.calcing")}...` : iv ? "" : canCalc ? t("calc.hitCalc") : t("calc.fillStats")}
@@ -300,7 +300,7 @@ export function Calculator({ creatures }: { creatures: CalcCreature[] }) {
 
       {/* Seu vs perfeito — estrutura fixa, linhas em placeholder ate o calculo */}
       <div className="card p-5">
-        <h2 className="section-title mb-1 text-yellow">{t("calc.compare")}</h2>
+        <h2 className="section-title mb-1">{t("calc.compare")}</h2>
         <p className="mb-4 text-sm leading-relaxed text-text-dim">{t("calc.compareHint")}</p>
         <div className="grid gap-4 sm:grid-cols-2">
           {/* Seu */}
@@ -340,7 +340,7 @@ export function Calculator({ creatures }: { creatures: CalcCreature[] }) {
       ) : (
       /* Aba: Projetar nivel */
       <div className="card p-5">
-        <h2 className="section-title mb-2 inline-flex items-center gap-2 text-cyan"><Xp size={18} />{t("calc.project")}</h2>
+        <h2 className="section-title mb-2 inline-flex items-center gap-2"><Xp size={18} />{t("calc.project")}</h2>
         <p className="mb-4 mt-1 text-sm text-text-dim">{t("calc.projectHint")}</p>
         <div className="max-w-[10rem]">
           <Field label={t("calc.targetLevel")} value={target} onChange={setTarget} placeholder="ex: 100" />

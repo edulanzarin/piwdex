@@ -88,7 +88,7 @@ function HuntRowModal({ row, onClose }: { row: HuntRow; onClose: () => void }) {
 
       {/* Stats base */}
       <div className="flex flex-col gap-2.5">
-        <div className="section-title text-cyan">{t("cr.statsBase")}</div>
+        <div className="section-title">{t("cr.statsBase")}</div>
         {STAT_LABELS.map((lb, i) => (
           <StatBar key={lb} iconIndex={i} label={lb} value={row.bases[i]} best={row.bases[i] === best} />
         ))}

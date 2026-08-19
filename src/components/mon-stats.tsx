@@ -39,7 +39,7 @@ export function MonStatsSection({
 
   return (
     <div className="flex flex-col gap-2.5">
-      <div className="section-title text-cyan">{t("mon.stats.title")}</div>
+      <div className="section-title">{t("mon.stats.title")}</div>
       {canCompare
         ? STAT_KEYS.map((k, i) => {
             const perfect = projectStat(bases![i], IV_MAX, level, quality!, i);

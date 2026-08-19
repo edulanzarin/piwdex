@@ -65,7 +65,7 @@ export default async function ItemPage({
     </div>
 
     <section className="card p-5">
-      <h2 className="section-title text-green"><T k="item.whereDrops" /> ({sources.length})</h2>
+      <h2 className="section-title"><T k="item.whereDrops" /> ({sources.length})</h2>
       <p className="mb-4 mt-2 text-sm text-text-dim">
         <T k="item.whereDropsHint" />
       </p>

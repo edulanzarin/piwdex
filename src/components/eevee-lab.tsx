@@ -272,7 +272,7 @@ export function EeveeLab({ eevee, evos }: { eevee: { pokeId: number; name: strin
 
       {tab === "comparar" ? (
         <div className="card p-5">
-          <h2 className="section-title mb-1 text-yellow">{t("calc.compare")}</h2>
+          <h2 className="section-title mb-1">{t("calc.compare")}</h2>
           {/* dica ou pedido de calculo: um estado por vez no mesmo slot */}
           <p className="mb-3 min-h-[1.35rem] text-sm leading-relaxed text-text-dim">
             {cmp ? t("eevee.compareHint") : t("eevee.compareEmpty")}

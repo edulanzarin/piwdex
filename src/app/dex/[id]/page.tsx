@@ -52,7 +52,7 @@ function pctLabel(p: number): string {
 }
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
-  return <h2 className="section-title mb-4 text-cyan">{children}</h2>;
+  return <h2 className="section-title mb-4">{children}</h2>;
 }
 
 function EffRow({ titleKey, entries, emptyKey }: { titleKey: string; entries: TypeMult[]; emptyKey: string }) {

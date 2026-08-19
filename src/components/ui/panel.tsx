@@ -23,10 +23,11 @@ export function Panel({
   bodyClassName = "",
   children,
 }: {
-  /** icone pixel do cabecalho (ja colorido pelo acento) */
+  /** icone do cabecalho (cor de apoio; o acento NAO pinta mais o chrome) */
   icon?: React.ReactNode;
   title?: React.ReactNode;
-  /** cor do acento (token/var). Pinta o icone e alimenta --accent (glow/flash). */
+  /** cor do acento (token/var). Alimenta --accent (glow/flash). NAO pinta titulo nem
+   *  icone: cabecalho colorido virava arco-iris. Cor no VIP so onde ela e DADO. */
   accent?: string;
   /** badge "ao vivo" pulsando no cabecalho */
   live?: boolean;
@@ -43,15 +44,13 @@ export function Panel({
   const header = (title || icon || right) && (
     <>
       {icon && (
-        <span className="inline-flex shrink-0" style={accent ? { color: accent } : undefined}>
-          {icon}
-        </span>
+        <span className="inline-flex shrink-0 text-text-dim">{icon}</span>
       )}
       {title && <h3 className="section-title min-w-0 flex-1 truncate text-left">{title}</h3>}
       {live && <LiveBadge />}
       {right}
       {collapsible && (
-        <span className="inline-flex shrink-0 text-cyan" style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform .15s" }}>
+        <span className="inline-flex shrink-0 text-text-dim" style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform .15s" }}>
           {/* 18px: e o chevron do CABECALHO do card — no tamanho antigo (9px) o traco
               lucide sumia. Mesmo degrau do icone de titulo ao lado. */}
           <Caret size={18} />

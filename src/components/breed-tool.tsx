@@ -294,7 +294,7 @@ export function BreedTool({ creatures }: { creatures: BreedCreature[] }) {
       <section className="flex flex-col gap-4">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h2 className="section-title text-green">{t("breed.parents.title")}</h2>
+            <h2 className="section-title">{t("breed.parents.title")}</h2>
             <p className="mt-2 max-w-2xl text-sm text-text-dim">{t("breed.parents.desc")}</p>
           </div>
           <button type="button" onClick={() => setRulesOpen((o) => !o)} className="btn btn-ghost btn-sm">
@@ -354,7 +354,7 @@ export function BreedTool({ creatures }: { creatures: BreedCreature[] }) {
 
       {/* ---- 2. O ovo (resultado) ---- */}
       <section className="flex flex-col gap-4">
-        <h2 className="section-title text-cyan">{t("breed.egg.title")}</h2>
+        <h2 className="section-title">{t("breed.egg.title")}</h2>
 
         {/* modo + double stones */}
         <div className="grid gap-3 lg:grid-cols-[1fr_1fr_auto]">
@@ -491,7 +491,7 @@ export function BreedTool({ creatures }: { creatures: BreedCreature[] }) {
       {/* ---- 3. Planejador de Quality (feature nossa) ---- */}
       <section className="flex flex-col gap-4">
         <div>
-          <h2 className="section-title text-purple">{t("breed.plan.title")}</h2>
+          <h2 className="section-title">{t("breed.plan.title")}</h2>
           <p className="mt-2 max-w-2xl text-sm text-text-dim">{t("breed.plan.desc")}</p>
         </div>
         <div className="card flex flex-col gap-5 p-5">

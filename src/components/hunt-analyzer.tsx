@@ -161,7 +161,7 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <h2 className="section-title flex items-center gap-2 text-yellow"><Star size={18} /> {t("robo.hunt.title")}</h2>
+        <h2 className="section-title flex items-center gap-2"><Star size={18} /> {t("robo.hunt.title")}</h2>
         <p className="mt-2 max-w-2xl text-sm text-text-dim">{t("robo.hunt.desc")}</p>
       </div>
 
@@ -268,7 +268,7 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
         <div className="card p-4">
           <div className="mb-2.5 flex h-8 min-w-0 items-center gap-2">
             <Flag size={18} className="shrink-0 text-purple" />
-            <h3 className="section-title min-w-0 truncate text-purple">{lv ? t("robo.lv.planTitle", { name: lv.name }) : t("robo.lv.title")}</h3>
+            <h3 className="section-title min-w-0 truncate">{lv ? t("robo.lv.planTitle", { name: lv.name }) : t("robo.lv.title")}</h3>
             <span className={`pixel shrink-0 text-sm ${lv ? "text-text" : "slot-empty"}`}>
               {lv ? <>{lv.currentLevel}<span className="text-text-dim"> / {lv.targetLevel}</span></> : "—/—"}
             </span>
@@ -308,7 +308,7 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
       {pickerOpen && (
         <Modal onClose={() => setPickerOpen(false)} className="w-full max-w-lg p-4">
             <div className="mb-3 flex items-center justify-between">
-              <h3 className="section-title text-cyan">{t("robo.hunt.pickTitle")}</h3>
+              <h3 className="section-title">{t("robo.hunt.pickTitle")}</h3>
               <CloseButton onClick={() => setPickerOpen(false)} />
             </div>
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("robo.hunt.searchPh")} className="input mb-3" autoFocus />
@@ -346,7 +346,7 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
       {planOpen && (
         <Modal onClose={() => setPlanOpen(false)} className="w-full max-w-lg p-4">
           <div className="mb-3 flex items-center justify-between">
-            <h3 className="section-title flex items-center gap-2 text-purple"><Flag size={18} /> {t("robo.lv.title")}</h3>
+            <h3 className="section-title flex items-center gap-2"><Flag size={18} /> {t("robo.lv.title")}</h3>
             <CloseButton onClick={() => setPlanOpen(false)} />
           </div>
           <p className="mb-3 text-sm leading-relaxed text-text-dim">{t("robo.lv.desc")}</p>
@@ -421,7 +421,7 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
         const toggle = (id: number) => setSellDropIds((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
         return (
           <Modal onClose={() => setDropsOpen(false)} className="w-full max-w-md p-4">
-              <h3 className="section-title text-cyan">{t("robo.hunt.dropsTitle")}</h3>
+              <h3 className="section-title">{t("robo.hunt.dropsTitle")}</h3>
               <p className="mt-1 text-sm leading-relaxed text-text-dim">{t("robo.hunt.dropsDesc").replace("{hunt}", selected.name)}</p>
 
               {/* sugestao de melhor pokemon: box SEMPRE renderizado — enquanto o fetch

@@ -65,7 +65,7 @@ export function RoboStats() {
   return (
     <div className="flex flex-col gap-5">
       <div>
-        <h2 className="section-title flex items-center gap-2 text-cyan"><Robot size={18} /> {t("robo.stats.title")}</h2>
+        <h2 className="section-title flex items-center gap-2"><Robot size={18} /> {t("robo.stats.title")}</h2>
         <p className="mt-2 max-w-2xl text-sm text-text-dim">{t("robo.stats.desc")}</p>
       </div>
 

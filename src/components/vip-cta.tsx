@@ -37,8 +37,9 @@ export function VipCta({ vip }: { vip: boolean }) {
       >
         <div className="min-w-0">
           {/* titulo longo quebra em duas linhas no celular: a estrela nao pode encolher junto */}
-          <div className="section-title flex items-center gap-2 text-yellow">
-            <span className="shrink-0"><Star size={18} /></span> {t("vipcta.title")}
+          {/* gancho curto: o titulo carrega a mensagem, a linha de baixo so confirma */}
+          <div className="flex items-center gap-2 text-xl font-bold text-yellow">
+            <span className="shrink-0"><Star size={20} /></span> {t("vipcta.title")}
           </div>
           <p className="mt-2 max-w-2xl text-base leading-relaxed text-text-dim">{t("vipcta.desc")}</p>
         </div>

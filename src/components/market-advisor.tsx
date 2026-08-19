@@ -304,7 +304,7 @@ export function MarketMonModal({ mon, dex, onClose, onBought }: { mon: MarketMon
         {/* Veredito: genes (IV), Quality (Q) e preco (vale a pena). Quality manda na nota.
             Linhas de altura fixa SEMPRE presentes: nota ausente vira slot esmaecido. */}
         <div className="well flex flex-col gap-2">
-          <div className="section-title text-purple">{t("account.market.verdict")}</div>
+          <div className="section-title">{t("account.market.verdict")}</div>
           <div className="flex h-7 items-center justify-between gap-2 text-base">
             <span className="text-text-dim">{t("account.market.genesLabel")}</span>
             {genes ? <GradeChip grade={genes} label={t(`account.market.genes.${genes}`)} /> : <span className="slot-empty">—</span>}
@@ -349,7 +349,7 @@ export function MarketMonModal({ mon, dex, onClose, onBought }: { mon: MarketMon
           />
         ) : dex && (
           <div className="flex flex-col gap-2.5">
-            <div className="section-title text-cyan">{t("cr.statsBase")}</div>
+            <div className="section-title">{t("cr.statsBase")}</div>
             {STATS.map(([label, key], i) => (
               <StatBar key={key} iconIndex={i} label={label} value={dex[key] as number} best={(dex[key] as number) === best} />
             ))}
@@ -502,7 +502,7 @@ export function MarketAdvisor({
     <div className="flex flex-col gap-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h2 className="section-title text-purple">{t("account.market.title")}</h2>
+          <h2 className="section-title">{t("account.market.title")}</h2>
           <p className="mt-2 max-w-2xl text-sm text-text-dim">{t("account.market.desc")}</p>
         </div>
         {/* abas: pokemon | itens — mesmo mercado do jogo, duas vitrines */}

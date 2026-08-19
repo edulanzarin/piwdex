@@ -380,7 +380,7 @@ export function ConfigPanel() {
         <div className="flex min-w-0 items-center gap-3">
           <span className="hidden shrink-0 text-blue sm:inline-flex"><Gear size={18} /></span>
           <div className="min-w-0 flex-1">
-            <h2 className="section-title truncate text-blue">{t("vip.sec.config")}</h2>
+            <h2 className="section-title truncate">{t("vip.sec.config")}</h2>
             <p className="mt-0.5 hidden text-sm text-text-dim sm:block">{t("config.desc")}</p>
           </div>
         </div>
@@ -407,7 +407,7 @@ export function ConfigPanel() {
       {/* ---- automacao nativa do jogo ---- */}
       <section className="flex flex-col gap-3">
         <div>
-          <h3 className="section-title text-yellow">{t("robo.title")}</h3>
+          <h3 className="section-title">{t("robo.title")}</h3>
           <p className="mt-1.5 max-w-2xl text-base text-text-dim">{t("robo.desc")}</p>
         </div>
         <div className="card z-20 flex flex-col p-4 sm:p-5">
@@ -483,7 +483,7 @@ export function ConfigPanel() {
       {/* ---- venda de pokemon (travas + interruptor, salvos no servidor) ---- */}
       <section className="flex flex-col gap-3">
         <div>
-          <h3 className="section-title flex items-center gap-2 text-green"><Coin size={18} /> {t("robo.pokes.title")}</h3>
+          <h3 className="section-title flex items-center gap-2"><Coin size={18} /> {t("robo.pokes.title")}</h3>
           <p className="mt-1.5 max-w-2xl text-base text-text-dim">{t("config.sellDesc")}</p>
         </div>
         <div className="card flex flex-col p-4 sm:p-5">
@@ -512,7 +512,7 @@ export function ConfigPanel() {
       {/* ---- auto-compra de consumiveis ---- */}
       <section className="flex flex-col gap-3">
         <div>
-          <h3 className="section-title flex items-center gap-2 text-yellow"><Pokeball size={18} /> {t("robo.autobuy.title")}</h3>
+          <h3 className="section-title flex items-center gap-2"><Pokeball size={18} /> {t("robo.autobuy.title")}</h3>
           <p className="mt-1.5 max-w-2xl text-base text-text-dim">{t("robo.autobuy.desc")}</p>
         </div>
         <div className="card flex flex-col gap-3 p-4 sm:p-5">

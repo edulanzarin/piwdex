@@ -62,7 +62,7 @@ export function AccountSettings({ email, nome, vip }: { email: string; nome: str
 
       {/* nome de exibicao */}
       <form action={nameAction} className="card flex flex-col gap-3 p-5">
-        <div className="section-title text-cyan">{t("conta.sec.name")}</div>
+        <div className="section-title">{t("conta.sec.name")}</div>
         <label className="flex flex-col gap-1">
           <span className="field-label">{t("conta.f.name")}</span>
           <input name="nome" type="text" defaultValue={nome ?? ""} maxLength={40} autoComplete="name" className="input" placeholder={t("conta.f.namePh")} />
@@ -73,7 +73,7 @@ export function AccountSettings({ email, nome, vip }: { email: string; nome: str
 
       {/* senha */}
       <form action={passAction} className="card flex flex-col gap-3 p-5">
-        <div className="section-title text-cyan">{t("conta.sec.pass")}</div>
+        <div className="section-title">{t("conta.sec.pass")}</div>
         <label className="flex flex-col gap-1">
           <span className="field-label">{t("conta.f.current")}</span>
           <input name="atual" type="password" required autoComplete="current-password" className="input" />

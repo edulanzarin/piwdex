@@ -57,7 +57,7 @@ function ConnectForm({ expired }: { expired?: boolean }) {
   const t = useT();
   return (
     <div className="card p-5">
-      <h2 className="section-title text-cyan">{t("account.connect.title")}</h2>
+      <h2 className="section-title">{t("account.connect.title")}</h2>
       {expired && (
         <div
           className="glass mt-3 rounded border border-[color:var(--yellow)]/50 px-3 py-2 text-base text-yellow"
@@ -71,7 +71,7 @@ function ConnectForm({ expired }: { expired?: boolean }) {
       {/* poco CHAPADO dentro do card de vidro (nada de vidro sobre vidro): o rgba azul
           solto que estava aqui nem batia com a borda cyan da caixa */}
       <div className="mt-4 rounded border border-[color:var(--cyan)]/40 bg-[color:var(--cyan)]/5 p-4">
-        <div className="section-title text-cyan">{t("account.bm.title")}</div>
+        <div className="section-title">{t("account.bm.title")}</div>
         <ol className="mt-2 flex flex-col gap-1 text-base leading-relaxed text-text-dim">
           {["s1", "s2", "s3"].map((s) => (
             <li key={s} className="flex items-start gap-2"><span className="mt-0.5 inline-flex shrink-0 text-cyan"><ChevronRight size={16} /></span><span>{t(`account.bm.${s}`)}</span></li>
@@ -458,7 +458,7 @@ export function AccountPanel({ creatures, dex }: { creatures: ComboCreature[]; d
   return (
     <div className="flex flex-col gap-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="section-title text-green">{t("account.connected.title")}</h2>
+        <h2 className="section-title">{t("account.connected.title")}</h2>
         <button type="button" onClick={disconnect} className="btn btn-ghost">{t("account.disconnect")}</button>
       </div>
       <Overview account={account} />

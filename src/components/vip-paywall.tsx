@@ -71,7 +71,7 @@ export function VipPaywall({ status }: { status: string | null }) {
             <Robot size={40} />
           </div>
           <div className="min-w-0">
-            <div className="section-title mb-1 flex items-center gap-2 text-yellow">
+            <div className="section-title mb-1 flex items-center gap-2">
               <Star size={18} /> {t("vip.hero.badge")}
             </div>
             <h2 className="pixel text-xl leading-snug text-yellow">{t("vip.hero.robot.title")}</h2>
@@ -89,7 +89,7 @@ export function VipPaywall({ status }: { status: string | null }) {
 
       {/* o que mais vem junto */}
       <div className="card flex flex-col gap-4 p-5 sm:p-6">
-        <div className="section-title text-cyan">{t("vip.included")}</div>
+        <div className="section-title">{t("vip.included")}</div>
         <ul className="flex flex-col gap-3">
           {FEATURES.map(({ Icon, k }) => (
             <li key={k} className="flex items-start gap-3 text-base">

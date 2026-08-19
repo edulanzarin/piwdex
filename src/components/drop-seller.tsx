@@ -24,7 +24,7 @@ export function DropSeller({ itemIcons }: { itemIcons: Record<string, string> })
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <h2 className="section-title flex items-center gap-2 text-green"><Loot size={18} /> {t("robo.sold.title")}</h2>
+        <h2 className="section-title flex items-center gap-2"><Loot size={18} /> {t("robo.sold.title")}</h2>
         <p className="mt-2 max-w-2xl text-sm text-text-dim">{t("robo.sold.desc")}</p>
       </div>
 
