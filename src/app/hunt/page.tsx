@@ -83,9 +83,7 @@ export default async function HuntPage() {
       spotCount: locs.length,
       xp: c.experience,
       goldEV,
-      hp: cs.hp,
-      def: cs.def,
-      spDef: cs.spDef,
+      ...cs, // hp (x5), def, spDef + atk/spAtk: o wild tambem bate (ver threatOf)
     });
   }
 

@@ -7,7 +7,7 @@ import { parsePokeSellCfg, pokeSellOn } from "@/lib/poke-sell";
 import { getRobotDesired, MAX_GOALS, type QueuedGoal } from "@/lib/robot-session-store";
 import type { Tokens } from "@/lib/game-auth";
 import { normalizeActivePokes, type ActivePoke } from "@/lib/game-account";
-import type { FighterProfile } from "@/lib/hunt-brain";
+import { fighterOf } from "@/lib/hunt-brain";
 
 export const runtime = "nodejs";
 
@@ -44,9 +44,6 @@ async function ensureShard(userId: string, tokens: Tokens, shard: number | null)
   await saveGameShard(userId, r.shard);
   return { shard: r.shard, pokes: normalizeActivePokes(r.pokes) };
 }
-
-const profileOf = (p: ActivePoke): FighterProfile =>
-  ({ speciesId: p.speciesId, level: p.level, ivTotal: p.ivTotal, quality: p.quality });
 
 export async function GET() {
   const c = await ctx();
@@ -117,7 +114,7 @@ export async function POST(req: Request) {
 
     if (b.action === "auto") {
       const leader = pokes.find((p) => p.leader) ?? pokes[0];
-      const pick = await gameSession.startAuto(c.userId, c.tokens, es.shard, persist, profileOf(leader));
+      const pick = await gameSession.startAuto(c.userId, c.tokens, es.shard, persist, fighterOf(leader));
       if (!pick) return NextResponse.json({ error: "no_hunt_found" }, { status: 422 });
       await applySellCfg(es.shard);
       return NextResponse.json(gameSession.getState());
@@ -164,7 +161,7 @@ export async function POST(req: Request) {
       }
     }
     const started = await gameSession.startLeveling(
-      c.userId, c.tokens, es.shard, persist, profileOf(target),
+      c.userId, c.tokens, es.shard, persist, fighterOf(target),
       { pokeId, name: target.name, targetLevel },
       queue,
     );

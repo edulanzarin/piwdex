@@ -22,6 +22,7 @@ import { Panel } from "./ui/panel";
 import { Led } from "./ui/status";
 import { useToast } from "./toast";
 import { spriteUrl, assetIconUrl } from "@/lib/sprites";
+import { RISK_COLOR, type RiskLevel } from "@/lib/combat";
 
 // Uma hunt do catalogo do jogo: o `slug` e exatamente o que o enter-hunt come; o resto
 // e detalhe pro seletor (nivel, area, sprite do pokemon daquele ponto).
@@ -49,7 +50,7 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
   const [detail, setDetail] = useState<LiveHunt["recentKills"][number] | null>(null);
   const [dropsOpen, setDropsOpen] = useState(false); // modal de opcoes do modo manual
   const [sellDropIds, setSellDropIds] = useState<Set<number>>(new Set());
-  const [bestPoke, setBestPoke] = useState<{ pokeId: string; speciesId: number; name: string; level: number; power: number; eff: number } | null>(null);
+  const [bestPoke, setBestPoke] = useState<{ pokeId: string; speciesId: number; name: string; level: number; power: number; eff: number; risk: RiskLevel; killsPerLife: number } | null>(null);
   const [summonState, setSummonState] = useState<"idle" | "busy" | "done" | "fail">("idle");
   const [slug, setSlug] = useState("");
   const [busy, setBusy] = useState(false);
@@ -441,7 +442,9 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
                 <div key={i} className="well flex min-w-0 shrink-0 items-center gap-2.5 p-2 text-base">
                   <span className="pixel w-20 shrink-0 text-sm tabular-nums text-purple">{s.from}-{s.to}</span>
                   <span className="min-w-0 flex-1 truncate">{s.huntName} <span className="font-normal text-text-dim">· {s.area}</span></span>
-                  <span className="inline-flex shrink-0 items-center gap-1 tabular-nums text-cyan"><Xp size={16} />{fmt(s.xpH)}/h</span>
+                  {/* LED do risco: a faixa diz quanto rende E quanto ela te machuca */}
+                  <Led color={RISK_COLOR[s.risk]} className="shrink-0" />
+                  <span className="inline-flex shrink-0 items-center gap-1 tabular-nums text-cyan" title={t("robo.lv.surv", { n: s.killsPerLife })}><Xp size={16} />{fmt(s.xpH)}/h</span>
                 </div>
               ))
             ) : (
@@ -508,7 +511,7 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
                 </span>
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-base text-text">{t("robo.hunt.bestPoke")}: <span className={bestPoke ? "text-cyan" : "slot-empty"}>{bestPoke?.name ?? "—"}</span> <span className={bestPoke ? "text-text-dim" : "slot-empty"}>{bestPoke ? `Lv${bestPoke.level}` : "Lv —"}</span></div>
-                  <div className={`text-sm leading-relaxed ${bestPoke ? "text-text-dim" : "slot-empty"}`}>{bestPoke ? t("robo.hunt.bestPokeHint").replace("{x}", String(bestPoke.eff)) : "—"}</div>
+                  <div className={`text-sm leading-relaxed ${bestPoke ? "text-text-dim" : "slot-empty"}`}>{bestPoke ? (<>{t("robo.hunt.bestPokeHint", { x: bestPoke.eff })} <span style={{ color: RISK_COLOR[bestPoke.risk] }}>{t("robo.hunt.bestPokeSurv", { n: bestPoke.killsPerLife })}</span></>) : "—"}</div>
                 </div>
                 {summonState === "done" ? (
                   <span className="inline-flex shrink-0 items-center gap-1 text-sm text-green"><Check size={14} /> {t("robo.hunt.useThisDone")}</span>

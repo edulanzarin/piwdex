@@ -18,8 +18,8 @@ import crypto from "node:crypto";
 import { EventEmitter } from "node:events";
 import { refreshTokens, type Tokens } from "./game-auth";
 import {
-  pickBestHunt, reconsiderHunt, buildLevelPlan, stepForLevel, getBrainData,
-  type PlanStep, type FighterProfile,
+  pickBestHunt, reconsiderHunt, buildLevelPlan, stepForLevel, getBrainData, fighterOf,
+  type PlanStep, type FighterProfile, type Avoid,
 } from "./hunt-brain";
 import {
   saveRobotDesired, saveRobotStatus, getRobotDesired, MAX_GOALS,
@@ -66,6 +66,13 @@ const REVIVE_TARGET = 20;
 // frame `pokes`. Cooldown pra nao repetir o frame a cada varredura se a cura nao pegar
 // (ex: o jogo exigir estar na cidade) — a confirmacao e o HP voltando, nao o ack.
 const HEAL_COOLDOWN_MS = 60_000;
+// DESMAIO NAO E SO CURAR: se o bicho cai duas vezes no MESMO alvo, a hunt esta errada pra
+// ele — o motor estima o dano que voce toma, mas estimativa erra e a realidade nao. O robo
+// bane o alvo e troca, em vez de voltar pro mesmo bicho que acabou de mata-lo (o loop
+// "morre -> Joy -> morre" que deixava o pokemon travado no mesmo nivel por horas). O ban
+// caduca quando o pokemon ganha DANGER_FORGET_LEVELS niveis: ai a conta muda de figura.
+const DEATHS_BEFORE_FLEE = 2;
+const DANGER_FORGET_LEVELS = 10;
 const RECONNECT_BASE_MS = 5_000;
 const RECONNECT_MAX_MS = 60_000;
 // SESSAO CONTESTADA (single-session): o jogo so aceita 1 conexao por conta — a mais nova
@@ -285,6 +292,8 @@ class GameSession {
   // FILA de planos: quando o plano corrente fecha, o proximo daqui comeca sozinho
   // (summon do bicho + rota nova). Ate MAX_GOALS no total, contando o que ja roda.
   private queue: QueuedGoal[] = [];
+  private deaths = new Map<number, number>();  // alvo -> desmaios seguidos nele
+  private banned = new Map<number, number>();  // alvo banido -> nivel do bicho quando caiu
   private healSentAt = 0;        // ultimo joy-heal enviado (anti-flood)
   private healPending = false;   // curou COM alguem caido e espera o HP voltar
   private healNoticed = false;   // ja avisou deste desmaio (1 alerta por episodio)
@@ -590,7 +599,8 @@ class GameSession {
   /** Modo AUTO: o cerebro escolhe a melhor hunt pro pokemon dado (lider) e vai. Re-escolhe
    *  sozinho a cada level-up (margem de 8%). Drops da especie-alvo entram pra venda. */
   async startAuto(userId: string, tokens: Tokens, shard: number, onTokens: (t: Tokens) => Promise<void>, fighter: FighterProfile) {
-    const pick = await pickBestHunt(fighter, true);
+    this.resetDangerIf(fighter);
+    const pick = await pickBestHunt(fighter, true, this.avoidFor(fighter));
     if (!pick) return null;
     this.mode = "auto"; this.leveling = null; this.plan = null; this.queue = [];
     this.fighter = fighter; this.currentTargetId = pick.target.pokeId;
@@ -612,7 +622,8 @@ class GameSession {
     fighter: FighterProfile, goal: { pokeId: string; name: string; targetLevel: number },
     queue: QueuedGoal[] = [],
   ) {
-    const plan = await buildLevelPlan(fighter, goal.targetLevel, true);
+    this.resetDangerIf(fighter);
+    const plan = await buildLevelPlan(fighter, goal.targetLevel, true, this.avoidFor(fighter));
     if (!plan.length) return null;
     this.queue = queue.slice(0, MAX_GOALS - 1);
     const step = stepForLevel(plan, fighter.level)!;
@@ -644,13 +655,13 @@ class GameSession {
     const data = await getBrainData();
     if (d.mode === "leveling" && d.leveling && !d.leveling.done && fighter) {
       fighter.level = Math.max(fighter.level, d.leveling.currentLevel);
-      this.plan = await buildLevelPlan(fighter, d.leveling.targetLevel, true);
+      this.plan = await buildLevelPlan(fighter, d.leveling.targetLevel, true, this.avoidFor(fighter));
       const step = stepForLevel(this.plan, fighter.level);
       this.slug = step?.slug ?? d.slug;
       this.currentTargetId = step?.targetId ?? null;
       this.sellIds = new Set(step ? data.sellableLoot(step.targetId) : d.sellItemIds);
     } else if (d.mode === "auto" && fighter) {
-      const pick = await pickBestHunt(fighter, true);
+      const pick = await pickBestHunt(fighter, true, this.avoidFor(fighter));
       this.slug = pick?.target.slug ?? d.slug;
       this.currentTargetId = pick?.target.pokeId ?? null;
       this.sellIds = new Set(pick ? data.sellableLoot(pick.target.pokeId) : d.sellItemIds);
@@ -986,21 +997,84 @@ class GameSession {
     if (!this.slug || !this.ws) return; // sem hunt, quem cura e o usuario (botao)
     const leader = team.find((p) => p.leader) ?? team[0];
     if (!leader || leader.maxHp <= 0 || leader.hp > 0) return;
-    if (Date.now() - this.healSentAt < HEAL_COOLDOWN_MS) return;
-    this.healTeam();
     // UM alerta por desmaio: se a cura nao pegar, a tentativa se repete calada (o
-    // cooldown segura) em vez de encher o feed com a mesma linha a cada minuto
-    if (!this.healNoticed && this.userId) {
+    // cooldown segura) em vez de encher o feed com a mesma linha a cada minuto. A
+    // CONTAGEM tambem e por episodio, e vem ANTES do cooldown da cura: quem decide trocar
+    // de hunt e o desmaio em si, nao o intervalo entre as idas a Joy.
+    if (!this.healNoticed) {
       this.healNoticed = true;
-      void logRobotEvent(this.userId, {
+      if (this.userId) void logRobotEvent(this.userId, {
         kind: "heal", title: `${leader.name} desmaiou — o robo passou na Joy`,
         body: "Pokemon em 0 de vida nao caca; o robo pediu a cura pra hunt seguir.",
         data: { pokeId: leader.id, name: leader.name },
       });
+      void this.countDeath();
     }
+    if (Date.now() - this.healSentAt < HEAL_COOLDOWN_MS) return;
+    this.healTeam();
+  }
+
+  /** Alvos proibidos pra ESTE perfil: onde o bicho JA desmaiou. Caduca quando ele ganha
+   *  niveis de verdade (DANGER_FORGET_LEVELS) — ai a conta do motor muda de figura. */
+  private avoidFor(f: FighterProfile): Avoid {
+    return (targetId) => {
+      const at = this.banned.get(targetId);
+      return at != null && f.level < at + DANGER_FORGET_LEVELS;
+    };
+  }
+
+  /** A memoria de perigo e do PAR (cacador, alvo): trocar de cacador zera a lista. */
+  private resetDangerIf(f: FighterProfile) {
+    if (this.fighter?.speciesId !== f.speciesId) { this.deaths.clear(); this.banned.clear(); }
+  }
+
+  /** Desmaio com o cerebro no comando: o segundo no MESMO alvo bane a hunt e busca outra.
+   *  Curar e voltar pro mesmo bicho que te matou nao e plano — e o loop que trava o nivel. */
+  private async countDeath() {
+    if (this.mode === "manual" || !this.fighter || this.currentTargetId == null) return;
+    const id = this.currentTargetId;
+    const n = (this.deaths.get(id) ?? 0) + 1;
+    this.deaths.set(id, n);
+    if (n < DEATHS_BEFORE_FLEE || this.thinking) return;
+    this.thinking = true;
+    try {
+      this.banned.set(id, this.fighter.level);
+      this.deaths.set(id, 0);
+      const data = await getBrainData();
+      const dead = data.targets.find((t) => t.pokeId === id)?.name ?? "essa hunt";
+      const why = `${dead} derrubou seu pokemon ${n}x no nivel ${this.fighter.level} — hunt trocada`;
+
+      // leveling: refaz o PLANO inteiro sem o alvo banido (as faixas seguintes tambem
+      // mudam; so trocar a faixa atual voltaria pra ele no proximo level-up)
+      if (this.mode === "leveling" && this.leveling && !this.leveling.done) {
+        const plan = await buildLevelPlan(this.fighter, this.leveling.targetLevel, true, this.avoidFor(this.fighter));
+        const step = plan.length ? stepForLevel(plan, this.fighter.level) : null;
+        if (step) {
+          this.plan = plan;
+          await this.switchHunt(step.slug, step.targetId, why);
+          this.persistDesired({ leveling: this.leveling });
+          this.emit("session");
+          return;
+        }
+      }
+      const pick = await pickBestHunt(this.fighter, true, this.avoidFor(this.fighter));
+      if (pick && pick.target.pokeId !== id) {
+        await this.switchHunt(pick.target.slug, pick.target.pokeId, why);
+      } else if (this.userId) {
+        // nada melhor no alcance: avisa em vez de seguir batendo cabeca calado
+        void logRobotEvent(this.userId, {
+          kind: "error", title: `${dead} esta derrubando seu pokemon`,
+          body: "O cerebro nao achou hunt melhor no alcance deste nivel. Troque o lider por um mais resistente ou escolha a hunt na mao.",
+          data: { targetId: id, level: this.fighter.level },
+        });
+      }
+      this.emit("session");
+    } catch { /* cerebro nunca derruba a sessao */ } finally { this.thinking = false; }
   }
 
   // fallback via lista de pokes (20s): se os frames de XP nao trouxerem level, a lista traz.
+  // De quebra, RENOVA os stats do lutador: e deles que o motor tira o HP/Def reais pra
+  // medir o que voce aguenta (evolucao/level-up mudam o bicho, o perfil tem que seguir).
   private trackLevelFromPokes(list: unknown[]) {
     if (this.mode === "manual" || !this.fighter) return;
     try {
@@ -1008,7 +1082,11 @@ class GameSession {
       const target = this.leveling
         ? all.find((p) => p.id === this.leveling!.pokeId)
         : (all.find((p) => p.leader) ?? null);
-      if (target && target.level > this.fighter.level) this.trackLevel(target.level, true);
+      if (!target) return;
+      const fresh = fighterOf(target);
+      if (fresh.stats) { this.fighter.stats = fresh.stats; this.fighter.statsAt = fresh.statsAt; }
+      this.fighter.ivTotal = fresh.ivTotal; this.fighter.quality = fresh.quality;
+      if (target.level > this.fighter.level) this.trackLevel(target.level, true);
     } catch { /* fallback e best-effort */ }
   }
 
@@ -1054,7 +1132,7 @@ class GameSession {
         }
       }
       if (this.mode === "auto" && this.currentTargetId != null) {
-        const better = await reconsiderHunt(this.fighter, this.currentTargetId, true);
+        const better = await reconsiderHunt(this.fighter, this.currentTargetId, true, this.avoidFor(this.fighter));
         if (better) {
           await this.switchHunt(better.target.slug, better.target.pokeId,
             `Auto: ${better.target.huntName} rende mais no nivel ${level} (~${Math.round(better.est.xpH).toLocaleString("pt-BR")} XP/h)`);
@@ -1081,8 +1159,9 @@ class GameSession {
       if (!poke) { skip("O pokemon nao esta mais no time (guardado, vendido ou trocado)."); continue; }
       if (poke.level >= next.targetLevel) { skip(`Ja estava no nivel ${poke.level}, na meta ${next.targetLevel} ou acima.`); continue; }
 
-      const fighter: FighterProfile = { speciesId: poke.speciesId, level: poke.level, ivTotal: poke.ivTotal, quality: poke.quality };
-      const plan = await buildLevelPlan(fighter, next.targetLevel, true).catch(() => []);
+      const fighter = fighterOf(poke);
+      this.resetDangerIf(fighter);
+      const plan = await buildLevelPlan(fighter, next.targetLevel, true, this.avoidFor(fighter)).catch(() => []);
       const step = plan.length ? stepForLevel(plan, fighter.level) : null;
       if (!step) { skip("O cerebro nao achou rota pra esse alvo."); continue; }
 

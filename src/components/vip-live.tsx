@@ -7,6 +7,7 @@
 // server-only: importam node:crypto/pg — nao podem entrar no bundle do client).
 
 import { createContext, useContext, useEffect, useRef, useState } from "react";
+import type { RiskLevel } from "@/lib/combat";
 
 // ---- espelhos dos tipos do servidor ----
 
@@ -34,6 +35,8 @@ export type LiveMode = "manual" | "auto" | "leveling";
 export interface LivePlanStep {
   from: number; to: number; slug: string; huntName: string; area: string;
   targetId: number; targetName: string; xpH: number; goldH: number; kosH: number;
+  risk: RiskLevel;      // como a faixa te trata (o XP/h ja desconta o desmaio)
+  killsPerLife: number; // kills que a vida cheia aguenta nessa faixa
 }
 export interface LiveLeveling {
   pokeId: string; speciesId: number; name: string;

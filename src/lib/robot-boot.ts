@@ -3,7 +3,7 @@ import { getGameLink, updateGameTokens, saveGameShard } from "@/lib/game-link";
 import { fetchActivePokes } from "@/lib/game-ws";
 import { gameSession } from "@/lib/game-hunt-session";
 import { normalizeActivePokes } from "@/lib/game-account";
-import type { FighterProfile } from "@/lib/hunt-brain";
+import { fighterOf, type FighterProfile } from "@/lib/hunt-brain";
 
 // Boot do robo: religa a sessao persistida quando o container (re)nasce. Chamado pelo
 // instrumentation.ts com um delay (banco subindo). O motor e single-conta por processo:
@@ -33,9 +33,7 @@ export async function resumeRobotSessions(): Promise<void> {
   // perfil do pokemon que caca: o do plano de leveling, senao o lider do snapshot
   const src = (d.leveling && team.find((p) => p.id === d.leveling!.pokeId))
     ?? team.find((p) => p.leader) ?? team[0] ?? null;
-  const fighter: FighterProfile | null = src
-    ? { speciesId: src.speciesId, level: src.level, ivTotal: src.ivTotal, quality: src.quality }
-    : null;
+  const fighter: FighterProfile | null = src ? fighterOf(src) : null;
 
   const persist = (tk: Parameters<typeof updateGameTokens>[1]) => updateGameTokens(first.userId, tk);
 

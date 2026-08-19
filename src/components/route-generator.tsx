@@ -13,7 +13,7 @@ import { useT, useTypeLabel } from "./locale-provider";
 import { TYPE_COLOR } from "@/lib/typing";
 import { STAT_LABELS, estimateIvs, powerOf } from "@/lib/stats";
 import { StatIcon } from "./stat-icons";
-import { buildRoute, SIM_IV, type Species, type EnemyCombat, type RouteStep, type RouteMode } from "@/lib/combat";
+import { buildRoute, RISK_COLOR, SIM_IV, type Species, type EnemyCombat, type RouteStep, type RouteMode } from "@/lib/combat";
 
 const compact = (n: number): string => {
   if (!Number.isFinite(n)) return "—";
@@ -89,7 +89,10 @@ export function RouteGenerator({ species, enemies }: { species: Species[]; enemi
     setComputing(true);
     // pequeno atraso pra mostrar o loader (o calculo em si e instantaneo).
     window.setTimeout(() => {
-      setResult(buildRoute(picked, lvl, tgt, enemies, qual, ivInfo.ivs, mode, vip));
+      // golpes do wild saem do proprio catalogo de especies (o alvo nao os carrega:
+      // seriam ~120KB a mais no payload da pagina)
+      const movesOf = (pokeId: number) => byId.get(pokeId)?.moves ?? [];
+      setResult(buildRoute(picked, lvl, tgt, enemies, movesOf, qual, ivInfo.ivs, mode, vip));
       setComputing(false);
     }, 650);
   };
@@ -188,6 +191,7 @@ export function RouteGenerator({ species, enemies }: { species: Species[]; enemi
           {result.map((step) => {
             const e = step.enemy;
             const est = step.est;
+            const th = est.threat;
             return (
               <div key={`${step.from}-${e.pokeId}`} className="card flex flex-col gap-4 p-4 lg:flex-row lg:items-center">
                 <span className="pixel text-sm text-cyan lg:w-24 lg:shrink-0">{t("hunt.route.band", { a: step.from, b: step.to })}</span>
@@ -206,11 +210,31 @@ export function RouteGenerator({ species, enemies }: { species: Species[]; enemi
                   </span>
                 </div>
 
-                <div className="flex items-center gap-2 lg:w-32 lg:shrink-0" title={t("hunt.effHint")}>
-                  <span className="chip inline-flex items-center gap-1" style={{ background: TYPE_COLOR[est.moveName], color: "#fff" }}>
-                    <TypeIcon type={est.moveName} size={14} /> {typeLabel(est.moveName)}
-                  </span>
-                  <span className={`pixel text-base ${est.eff >= 2 ? "text-green" : est.eff > 1 ? "text-cyan" : "text-text-dim"}`}>{effLabel(est.eff)}</span>
+                {/* Os DOIS lados do combate na mesma coluna: em cima o seu golpe, embaixo
+                    o que ELE faz com voce. Ler so a linha de cima e como o motor mandava
+                    um Abra de 9 de HP pro Gastly. */}
+                <div className="flex flex-col gap-1.5 border-t border-border/50 pt-3 lg:w-44 lg:shrink-0 lg:border-l lg:border-t-0 lg:pl-4 lg:pt-0">
+                  <div className="flex items-center gap-2" title={t("hunt.effHint")}>
+                    <span className="chip inline-flex items-center gap-1" style={{ background: TYPE_COLOR[est.moveName], color: "#fff" }}>
+                      <TypeIcon type={est.moveName} size={14} /> {typeLabel(est.moveName)}
+                    </span>
+                    <span className={`pixel text-base ${est.eff >= 2 ? "text-green" : est.eff > 1 ? "text-cyan" : "text-text-dim"}`}>{effLabel(est.eff)}</span>
+                  </div>
+                  <div
+                    className="flex items-center gap-2"
+                    title={th.moveType
+                      ? t("hunt.route.riskHint", { name: e.name, type: typeLabel(th.moveType), eff: effLabel(th.eff), dmg: th.hitDmg, n: th.killsPerLife })
+                      : t("hunt.route.noThreat", { name: e.name })}
+                  >
+                    <span className="text-xs uppercase tracking-wide text-text-dim">{t("hunt.route.takes")}</span>
+                    {th.moveType ? (
+                      <span className="inline-flex items-center gap-1 text-text-dim">
+                        <TypeIcon type={th.moveType} size={14} />
+                        <span className="tabular-nums text-sm">{effLabel(th.eff)}</span>
+                      </span>
+                    ) : null}
+                    <span className="pixel text-sm" style={{ color: RISK_COLOR[th.risk] }}>{t(`hunt.route.${th.risk}`)}</span>
+                  </div>
                 </div>
 
                 {/* tres metricas em 360px: gap menor e celula min-w-0 — o rotulo mais

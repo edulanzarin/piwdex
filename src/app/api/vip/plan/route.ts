@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { getGameLink } from "@/lib/game-link";
-import { buildLevelPlan } from "@/lib/hunt-brain";
+import { buildLevelPlan, fighterOf } from "@/lib/hunt-brain";
 
 export const runtime = "nodejs";
 
@@ -28,10 +28,7 @@ export async function GET(req: Request) {
   if (!poke) return NextResponse.json({ error: "poke_not_found" }, { status: 404 });
   if (poke.level >= target) return NextResponse.json({ error: "already_there" }, { status: 400 });
 
-  const steps = await buildLevelPlan(
-    { speciesId: poke.speciesId, level: poke.level, ivTotal: poke.ivTotal, quality: poke.quality },
-    Math.floor(target), true,
-  );
+  const steps = await buildLevelPlan(fighterOf(poke), Math.floor(target), true);
   return NextResponse.json({
     poke: { id: poke.id, name: poke.name, speciesId: poke.speciesId, level: poke.level, shiny: poke.shiny },
     targetLevel: Math.floor(target),
