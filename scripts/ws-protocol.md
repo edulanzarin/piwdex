@@ -36,12 +36,30 @@ Conexao: `wss://poke.idleworld.online/ws<shard>?token=<accessJWT>&cmid=<hex>`
   que nao entrou no campo, volta tudo 0. O slug (ex. "ledian") vem do `hunt-config`
   REST / do `field-init`.
 - **`{"type":"joy-heal"}`** (sem parametro) -> responde `joy-healed` e reenvia `pokes`
-  com o HP cheio. E a enfermeira Joy: cura o TIME. Confirmado por HAR ago/2026 — no
-  mesmo captura, um Ledian 0/24 que estava no BOX seguiu 0/24 depois do `joy-healed`,
-  entao a cura NAO alcanca o box. Pokemon em 0 de HP nao entra em campo (a hunt fica
-  ligada sem matar nada), por isso o robo manda esse frame sozinho quando ve o lider
-  caido. MUTA a conta (reversivel/sem custo observado). Nao ha coordenada no frame: o
-  servidor nao pediu proximidade da NPC nesta captura.
+  com o HP cheio. E a enfermeira Joy: cura o TIME (o BOX nao — no HAR ago/2026 um
+  Ledian 0/24 no box seguiu 0/24 depois do `joy-healed`). No cliente e a acao da NPC
+  "nurse", que so existe NA CIDADE: **com o char em campo a cura nao levanta o lider
+  desmaiado** — foi o que fez o robo "curar" em loop com o pokemon morto no chao.
+  Mandar `leave-hunt` ANTES. MUTA a conta (de graca).
+- **`{"type":"field-revive"}`** (sem parametro) -> LEVANTA o lider desmaiado em pleno
+  campo, gastando um **Revive da bolsa** (categoria `revive`). E o botao "Reviver agora"
+  do modal de desmaio. Sem Revive na bolsa nao acontece nada. Confirma pelo proximo
+  frame `field` (`fainted:false`), nao por ack. MUTA a conta e CONSOME item.
+- **`{"type":"use-heal","itemId":<id>}`** -> usa um item de categoria `heal` (pocao,
+  cura o lider) ou `revive` direto da mochila. E o duplo-clique no item do inventario.
+
+### Desmaio do lider (bundle do cliente, ago/2026)
+Quando o lider cai em hunt, o jogo abre um modal com contagem regressiva e duas saidas:
+**Reviver agora** (`field-revive`) ou **Voltar para a cidade** (`leave-hunt` + viagem).
+Estourou o timer sem Revive, o proprio servidor te tira do campo.
+- Viajar/entrar em hunt com o lider desmaiado e RECUSADO: _"Seu Pokemon esta desmaiado!
+  Cure-o com a Nurse Joy ou use um Revive antes de ir cacar"_. Trocar de hunt em cima do
+  corpo nao funciona — levantar vem primeiro.
+- A viagem entre cidade e hunt e do CLIENTE (so `GET /api/game/hunt-config?slug=` +
+  render do mapa). Pro servidor, "onde voce esta" e so estar ou nao EM CAMPO
+  (`enter-hunt`/`leave-hunt`) — e e disso que a Joy depende.
+- `autoRevive` do Auto-Helper faz o proprio jogo gastar o Revive ("usa Revive ao
+  desmaiar"); o robo nao depende dele, manda `field-revive` por conta.
 - **`{"type":"poke-summon","pokeId":"<id>"}`** -> define o pokemon ATIVO/LIDER (o que
   caca). MUTA a conta. Verificado: apos summon do Primeape, o `pokes` voltou com ele
   leader:true slot:0 e o lider anterior (Golem) leader:false slot:1. Responde com
@@ -79,6 +97,9 @@ o piwdex segura, o navegador do jogo fica em "conta em uso".
   interno do `family` preenchido ainda desconhecido)
 
 ### Stream da hunt (so depois do "entrar no campo")
+- `field` (~2/seg): tambem traz a VIDA do lider — `heroHp`, `heroMaxHp`, `fainted` e
+  `reviveInMs` (quanto falta pro servidor te mandar pra cidade). E a fonte rapida de
+  "desmaiou": o `pokes` so passa a cada 20s.
 - `field` (~2/seg): `{seq, serverNow, hero:{row,col,facing}, mobs:[{slot,speciesId,hp,
   maxHp,dead,respawning,shiny}], corpses:[], targetSlot, fighting, heroHp, heroMaxHp,
   fainted, reviveInMs, allMobsDead, hits:[{slot,amount,eff,move,type}]}`

@@ -66,6 +66,18 @@ const REVIVE_TARGET = 20;
 // frame `pokes`. Cooldown pra nao repetir o frame a cada varredura se a cura nao pegar
 // (ex: o jogo exigir estar na cidade) — a confirmacao e o HP voltando, nao o ack.
 const HEAL_COOLDOWN_MS = 60_000;
+// DESMAIO EM CAMPO (bundle do jogo, ago/2026 — ver scripts/ws-protocol.md):
+//   - o frame `field` (~2/s) traz heroHp/heroMaxHp/fainted/reviveInMs: e a fonte RAPIDA
+//     de "caiu", contra os 20s do `pokes`;
+//   - `field-revive` gasta um Revive da bolsa e levanta o lider SEM sair da hunt;
+//   - sem Revive o jogo te devolve pra cidade quando o timer estoura, e la a Joy cura de
+//     graca — mas `joy-heal` com o char EM CAMPO nao levanta ninguem (era por isso que o
+//     robo "curava" e o pokemon continuava morto);
+//   - com o lider desmaiado o jogo RECUSA entrar em hunt ("Cure-o com a Nurse Joy ou use
+//     um Revive antes de ir cacar"), entao trocar de hunt em cima do corpo nao funciona.
+const REVIVE_COOLDOWN_MS = 15_000; // anti-flood do field-revive (o `field` vem 2x/s)
+const REVIVE_GRACE_MS = 8_000;     // sem levantar nesse tempo, sai do campo e vai pra Joy
+const RECOVER_MAX_MS = 3 * 60_000; // curando ha tempo demais: avisa (1x por episodio)
 // DESMAIO NAO E SO CURAR: se o bicho cai duas vezes no MESMO alvo, a hunt esta errada pra
 // ele — o motor estima o dano que voce toma, mas estimativa erra e a realidade nao. O robo
 // bane o alvo e troca, em vez de voltar pro mesmo bicho que acabou de mata-lo (o loop
@@ -143,6 +155,10 @@ export interface HuntState {
   nextRetryAt: number | null;  // quando a proxima tentativa dispara
   contested: boolean;          // pausou porque a conta foi tomada (usuario entrou no jogo)
   fighterLevel: number | null; // nivel AO VIVO do pokemon que caca (frames do WS)
+  // desmaio do lider: a hunt esta parada e o robo esta levantando o bicho (Revive/Joy)
+  reviving: boolean;
+  heroHp: number | null;       // vida do lider no campo (frame `field`, ~2/s)
+  heroMaxHp: number | null;
   // conexao-primeiro: o robo TOMA a sessao da conta e segura; hunt/venda sao jobs em cima
   holdOpen: boolean;           // usuario quer a conexao segurada (mesmo sem hunt)
   wsOpen: boolean;             // o socket esta aberto AGORA
@@ -292,6 +308,14 @@ class GameSession {
   // FILA de planos: quando o plano corrente fecha, o proximo daqui comeca sozinho
   // (summon do bicho + rota nova). Ate MAX_GOALS no total, contando o que ja roda.
   private queue: QueuedGoal[] = [];
+  // vida do LIDER em campo + episodio de desmaio (frame `field`)
+  private heroHp = 0;
+  private heroMaxHp = 0;
+  private downSince: number | null = null;   // quando o lider caiu (null = de pe)
+  private reviveSentAt = 0;                  // ultimo field-revive
+  private recovering = false;                // saiu do campo pra curar; volta sozinho
+  private recoverWarned = false;             // ja avisou que a cura esta demorando
+  private reviveIds: Set<number> | null = null; // itens de categoria "revive" (dado estatico)
   private deaths = new Map<number, number>();  // alvo -> desmaios seguidos nele
   private banned = new Map<number, number>();  // alvo banido -> nivel do bicho quando caiu
   private healSentAt = 0;        // ultimo joy-heal enviado (anti-flood)
@@ -364,6 +388,9 @@ class GameSession {
       desiredOn: this.desiredOn, reconnecting: this.reconnectTimer != null, nextRetryAt: this.nextRetryAt,
       contested: this.contested,
       fighterLevel: this.fighter?.level ?? null,
+      reviving: this.downSince != null || this.recovering,
+      heroHp: this.heroMaxHp > 0 ? this.heroHp : null,
+      heroMaxHp: this.heroMaxHp > 0 ? this.heroMaxHp : null,
       holdOpen: this.holdOpen, wsOpen: this.ws != null && this.status === "running",
       team: this.liveTeam, teamAt: this.liveTeamAt,
     };
@@ -867,8 +894,19 @@ class GameSession {
   // atras — o jogo so REENVIA a fila de captura quando ela muda, entao sem o pending-get
   // inicial a fila ficaria vazia ate o primeiro kill.
   private enterHunt(slug: string) {
+    // com o lider caido o jogo RECUSA a entrada — entrar em cima do corpo era a hunt
+    // "ligada" que nao matava nada. Levanta primeiro; o retorno ao campo e automatico.
+    if (this.leaderDown()) { void this.reviveLeader(); return; }
     this.send({ type: "enter-hunt", slug });
     this.send({ type: "pending-get" });
+    this.recovering = false;
+  }
+
+  /** Lider caido pelo ultimo estado conhecido (campo primeiro, senao a lista `pokes`). */
+  private leaderDown(): boolean {
+    if (this.downSince != null) return true;
+    const leader = this.liveTeam?.find((p) => p.leader) ?? this.liveTeam?.[0];
+    return !!leader && leader.maxHp > 0 && leader.hp <= 0;
   }
 
   // sai do campo DE VERDADE (leave-hunt, HAR ago/2026): sem esse frame, "parar a hunt"
@@ -915,6 +953,8 @@ class GameSession {
       // nivel AO VIVO do lider (que e quem caca): alimenta o HUD e o cerebro
       this.trackLevel(Number(m.level), Boolean(m.leveledUp));
       this.emit("hunt");
+    } else if (m.type === "field") {
+      this.trackField(m); // vida do lider ao vivo + desmaio (a fonte rapida)
     } else if (m.type === "poke-xp") {
       // XP por pokemon: no leveling, so interessa o pokemon do plano
       const id = String(m.id ?? "");
@@ -981,37 +1021,128 @@ class GameSession {
     } catch { /* best-effort */ }
   }
 
-  // Desmaio do time, lido do frame `pokes` (a cada ~20s): confirma a cura que o robo pediu
-  // e, com hunt ligada, passa na Joy sozinho quando o LIDER esta em 0 HP — que e o caso em
-  // que a hunt para de render sem avisar ninguem.
-  private checkFainted(team: ActivePoke[]) {
-    const fainted = team.filter((p) => p.maxHp > 0 && p.hp <= 0);
-    if (!fainted.length) {
-      if (this.healPending && this.userId) void logRobotEvent(this.userId, {
-        kind: "heal", title: "Time curado na enfermeira Joy", body: null, data: {},
-      });
-      this.healPending = false;
-      this.healNoticed = false; // episodio fechou: o proximo desmaio avisa de novo
-      return;
+  // Vida do LIDER em campo (frame `field`, ~2/s). E aqui que o desmaio aparece quase na
+  // hora — o `pokes` so passa a cada 20s, e nesse buraco a hunt fica ligada rendendo zero.
+  private trackField(m: Record<string, unknown>) {
+    const hp = Number(m.heroHp);
+    const maxHp = Number(m.heroMaxHp);
+    if (Number.isFinite(maxHp) && maxHp > 0) this.heroMaxHp = maxHp;
+    if (Number.isFinite(hp)) this.heroHp = Math.max(0, hp);
+    // `fainted` e a palavra do servidor; hp<=0 so vale se o HP veio NESTE frame (frame
+    // parcial nao pode "matar" o lider por leitura velha)
+    const down = Boolean(m.fainted)
+      || (Number.isFinite(hp) && Number.isFinite(maxHp) && maxHp > 0 && hp <= 0);
+    if (!down) { this.leaderIsUp(); return; }
+    void this.reviveLeader(typeof m.heroName === "string" ? m.heroName : undefined);
+  }
+
+  /** Lider de pe: fecha o episodio de desmaio e, se o robo tinha saido do campo pra
+   *  curar, volta pra hunt sozinho. */
+  private leaderIsUp() {
+    if (this.downSince == null && !this.recovering && !this.healPending) return;
+    const wasDown = this.downSince != null || this.recovering;
+    this.downSince = null;
+    this.healNoticed = false;   // episodio fechou: o proximo desmaio avisa de novo
+    this.recoverWarned = false;
+    if (this.healPending && this.userId) void logRobotEvent(this.userId, {
+      kind: "heal", title: "Time curado na enfermeira Joy", body: null, data: {},
+    });
+    this.healPending = false;
+    if (this.recovering) {
+      this.recovering = false;
+      if (this.slug && this.ws) {
+        this.enterHunt(this.slug); // de volta ao campo, mesma hunt
+        this.refreshTimers();
+        if (this.userId) void logRobotEvent(this.userId, {
+          kind: "heal", title: "De pe de novo — hunt retomada", body: this.slug, data: { slug: this.slug },
+        });
+      }
     }
-    if (!this.slug || !this.ws) return; // sem hunt, quem cura e o usuario (botao)
-    const leader = team.find((p) => p.leader) ?? team[0];
-    if (!leader || leader.maxHp <= 0 || leader.hp > 0) return;
-    // UM alerta por desmaio: se a cura nao pegar, a tentativa se repete calada (o
-    // cooldown segura) em vez de encher o feed com a mesma linha a cada minuto. A
-    // CONTAGEM tambem e por episodio, e vem ANTES do cooldown da cura: quem decide trocar
-    // de hunt e o desmaio em si, nao o intervalo entre as idas a Joy.
-    if (!this.healNoticed) {
-      this.healNoticed = true;
-      if (this.userId) void logRobotEvent(this.userId, {
-        kind: "heal", title: `${leader.name} desmaiou — o robo passou na Joy`,
-        body: "Pokemon em 0 de vida nao caca; o robo pediu a cura pra hunt seguir.",
-        data: { pokeId: leader.id, name: leader.name },
-      });
-      void this.countDeath();
+    if (wasDown) this.emit("session");
+  }
+
+  /** LIDER DESMAIADO. O jogo nao deixa cacar (nem entrar em outra hunt) assim, e a Joy
+   *  nao levanta ninguem com o char EM CAMPO. Ordem, entao:
+   *    1. `field-revive` — gasta um Revive da bolsa e levanta sem sair da hunt;
+   *    2. sem Revive (ou o Revive nao pegou em REVIVE_GRACE_MS): `leave-hunt` + `joy-heal`,
+   *       que e de graca e so funciona fora do campo;
+   *    3. HP de volta -> `leaderIsUp` re-entra na hunt sozinho.
+   *  Um alerta e uma contagem de morte por episodio (o cerebro decide trocar de hunt). */
+  private async reviveLeader(name?: string) {
+    const now = Date.now();
+    if (this.downSince == null) {
+      this.downSince = now;
+      const who = name ?? this.liveTeam?.find((p) => p.leader)?.name ?? "Seu pokemon";
+      if (!this.healNoticed) {
+        this.healNoticed = true;
+        if (this.userId) void logRobotEvent(this.userId, {
+          kind: "heal", title: `${who} desmaiou — o robo esta levantando ele`,
+          body: "Revive da bolsa se houver; senao sai do campo e cura de graca na Joy.",
+          data: { name: who, slug: this.slug },
+        });
+        void this.countDeath();
+      }
+      this.emit("session");
     }
-    if (Date.now() - this.healSentAt < HEAL_COOLDOWN_MS) return;
+    if (!this.ws || this.recovering) return;
+
+    // 1) Revive da bolsa: levanta em campo, a hunt nem para
+    if (this.slug && now - this.reviveSentAt >= REVIVE_COOLDOWN_MS && this.hasRevive()) {
+      this.reviveSentAt = now;
+      this.send({ type: "field-revive" });
+      return; // o proximo frame `field` confirma (fainted=false), nao o ack
+    }
+    // 2) sem Revive, ou ele nao pegou: cura de graca — mas so FORA do campo
+    if (now - this.downSince >= REVIVE_GRACE_MS) this.retreatToJoy();
+  }
+
+  /** Sai do campo e passa na Joy. Guarda o slug: `leaderIsUp` re-entra quando o HP volta. */
+  private retreatToJoy() {
+    if (this.recovering || !this.ws) return;
+    this.recovering = true;
+    if (this.slug) this.send({ type: "leave-hunt" }); // fora do campo a Joy funciona
     this.healTeam();
+    this.healPending = true; // ha alguem caido: o HP que voltar vira evento de cura
+    if (this.userId) void logRobotEvent(this.userId, {
+      kind: "heal", title: "Sem Revive na bolsa — curando na Joy",
+      body: this.slug ? `A hunt ${this.slug} volta sozinha quando o HP encher.` : null,
+      data: { slug: this.slug },
+    });
+    this.emit("session");
+  }
+
+  // itens de categoria "revive" (dado estatico, carregado uma vez por processo)
+  private hasRevive(): boolean {
+    if (!this.reviveIds) {
+      void getData().then((d) => { this.reviveIds = new Set(d.items.filter((i) => i.category === "revive").map((i) => i.id)); }).catch(() => {});
+      return true; // ainda nao sei quais sao: tentar o frame e barato
+    }
+    if (!this.inv.size) return true; // inventario ainda nao chegou nesta conexao
+    for (const [id, qty] of this.inv) if (qty > 0 && this.reviveIds.has(id)) return true;
+    return false;
+  }
+
+  // Desmaio visto pela lista `pokes` (20s): rede de seguranca de quem nao esta em campo —
+  // o robo entre hunts, ou o `field` que parou de vir. Mesmo caminho do frame `field`.
+  private checkFainted(team: ActivePoke[]) {
+    const leader = team.find((p) => p.leader) ?? team[0];
+    const down = !!leader && leader.maxHp > 0 && leader.hp <= 0;
+    if (!down) { this.leaderIsUp(); return; }
+    // so age quando HA hunt em andamento (o slug sobrevive a saida pra Joy): sem hunt,
+    // quem decide curar e o usuario, pelo botao.
+    if (!this.ws || !this.slug) return;
+    void this.reviveLeader(leader!.name);
+    // curando ha tempo demais (Joy nao pegou): insiste no cooldown e avisa UMA vez
+    if (this.recovering && Date.now() - this.healSentAt >= HEAL_COOLDOWN_MS) this.healTeam();
+    if (this.recovering && !this.recoverWarned && this.downSince != null
+        && Date.now() - this.downSince >= RECOVER_MAX_MS && this.userId) {
+      this.recoverWarned = true;
+      void logRobotEvent(this.userId, {
+        kind: "error", title: "O pokemon nao esta levantando",
+        body: "O robo saiu do campo e pediu a cura na Joy, mas o HP nao voltou. Abra o jogo e cure na mao (ou compre Revives).",
+        data: { slug: this.slug },
+      });
+    }
   }
 
   /** Alvos proibidos pra ESTE perfil: onde o bicho JA desmaiou. Caduca quando ele ganha
@@ -1443,8 +1574,12 @@ class GameSession {
         gold = await this.buyUpTo(buyBall, id, shopBall.name, shopBall.priceGold, ballCount.get(id) ?? 0, BALL_FLOOR, BALL_TARGET, gold);
       }
 
-      // ---- POCAO / REVIVE (so se a automacao correspondente esta ligada) ----
-      if (!a.auto.autoPotion && !a.auto.autoRevive) return;
+      // ---- POCAO / REVIVE ----
+      // A pocao e do auto-potion DO JOGO (so faz sentido com ele ligado). O REVIVE virou
+      // insumo do proprio robo: e ele que manda `field-revive` quando o lider cai, e sem
+      // Revive na bolsa a alternativa e sair do campo e ir na Joy (hunt parada). Por isso
+      // o revive se repoe sempre que a auto-compra esta ligada.
+      if (!a.auto.autoPotion && !this.autoBuy) return;
       const [data, invRes, desired] = await Promise.all([
         getData(),
         fetchInventory(this.buyTokens),
@@ -1469,7 +1604,9 @@ class GameSession {
         const p = chooseId("heal", cfg?.potionId ?? null);
         if (p) gold = await this.buyUpTo(buyItem, p.id, p.name, p.priceGold, invCount.get(p.id) ?? 0, POTION_FLOOR, POTION_TARGET, gold);
       }
-      if (a.auto.autoRevive) {
+      // Revive: repoe com a auto-compra ligada, independente do auto-revive DO JOGO —
+      // quem gasta agora e o robo (`field-revive` no desmaio do lider).
+      {
         const r = chooseId("revive", cfg?.reviveId ?? null);
         if (r) gold = await this.buyUpTo(buyItem, r.id, r.name, r.priceGold, invCount.get(r.id) ?? 0, REVIVE_FLOOR, REVIVE_TARGET, gold);
       }

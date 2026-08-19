@@ -267,9 +267,12 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
                   Os slots de xp/ouro por hora cabem o pior caso ("999,9k/h") com o
                   icone de 14 — a Chakra e mais larga que a fonte antiga. */}
               <div className="mt-1 flex h-7 items-center gap-x-3 overflow-x-auto text-sm text-text-dim [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                <span className="inline-flex shrink-0 items-center gap-1.5">
-                  <Led color={STATUS_COLOR[huntStatus]} pulse={running} />
-                  {st?.reconnecting ? t("vip.ov.reconnecting") : t(`robo.hunt.status.${huntStatus}`)}
+                {/* desmaio ganha a linha: a hunt esta LIGADA e rendendo zero — dizer
+                    "ao vivo" nesse estado foi o que fez o Eduardo achar que o robo
+                    estava caçando enquanto o pokémon jazia no chão */}
+                <span className="inline-flex shrink-0 items-center gap-1.5" style={st?.reviving ? { color: "var(--red)" } : undefined}>
+                  <Led color={st?.reviving ? "var(--red)" : STATUS_COLOR[huntStatus]} pulse={running || !!st?.reviving} />
+                  {st?.reviving ? t("robo.hunt.status.reviving") : st?.reconnecting ? t("vip.ov.reconnecting") : t(`robo.hunt.status.${huntStatus}`)}
                 </span>
                 <span className={`shrink-0 ${cur ? "" : "slot-empty"}`}>{cur ? `Lv${cur.level} · ${cur.area}` : "—"}</span>
                 <span className={`inline-flex min-w-[5.5rem] shrink-0 items-center gap-1 tabular-nums ${a ? "text-cyan" : "slot-empty"}`} title={a ? `${fmt(a.xpPerHour)} XP/h` : undefined}><Xp size={14} />{a ? `${fmtC(a.xpPerHour)}/h` : "—/h"}</span>
