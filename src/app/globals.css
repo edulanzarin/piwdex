@@ -30,6 +30,16 @@
      numerica densa usa a -sm. */
   --control-h: 2.5rem;
   --control-h-sm: 2rem;
+  /* ---- Fundo do site (wallpaper) ----
+     A arte e uma cena DIURNA, clara e saturada; a UI e escura. Estes quatro botoes
+     sao o unico lugar pra calibrar o quanto ela recua. Suba --bg-dim pra escurecer,
+     desca --bg-saturate pra tirar cor. */
+  --bg-brightness: 0.62;   /* quanto da luz da arte sobra */
+  --bg-saturate: 0.62;     /* 1 = cor original; abaixo disso ela para de brigar com o neon */
+  --bg-dim: 0.70;          /* forca do scrim escuro por cima */
+  /* O DESFOQUE nao esta aqui: ele vem assado no proprio .webp. Blur em runtime numa
+     camada fixa de tela cheia e caro em celular fraco; brightness/saturate nao sao. */
+
   /* fundo padrao do "poco" (mini-tile encaixado): um alfa so, nada de 0.5/0.6/0.7 solto */
   --well-bg: rgba(10, 16, 32, 0.45);
 }
@@ -90,20 +100,25 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Fundo pixel 4k: cena de rota noturna (gerada em scripts/gen-bg.py), fixa e
-   coberta por um scrim escuro pra o conteudo continuar legivel. */
+/* Wallpaper do site: arte 4k (public/images/wallpaper.webp) presa na viewport e
+   tratada pra virar AMBIENTE, nao ilustracao — a UI escura tem que continuar mandando.
+   Sem `background-attachment: fixed`: o proprio elemento ja e `position: fixed`, e o
+   attachment fixed e quebrado/travado no Safari do iPhone.
+   Sem `image-rendering: pixelated`: a arte e pintada, nao pixel art (o pixelated
+   continua valendo pros sprites do jogo, na regra de `img`).
+   Calibragem: os tokens --bg-* la em cima. Contraste medido no pior ponto do fundo:
+   9.7:1 no texto e 5.1:1 no texto-dim (AA pede 4.5:1). */
 body::before {
   content: "";
   position: fixed;
   inset: 0;
   z-index: -2;
   pointer-events: none;
-  background-image: url("/bg-pixel.png");
+  background-image: url("/images/wallpaper.webp");
   background-size: cover;
-  background-position: center top;
+  background-position: center center;
   background-repeat: no-repeat;
-  background-attachment: fixed;
-  image-rendering: pixelated;
+  filter: brightness(var(--bg-brightness)) saturate(var(--bg-saturate));
 }
 /* scrim de leitura + brilhos de neon por cima do fundo */
 body::after {
@@ -115,7 +130,12 @@ body::after {
   background:
     radial-gradient(1100px 700px at 85% -8%, rgba(90, 130, 220, 0.18), transparent 60%),
     radial-gradient(900px 600px at 12% 108%, rgba(53, 224, 142, 0.10), transparent 60%),
-    linear-gradient(180deg, rgba(6, 10, 21, 0.62) 0%, rgba(7, 12, 24, 0.82) 55%, rgba(6, 10, 20, 0.92) 100%);
+    linear-gradient(
+      180deg,
+      rgb(6 10 21 / calc(var(--bg-dim) * 0.86)) 0%,
+      rgb(7 12 24 / var(--bg-dim)) 55%,
+      rgb(6 10 20 / calc(var(--bg-dim) * 1.1)) 100%
+    );
 }
 
 a { color: inherit; text-decoration: none; }
