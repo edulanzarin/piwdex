@@ -31,7 +31,7 @@ export default async function CalcPage() {
     })
     .sort((a, b) => a.name.localeCompare(b.name));
   return (
-    <ToolFrame accent="var(--purple)" label="CALCULADORA" icon={<NavCalc size={13} />}>
+    <ToolFrame accent="var(--purple)" label="CALCULADORA" icon={<NavCalc size={16} />}>
       <div className="flex flex-col gap-6">
         <div>
           <p className="eyebrow"><T k="calc.eyebrow" /></p>

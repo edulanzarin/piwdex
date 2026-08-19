@@ -48,7 +48,7 @@ function Bookmarklet() {
   }, [t]);
   return (
     <a ref={ref} href="/conta" onClick={(e) => e.preventDefault()} draggable className="btn btn-cyan inline-flex cursor-grab select-none items-center gap-1.5" title={t("account.bm.drag")}>
-      <ArrowDown size={12} /> {t("account.bm.btn")}
+      <ArrowDown size={14} /> {t("account.bm.btn")}
     </a>
   );
 }
@@ -69,7 +69,7 @@ function ConnectForm({ expired }: { expired?: boolean }) {
         <div className="section-title text-cyan">{t("account.bm.title")}</div>
         <ol className="mt-2 flex flex-col gap-1 text-base leading-relaxed text-text-dim">
           {["s1", "s2", "s3"].map((s) => (
-            <li key={s} className="flex items-start gap-2"><span className="mt-0.5 inline-flex text-cyan"><ChevronRight size={8} /></span><span>{t(`account.bm.${s}`)}</span></li>
+            <li key={s} className="flex items-start gap-2"><span className="mt-0.5 inline-flex shrink-0 text-cyan"><ChevronRight size={16} /></span><span>{t(`account.bm.${s}`)}</span></li>
           ))}
         </ol>
         <div className="mt-3"><Bookmarklet /></div>
@@ -89,7 +89,9 @@ function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between gap-3 border-b border-border/40 py-1.5 last:border-b-0">
       <span className="field-label">{label}</span>
-      <span className="text-right text-base text-text">{value}</span>
+      {/* a Chakra tem peso de verdade: o valor sai em 500 e o rotulo fica em 400/dim —
+          a hierarquia da linha nao depende mais so de cor */}
+      <span className="text-right text-base font-medium text-text">{value}</span>
     </div>
   );
 }
@@ -135,11 +137,11 @@ function Overview({ account }: { account: Account }) {
             <span className="text-xs uppercase tracking-wide text-text-dim">{t(`account.gender.${account.trainer.gender}`)}</span>
           </div>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
-            <Stat label={t("account.profile.level")} value={fmt(p.level)} color="text-cyan" icon={<Xp size={11} className="text-cyan" />} />
-            <Stat label={t("account.profile.gold")} value={fmt(p.gold)} color="text-green" icon={<Coin size={11} />} />
-            <Stat label={t("account.profile.diamonds")} value={fmt(p.diamonds)} color="text-cyan" icon={<Diamond size={11} className="text-cyan" />} />
-            <Stat label={t("account.profile.catches")} value={fmt(p.catches)} icon={<Pokeball size={11} />} />
-            <Stat label={t("account.profile.pokedex")} value={<span className="text-green">{p.pokedexCount}<span className="text-text-dim">/{p.pokedexTotal}</span></span>} icon={<Star size={11} className="text-green" />} />
+            <Stat label={t("account.profile.level")} value={fmt(p.level)} color="text-cyan" icon={<Xp size={14} className="text-cyan" />} />
+            <Stat label={t("account.profile.gold")} value={fmt(p.gold)} color="text-green" icon={<Coin size={14} />} />
+            <Stat label={t("account.profile.diamonds")} value={fmt(p.diamonds)} color="text-cyan" icon={<Diamond size={14} className="text-cyan" />} />
+            <Stat label={t("account.profile.catches")} value={fmt(p.catches)} icon={<Pokeball size={14} />} />
+            <Stat label={t("account.profile.pokedex")} value={<span className="text-green">{p.pokedexCount}<span className="text-text-dim">/{p.pokedexTotal}</span></span>} icon={<Star size={14} className="text-green" />} />
             <Stat label={t("account.f.rank")} value={p.rank > 0 ? `#${fmt(p.rank)}` : "—"} color={p.rank > 0 ? "text-text" : "slot-empty"} />
           </div>
           {/* barra de XP sempre presente: sem dado = trilho a 0% e numeros esmaecidos */}
@@ -201,10 +203,10 @@ function StreakCard({ account }: { account: Account }) {
   return (
     <Section title={t("account.sec.streak")} color="text-yellow">
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-        <Stat label={t("account.f.streakPoints")} value={fmt(s.available)} color="text-yellow" icon={<Coin size={11} />} />
-        <Stat label={t("account.f.streakKills")} value={fmt(s.totalKills)} icon={<Skull size={11} className="text-text-dim" />} />
-        <Stat label={t("account.f.streakBonus")} value={<span className="text-green">{pct(s.bonusExp + s.bonusLoot + s.bonusShiny)}</span>} icon={<Xp size={11} className="text-green" />} />
-        <Stat label="EXP · Loot · Shiny" value={<span className="text-green">{pct(s.bonusExp)} · {pct(s.bonusLoot)} · {pct(s.bonusShiny)}</span>} icon={<Star size={11} className="text-green" />} />
+        <Stat label={t("account.f.streakPoints")} value={fmt(s.available)} color="text-yellow" icon={<Coin size={14} />} />
+        <Stat label={t("account.f.streakKills")} value={fmt(s.totalKills)} icon={<Skull size={14} className="text-text-dim" />} />
+        <Stat label={t("account.f.streakBonus")} value={<span className="text-green">{pct(s.bonusExp + s.bonusLoot + s.bonusShiny)}</span>} icon={<Xp size={14} className="text-green" />} />
+        <Stat label="EXP · Loot · Shiny" value={<span className="text-green">{pct(s.bonusExp)} · {pct(s.bonusLoot)} · {pct(s.bonusShiny)}</span>} icon={<Star size={14} className="text-green" />} />
       </div>
     </Section>
   );
@@ -230,7 +232,7 @@ function BattlePassCard({ account }: { account: Account }) {
   return (
     <Section title={t("account.sec.pass")} color="text-purple">
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-        <Stat label={t("account.f.passPoints")} value={fmt(bp.points)} color="text-purple" icon={<Star size={11} className="text-purple" />} />
+        <Stat label={t("account.f.passPoints")} value={fmt(bp.points)} color="text-purple" icon={<Star size={14} className="text-purple" />} />
         <Stat label={t("account.f.passTier")} value={bp.premium
           ? <span className="text-yellow">{t("account.f.passPremium")}</span>
           : <span className="text-text-dim">{t("account.f.passFree")}</span>} />
@@ -263,7 +265,7 @@ function BreedingCard({ account }: { account: Account }) {
         <div className="mt-3 flex flex-wrap gap-2">
           {b.eggs.map((e) => (
             <span key={e.id} className="chip inline-flex items-center gap-1">
-              {e.name}{e.dexId ? ` · #${e.dexId}` : ""}{e.shiny && <span className="text-yellow"><Star size={9} /></span>}{e.ready && <span className="text-green"><Check size={9} /></span>}
+              {e.name}{e.dexId ? ` · #${e.dexId}` : ""}{e.shiny && <span className="text-yellow"><Star size={14} /></span>}{e.ready && <span className="text-green"><Check size={14} /></span>}
             </span>
           ))}
         </div>
@@ -330,7 +332,7 @@ function BallsCard({ account }: { account: Account }) {
               </span>
               <div className="min-w-0 text-sm leading-tight">
                 <div className="truncate text-text">{b.name}</div>
-                <div className="tabular-nums text-text-dim">{b.infinite ? <Infinity_ size={13} /> : `x${fmt(b.count)}`}</div>
+                <div className="tabular-nums text-text-dim">{b.infinite ? <Infinity_ size={14} /> : `x${fmt(b.count)}`}</div>
               </div>
             </div>
           );
@@ -346,19 +348,21 @@ function TeamMon({ p, rarity, onStats }: { p: ActivePoke; rarity?: Rarity; onSta
     <div className="flex items-center gap-3 rounded border border-border bg-[var(--well-bg)] p-2.5">
       <div className="relative flex h-14 w-14 shrink-0 items-center justify-center rounded bg-[var(--well-bg)]">
         <Sprite src={spriteUrl(p.speciesId, p.shiny)} alt={p.name} size={48} />
-        {p.shiny && <span className="absolute right-0.5 top-0.5 text-yellow"><Star size={11} /></span>}
+        {p.shiny && <span className="absolute right-0.5 top-0.5 text-yellow"><Star size={14} /></span>}
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
-          <span className="truncate text-sm">{p.name}</span>
-          {p.leader && <span className="chip" style={{ background: "var(--green)", color: "#052012" }}>{t("account.team.leader")}</span>}
+          {/* nome do bicho fica como veio (sem caixa alta) — so o peso 500 separa ele
+              do resto da linha; os chips nao encolhem, quem trunca e o nome */}
+          <span className="truncate text-sm font-medium">{p.name}</span>
+          {p.leader && <span className="chip shrink-0" style={{ background: "var(--green)", color: "#052012" }}>{t("account.team.leader")}</span>}
           {rarity && <RarityBadge rarity={rarity} />}
         </div>
         <div className="text-sm text-text-dim">Lv.{p.level}</div>
         <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-sm text-text-dim">
-          <span>{t("account.col.power")} <span className="text-yellow">{fmt(p.power)}</span></span>
-          <span>{t("account.col.iv")} <span className={ivColor(p.ivTotal)}>{p.ivTotal}</span>/192</span>
-          <span>{t("account.col.quality")} <span className="text-cyan">{p.quality.toFixed(3)}</span></span>
+          <span>{t("account.col.power")} <span className="font-semibold text-yellow">{fmt(p.power)}</span></span>
+          <span>{t("account.col.iv")} <span className={`font-semibold ${ivColor(p.ivTotal)}`}>{p.ivTotal}</span>/192</span>
+          <span>{t("account.col.quality")} <span className="font-semibold text-cyan">{p.quality.toFixed(3)}</span></span>
         </div>
       </div>
       {/* botao de stats com slot fixo (40px de toque); sem stats = espaco reservado */}
@@ -367,12 +371,12 @@ function TeamMon({ p, rarity, onStats }: { p: ActivePoke; rarity?: Rarity; onSta
           type="button"
           onClick={onStats}
           title={t("vip.team.viewStats")}
-          className="flex h-9 w-9 shrink-0 items-center justify-center self-start rounded border border-border text-text-dim transition hover:border-[color:var(--cyan)]/60 hover:text-cyan"
+          className="flex h-10 w-10 shrink-0 items-center justify-center self-start rounded border border-border text-text-dim transition hover:border-[color:var(--cyan)]/60 hover:text-cyan"
         >
-          <Chart size={11} />
+          <Chart size={18} />
         </button>
       ) : (
-        <span aria-hidden className="h-9 w-9 shrink-0 self-start" />
+        <span aria-hidden className="h-10 w-10 shrink-0 self-start" />
       )}
     </div>
   );

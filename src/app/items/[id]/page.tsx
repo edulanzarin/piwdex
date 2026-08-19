@@ -40,10 +40,10 @@ export default async function ItemPage({
 
   return (
     // mesma moldura verde da lista /items: a ficha nao e uma pagina "solta" da ferramenta
-    <ToolFrame accent="var(--green)" label="ITENS" icon={<NavItems size={13} />}>
+    <ToolFrame accent="var(--green)" label="ITENS" icon={<NavItems size={16} />}>
     <div className="flex flex-col gap-5">
-      <Link href="/items" className="inline-flex items-center gap-1 text-base text-text-dim hover:text-cyan uppercase tracking-wide">
-        <ChevronLeft size={10} /> <T k="item.back" />
+      <Link href="/items" className="inline-flex min-h-10 items-center gap-1.5 self-start text-base uppercase tracking-wide text-text-dim hover:text-cyan">
+        <ChevronLeft size={16} /> <T k="item.back" />
       </Link>
 
       <div className="card flex items-center gap-4 p-6">
@@ -54,7 +54,8 @@ export default async function ItemPage({
           <h1 className="pixel text-2xl break-words text-text">{item.name}</h1>
           <div className="flex flex-wrap items-center gap-2 text-sm text-text-dim">
             <span className="chip" style={{ background: "var(--surface-2)", color: "var(--text)" }}>{item.category}</span>
-            {item.rare && <span className="text-yellow text-base uppercase"><T k="items.rare" /></span>}
+            {/* "raro" e rotulo curto: caixa alta fica, mas na mesma medida da linha e com peso real */}
+            {item.rare && <span className="font-semibold uppercase tracking-wide text-yellow"><T k="items.rare" /></span>}
             <span className="inline-flex items-center gap-1 text-green">
               <Gold value={item.npcPrice} />
             </span>

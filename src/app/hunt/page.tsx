@@ -92,7 +92,7 @@ export default async function HuntPage() {
   }
 
   return (
-    <ToolFrame accent="var(--yellow)" label="HUNT" icon={<NavHunt size={13} />}>
+    <ToolFrame accent="var(--yellow)" label="HUNT" icon={<NavHunt size={16} />}>
       <div className="flex flex-col gap-6">
         <div>
           <p className="eyebrow"><T k="hunt.eyebrow" /></p>

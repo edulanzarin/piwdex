@@ -22,7 +22,7 @@ export default async function VipPage({ searchParams }: { searchParams: Promise<
   // Sem VIP: paywall.
   if (!session.user.vip) {
     return (
-      <ToolFrame accent={ACCENT} label="VIP" icon={<Star size={13} />}>
+      <ToolFrame accent={ACCENT} label="VIP" icon={<Star size={16} />}>
         <VipPaywall status={status ?? null} />
       </ToolFrame>
     );
@@ -92,7 +92,7 @@ export default async function VipPage({ searchParams }: { searchParams: Promise<
   // cockpit: estoura o container do site (104rem) — a area VIP usa a tela inteira
   return (
     <div className="container-vip">
-      <ToolFrame accent={ACCENT} label="VIP" icon={<Star size={13} />}>
+      <ToolFrame accent={ACCENT} label="VIP" icon={<Star size={16} />}>
         <div className="flex flex-col gap-5">
           <div>
             <h1 className="pixel text-3xl" style={{ color: ACCENT }}><T k="vip.active.title" /></h1>

@@ -21,7 +21,7 @@ export default async function BreedPage() {
     .sort((a, b) => a.name.localeCompare(b.name));
 
   return (
-    <ToolFrame accent="var(--pink)" label="BREEDING" icon={<NavBreed size={13} />}>
+    <ToolFrame accent="var(--pink)" label="BREEDING" icon={<NavBreed size={16} />}>
       <div className="flex flex-col gap-6">
         <div>
           <p className="eyebrow"><T k="breed.eyebrow" /></p>

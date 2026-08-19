@@ -68,7 +68,7 @@ export function SiteNav({ user }: { user: NavUser | null }) {
             <Link
               href="/admin"
               title="Painel admin"
-              className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-[#e5484d] bg-[#e5484d]/12 px-2.5 py-1.5 pixel text-base text-[#ff6b6b] transition hover:bg-[#e5484d]/22"
+              className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-md border border-[#e5484d] bg-[#e5484d]/12 px-2.5 pixel text-base text-[#ff6b6b] transition hover:bg-[#e5484d]/22"
             >
               ADM
             </Link>
@@ -76,10 +76,10 @@ export function SiteNav({ user }: { user: NavUser | null }) {
           <Link
             href="/vip"
             title={user?.vip ? t("vip.eyebrow") : t("vipcta.btn")}
-            className={`inline-flex shrink-0 items-center gap-1.5 rounded-md border border-[color:var(--yellow)] px-2.5 py-1.5 pixel text-base text-yellow transition ${user?.vip ? "bg-[color:var(--yellow)]/20 hover:bg-[color:var(--yellow)]/30" : "glow-pulse bg-[color:var(--yellow)]/12 hover:bg-[color:var(--yellow)]/22"}`}
+            className={`inline-flex h-10 shrink-0 items-center gap-1.5 rounded-md border border-[color:var(--yellow)] px-2.5 pixel text-base text-yellow transition ${user?.vip ? "bg-[color:var(--yellow)]/20 hover:bg-[color:var(--yellow)]/30" : "glow-pulse bg-[color:var(--yellow)]/12 hover:bg-[color:var(--yellow)]/22"}`}
             style={{ "--accent": "var(--yellow)" } as React.CSSProperties}
           >
-            <Star size={10} /> VIP
+            <Star size={16} /> VIP
           </Link>
           {/* Desktop: icones com tooltip */}
           <nav className="hidden items-center gap-1 sm:flex">
@@ -99,13 +99,15 @@ export function SiteNav({ user }: { user: NavUser | null }) {
               );
             })}
           </nav>
-          <span className="hidden h-5 w-px bg-border sm:block" />
+          <span className="hidden h-6 w-px bg-border sm:block" />
 
           {/* conta / login-logout (desktop) — so o icone de conta; sem VIP no topo */}
           <div className="hidden items-center gap-2 sm:flex">
             {user ? (
               <>
-                <span className="max-w-[8rem] truncate pixel text-base text-text">{user.name ?? "conta"}</span>
+                {/* nome do usuario: slot maior porque a Chakra e bem mais larga que a
+                    fonte condensada antiga — 8rem cortava nome medio */}
+                <span className="max-w-[11rem] truncate pixel text-base text-text">{user.name ?? "conta"}</span>
                 <Link
                   href="/conta"
                   title={t("nav.account")}
@@ -122,7 +124,7 @@ export function SiteNav({ user }: { user: NavUser | null }) {
                     aria-label={t("auth.logout")}
                     className={`${ICON_BTN} text-text-dim hover:text-red`}
                   >
-                    <NavLogout size={20} />
+                    <NavLogout size={22} />
                     <Tip>{t("auth.logout")}</Tip>
                   </button>
                 </form>

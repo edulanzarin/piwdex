@@ -56,10 +56,13 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 }
 
 function EffRow({ titleKey, entries, emptyKey }: { titleKey: string; entries: TypeMult[]; emptyKey: string }) {
-  // degrau mobile: rotulo em cima das pills no celular, coluna fixa so a partir do sm
+  // degrau mobile: rotulo em cima das pills no celular, coluna fixa so a partir do sm.
+  // A coluna do rotulo e FIXA em 9.5rem: cabe o pior caso das tres linguas ("Toma menos
+  // de" / "Fuerte contra") na Chakra, que e bem mais larga que a fonte antiga.
   return (
-    <div className="grid grid-cols-1 items-start gap-x-3 gap-y-1 sm:grid-cols-[7.5rem_1fr]">
-      <span className="pt-1 text-base uppercase tracking-wide text-text-dim"><T k={titleKey} /></span>
+    <div className="grid grid-cols-1 items-start gap-x-3 gap-y-1 sm:grid-cols-[9.5rem_1fr]">
+      {/* frase, nao rotulo curto: sem caixa alta nem tracking — o peso 500 ja separa */}
+      <span className="pt-1 text-base font-medium text-text-dim"><T k={titleKey} /></span>
       {entries.length ? (
         <div className="flex flex-wrap gap-1.5">
           {entries.map((e) => (
@@ -120,8 +123,8 @@ export default async function CreaturePage({
   return (
     <PokedexShell animate={false}>
     <div className="flex flex-col gap-6">
-      <Link href="/dex" className="inline-flex items-center gap-1 text-base text-text-dim hover:text-cyan uppercase tracking-wide">
-        <ChevronLeft size={10} /> <T k="cr.back" />
+      <Link href="/dex" className="inline-flex min-h-10 items-center gap-1.5 self-start text-base uppercase tracking-wide text-text-dim hover:text-cyan">
+        <ChevronLeft size={16} /> <T k="cr.back" />
       </Link>
 
       {/* Cabecalho */}
@@ -134,7 +137,7 @@ export default async function CreaturePage({
             <TypeBadges t1={c.type1} t2={c.type2} />
             <AcqBadge kind={acq} />
           </div>
-          <p className="text-sm text-text-dim">{c.description}</p>
+          <p className="text-sm leading-relaxed text-text-dim">{c.description}</p>
 
           {roles.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
@@ -151,7 +154,7 @@ export default async function CreaturePage({
             <StatTile
               label={<T k="cr.xp" />}
               value={c.experience.toLocaleString("pt-BR")}
-              icon={<Xp size={11} className="text-yellow" />}
+              icon={<Xp size={14} className="text-yellow" />}
               accent="var(--cyan)"
             />
             <StatTile
@@ -167,20 +170,20 @@ export default async function CreaturePage({
           <SectionTitle><T k="cr.statsBase" /></SectionTitle>
           <p className="-mt-2 mb-4 text-base leading-relaxed text-text-dim">
             <T k="cr.statsHint" />{" "}
-            <Link href="/calc" className="inline-flex items-center gap-1 text-cyan hover:underline"><T k="cr.statsHintLink" /> <ChevronRight size={9} /></Link>
+            <Link href="/calc" className="inline-flex items-center gap-1 font-medium text-cyan hover:underline"><T k="cr.statsHintLink" /> <ChevronRight size={16} /></Link>
           </p>
           <div className="flex flex-col gap-2.5">
             {STATS.map(([label, key], i) => (
               <StatBar key={key} iconIndex={i} label={label} value={c[key]} best={c[key] === bestStat} />
             ))}
-            <div className="mt-2 flex justify-between border-t border-border pt-2 text-sm">
-              <span className="text-text-dim uppercase tracking-wide text-base"><T k="cr.total" /></span>
-              <strong className="tabular-nums text-cyan">{total}</strong>
+            <div className="mt-2 flex items-baseline justify-between border-t border-border pt-2 text-base">
+              <span className="uppercase tracking-wide text-text-dim"><T k="cr.total" /></span>
+              <strong className="font-semibold tabular-nums text-cyan">{total}</strong>
             </div>
             {bestMove && bestMove.power > 0 && (
-              <div className="mt-1 flex items-center justify-between text-base text-text-dim">
+              <div className="mt-1 flex items-baseline justify-between gap-3 text-base text-text-dim">
                 <span><T k="cr.bestMove" /></span>
-                <span className="text-text">{bestMove.name} <span className="text-yellow">{bestMove.power}</span></span>
+                <span className="text-text">{bestMove.name} <span className="font-semibold tabular-nums text-yellow">{bestMove.power}</span></span>
               </div>
             )}
           </div>
@@ -188,14 +191,15 @@ export default async function CreaturePage({
 
         <Reveal className="card p-5">
           <SectionTitle><T k="cr.combat" /></SectionTitle>
-          <div className="mb-2 text-sm uppercase tracking-wide text-text-dim"><T k="cr.defenseSub" /></div>
+          {/* subtitulo e frase inteira ("Defesa: como ele recebe dano"): peso separa, caixa alta nao */}
+          <div className="mb-2 text-sm font-medium text-text-dim"><T k="cr.defenseSub" /></div>
           <div className="flex flex-col gap-3 text-sm">
             <EffRow titleKey="cr.takesMore" entries={weak} emptyKey="cr.noWeak" />
             <EffRow titleKey="cr.takesLess" entries={resist} emptyKey="cr.noResist" />
             <EffRow titleKey="cr.immune" entries={immune} emptyKey="cr.immuneEmpty" />
           </div>
           <div className="my-4 border-t border-border" />
-          <div className="mb-2 text-sm uppercase tracking-wide text-text-dim"><T k="cr.attackSub" /></div>
+          <div className="mb-2 text-sm font-medium text-text-dim"><T k="cr.attackSub" /></div>
           <div className="flex flex-col gap-3 text-sm">
             <EffRow titleKey="cr.stab" entries={stab} emptyKey="cr.immuneEmpty" />
             <EffRow titleKey="cr.strongVs" entries={offensive} emptyKey="cr.noStrong" />
@@ -212,7 +216,7 @@ export default async function CreaturePage({
             <div className="flex flex-1 flex-col items-center justify-center gap-4 py-4 text-center">
               <p className="max-w-xs text-sm text-text-dim"><T k="eevee.branches" /></p>
               <Link href="/eevee" className="btn btn-cyan">
-                <T k="eevee.open" /> <ChevronRight size={10} />
+                <T k="eevee.open" /> <ChevronRight size={14} />
               </Link>
             </div>
           </Reveal>
@@ -223,7 +227,7 @@ export default async function CreaturePage({
               {chain.map((stage, i) => (
                 <div key={stage.creature.pokeId} className="flex items-center gap-3">
                   {i > 0 && (
-                    <span className="pixel inline-flex items-center gap-1 text-xs text-text-dim">lvl {stage.evolveLevel ?? "?"} <ChevronRight size={9} /></span>
+                    <span className="pixel inline-flex items-center gap-1 text-xs text-text-dim">lvl {stage.evolveLevel ?? "?"} <ChevronRight size={14} /></span>
                   )}
                   <Link
                     href={`/dex/${stage.creature.pokeId}`}
@@ -247,9 +251,11 @@ export default async function CreaturePage({
               {locations.map((h) => (
                 <div key={h.slug} className="well flex items-center gap-3">
                   <span className="text-red"><MapPin size={18} /></span>
-                  <div className="flex flex-col">
-                    <span className="text-sm text-text">{h.name}</span>
-                    <span className="text-base uppercase tracking-wide text-text-dim">{h.area}</span>
+                  {/* nome do ponto e o dado principal (peso 500, 16px); a regiao e um
+                      rotulo curto abaixo — vem em minusculo do jogo, entao a caixa alta fica */}
+                  <div className="flex min-w-0 flex-col">
+                    <span className="truncate text-base font-medium text-text">{h.name}</span>
+                    <span className="text-sm uppercase tracking-wide text-text-dim">{h.area}</span>
                   </div>
                   {h.level ? (
                     <span className="chip ml-auto" style={{ background: "var(--surface-2)", color: "var(--text)" }}>lvl {h.level}</span>
@@ -273,10 +279,11 @@ export default async function CreaturePage({
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
+              {/* cabecalho e rotulo curto: caixa alta continua, mas o peso agora e real (500) */}
               <tr className="text-left text-sm uppercase tracking-wide text-text-dim">
-                <th className="pb-2 font-normal"><T k="col.item" /></th>
-                <th className="pb-2 font-normal"><T k="col.qty" /></th>
-                <th className="pb-2 text-right font-normal"><T k="col.chance" /></th>
+                <th className="pb-2 font-medium"><T k="col.item" /></th>
+                <th className="pb-2 font-medium"><T k="col.qty" /></th>
+                <th className="pb-2 text-right font-medium"><T k="col.chance" /></th>
               </tr>
             </thead>
             <tbody>
@@ -285,19 +292,19 @@ export default async function CreaturePage({
                 const p = l.chance / 1000;
                 return (
                   <tr key={l.name} className={`border-t border-border ${item ? "group cursor-pointer hover:bg-surface-2" : ""}`}>
-                    <td className="py-1.5">
+                    <td className="py-2 pr-3">
                       {item ? (
-                        <Link href={`/items/${item.id}`} className="flex items-center gap-2 text-cyan group-hover:underline">
+                        <Link href={`/items/${item.id}`} className="flex items-center gap-2 whitespace-nowrap text-cyan group-hover:underline">
                           <Sprite src={itemIconUrl(item)} alt="" size={22} />
                           {l.name}
-                          <span className="text-text-dim opacity-0 transition group-hover:opacity-100"><ChevronRight size={10} /></span>
+                          <span className="text-text-dim opacity-0 transition group-hover:opacity-100"><ChevronRight size={14} /></span>
                         </Link>
                       ) : (
-                        <span className="flex items-center gap-2">{l.name}</span>
+                        <span className="flex items-center gap-2 whitespace-nowrap">{l.name}</span>
                       )}
                     </td>
-                    <td className="py-1.5 text-text-dim">{l.minCount === l.maxCount ? l.minCount : `${l.minCount}–${l.maxCount}`}</td>
-                    <td className="py-1.5 text-right tabular-nums">{l.chance === 0 ? <T k="special" /> : pctLabel(p)}</td>
+                    <td className="py-2 pr-3 whitespace-nowrap tabular-nums text-text-dim">{l.minCount === l.maxCount ? l.minCount : `${l.minCount}–${l.maxCount}`}</td>
+                    <td className="py-2 text-right whitespace-nowrap tabular-nums">{l.chance === 0 ? <T k="special" /> : pctLabel(p)}</td>
                   </tr>
                 );
               })}
@@ -312,21 +319,21 @@ export default async function CreaturePage({
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-sm uppercase tracking-wide text-text-dim">
-                <th className="pb-2 font-normal"><T k="col.name" /></th>
-                <th className="pb-2 font-normal"><T k="col.type" /></th>
-                <th className="pb-2 font-normal"><T k="col.cat" /></th>
-                <th className="pb-2 text-right font-normal"><T k="col.power" /></th>
-                <th className="pb-2 text-right font-normal"><T k="col.lvl" /></th>
+                <th className="pb-2 pr-3 font-medium"><T k="col.name" /></th>
+                <th className="pb-2 pr-3 font-medium"><T k="col.type" /></th>
+                <th className="pb-2 pr-3 font-medium"><T k="col.cat" /></th>
+                <th className="pb-2 pr-3 text-right font-medium"><T k="col.power" /></th>
+                <th className="pb-2 text-right font-medium"><T k="col.lvl" /></th>
               </tr>
             </thead>
             <tbody>
               {moves.map((m, i) => (
                 <tr key={`${m.name}-${i}`} className="border-t border-border">
-                  <td className="py-1.5">{m.name}</td>
-                  <td className="py-1.5"><TypeBadge type={m.type} /></td>
-                  <td className="py-1.5 text-text-dim"><T k={`cat.${m.category}`} /></td>
-                  <td className="py-1.5 text-right tabular-nums">{m.power || "—"}</td>
-                  <td className="py-1.5 text-right tabular-nums">{m.learnLevel}</td>
+                  <td className="py-2 pr-3 whitespace-nowrap">{m.name}</td>
+                  <td className="py-2 pr-3"><TypeBadge type={m.type} /></td>
+                  <td className="py-2 pr-3 whitespace-nowrap text-text-dim"><T k={`cat.${m.category}`} /></td>
+                  <td className="py-2 pr-3 text-right tabular-nums">{m.power || <span className="slot-empty">—</span>}</td>
+                  <td className="py-2 text-right tabular-nums">{m.learnLevel}</td>
                 </tr>
               ))}
             </tbody>

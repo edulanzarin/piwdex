@@ -103,31 +103,33 @@ export function VipHud({ hunts }: { hunts: HuntOption[] }) {
 
   return (
     <div className="hud overflow-hidden">
-      {/* ---- linha 1 (h fixa): monitor do robo + slot de acao | recursos da conta ---- */}
-      <div className="flex h-11 min-w-0 items-center gap-3 border-b border-border/60 px-3 sm:gap-4 sm:px-4">
+      {/* ---- linha 1 (h fixa; rola na horizontal se apertar): monitor do robo + slot de acao | recursos da conta ---- */}
+      <div className="flex h-11 min-w-0 items-center gap-3 overflow-x-auto border-b border-border/60 px-3 [scrollbar-width:none] sm:gap-4 sm:px-4 [&::-webkit-scrollbar]:hidden">
         <span className="inline-flex min-w-0 items-center gap-2">
           <span
             className={`hud-led shrink-0 ${connected || status === "connecting" || hunt?.reconnecting ? "pulse-soft" : ""}`}
             style={{ "--led": troubled ? "var(--red)" : LED[status] } as React.CSSProperties}
           />
-          <span className={`pixel truncate text-sm uppercase tracking-wide ${troubled ? "text-red" : "text-text"}`}>{statusLabel}</span>
+          {/* frase de status: peso real da Chakra, sem caixa alta nem tracking de muleta */}
+          <span className={`pixel truncate text-sm ${troubled ? "text-red" : "text-text"}`}>{statusLabel}</span>
           {/* stream SSE caiu = aviso discreto; invisible reserva o espaco quando esta ok */}
           <span
             className={`inline-flex w-4 shrink-0 items-center text-yellow ${link !== "open" ? "" : "invisible"}`}
             title={t("vip.hud.streamDown")}
           >
-            <Signal size={10} className="pulse-soft" />
+            <Signal size={14} className="pulse-soft" />
           </span>
         </span>
 
-        {/* slot de ACAO: um estado por vez, sempre no mesmo lugar */}
-        <span className="inline-flex h-7 shrink-0 items-center">
+        {/* slot de ACAO: um estado por vez, sempre no mesmo lugar. h-8 = mesma altura
+            fechada do btn-sm (--control-h-sm), pra os tres estados nao mudarem a linha. */}
+        <span className="inline-flex h-8 shrink-0 items-center">
           {contested ? (
             <button
               type="button"
               onClick={() => void connect()}
               disabled={busy}
-              className="flash-in inline-flex h-7 items-center gap-1.5 rounded border border-[color:var(--yellow)]/60 bg-[color:var(--yellow)]/10 px-2 text-xs text-yellow disabled:opacity-40"
+              className="flash-in inline-flex h-8 items-center gap-1.5 rounded border border-[color:var(--yellow)]/60 bg-[color:var(--yellow)]/10 px-2 text-xs font-medium text-yellow disabled:opacity-40"
               style={{ "--accent": "var(--yellow)" } as React.CSSProperties}
               title={t("vip.contested.note")}
             >
@@ -137,7 +139,7 @@ export function VipHud({ hunts }: { hunts: HuntOption[] }) {
           ) : expired ? (
             <a
               href="#conta"
-              className="flash-in inline-flex h-7 items-center gap-1.5 rounded border border-red/60 bg-[color:var(--red)]/10 px-2 text-xs text-red"
+              className="flash-in inline-flex h-8 items-center gap-1.5 rounded border border-red/60 bg-[color:var(--red)]/10 px-2 text-xs font-medium text-red"
               style={{ "--accent": "var(--red)" } as React.CSSProperties}
             >
               <span className="hud-led pulse-soft" style={{ "--led": "var(--red)" } as React.CSSProperties} />
@@ -152,27 +154,29 @@ export function VipHud({ hunts }: { hunts: HuntOption[] }) {
 
         <span className="ms-auto" />
 
-        {/* recursos da conta — slots permanentes; sem dado = placeholder esmaecido */}
+        {/* recursos da conta — slots permanentes; sem dado = placeholder esmaecido.
+            Larguras calibradas pra Chakra Petch (bem mais larga que a fonte antiga) em
+            base 16px: cabe o pior caso compacto ("123,4 mi") com folga. */}
         <span
-          className="hidden items-center gap-2 sm:inline-flex"
+          className="hidden shrink-0 items-center gap-2 sm:inline-flex"
           title={prof ? `XP ${fmt(prof.xpInLevel)} / ${fmt(prof.xpForNext)}` : undefined}
         >
-          <span className={`pixel text-sm ${prof ? "text-yellow" : "slot-empty"}`}>{prof ? `Lv${prof.level}` : "Lv —"}</span>
-          <span className="hud-track w-14 shrink-0 sm:w-20">
+          <span className={`pixel min-w-[2.75rem] text-sm ${prof ? "text-yellow" : "slot-empty"}`}>{prof ? `Lv${prof.level}` : "Lv —"}</span>
+          <span className="hud-track w-16 shrink-0 sm:w-24">
             <span className="hud-fill block bg-cyan" style={{ width: `${prof ? xpPct : 0}%` }} />
           </span>
         </span>
-        <span className={`inline-flex min-w-[3.6rem] items-center justify-end gap-1 text-sm tabular-nums ${prof ? "text-green" : "slot-empty"}`} title={prof ? fmt(prof.gold) : undefined}>
-          <Coin size={11} />{prof ? fmtC(prof.gold) : "—"}
+        <span className={`inline-flex min-w-[5.25rem] shrink-0 items-center justify-end gap-1 text-sm font-semibold tabular-nums ${prof ? "text-green" : "slot-empty"}`} title={prof ? fmt(prof.gold) : undefined}>
+          <Coin size={14} />{prof ? fmtC(prof.gold) : "—"}
         </span>
-        <span className={`inline-flex min-w-[3rem] items-center justify-end gap-1 text-sm tabular-nums ${prof ? "text-cyan" : "slot-empty"}`} title={prof ? fmt(prof.diamonds) : undefined}>
-          <Diamond size={11} />{prof ? fmtC(prof.diamonds) : "—"}
+        <span className={`inline-flex min-w-[4.25rem] shrink-0 items-center justify-end gap-1 text-sm font-semibold tabular-nums ${prof ? "text-cyan" : "slot-empty"}`} title={prof ? fmt(prof.diamonds) : undefined}>
+          <Diamond size={14} />{prof ? fmtC(prof.diamonds) : "—"}
         </span>
         <span
-          className={`inline-flex min-w-[3rem] items-center justify-end gap-1 text-sm tabular-nums ${!prof ? "slot-empty" : ballLow ? "text-red" : "text-text"}`}
+          className={`inline-flex min-w-[4rem] shrink-0 items-center justify-end gap-1 text-sm font-semibold tabular-nums ${!prof ? "slot-empty" : ballLow ? "text-red" : "text-text"}`}
           title={balls.length ? balls.map((b) => `${b.name}: ${b.count}`).join(" · ") : undefined}
         >
-          <Pokeball size={12} className={ballLow ? "pulse-soft" : ""} />{prof ? fmt(ballTotal) : "—"}
+          <Pokeball size={14} className={ballLow ? "pulse-soft" : ""} />{prof ? fmt(ballTotal) : "—"}
         </span>
       </div>
 
@@ -187,20 +191,22 @@ export function VipHud({ hunts }: { hunts: HuntOption[] }) {
             {leader ? (
               <>
                 <Sprite src={spriteUrl(leader.speciesId, leader.shiny)} alt={leader.name} size={22} />
-                <span className="absolute -right-1 -top-1 text-yellow"><Star size={7} /></span>
+                <span className="absolute -right-1 -top-1 text-yellow"><Star size={14} /></span>
               </>
             ) : (
               <span className="slot-empty"><Pokeball size={16} /></span>
             )}
           </span>
-          <span className={`w-20 truncate text-sm sm:w-24 ${leader ? "text-yellow" : "slot-empty"}`}>{leader ? leader.name : "—"}</span>
+          {/* nome do pokemon: nome proprio, sem caixa alta. Slot mais largo porque a
+              Chakra come mais horizontal que a condensada antiga. */}
+          <span className={`w-24 truncate text-sm font-medium sm:w-32 ${leader ? "text-yellow" : "slot-empty"}`}>{leader ? leader.name : "—"}</span>
           <span className={`pixel shrink-0 text-xs ${leader ? "text-text-dim" : "slot-empty"}`}>
             {leader ? `Lv${hunt?.fighterLevel && hunt.fighterLevel > leader.level ? hunt.fighterLevel : leader.level}` : "Lv —"}
           </span>
         </span>
 
-        {/* modo do cerebro */}
-        <span className="inline-flex w-20 shrink-0 justify-center">
+        {/* modo do cerebro — slot fechado que cabe o rotulo mais largo ("Plano" + icone) */}
+        <span className="inline-flex w-24 shrink-0 justify-center">
           {hunt && hunting ? (
             <span
               className="chip"
@@ -209,8 +215,8 @@ export function VipHud({ hunts }: { hunts: HuntOption[] }) {
                 color: hunt.mode === "manual" ? "var(--text-dim)" : hunt.mode === "auto" ? "#06131a" : "#140a26",
               }}
             >
-              {hunt.mode === "auto" && <Brain size={9} />}
-              {hunt.mode === "leveling" && <Flag size={9} />}
+              {hunt.mode === "auto" && <Brain size={14} />}
+              {hunt.mode === "leveling" && <Flag size={14} />}
               {t(`vip.hud.mode.${hunt.mode}`)}
             </span>
           ) : (
@@ -220,23 +226,23 @@ export function VipHud({ hunts }: { hunts: HuntOption[] }) {
 
         {/* hunt atual */}
         <span className="inline-flex shrink-0 items-center gap-1.5">
-          <Target size={10} className={`shrink-0 ${huntOpt ? "text-cyan" : "slot-empty"}`} />
+          <Target size={14} className={`shrink-0 ${huntOpt ? "text-cyan" : "slot-empty"}`} />
           <span className="flex h-5 w-5 shrink-0 items-center justify-center">
             {huntOpt?.pokeId != null && <Sprite src={spriteUrl(huntOpt.pokeId)} alt={huntOpt.name} size={18} />}
           </span>
-          <span className={`w-24 truncate text-sm sm:w-28 ${huntOpt ? "text-text" : "slot-empty"}`}>{huntOpt ? huntOpt.name : "—"}</span>
+          <span className={`w-28 truncate text-sm sm:w-36 ${huntOpt ? "text-text" : "slot-empty"}`}>{huntOpt ? huntOpt.name : "—"}</span>
         </span>
 
         {/* rendimento ao vivo (md+) */}
-        <span className="hidden items-center gap-3 text-sm tabular-nums md:inline-flex">
-          <span className={`inline-flex min-w-[4.2rem] items-center gap-1 ${rates ? "text-cyan" : "slot-empty"}`} title={rates ? `${fmt(rates.xpPerHour)} XP/h` : undefined}>
-            <Xp size={10} />{rates ? `${fmtC(rates.xpPerHour)}/h` : "—/h"}
+        <span className="hidden items-center gap-3 text-sm font-medium tabular-nums md:inline-flex">
+          <span className={`inline-flex min-w-[5.25rem] items-center gap-1 ${rates ? "text-cyan" : "slot-empty"}`} title={rates ? `${fmt(rates.xpPerHour)} XP/h` : undefined}>
+            <Xp size={14} />{rates ? `${fmtC(rates.xpPerHour)}/h` : "—/h"}
           </span>
-          <span className={`inline-flex min-w-[3rem] items-center gap-1 ${rates ? "text-text-dim" : "slot-empty"}`}>
-            <Skull size={10} />{rates ? fmt(rates.kills) : "—"}
+          <span className={`inline-flex min-w-[4.25rem] items-center gap-1 ${rates ? "text-text-dim" : "slot-empty"}`}>
+            <Skull size={14} />{rates ? fmt(rates.kills) : "—"}
           </span>
-          <span className={`inline-flex min-w-[4.2rem] items-center gap-1 ${rates ? "text-green" : "slot-empty"}`} title={rates ? `${fmt(rates.goldPerHour)} ouro/h` : undefined}>
-            <Coin size={10} />{rates ? `${fmtC(rates.goldPerHour)}/h` : "—/h"}
+          <span className={`inline-flex min-w-[5.25rem] items-center gap-1 ${rates ? "text-green" : "slot-empty"}`} title={rates ? `${fmt(rates.goldPerHour)} ouro/h` : undefined}>
+            <Coin size={14} />{rates ? `${fmtC(rates.goldPerHour)}/h` : "—/h"}
           </span>
         </span>
 
@@ -247,11 +253,12 @@ export function VipHud({ hunts }: { hunts: HuntOption[] }) {
           className="inline-flex shrink-0 items-center gap-2"
           title={lvOn && lv ? `${lv.name}: ${lv.currentLevel} / ${lv.targetLevel}` : undefined}
         >
-          <Flag size={10} className={`shrink-0 ${lvOn ? "text-purple" : "slot-empty"}`} />
-          <span className={`pixel text-xs ${lvOn ? "text-purple" : "slot-empty"}`}>
+          <Flag size={14} className={`shrink-0 ${lvOn ? "text-purple" : "slot-empty"}`} />
+          {/* "123/456" e "—/—" ocupam o mesmo slot: a barra ao lado nao desliza */}
+          <span className={`pixel min-w-[3.75rem] text-center text-xs tabular-nums ${lvOn ? "text-purple" : "slot-empty"}`}>
             {lvOn && lv ? <>{lv.currentLevel}<span className="text-text-dim">/{lv.targetLevel}</span></> : "—/—"}
           </span>
-          <span className="hud-track w-16 shrink-0 sm:w-24">
+          <span className="hud-track w-20 shrink-0 sm:w-28">
             <span className="hud-fill block bg-purple" style={{ width: `${lvOn ? lvPct : 0}%` }} />
           </span>
         </span>

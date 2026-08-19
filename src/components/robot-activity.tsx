@@ -41,24 +41,24 @@ export function RobotActivity() {
     const d = e.data ?? {};
     switch (e.kind) {
       case "shiny":
-        return { icon: <Star size={13} className="text-yellow" />, text: t("evt.shiny").replace("{species}", String(d.species ?? "?")), tone: "text-yellow" };
+        return { icon: <Star size={16} className="text-yellow" />, text: t("evt.shiny").replace("{species}", String(d.species ?? "?")), tone: "text-yellow" };
       case "hunt-summary":
-        return { icon: <Skull size={12} className="text-text-dim" />, text: t("evt.huntSummary").replace("{slug}", String(d.slug ?? "")).replace("{kills}", num(d.kills)).replace("{captures}", num(d.captures)).replace("{balance}", num(d.balance)) };
+        return { icon: <Skull size={16} className="text-text-dim" />, text: t("evt.huntSummary").replace("{slug}", String(d.slug ?? "")).replace("{kills}", num(d.kills)).replace("{captures}", num(d.captures)).replace("{balance}", num(d.balance)) };
       case "poke-sold":
-        return { icon: <Coin size={12} />, text: t("evt.pokeSold").replace("{count}", num(d.count)).replace("{gold}", num(d.gold)) };
+        return { icon: <Coin size={16} />, text: t("evt.pokeSold").replace("{count}", num(d.count)).replace("{gold}", num(d.gold)) };
       case "item-sold":
-        return { icon: <Loot size={12} />, text: t("evt.itemSold").replace("{count}", num(d.count)).replace("{gold}", num(d.gold)) };
+        return { icon: <Loot size={16} />, text: t("evt.itemSold").replace("{count}", num(d.count)).replace("{gold}", num(d.gold)) };
       case "item-bought":
-        return { icon: <Loot size={12} />, text: e.title, tone: "text-text-dim" };
+        return { icon: <Loot size={16} />, text: e.title, tone: "text-text-dim" };
       case "brain":
-        return { icon: <Brain size={13} className="text-cyan" />, text: e.title, tone: "text-cyan" };
+        return { icon: <Brain size={16} className="text-cyan" />, text: e.title, tone: "text-cyan" };
       case "reconnect":
-        return { icon: <Signal size={13} className="text-green" />, text: e.title, tone: "text-green" };
+        return { icon: <Signal size={16} className="text-green" />, text: e.title, tone: "text-green" };
       case "goal":
-        return { icon: <Flag size={13} className="text-purple" />, text: e.title, tone: "text-purple" };
+        return { icon: <Flag size={16} className="text-purple" />, text: e.title, tone: "text-purple" };
       case "error":
         // falha operacional (venda/compra que nao rodou) — o corpo diz o motivo
-        return { icon: <Skull size={13} className="text-red" />, text: e.body ? `${e.title} — ${e.body}` : e.title, tone: "text-red" };
+        return { icon: <Skull size={16} className="text-red" />, text: e.body ? `${e.title} — ${e.body}` : e.title, tone: "text-red" };
       default:
         return { icon: null, text: e.title };
     }

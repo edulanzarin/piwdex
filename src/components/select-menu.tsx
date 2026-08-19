@@ -45,7 +45,9 @@ export function SelectMenu({
   };
 
   return (
-    <div ref={box} className={`relative w-full ${className ?? "sm:max-w-[13rem]"}`}>
+    // cap de largura recalibrado: 13rem valia 234px na base 18px e virou 208px, apertado
+    // pra rotulo longo ("Cualquier origen") na Chakra, que e mais larga que a fonte antiga
+    <div ref={box} className={`relative w-full ${className ?? "sm:max-w-[14rem]"}`}>
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
@@ -55,7 +57,7 @@ export function SelectMenu({
       >
         <span className="truncate">{current?.label ?? ""}</span>
         <span className="inline-flex text-cyan" style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform .15s" }}>
-          <Caret size={9} />
+          <Caret size={14} />
         </span>
       </button>
 
@@ -70,7 +72,9 @@ export function SelectMenu({
               key={o.value}
               type="button"
               onClick={() => choose(o.value)}
-              className={`flex min-h-9 w-full items-center gap-2 rounded px-2 text-left text-sm hover:bg-surface-2 ${value === o.value ? "bg-surface-2" : ""}`}
+              // min-h-10: na base 16px o antigo min-h-9 virou 36px e perdeu o alvo de
+              // toque de 40px (na base 18px ele dava 40.5px)
+              className={`flex min-h-10 w-full items-center gap-2 rounded px-2 text-left text-sm hover:bg-surface-2 ${value === o.value ? "bg-surface-2" : ""}`}
             >
               {o.label}
             </button>

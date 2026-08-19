@@ -38,7 +38,9 @@ export function Tabs({
             type="button"
             onClick={() => onChange(tb.key)}
             aria-pressed={on}
-            className={`tab inline-flex min-h-9 shrink-0 items-center gap-1.5 whitespace-nowrap active:translate-y-px ${on ? "tab-active" : ""}`}
+            // min-h-10: alvo de toque de 40px na base 16px (min-h-9 so dava 36px depois
+            // que a base caiu de 18px pra 16px)
+            className={`tab inline-flex min-h-10 shrink-0 items-center gap-1.5 whitespace-nowrap active:translate-y-px ${on ? "tab-active" : ""}`}
             style={on ? ({ color: accent, borderColor: accent } as CSSProperties) : undefined}
           >
             {tb.icon}

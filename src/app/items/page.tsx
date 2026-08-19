@@ -11,11 +11,13 @@ export default async function ItemsPage() {
   const { items } = await getData();
   const ordered = [...items].sort((a, b) => a.name.localeCompare(b.name));
   return (
-    <ToolFrame accent="var(--green)" label="ITENS" icon={<NavItems size={13} />}>
+    <ToolFrame accent="var(--green)" label="ITENS" icon={<NavItems size={16} />}>
       <div className="flex flex-col gap-6">
         <div>
           <h1 className="pixel text-3xl" style={{ color: "var(--green)" }}><T k="items.title" /></h1>
-          <p className="mt-3 text-sm text-text-dim">
+          {/* mesma medida das outras ferramentas (hunt/calc/breed/eevee): base 16px,
+              largura de leitura fechada em max-w-2xl */}
+          <p className="mt-3 max-w-2xl text-base text-text-dim">
             <TB k="items.subtitle" bKey="items.subtitleB" />
           </p>
         </div>

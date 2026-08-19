@@ -50,7 +50,7 @@ export function TeamLive({ dex, onManage }: { dex?: Record<number, MarketDex>; o
   return (
     <div className="card flex flex-col gap-3 p-4">
       <div className="flex items-center gap-2.5">
-        <Trainer size={13} className="text-yellow" />
+        <Trainer size={18} className="text-yellow" />
         <h3 className="section-title flex-1">{t("vip.team.title")}</h3>
         {/* slot de status de ALTURA FIXA: um estado por vez (ao vivo > snapshot > nada) */}
         <span className="inline-flex h-6 items-center">
@@ -76,7 +76,7 @@ export function TeamLive({ dex, onManage }: { dex?: Record<number, MarketDex>; o
         >
           <span className="relative flex h-16 w-16 shrink-0 items-center justify-center rounded bg-surface-2">
             <Sprite src={spriteUrl(leader.speciesId, leader.shiny)} alt={leader.name} size={56} />
-            <span className="absolute -right-1.5 -top-1.5 text-yellow"><Star size={12} /></span>
+            <span className="absolute -right-1.5 -top-1.5 text-yellow"><Star size={16} /></span>
           </span>
           <span className="min-w-0 flex-1">
             <span className="flex h-6 items-center gap-2 overflow-hidden">
@@ -87,7 +87,7 @@ export function TeamLive({ dex, onManage }: { dex?: Record<number, MarketDex>; o
             </span>
             <span className="mt-1.5 block"><HpBar hp={leader.hp} maxHp={leader.maxHp} /></span>
             <span className="mt-1.5 flex h-5 items-center gap-x-3 overflow-hidden text-sm tabular-nums text-text-dim">
-              <span className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-cyan"><Xp size={9} />{fmt(leader.power)} {t("vip.team.power")}</span>
+              <span className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-cyan"><Xp size={14} />{fmt(leader.power)} {t("vip.team.power")}</span>
               <span className="shrink-0 whitespace-nowrap">IV {leader.ivTotal}</span>
               <span className="shrink-0 whitespace-nowrap">Q {leader.quality.toFixed(3)}</span>
             </span>
@@ -144,7 +144,7 @@ export function TeamLive({ dex, onManage }: { dex?: Record<number, MarketDex>; o
       {/* gestao (lider/box) mora em Meus Pokemons */}
       {onManage && (
         <button type="button" onClick={onManage} className="btn btn-ghost self-start">
-          {t("vip.sec.pokemons")} <ChevronRight size={10} />
+          {t("vip.sec.pokemons")} <ChevronRight size={14} />
         </button>
       )}
 

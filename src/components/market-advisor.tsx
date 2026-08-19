@@ -35,17 +35,24 @@ const GRADE_VAR: Record<Grade, string> = { great: "var(--green)", ok: "var(--yel
 const GRADE_TEXT: Record<Grade, string> = { great: "text-green", ok: "text-yellow", bad: "text-red" };
 
 // Etiqueta colorida (contorno + fundo suave), boa nas tres cores sobre fundo escuro.
+// Rotulo curto em caixa alta: peso 600 de verdade (a fonte tem), nunca faux-bold.
 function GradeChip({ grade, label }: { grade: Grade; label: string }) {
   const c = GRADE_VAR[grade];
   return (
     <span
-      className="inline-flex items-center rounded px-1.5 py-0.5 text-xs uppercase tracking-wide"
+      className="inline-flex shrink-0 items-center rounded px-1.5 py-0.5 text-xs font-semibold uppercase tracking-wide"
       style={{ background: `color-mix(in srgb, ${c} 20%, transparent)`, border: `1px solid ${c}`, color: c }}
     >
       {label}
     </span>
   );
 }
+
+// Linha densa de metadados do card: altura FECHADA e nunca quebra. Como a fonte nova e
+// bem mais larga, quando o conteudo nao cabe no card a linha ROLA na horizontal com a
+// barra escondida (mesmo dialeto do trilho de navegacao do VIP) em vez de cortar o
+// ultimo dado. Todo filho direto entra com `shrink-0`.
+const METAROW = "flex items-center overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden";
 
 // "+35%" / "-18%": o quanto o preco foge do justo (negativo = mais barato).
 function fmtPct(p: number): string {
@@ -70,10 +77,11 @@ const fmt = (n: number) => n.toLocaleString("pt-BR");
 const numI = (s: string) => { const v = parseInt(s.replace(/\D/g, ""), 10); return Number.isFinite(v) ? v : null; };
 const ivColor = (v: number | null) => (v == null ? "text-text-dim" : v >= 150 ? "text-green" : v >= 100 ? "text-yellow" : "text-text");
 
-// Preco com icone pixel da moeda (nada de "◆" que vira bolinha) — dolar dourado, diamante ciano.
-function Price({ currency, value, size = 12 }: { currency: Currency; value: number; size?: number }) {
+// Preco com o icone da moeda — dolar dourado, diamante ciano. Icone de linha nao le
+// abaixo de 14: 14 ao lado de texto xs/sm, 16 ao lado de base/lg (quem chama escolhe).
+function Price({ currency, value, size = 14 }: { currency: Currency; value: number; size?: number }) {
   return (
-    <span className="inline-flex items-center gap-1 tabular-nums">
+    <span className="inline-flex shrink-0 items-center gap-1 tabular-nums">
       {currency === "DIAMONDS"
         ? <span className="text-cyan"><Diamond size={size} /></span>
         : <span className="text-green"><Coin size={size} /></span>}
@@ -97,6 +105,8 @@ function Tile({ label, children }: { label: string; children: React.ReactNode })
 // etiqueta de preco (BARATO/JUSTO/CARO vs justo) e abaixo do NPC. `right` injeta um
 // canto (ex.: o ✕ de recusar) sem quebrar o layout. Linhas de ALTURA FIXA com slot
 // permanente ("—" esmaecido pra dado ausente): todo card da grade fica do MESMO tamanho.
+// Alturas recalibradas pra fonte nova (16px de base): h-7 na linha que carrega chip ou
+// texto base, h-6 na linha de 15px — h-5/h-6 antigos cortavam o topo/base dos glifos.
 export function MarketMonCard({ mon, onClick, right, rarity }: { mon: MarketMon; onClick: () => void; right?: React.ReactNode; rarity?: Rarity }) {
   const t = useT();
   const monG = monGrade(mon.ivTotal, mon.quality);
@@ -113,22 +123,22 @@ export function MarketMonCard({ mon, onClick, right, rarity }: { mon: MarketMon;
         <div className="relative flex h-14 w-14 shrink-0 items-center justify-center rounded bg-[var(--well-bg)]">
           <Sprite src={spriteUrl(mon.speciesId, mon.shiny)} alt={mon.name} size={48} />
           {/* estrela shiny sempre no canto: invisible reserva o espaco */}
-          <span className={`absolute right-0.5 top-0.5 text-yellow ${mon.shiny ? "" : "invisible"}`}><Star size={11} /></span>
+          <span className={`absolute right-0.5 top-0.5 text-yellow ${mon.shiny ? "" : "invisible"}`}><Star size={14} /></span>
         </div>
         <div className="min-w-0 flex-1">
-          <div className="flex h-6 items-center gap-1.5 overflow-hidden">
+          <div className="flex h-7 items-center gap-1.5 overflow-hidden">
             <span className="pixel truncate text-base">{mon.name}</span>
             <span className="shrink-0 text-sm text-text-dim">Lv.{mon.level}</span>
             {rarity && <span className="shrink-0"><RarityBadge rarity={rarity} /></span>}
           </div>
-          <div className="flex h-5 items-center gap-x-3 overflow-hidden text-sm text-text-dim">
-            <span className="shrink-0 whitespace-nowrap">{t("account.col.power")} <span className={mon.power != null ? "text-yellow" : "slot-empty"}>{mon.power != null ? fmt(mon.power) : "—"}</span></span>
-            <span className="shrink-0 whitespace-nowrap">{t("account.col.iv")} <span className={mon.ivTotal != null ? ivColor(mon.ivTotal) : "slot-empty"}>{mon.ivTotal ?? "—"}</span>{mon.ivTotal != null ? "/192" : ""}</span>
-            <span className="shrink-0 whitespace-nowrap">{t("account.col.quality")} <span className={mon.quality != null ? (qualG ? GRADE_TEXT[qualG] : "text-cyan") : "slot-empty"}>{mon.quality != null ? mon.quality.toFixed(3) : "—"}</span></span>
+          <div className={`${METAROW} h-6 gap-x-3 text-sm text-text-dim`}>
+            <span className="shrink-0 whitespace-nowrap">{t("account.col.power")} <span className={mon.power != null ? "font-semibold text-yellow" : "slot-empty"}>{mon.power != null ? fmt(mon.power) : "—"}</span></span>
+            <span className="shrink-0 whitespace-nowrap">{t("account.col.iv")} <span className={mon.ivTotal != null ? `font-semibold ${ivColor(mon.ivTotal)}` : "slot-empty"}>{mon.ivTotal ?? "—"}</span>{mon.ivTotal != null ? "/192" : ""}</span>
+            <span className="shrink-0 whitespace-nowrap">{t("account.col.quality")} <span className={mon.quality != null ? `font-semibold ${qualG ? GRADE_TEXT[qualG] : "text-cyan"}` : "slot-empty"}>{mon.quality != null ? mon.quality.toFixed(3) : "—"}</span></span>
           </div>
-          <div className="mt-1 flex h-7 items-center gap-1.5 overflow-hidden pixel text-base text-text">
-            {mon.price > 0 ? <Price currency={mon.currency} value={mon.price} /> : <span className="slot-empty">—</span>}
-            {dGrade ? <GradeChip grade={dGrade} label={t(`account.market.deal.${dGrade}`)} /> : <span className="slot-empty text-xs">—</span>}
+          <div className={`${METAROW} mt-1 h-7 gap-1.5 pixel text-base text-text`}>
+            {mon.price > 0 ? <Price currency={mon.currency} value={mon.price} size={16} /> : <span className="slot-empty shrink-0">—</span>}
+            {dGrade ? <GradeChip grade={dGrade} label={t(`account.market.deal.${dGrade}`)} /> : <span className="slot-empty shrink-0 text-xs">—</span>}
             <span className={`chip shrink-0 ${mon.belowNpc ? "" : "invisible"}`} style={{ background: "var(--green)", color: "#052012" }}>{t("account.market.belowNpc")}</span>
           </div>
         </div>
@@ -194,7 +204,7 @@ export function BuyItemModal({ item, onClose, onBought }: { item: MarketItemRow;
         <div className="min-w-0 flex-1">
           <h3 className="section-title truncate">{item.name}</h3>
           <div className="text-sm text-text-dim">
-            <Price currency={item.currency} value={item.price} size={11} /> {t("market.it.unit")} · x{fmt(item.quantity)}
+            <Price currency={item.currency} value={item.price} /> {t("market.it.unit")} · x{fmt(item.quantity)}
           </div>
         </div>
         <CloseButton onClick={onClose} className="shrink-0 self-start" />
@@ -206,10 +216,10 @@ export function BuyItemModal({ item, onClose, onBought }: { item: MarketItemRow;
       </label>
       <div className="flex items-center justify-between rounded border border-border bg-[var(--well-bg)] px-3 py-2">
         <span className="field-label">{t("market.buy.total")}</span>
-        <span className="pixel text-lg"><Price currency={item.currency} value={total} size={13} /></span>
+        <span className="pixel text-lg"><Price currency={item.currency} value={total} size={16} /></span>
       </div>
       <button type="button" onClick={() => void confirm()} disabled={busy} className="btn btn-green disabled:opacity-40">
-        <Check size={11} /> {busy ? "…" : t("market.buy.confirm")}
+        <Check size={14} /> {busy ? "…" : t("market.buy.confirm")}
       </button>
     </Modal>
   );
@@ -249,7 +259,7 @@ export function MarketMonModal({ mon, dex, onClose, onBought }: { mon: MarketMon
         <div className="flex items-center gap-4">
           <div className="relative flex h-20 w-20 shrink-0 items-center justify-center rounded bg-[var(--well-bg)]">
             <Sprite src={spriteUrl(mon.speciesId, mon.shiny)} alt={mon.name} size={72} />
-            {mon.shiny && <span className="absolute right-1 top-1 text-yellow"><Star size={13} /></span>}
+            {mon.shiny && <span className="absolute right-1 top-1 text-yellow"><Star size={16} /></span>}
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
@@ -278,9 +288,9 @@ export function MarketMonModal({ mon, dex, onClose, onBought }: { mon: MarketMon
           <Tile label={t("account.col.quality")}><span className={mon.quality != null ? (qual ? GRADE_TEXT[qual] : "text-cyan") : "slot-empty"}>{mon.quality != null ? mon.quality.toFixed(3) : "—"}</span></Tile>
           <Tile label={mon.price > 0 ? t("account.market.price") : t("account.market.worth")}>
             {mon.price > 0 ? (
-              <span className="text-text"><Price currency={mon.currency} value={mon.price} size={13} /></span>
+              <span className="text-text"><Price currency={mon.currency} value={mon.price} size={16} /></span>
             ) : fair != null ? (
-              <span className="inline-flex items-center gap-1 text-text"><span className="opacity-70">~</span><Price currency={mon.currency} value={fair} size={13} /></span>
+              <span className="inline-flex items-center gap-1 text-text"><span className="opacity-70">~</span><Price currency={mon.currency} value={fair} size={16} /></span>
             ) : (
               <span className="slot-empty">—</span>
             )}
@@ -291,15 +301,15 @@ export function MarketMonModal({ mon, dex, onClose, onBought }: { mon: MarketMon
             Linhas de altura fixa SEMPRE presentes: nota ausente vira slot esmaecido. */}
         <div className="flex flex-col gap-2 rounded border border-border bg-[var(--well-bg)] p-3">
           <div className="section-title text-purple">{t("account.market.verdict")}</div>
-          <div className="flex h-6 items-center justify-between gap-2 text-base">
+          <div className="flex h-7 items-center justify-between gap-2 text-base">
             <span className="text-text-dim">{t("account.market.genesLabel")}</span>
             {genes ? <GradeChip grade={genes} label={t(`account.market.genes.${genes}`)} /> : <span className="slot-empty">—</span>}
           </div>
-          <div className="flex h-6 items-center justify-between gap-2 text-base">
+          <div className="flex h-7 items-center justify-between gap-2 text-base">
             <span className="text-text-dim">{t("account.market.qualityLabel")}</span>
             {qual ? <GradeChip grade={qual} label={t(`account.market.quality.${qual}`)} /> : <span className="slot-empty">—</span>}
           </div>
-          <div className="flex h-6 items-center justify-between gap-2 text-base">
+          <div className="flex h-7 items-center justify-between gap-2 text-base">
             <span className="text-text-dim">{t("account.market.dealLabel")}</span>
             {deal ? (
               <span className="flex items-center gap-2">
@@ -311,7 +321,7 @@ export function MarketMonModal({ mon, dex, onClose, onBought }: { mon: MarketMon
             )}
           </div>
           {/* preco justo: no bicho do chat o valor ja esta no tile "valeria" — aqui vira slot */}
-          <div className="flex h-5 items-center justify-between gap-2 text-sm text-text-dim">
+          <div className="flex h-6 items-center justify-between gap-2 text-sm text-text-dim">
             <span>{t("account.market.fairPrice")}</span>
             {fair != null && mon.price > 0 ? (
               <span className="inline-flex items-center gap-1"><span className="opacity-70">~</span><Price currency={mon.currency} value={fair} /></span>
@@ -340,8 +350,9 @@ export function MarketMonModal({ mon, dex, onClose, onBought }: { mon: MarketMon
               <StatBar key={key} iconIndex={i} label={label} value={dex[key] as number} best={(dex[key] as number) === best} />
             ))}
             <div className="mt-1 flex items-center justify-between border-t border-border pt-2 text-sm">
-              <span className="text-sm uppercase tracking-wide text-text-dim">{t("cr.total")}</span>
-              <span className="tabular-nums text-cyan">{total}</span>
+              {/* rotulo curto continua em caixa alta, mas na classe sancionada */}
+              <span className="field-label">{t("cr.total")}</span>
+              <span className="font-semibold tabular-nums text-cyan">{total}</span>
             </div>
           </div>
         )}
@@ -349,18 +360,18 @@ export function MarketMonModal({ mon, dex, onClose, onBought }: { mon: MarketMon
         <div className="flex flex-wrap items-center gap-2">
           {buyable && !confirming && (
             <button type="button" onClick={() => setConfirming(true)} className="btn btn-green">
-              {t("market.buy.for")} <Price currency={mon.currency} value={mon.price} size={11} />
+              {t("market.buy.for")} <Price currency={mon.currency} value={mon.price} />
             </button>
           )}
           {buyable && confirming && (
             <>
               <button type="button" onClick={() => void doBuy()} disabled={busy} className="btn btn-green disabled:opacity-40">
-                <Check size={11} /> {busy ? "…" : t("market.buy.confirm")}
+                <Check size={14} /> {busy ? "…" : t("market.buy.confirm")}
               </button>
               <button type="button" onClick={() => setConfirming(false)} disabled={busy} className="btn btn-ghost disabled:opacity-40">{t("market.buy.cancel")}</button>
             </>
           )}
-          <a href={`/dex/${mon.speciesId}`} className="btn btn-cyan ms-auto">{t("account.market.viewDex")} <ChevronRight size={10} /></a>
+          <a href={`/dex/${mon.speciesId}`} className="btn btn-cyan ms-auto">{t("account.market.viewDex")} <ChevronRight size={14} /></a>
         </div>
     </Modal>
   );

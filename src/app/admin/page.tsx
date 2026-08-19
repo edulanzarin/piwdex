@@ -22,7 +22,7 @@ export default async function AdminPage() {
 
   return (
     <div className="container-vip">
-      <ToolFrame accent={ACCENT} label="ADMIN" icon={<Gear size={13} />}>
+      <ToolFrame accent={ACCENT} label="ADMIN" icon={<Gear size={16} />}>
         <div className="flex flex-col gap-5">
           <div>
             <h1 className="pixel text-3xl" style={{ color: ACCENT }}>Contas do PIWdex</h1>

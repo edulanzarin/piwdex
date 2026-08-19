@@ -74,8 +74,10 @@ function BallSelect({ balls, value, onChange, disabled }: { balls: Ball[]; value
   }, [open]);
   const cur = balls.find((b) => b.id === value);
   const empty = cur != null && !cur.infinite && cur.count <= 0;
+  // calha fixa de 16rem: com a Chakra (mais larga) e a base em 16px, 14rem cortava
+  // nome de bola + contagem no mesmo botao. Largura continua FIXA, so maior.
   return (
-    <div ref={box} className="relative w-full sm:w-56">
+    <div ref={box} className="relative w-full sm:w-64">
       <button
         type="button"
         disabled={disabled}
@@ -90,12 +92,12 @@ function BallSelect({ balls, value, onChange, disabled }: { balls: Ball[]; value
           <span className="truncate">{cur?.name ?? `#${value}`}</span>
           {cur && (
             <span className={`shrink-0 text-sm tabular-nums ${empty ? "text-red" : "text-text-dim"}`}>
-              {cur.infinite ? <Infinity_ size={11} /> : `x${cur.count}`}
+              {cur.infinite ? <Infinity_ size={14} /> : `x${cur.count}`}
             </span>
           )}
         </span>
         <span className="inline-flex text-cyan" style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform .15s" }}>
-          <Caret size={9} />
+          <Caret size={14} />
         </span>
       </button>
       {open && (
@@ -105,14 +107,14 @@ function BallSelect({ balls, value, onChange, disabled }: { balls: Ball[]; value
               key={b.id}
               type="button"
               onClick={() => { onChange(b.id); setOpen(false); }}
-              className={`flex min-h-9 w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm hover:bg-surface-2 ${b.id === value ? "bg-surface-2" : ""}`}
+              className={`flex min-h-10 w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm hover:bg-surface-2 ${b.id === value ? "bg-surface-2" : ""}`}
             >
               {b.iconUrl && (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={b.iconUrl} alt="" width={18} height={18} className="[image-rendering:pixelated]" />
               )}
               <span className="min-w-0 flex-1 truncate">{b.name}</span>
-              <span className="flex shrink-0 items-center text-sm text-text-dim">{b.infinite ? <Infinity_ size={13} /> : b.count}</span>
+              <span className="flex shrink-0 items-center text-sm text-text-dim">{b.infinite ? <Infinity_ size={14} /> : b.count}</span>
             </button>
           ))}
         </div>
@@ -133,8 +135,10 @@ function SupplySelect({ opts, value, onChange, bestLabel }: { opts: Opt[]; value
     return () => document.removeEventListener("mousedown", onDoc);
   }, [open]);
   const cur = value != null ? opts.find((o) => o.id === value) : null;
+  // mesma calha do BallSelect (16rem): "A melhor disponível"/"La mejor disponible"
+  // e nome de pocao longo passam a caber sem truncar.
   return (
-    <div ref={box} className="relative w-full sm:w-56">
+    <div ref={box} className="relative w-full sm:w-64">
       <button type="button" onClick={() => setOpen((o) => !o)} className="input flex w-full items-center justify-between gap-2">
         <span className="flex min-w-0 items-center gap-2">
           {cur?.icon && (
@@ -144,7 +148,7 @@ function SupplySelect({ opts, value, onChange, bestLabel }: { opts: Opt[]; value
           <span className="truncate">{cur?.name ?? bestLabel}</span>
         </span>
         <span className="inline-flex text-cyan" style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform .15s" }}>
-          <Caret size={9} />
+          <Caret size={14} />
         </span>
       </button>
       {open && (
@@ -152,7 +156,7 @@ function SupplySelect({ opts, value, onChange, bestLabel }: { opts: Opt[]; value
           <button
             type="button"
             onClick={() => { onChange(null); setOpen(false); }}
-            className={`flex min-h-9 w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm hover:bg-surface-2 ${value == null ? "bg-surface-2" : ""}`}
+            className={`flex min-h-10 w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm hover:bg-surface-2 ${value == null ? "bg-surface-2" : ""}`}
           >
             <span className="min-w-0 flex-1 truncate text-text-dim">{bestLabel}</span>
           </button>
@@ -161,7 +165,7 @@ function SupplySelect({ opts, value, onChange, bestLabel }: { opts: Opt[]; value
               key={o.id}
               type="button"
               onClick={() => { onChange(o.id); setOpen(false); }}
-              className={`flex min-h-9 w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm hover:bg-surface-2 ${o.id === value ? "bg-surface-2" : ""}`}
+              className={`flex min-h-10 w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm hover:bg-surface-2 ${o.id === value ? "bg-surface-2" : ""}`}
             >
               {o.icon && (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -197,8 +201,10 @@ function Slider({ value, min, max, step, decimals, onChange }: { value: number; 
   const set = (n: number) => { if (Number.isNaN(n)) return; onChange(round(Math.min(max, Math.max(min, n)))); };
   return (
     <div className="flex items-center gap-2">
-      <input type="range" min={min} max={max} step={step} value={value} onChange={(e) => set(Number(e.target.value))} className="min-h-9 w-32 accent-[color:var(--yellow)]" />
-      <input type="number" min={min} max={max} step={step} value={value} onChange={(e) => set(Number(e.target.value))} className="input w-20 text-right tabular-nums text-yellow" />
+      {/* trilho e caixa numerica com largura FIXA maior: na base 16px o w-32/w-20 antigo
+          encolheu ~11% e a caixa ja nao segurava "192"/"3.00" mais os botoes do number */}
+      <input type="range" min={min} max={max} step={step} value={value} onChange={(e) => set(Number(e.target.value))} className="min-h-10 w-36 accent-[color:var(--yellow)]" />
+      <input type="number" min={min} max={max} step={step} value={value} onChange={(e) => set(Number(e.target.value))} className="input w-24 text-right font-semibold tabular-nums text-yellow" />
     </div>
   );
 }
@@ -215,10 +221,12 @@ function RarityBoxes({ selected, onToggle }: { selected: Rarity[]; onToggle: (r:
             type="button"
             onClick={() => onToggle(r)}
             aria-pressed={on}
-            className="chip inline-flex min-h-9 items-center gap-1.5 border transition"
+            className="chip inline-flex min-h-10 items-center gap-1.5 border transition"
             style={{ background: on ? color : "transparent", borderColor: color, color: on ? "#06111a" : color, opacity: on ? 1 : 0.5 }}
           >
-            <span className="inline-flex w-2 justify-center text-sm">{on ? <Check size={9} /> : "·"}</span>
+            {/* calha do marcador: 1rem segura o Check de 14px sem empurrar o rotulo
+                (o w-2 antigo foi calibrado pro glifo pixel de 9px) */}
+            <span className="inline-flex w-4 shrink-0 justify-center text-sm">{on ? <Check size={14} /> : "·"}</span>
             {r}
           </button>
         );
@@ -354,13 +362,13 @@ export function ConfigPanel() {
           Linha sem wrap: o texto e flexivel e o par status+botao fica preso a direita
           — pendencia aparecendo/sumindo troca SO o conteudo do slot, o botao nao pula. */}
       <div className="card sticky top-[4.4rem] z-20 flex items-center gap-3 p-4" style={{ background: "var(--surface-solid)" }}>
-        <span className="hidden shrink-0 text-blue sm:inline-flex"><Gear size={14} /></span>
+        <span className="hidden shrink-0 text-blue sm:inline-flex"><Gear size={18} /></span>
         <div className="min-w-0 flex-1">
           <h2 className="section-title text-blue">{t("vip.sec.config")}</h2>
           <p className="mt-0.5 hidden text-sm text-text-dim sm:block">{t("config.desc")}</p>
         </div>
         {/* slot de status: um estado por vez (pendencias > salvo > vazio), mesma altura */}
-        <span className="inline-flex h-7 shrink-0 items-center">
+        <span className="inline-flex h-8 shrink-0 items-center">
           {dirty ? (
             <span className="chip" style={{ background: "var(--yellow)", color: "#1a1405" }}>{t("config.pending", { n: pendingCount })}</span>
           ) : saved ? (
@@ -369,8 +377,10 @@ export function ConfigPanel() {
             <span className="slot-empty text-base">—</span>
           )}
         </span>
-        <button type="button" onClick={confirm} disabled={!dirty || busy} className="btn btn-cyan min-w-[8rem] shrink-0 disabled:opacity-40">
-          <Check size={11} /> {busy ? "…" : t("robo.pokes.commit")}
+        {/* 11rem = pior caso do rotulo em CAIXA ALTA ("CONFIRMAR"/"CONFIRM") + Check de
+            14px na Chakra: a largura nao muda quando o rotulo vira "…" durante o save */}
+        <button type="button" onClick={confirm} disabled={!dirty || busy} className="btn btn-cyan min-w-[11rem] shrink-0 disabled:opacity-40">
+          <Check size={14} /> {busy ? "…" : t("robo.pokes.commit")}
         </button>
       </div>
 
@@ -423,9 +433,9 @@ export function ConfigPanel() {
                   type="range" min={5} max={95} step={5}
                   value={d.auto.autoPotionThreshold}
                   onChange={(e) => editAuto({ autoPotionThreshold: Number(e.target.value) })}
-                  className="w-40 accent-[color:var(--yellow)]"
+                  className="min-h-10 w-40 accent-[color:var(--yellow)]"
                 />
-                <span className="w-9 text-right text-sm tabular-nums text-yellow">{d.auto.autoPotionThreshold}%</span>
+                <span className="w-12 text-right text-sm font-semibold tabular-nums text-yellow">{d.auto.autoPotionThreshold}%</span>
               </div>
             </Row>
           )}
@@ -453,7 +463,7 @@ export function ConfigPanel() {
       {/* ---- venda de pokemon (travas + interruptor, salvos no servidor) ---- */}
       <section className="flex flex-col gap-3">
         <div>
-          <h3 className="section-title flex items-center gap-2 text-green"><Coin size={14} /> {t("robo.pokes.title")}</h3>
+          <h3 className="section-title flex items-center gap-2 text-green"><Coin size={18} /> {t("robo.pokes.title")}</h3>
           <p className="mt-1.5 max-w-2xl text-base text-text-dim">{t("config.sellDesc")}</p>
         </div>
         <div className="card flex flex-col p-5">
@@ -482,7 +492,7 @@ export function ConfigPanel() {
       {/* ---- auto-compra de consumiveis ---- */}
       <section className="flex flex-col gap-3">
         <div>
-          <h3 className="section-title flex items-center gap-2 text-yellow"><Pokeball size={13} /> {t("robo.autobuy.title")}</h3>
+          <h3 className="section-title flex items-center gap-2 text-yellow"><Pokeball size={18} /> {t("robo.autobuy.title")}</h3>
           <p className="mt-1.5 max-w-2xl text-base text-text-dim">{t("robo.autobuy.desc")}</p>
         </div>
         <div className="card flex flex-col gap-3 p-5">

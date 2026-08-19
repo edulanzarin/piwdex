@@ -29,7 +29,9 @@ export function StatTile({
 }) {
   const empty = value == null;
   return (
-    <div className={`well ${hover ? "well-hover" : ""} flex min-w-0 flex-col gap-1 ${className}`}>
+    // min-h = altura natural de rotulo + valor de UMA linha (base 16px): tile de valor
+    // curto e tile de valor longo ficam na mesma regua, a fila nunca danca
+    <div className={`well ${hover ? "well-hover" : ""} flex min-h-[4rem] min-w-0 flex-col gap-1 ${className}`}>
       <span className="field-label flex items-center gap-1.5">
         {icon}
         {label}

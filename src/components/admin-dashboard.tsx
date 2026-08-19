@@ -74,19 +74,21 @@ export function AdminDashboard({ users }: { users: AdminUser[] }) {
       {/* resumo */}
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
         <Stat label="Usuários" value={fmt(totals.total)} />
-        <Stat label="VIPs" value={fmt(totals.vip)} icon={<Star size={12} />} />
-        <Stat label="Conta ligada" value={fmt(totals.linked)} icon={<Trainer size={12} />} />
-        <Stat label="Dólares (soma)" value={fmt(totals.gold)} icon={<Coin size={12} />} />
-        <Stat label="Diamantes (soma)" value={fmt(totals.diamonds)} icon={<Diamond size={12} />} />
+        <Stat label="VIPs" value={fmt(totals.vip)} icon={<Star size={14} />} />
+        <Stat label="Conta ligada" value={fmt(totals.linked)} icon={<Trainer size={14} />} />
+        <Stat label="Dólares (soma)" value={fmt(totals.gold)} icon={<Coin size={14} />} />
+        <Stat label="Diamantes (soma)" value={fmt(totals.diamonds)} icon={<Diamond size={14} />} />
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="text-sm text-text-dim">Moedas puxadas ao vivo do jogo (REST, sem roubar a sessão).</span>
-        {/* largura minima fixa: o rotulo alterna (atualizar/atualizando) sem o botao pular */}
+        {/* largura minima fixa: o rotulo alterna (atualizar/atualizando) sem o botao pular.
+            12rem cobre "ATUALIZANDO…" em CAIXA ALTA na Chakra — a 9.5rem antiga foi
+            calibrada pra fonte condensada com base 18px e ja nao segurava o estado longo */}
         <button
           type="button"
           onClick={() => { setBusy(true); router.refresh(); setTimeout(() => setBusy(false), 1200); }}
-          className="btn btn-ghost min-w-[9.5rem]"
+          className="btn btn-ghost min-w-[12rem]"
         >
           {busy ? "atualizando…" : "atualizar"}
         </button>

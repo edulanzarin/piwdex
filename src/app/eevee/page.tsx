@@ -50,7 +50,7 @@ export default async function EeveePage() {
   });
 
   return (
-    <ToolFrame accent="var(--cyan)" label="LAB" icon={<NavLab size={13} />}>
+    <ToolFrame accent="var(--cyan)" label="LAB" icon={<NavLab size={16} />}>
       <div className="flex flex-col gap-6">
         <div>
           <p className="eyebrow"><T k="eevee.eyebrow" /></p>

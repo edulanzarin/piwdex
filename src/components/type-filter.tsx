@@ -44,7 +44,9 @@ export function TypeFilter({
   };
 
   return (
-    <div ref={box} className={`relative w-full ${className ?? "sm:max-w-[13rem]"}`}>
+    // cap de largura recalibrado junto com o SelectMenu: 13rem virou 208px na base 16px
+    // e nao segurava "Todos los tipos" + amostra de cor + seta sem truncar
+    <div ref={box} className={`relative w-full ${className ?? "sm:max-w-[14rem]"}`}>
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
@@ -55,11 +57,13 @@ export function TypeFilter({
         <span className="flex items-center gap-2">
           {value ? (
             <>
+              {/* amostra de cor foi de h-4 (16px) pra h-5 (20px): o icone de linha
+                  precisa de 14px pra nao virar borrao e 16px de caixa nao o comportava */}
               <span
-                className="flex h-4 w-4 items-center justify-center rounded"
+                className="flex h-5 w-5 items-center justify-center rounded"
                 style={{ background: TYPE_COLOR[value], color: "#fff" }}
               >
-                <TypeIcon type={value} size={10} />
+                <TypeIcon type={value} size={14} />
               </span>
               <span>{typeLabel(value)}</span>
             </>
@@ -68,7 +72,7 @@ export function TypeFilter({
           )}
         </span>
         <span className="inline-flex text-cyan" style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform .15s" }}>
-          <Caret size={9} />
+          <Caret size={14} />
         </span>
       </button>
 
@@ -81,9 +85,10 @@ export function TypeFilter({
           <button
             type="button"
             onClick={() => choose("")}
-            className={`flex min-h-9 w-full items-center gap-2 rounded px-2 text-left text-sm hover:bg-surface-2 ${value === "" ? "bg-surface-2" : ""}`}
+            // min-h-10 = 40px de alvo de toque na base 16px (min-h-9 so dava isso na base 18px)
+            className={`flex min-h-10 w-full items-center gap-2 rounded px-2 text-left text-sm hover:bg-surface-2 ${value === "" ? "bg-surface-2" : ""}`}
           >
-            <span className="flex h-4 w-4 items-center justify-center rounded border border-border text-xs text-text-dim">•</span>
+            <span className="flex h-5 w-5 items-center justify-center rounded border border-border text-xs text-text-dim">•</span>
             {t("dex.allTypes")}
           </button>
           {ALL_TYPES.map((pt) => (
@@ -91,10 +96,10 @@ export function TypeFilter({
               key={pt}
               type="button"
               onClick={() => choose(pt)}
-              className={`flex min-h-9 w-full items-center gap-2 rounded px-2 text-left text-sm hover:bg-surface-2 ${value === pt ? "bg-surface-2" : ""}`}
+              className={`flex min-h-10 w-full items-center gap-2 rounded px-2 text-left text-sm hover:bg-surface-2 ${value === pt ? "bg-surface-2" : ""}`}
             >
-              <span className="flex h-4 w-4 items-center justify-center rounded" style={{ background: TYPE_COLOR[pt], color: "#fff" }}>
-                <TypeIcon type={pt} size={10} />
+              <span className="flex h-5 w-5 items-center justify-center rounded" style={{ background: TYPE_COLOR[pt], color: "#fff" }}>
+                <TypeIcon type={pt} size={14} />
               </span>
               {typeLabel(pt)}
             </button>

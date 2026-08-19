@@ -13,7 +13,10 @@ export function TypeBadge({ type, icon = true }: { type: PokeType | string; icon
       className="chip"
       style={{ background: color, color: "#fff", textShadow: "0 1px 1px rgba(0,0,0,0.45)" }}
     >
-      {icon && <TypeIcon type={type} size={11} />}
+      {/* icone de linha casa com a altura do texto do chip (.chip = text-xs, 14px);
+          abaixo disso o traco lucide vira borrao. O .chip ja centraliza (align-items)
+          e o TypeIcon ja e shrink-0, entao o glifo nao desalinha nem espreme o rotulo. */}
+      {icon && <TypeIcon type={type} size={14} />}
       {label(type)}
     </span>
   );
@@ -33,14 +36,16 @@ export function TypePill({ type, mult }: { type: PokeType; mult?: string }) {
   const label = useTypeLabel();
   return (
     <span
-      className="inline-flex items-center gap-1.5 rounded px-2 py-1 text-sm uppercase tracking-wide"
+      className="inline-flex items-center gap-1.5 rounded px-2 py-1 text-sm font-medium uppercase tracking-wide"
       style={{
         background: `color-mix(in srgb, ${TYPE_COLOR[type]} 22%, transparent)`,
         border: `1px solid ${TYPE_COLOR[type]}`,
         color: TYPE_COLOR[type],
       }}
     >
-      <TypeIcon type={type} size={12} />
+      {/* variante "destacada": icone 16 (contra os 14 do chip) e o que sustenta o
+          degrau de tamanho agora que o traco e fino */}
+      <TypeIcon type={type} size={16} />
       {label(type)}
       {mult && <span className="opacity-70">{mult}</span>}
     </span>

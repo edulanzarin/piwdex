@@ -28,14 +28,16 @@ function ToolCard({
       href={href}
       className="card card-link flex items-center gap-5 p-6 sm:gap-6 sm:p-8"
     >
-      {icon && <span className="shrink-0">{icon}</span>}
+      {/* o icone de linha herda o acento do card (currentColor): mesma cor do titulo e
+          do CTA, entao a ferramenta se identifica pela cor e nao so pelo desenho */}
+      {icon && <span className="shrink-0" style={{ color }}>{icon}</span>}
       {/* coluna estica na altura do card (auto-rows-fr na grade) e o CTA ancora embaixo:
           todos os cards da fileira ficam com a mesma altura e botoes alinhados */}
       <div className="flex min-w-0 flex-1 flex-col gap-2.5 self-stretch">
         <h2 className="pixel text-xl" style={{ color }}><T k={titleKey} /></h2>
         <p className="text-sm text-text-dim leading-relaxed"><T k={descKey} /></p>
         <span className="btn mt-auto self-start whitespace-nowrap" style={{ background: color, color: ctaText }}>
-          <T k={ctaKey} /> <ChevronRight size={10} />
+          <T k={ctaKey} /> <ChevronRight size={14} />
         </span>
       </div>
     </Link>
@@ -79,7 +81,7 @@ export default async function Home() {
           ctaKey="home.card1.cta"
           color="#e94b4b"
           ctaText="#fff"
-          icon={<PokedexIcon size={80} />}
+          icon={<PokedexIcon size={64} />}
         />
         <ToolCard
           titleKey="home.card2.title"
@@ -88,7 +90,7 @@ export default async function Home() {
           ctaKey="home.card2.cta"
           color="var(--green)"
           ctaText="#052012"
-          icon={<ItemsIcon size={80} />}
+          icon={<ItemsIcon size={64} />}
         />
         <ToolCard
           titleKey="home.card4.title"
@@ -97,7 +99,7 @@ export default async function Home() {
           ctaKey="home.card4.cta"
           color="var(--yellow)"
           ctaText="#06131a"
-          icon={<HuntIcon size={80} />}
+          icon={<HuntIcon size={64} />}
         />
         <ToolCard
           titleKey="home.card3.title"
@@ -106,7 +108,7 @@ export default async function Home() {
           ctaKey="home.card3.cta"
           color="var(--purple)"
           ctaText="#1a1030"
-          icon={<CalcIcon size={80} />}
+          icon={<CalcIcon size={64} />}
         />
         <ToolCard
           titleKey="home.card5.title"
@@ -115,7 +117,7 @@ export default async function Home() {
           ctaKey="home.card5.cta"
           color="var(--cyan)"
           ctaText="#06131a"
-          icon={<LabIcon size={80} />}
+          icon={<LabIcon size={64} />}
         />
         <ToolCard
           titleKey="home.card6.title"
@@ -124,7 +126,7 @@ export default async function Home() {
           ctaKey="home.card6.cta"
           color="var(--pink)"
           ctaText="#2a0a12"
-          icon={<BreedIcon size={80} />}
+          icon={<BreedIcon size={64} />}
         />
       </section>
 

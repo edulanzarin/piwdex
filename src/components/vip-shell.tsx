@@ -2,7 +2,7 @@
 
 // Shell da area VIP (cockpit): HUD fixo no topo + navegacao LATERAL com uma secao por
 // capacidade — achatou os dois niveis de abas antigos (VipTabs > RoboModule) numa fila so.
-// Cada secao tem icone pixel e acento proprio. A secao mora no hash da URL (deep-link);
+// Cada secao tem icone de linha e acento proprio. A secao mora no hash da URL (deep-link);
 // hashes antigos (#robo, #conta...) continuam funcionando. Os dados vivos vem todos do
 // VipLiveProvider (SSE) — os paineis nao fazem mais polling proprio.
 
@@ -125,7 +125,9 @@ function VipShellInner({ creatures, dex, hunts, itemIcons, lootByPoke, marketIte
         {/* navegacao lateral (desktop) / trilho horizontal ROLAVEL de altura fixa
             (mobile) — nada de wrap: a fila nunca cresce na vertical, e o rotulo fica
             visivel. O badge de contagem e absoluto: aparecer nao empurra o vizinho. */}
-        <aside className="shrink-0 lg:w-48">
+        {/* 13rem: cabe o rotulo mais longo ("Meus Pokemons") ao lado do icone de 18
+            na Chakra Petch, sem truncar */}
+        <aside className="shrink-0 lg:w-52">
           <nav className="vnav max-lg:-mx-1 max-lg:flex-row max-lg:flex-nowrap max-lg:overflow-x-auto max-lg:px-1 max-lg:pb-1.5 max-lg:[scrollbar-width:none] max-lg:[&::-webkit-scrollbar]:hidden lg:sticky lg:top-20">
             {SECTIONS.map(({ key, accent, Icon }) => {
               const on = key === sec;
@@ -139,10 +141,10 @@ function VipShellInner({ creatures, dex, hunts, itemIcons, lootByPoke, marketIte
                   className={`vnav-item relative max-lg:shrink-0 ${on ? "vnav-active" : ""}`}
                   style={{ "--vn": accent } as React.CSSProperties}
                 >
-                  <Icon size={12} />
+                  <Icon size={18} />
                   <span className="lg:flex-1">{t(`vip.sec.${key}`)}</span>
                   <span
-                    className={`rounded-full bg-cyan px-1.5 py-0.5 text-xs leading-none text-[#06131a] max-lg:absolute max-lg:-top-0.5 max-lg:right-0 lg:ml-auto ${badge > 0 ? "" : "invisible lg:hidden"}`}
+                    className={`min-w-[1.35rem] rounded-full bg-cyan px-1.5 py-0.5 text-center text-xs font-semibold leading-none text-[#06131a] max-lg:absolute max-lg:-top-0.5 max-lg:right-0 lg:ml-auto ${badge > 0 ? "" : "invisible lg:hidden"}`}
                   >
                     {badge > 0 ? badge : 0}
                   </span>
@@ -180,9 +182,9 @@ function VipShellInner({ creatures, dex, hunts, itemIcons, lootByPoke, marketIte
             <div className="flex flex-col gap-6">
               {(alerts?.unread ?? 0) > 0 && (
                 <button type="button" onClick={() => go("desejos")} className="card card-link flex items-center gap-3 p-4 text-left">
-                  <span className="inline-flex text-pink"><Heart size={16} /></span>
-                  <span className="flex-1 text-sm text-text">{t("alerts.foundSummary", { n: alerts?.unread ?? 0 })}</span>
-                  <ChevronRight size={12} />
+                  <span className="inline-flex text-pink"><Heart size={18} /></span>
+                  <span className="flex-1 text-base text-text">{t("alerts.foundSummary", { n: alerts?.unread ?? 0 })}</span>
+                  <ChevronRight size={16} />
                 </button>
               )}
               <RobotActivity />

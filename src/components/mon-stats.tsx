@@ -92,7 +92,7 @@ export function PokeStatsModal({
       <div className="flex items-center gap-4">
         <div className="relative flex h-20 w-20 shrink-0 items-center justify-center rounded bg-[var(--well-bg)]">
           <Sprite src={spriteUrl(poke.speciesId, poke.shiny)} alt={poke.name} size={72} />
-          {poke.shiny && <span className="absolute right-1 top-1 text-yellow"><Star size={13} /></span>}
+          {poke.shiny && <span className="absolute right-1 top-1 text-yellow"><Star size={16} /></span>}
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">

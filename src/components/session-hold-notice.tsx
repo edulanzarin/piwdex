@@ -18,11 +18,11 @@ export function SessionHoldNotice() {
 
   return (
     <div
-      className={`flex min-h-[2.6rem] items-center gap-2.5 rounded-md border border-[color:var(--yellow)]/50 bg-[rgba(240,200,60,0.08)] px-3 py-2 text-base leading-relaxed text-yellow ${holding ? "" : "invisible"}`}
+      className={`flex min-h-[2.75rem] items-center gap-2.5 rounded-md border border-[color:var(--yellow)]/50 bg-[rgba(240,200,60,0.08)] px-3 py-2 text-base leading-relaxed text-yellow ${holding ? "" : "invisible"}`}
       role="status"
       aria-hidden={!holding}
     >
-      <Signal size={13} className="shrink-0" />
+      <Signal size={16} className="shrink-0" />
       <span>{t("vip.hold.notice")}</span>
     </div>
   );

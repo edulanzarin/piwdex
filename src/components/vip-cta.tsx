@@ -31,7 +31,7 @@ export function VipCta({ vip }: { vip: boolean }) {
       >
         <div className="min-w-0">
           <div className="section-title flex items-center gap-2 text-yellow">
-            <Star size={13} /> {t("vipcta.title")}
+            <Star size={18} /> {t("vipcta.title")}
           </div>
           <p className="mt-2 max-w-2xl text-base leading-relaxed text-text-dim">{t("vipcta.desc")}</p>
         </div>
@@ -45,10 +45,10 @@ export function VipCta({ vip }: { vip: boolean }) {
             className="btn btn-ghost w-full sm:w-auto"
             title={t("vipcta.playHint")}
           >
-            {t("vipcta.play")} <ChevronRight size={10} />
+            {t("vipcta.play")} <ChevronRight size={14} />
           </a>
           <Link href="/vip" className="btn btn-yellow w-full sm:w-auto">
-            {t("vipcta.btn")} <ChevronRight size={10} />
+            {t("vipcta.btn")} <ChevronRight size={14} />
           </Link>
         </div>
       </div>

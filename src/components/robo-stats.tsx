@@ -58,29 +58,29 @@ export function RoboStats() {
   return (
     <div className="flex flex-col gap-5">
       <div>
-        <h2 className="section-title flex items-center gap-2 text-cyan"><Robot size={13} /> {t("robo.stats.title")}</h2>
+        <h2 className="section-title flex items-center gap-2 text-cyan"><Robot size={18} /> {t("robo.stats.title")}</h2>
         <p className="mt-2 max-w-2xl text-sm text-text-dim">{t("robo.stats.desc")}</p>
       </div>
 
       {/* Caçada — o que o robo acumulou cacando (todas as hunts) */}
-      <Card title={t("robo.stats.huntTitle")} accent="var(--cyan)" icon={<Skull size={13} />}>
+      <Card title={t("robo.stats.huntTitle")} accent="var(--cyan)" icon={<Skull size={18} />}>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-          <StatTile live label={t("robo.stats.hunts")} value={sv(d?.hunts)} icon={<Robot size={11} className="text-cyan" />} />
-          <StatTile live label={t("robo.stats.kills")} value={sv(d?.kills)} icon={<Skull size={11} className="text-text-dim" />} />
-          <StatTile live label={t("robo.stats.captures")} value={sv(d?.captures)} icon={<Pokeball size={11} />} />
-          <StatTile live label={t("robo.stats.lootItems")} value={sv(d?.lootItems)} icon={<Loot size={11} className="text-text-dim" />} />
-          <StatTile live label={t("robo.stats.rareItems")} value={sv(d?.rareItems)} accent="var(--yellow)" icon={<Star size={11} className="text-yellow" />} />
-          <StatTile live label={t("robo.stats.xp")} value={sv(d?.xpGained)} accent="var(--cyan)" icon={<Xp size={11} className="text-cyan" />} />
+          <StatTile live label={t("robo.stats.hunts")} value={sv(d?.hunts)} icon={<Robot size={14} className="text-cyan" />} />
+          <StatTile live label={t("robo.stats.kills")} value={sv(d?.kills)} icon={<Skull size={14} className="text-text-dim" />} />
+          <StatTile live label={t("robo.stats.captures")} value={sv(d?.captures)} icon={<Pokeball size={14} />} />
+          <StatTile live label={t("robo.stats.lootItems")} value={sv(d?.lootItems)} icon={<Loot size={14} className="text-text-dim" />} />
+          <StatTile live label={t("robo.stats.rareItems")} value={sv(d?.rareItems)} accent="var(--yellow)" icon={<Star size={14} className="text-yellow" />} />
+          <StatTile live label={t("robo.stats.xp")} value={sv(d?.xpGained)} accent="var(--cyan)" icon={<Xp size={14} className="text-cyan" />} />
         </div>
         {/* valor do loot que dropou: INFORMATIVO — so vira dolar quando o robo vende */}
         <p className="flex items-center gap-1.5 text-sm text-text-dim">
-          <Coin size={9} />
+          <Coin size={14} />
           {t("robo.stats.lootGoldHint", { v: fmt(d?.lootGold ?? 0) })}
         </p>
       </Card>
 
       {/* Dólar RECEBIDO — so venda gera dolar (loot coletado nao entra: duplicaria) */}
-      <Card title={t("robo.stats.goldTitle")} accent="var(--green)" icon={<Coin size={13} />}>
+      <Card title={t("robo.stats.goldTitle")} accent="var(--green)" icon={<Coin size={18} />}>
         <p className="-mt-2 text-sm leading-relaxed text-text-dim">{t("robo.stats.goldHint")}</p>
         <div className="flex flex-col gap-2.5">
           <Bar label={t("robo.stats.src.items")} value={d?.itemsGold ?? 0} max={goldMax} color="var(--green)" empty={!d} />
@@ -88,27 +88,27 @@ export function RoboStats() {
           <Bar label={t("robo.stats.src.supply")} value={d?.supplyGold ?? 0} max={goldMax} color="var(--pink)" valueText={`-${fmt(d?.supplyGold ?? 0)}`} empty={!d} />
         </div>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-          <StatTile live label={t("robo.stats.received")} value={sv(received)} accent="var(--green)" icon={<Coin size={11} />} />
-          <StatTile live label={t("robo.stats.supply")} value={d ? `-${fmt(d.supplyGold)}` : sv(null)} accent="var(--pink)" icon={<Dollar size={11} className="text-pink" />} />
-          <StatTile live label={t("robo.stats.net")} value={sv(received - (d?.supplyGold ?? 0))} accent={received - (d?.supplyGold ?? 0) >= 0 ? "var(--green)" : "var(--pink)"} icon={<Coin size={11} />} />
+          <StatTile live label={t("robo.stats.received")} value={sv(received)} accent="var(--green)" icon={<Coin size={14} />} />
+          <StatTile live label={t("robo.stats.supply")} value={d ? `-${fmt(d.supplyGold)}` : sv(null)} accent="var(--pink)" icon={<Dollar size={14} className="text-pink" />} />
+          <StatTile live label={t("robo.stats.net")} value={sv(received - (d?.supplyGold ?? 0))} accent={received - (d?.supplyGold ?? 0) >= 0 ? "var(--green)" : "var(--pink)"} icon={<Coin size={14} />} />
         </div>
       </Card>
 
       {/* Vendas — itens e pokemon vendidos pelo robo (contagem + dolar) */}
-      <Card title={t("robo.stats.sellTitle")} accent="var(--green)" icon={<Coin size={13} />}>
+      <Card title={t("robo.stats.sellTitle")} accent="var(--green)" icon={<Coin size={18} />}>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          <StatTile live label={t("robo.stats.itemsSold")} value={sv(d?.itemsCount)} icon={<Loot size={11} className="text-text-dim" />} />
-          <StatTile live label={t("robo.stats.itemsSoldGold")} value={sv(d?.itemsGold)} accent="var(--green)" icon={<Coin size={11} />} />
-          <StatTile live label={t("robo.stats.pokesSold")} value={sv(d?.pokesCount)} icon={<Pokeball size={11} />} />
-          <StatTile live label={t("robo.stats.pokesSoldGold")} value={sv(d?.pokesGold)} accent="var(--green)" icon={<Coin size={11} />} />
+          <StatTile live label={t("robo.stats.itemsSold")} value={sv(d?.itemsCount)} icon={<Loot size={14} className="text-text-dim" />} />
+          <StatTile live label={t("robo.stats.itemsSoldGold")} value={sv(d?.itemsGold)} accent="var(--green)" icon={<Coin size={14} />} />
+          <StatTile live label={t("robo.stats.pokesSold")} value={sv(d?.pokesCount)} icon={<Pokeball size={14} />} />
+          <StatTile live label={t("robo.stats.pokesSoldGold")} value={sv(d?.pokesGold)} accent="var(--green)" icon={<Coin size={14} />} />
         </div>
       </Card>
 
       {/* Acervo — o que o robo MANTEVE (nao vendeu), total + shiny + por raridade */}
-      <Card title={t("robo.stats.acervoTitle")} accent="var(--yellow)" icon={<Star size={13} />}>
+      <Card title={t("robo.stats.acervoTitle")} accent="var(--yellow)" icon={<Star size={18} />}>
         <div className="grid grid-cols-2 gap-2">
-          <StatTile live label={t("robo.stats.acervoTotal")} value={sv(d?.acervo.total)} accent="var(--yellow)" icon={<Star size={11} className="text-yellow" />} />
-          <StatTile live label={t("robo.stats.shiny")} value={sv(d?.acervo.shiny)} icon={<Star size={11} className="text-text-dim" />} />
+          <StatTile live label={t("robo.stats.acervoTotal")} value={sv(d?.acervo.total)} accent="var(--yellow)" icon={<Star size={14} className="text-yellow" />} />
+          <StatTile live label={t("robo.stats.shiny")} value={sv(d?.acervo.shiny)} icon={<Star size={14} className="text-text-dim" />} />
         </div>
         {/* todas as raridades sempre presentes: sem bicho = trilho vazio no mesmo slot,
             a secao nao muda de altura quando uma raridade nova chega ao vivo */}

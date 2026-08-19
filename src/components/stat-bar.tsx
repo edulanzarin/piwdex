@@ -7,6 +7,18 @@ import { StatIcon } from "./stat-icons";
 
 export const MAX_STAT = 200;
 
+/** Larguras dos slots FIXOS da linha de comparacao. Recalibradas pra Chakra Petch
+ *  (bem mais larga que a pixel antiga) na base 16px: o pior rotulo e "SP.ATK" em
+ *  caixa alta (~55px a 16px) e o pior valor tem 5 digitos. Continuam FIXAS — nao
+ *  variam com o dado. As linhas VAZIAS espelhadas em calculator.tsx e eevee-lab.tsx
+ *  precisam usar exatamente estas classes pra placeholder e resultado ficarem no
+ *  mesmo lugar. */
+export const CMP_SLOT = {
+  label: "w-20",
+  value: "w-12",
+  iv: "w-14",
+} as const;
+
 // Vermelho (baixo) -> verde (alto), proporcional ao preenchimento.
 const hueFor = (pct: number) => Math.round((pct / 100) * 130);
 
@@ -20,10 +32,12 @@ export function StatBar({
   const pct = max > 0 ? Math.min(100, (value / max) * 100) : 0;
   return (
     <div className="flex items-center gap-3">
-      <div className="flex w-16 shrink-0 items-center gap-1.5 text-sm uppercase tracking-wide text-text-dim">
-        <StatIcon index={iconIndex} size={12} />{label}
+      {/* w-20: icone 14 + gap + "SP.ATK" em caixa alta a 15px nao cabia mais em w-16 */}
+      <div className="flex w-20 shrink-0 items-center gap-1.5 text-sm uppercase tracking-wide text-text-dim">
+        <StatIcon index={iconIndex} size={14} />{label}
       </div>
-      <div className={`w-9 shrink-0 text-right text-sm tabular-nums ${best ? "text-yellow" : ""}`}>{value}</div>
+      {/* valor e destaque: peso 600 + tabular, largura fixa pra 5 digitos */}
+      <div className={`w-12 shrink-0 text-right text-sm font-semibold tabular-nums ${best ? "text-yellow" : ""}`}>{value}</div>
       <div className="statbar flex-1">
         <div className="statbar-fill" style={{ width: `${pct}%`, background: `hsl(${hueFor(pct)} 68% 48%)` }} />
       </div>
@@ -43,14 +57,14 @@ export function StatCompareRow({
   const pct = max > 0 ? Math.min(100, (value / max) * 100) : 0;
   return (
     <div className="flex items-center gap-2 text-base">
-      <span className="inline-flex w-14 shrink-0 items-center gap-1 text-text-dim">
-        <StatIcon index={iconIndex} size={11} />{label}
+      <span className={`inline-flex ${CMP_SLOT.label} shrink-0 items-center gap-1 text-text-dim`}>
+        <StatIcon index={iconIndex} size={16} />{label}
       </span>
       <div className="statbar flex-1">
         <div className="statbar-fill" style={{ width: `${pct}%`, background: `hsl(${hueFor(pct)} 68% 48%)` }} />
       </div>
-      <span className="w-10 shrink-0 text-right tabular-nums text-text">{value}</span>
-      {iv != null && <span className={`w-11 shrink-0 text-right tabular-nums ${ivClass}`}>{iv.toFixed(0)}/{ivMax}</span>}
+      <span className={`${CMP_SLOT.value} shrink-0 text-right font-semibold tabular-nums text-text`}>{value}</span>
+      {iv != null && <span className={`${CMP_SLOT.iv} shrink-0 text-right tabular-nums ${ivClass}`}>{iv.toFixed(0)}/{ivMax}</span>}
     </div>
   );
 }
