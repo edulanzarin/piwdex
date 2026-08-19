@@ -8,10 +8,9 @@
 // com guarda-costas (teto, simulacao, armar).
 
 import { gameFetch, gameSend, type Tokens } from "./game-auth";
+import { GAME_HOST, gameAssetUrl } from "./game-host";
 
 const num = (v: unknown, d = 0): number => (typeof v === "number" && Number.isFinite(v) ? v : d);
-const GAME = process.env.GAME_HOST || "https://poke.idleworld.online";
-const abs = (u: string) => (u.startsWith("http") ? u : `${GAME}${u.startsWith("/") ? "" : "/"}${u}`);
 
 export interface ShopBall { id: number; name: string; priceGold: number; iconUrl: string; catchRate: number }
 export interface ShopItem { id: number; name: string; priceGold: number; icon: string; category: string }
@@ -26,8 +25,8 @@ export async function fetchShop(tokens: Tokens): Promise<{ shop: ShopCatalog; to
   return {
     shop: {
       gold: num(raw?.gold),
-      balls: balls.map((b) => ({ id: num(b.id), name: String(b.name ?? ""), priceGold: num(b.priceGold), iconUrl: abs(String(b.iconUrl ?? "")), catchRate: num(b.catchRate) })),
-      items: items.map((i) => ({ id: num(i.id), name: String(i.name ?? ""), priceGold: num(i.priceGold), icon: abs(String(i.icon ?? "")), category: String(i.category ?? "") })),
+      balls: balls.map((b) => ({ id: num(b.id), name: String(b.name ?? ""), priceGold: num(b.priceGold), iconUrl: gameAssetUrl(String(b.iconUrl ?? "")), catchRate: num(b.catchRate) })),
+      items: items.map((i) => ({ id: num(i.id), name: String(i.name ?? ""), priceGold: num(i.priceGold), icon: gameAssetUrl(String(i.icon ?? "")), category: String(i.category ?? "") })),
     },
     tokens: r.tokens,
     changed: r.changed,
@@ -45,7 +44,7 @@ export async function fetchInventory(tokens: Tokens): Promise<{ items: InvItem[]
   const items = bag.map((i) => ({
     id: num(i.id),
     name: String(i.name ?? ""),
-    icon: i.icon ? abs(String(i.icon)) : "",
+    icon: i.icon ? gameAssetUrl(String(i.icon)) : "",
     quantity: num(i.quantity),
     npcPrice: num(i.npcPrice),
     category: String(i.category ?? "loot"),

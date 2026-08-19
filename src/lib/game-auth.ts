@@ -11,8 +11,8 @@
 // Server-only (usa node:crypto). Importar so de route handlers/server.
 
 import crypto from "node:crypto";
+import { GAME_HOST } from "./game-host";
 
-const GAME = process.env.GAME_HOST || "https://poke.idleworld.online";
 const UA =
   "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36";
 
@@ -109,7 +109,7 @@ function authHeaders(t: Tokens): HeadersInit {
 // o retry-em-401 do gameFetch: token vencido = conexao recusada direto).
 export async function refreshTokens(t: Tokens): Promise<Tokens | null> {
   try {
-    const res = await fetch(`${GAME}/api/auth/refresh`, {
+    const res = await fetch(`${GAME_HOST}/api/auth/refresh`, {
       method: "POST",
       headers: { "User-Agent": UA, "Content-Type": "application/json", Accept: "application/json" },
       body: JSON.stringify({ refreshToken: t.refresh }),
@@ -135,13 +135,13 @@ export interface GameResult {
 export async function gameFetch(path: string, tokens: Tokens): Promise<GameResult> {
   let t = tokens;
   let changed = false;
-  let res = await fetch(`${GAME}${path}`, { headers: authHeaders(t), cache: "no-store" });
+  let res = await fetch(`${GAME_HOST}${path}`, { headers: authHeaders(t), cache: "no-store" });
   if (res.status === 401 && t.refresh) {
     const nt = await refreshTokens(t);
     if (nt) {
       t = nt;
       changed = true;
-      res = await fetch(`${GAME}${path}`, { headers: authHeaders(t), cache: "no-store" });
+      res = await fetch(`${GAME_HOST}${path}`, { headers: authHeaders(t), cache: "no-store" });
     }
   }
   return { res, tokens: t, changed };
@@ -160,17 +160,17 @@ export async function gameSend(
   let changed = false;
   const opts = (): RequestInit => ({
     method,
-    headers: { ...authHeaders(t), "Content-Type": "application/json", Origin: GAME, Referer: `${GAME}/play` },
+    headers: { ...authHeaders(t), "Content-Type": "application/json", Origin: GAME_HOST, Referer: `${GAME_HOST}/play` },
     body: body != null ? JSON.stringify(body) : undefined,
     cache: "no-store",
   });
-  let res = await fetch(`${GAME}${path}`, opts());
+  let res = await fetch(`${GAME_HOST}${path}`, opts());
   if (res.status === 401 && t.refresh) {
     const nt = await refreshTokens(t);
     if (nt) {
       t = nt;
       changed = true;
-      res = await fetch(`${GAME}${path}`, opts());
+      res = await fetch(`${GAME_HOST}${path}`, opts());
     }
   }
   return { res, tokens: t, changed };

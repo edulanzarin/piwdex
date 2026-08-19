@@ -1,4 +1,5 @@
 import { type Tokens } from "./game-auth";
+import { GAME_HOST } from "./game-host";
 
 // Pokemons individuais ATIVOS via WebSocket. O jogo nao expoe isso na REST — o time
 // e a colecao (com IV/quality/power por individuo) so chegam pelo WS, que fica num
@@ -7,8 +8,7 @@ import { type Tokens } from "./game-auth";
 //
 // Server-only (usa o WebSocket global do Node). Importar so de route handlers.
 
-const GAME = process.env.GAME_HOST || "https://poke.idleworld.online";
-const WS_BASE = GAME.replace(/^http/, "ws");
+const WS_BASE = GAME_HOST.replace(/^http/, "ws");
 const SHARDS = 64; // faixa varrida na descoberta (ws1..ws64)
 
 export interface PokesResult {

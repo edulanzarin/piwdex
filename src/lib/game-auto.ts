@@ -4,11 +4,10 @@
 // Server-only. Nunca toca compra/venda — so config, reversivel.
 
 import { gameFetch, gameSend, type Tokens } from "./game-auth";
+import { GAME_HOST, gameAssetUrl } from "./game-host";
 
-const GAME = process.env.GAME_HOST || "https://poke.idleworld.online";
 
 const num = (v: unknown, d = 0): number => (typeof v === "number" && Number.isFinite(v) ? v : d);
-const abs = (u: string) => (u.startsWith("http") ? u : `${GAME}${u.startsWith("/") ? "" : "/"}${u}`);
 
 export interface AutoState {
   autoCatch: boolean;
@@ -73,7 +72,7 @@ export function parseBalls(raw: unknown): BallOpt[] {
     return {
       id,
       name: typeof b.name === "string" ? b.name : `#${id}`,
-      iconUrl: typeof b.iconUrl === "string" ? abs(b.iconUrl) : "",
+      iconUrl: typeof b.iconUrl === "string" ? gameAssetUrl(b.iconUrl) : "",
       count: num(b.quantity ?? b.count ?? counts[String(id)]),
       infinite: Boolean(b.infinite),
     };

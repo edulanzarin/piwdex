@@ -7,6 +7,7 @@
 // aparecem no mercado (quando estao a venda) e no pokemon ativo.
 
 import type { Creature } from "./types";
+import { gameAssetUrl } from "./game-host";
 
 const num = (v: unknown, d = 0): number => (typeof v === "number" && Number.isFinite(v) ? v : d);
 const str = (v: unknown, d = ""): string => (typeof v === "string" ? v : d);
@@ -354,7 +355,7 @@ export function normalizeAccount(parts: AccountParts): Account {
         id,
         name: str(b.name, "?"),
         count: num(ballCounts[String(id)]),
-        iconUrl: str(b.iconUrl),
+        iconUrl: gameAssetUrl(str(b.iconUrl)),
         infinite: Boolean(b.infinite),
       };
     }),
