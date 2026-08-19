@@ -4,7 +4,7 @@ import type { PokeType, Rarity } from "@/lib/types";
 import { TYPE_COLOR } from "@/lib/typing";
 import { TIER_COLOR, qualityTier, rarityTier, type RarityTier } from "@/lib/rarity";
 import { TypeIcon } from "./type-icon";
-import { useRarityLabel, useTypeLabel } from "./locale-provider";
+import { useRarityLabel, useTypeLabel, useT } from "./locale-provider";
 
 export function TypeBadge({
   type,
@@ -78,19 +78,27 @@ export function TypePill({ type, mult }: { type: PokeType; mult?: string }) {
 
 /** Raridade da ESPECIE (traco do catalogo). Rotulo traduzido, cor da escada do jogo. */
 export function RarityBadge({ rarity }: { rarity: Rarity }) {
-  return <TierBadge tier={rarityTier(rarity)} />;
+  return <TierBadge tier={rarityTier(rarity)} kind="species" />;
 }
 
 /** Faixa do INDIVIDUO, derivada da Quality — e o que o JOGO mostra no bicho.
  *  Use esta em tela de pokemon capturado/anunciado; a da especie so no catalogo. */
 export function QualityBadge({ quality }: { quality: number }) {
-  return <TierBadge tier={qualityTier(quality)} />;
+  return <TierBadge tier={qualityTier(quality)} kind="individual" />;
 }
 
-function TierBadge({ tier }: { tier: RarityTier }) {
+// Os dois eixos usam o MESMO chip e a mesma escada de cor, entao lado a lado eles se
+// passam um pelo outro (um Abra e especie COMUM e individuo LENDARIO — a Conta mostrando
+// "comum" e o modal "lendaria" parecia bug). O hover diz de qual eixo aquele chip fala.
+function TierBadge({ tier, kind }: { tier: RarityTier; kind: "species" | "individual" }) {
   const label = useRarityLabel();
+  const t = useT();
   return (
-    <span className="chip" style={{ background: TIER_COLOR[tier], color: "#06111a" }}>
+    <span
+      className="chip"
+      title={`${t(kind === "species" ? "badge.species" : "badge.individual")}: ${label(tier)}`}
+      style={{ background: TIER_COLOR[tier], color: "#06111a" }}
+    >
       {label(tier)}
     </span>
   );

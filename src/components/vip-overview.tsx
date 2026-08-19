@@ -281,7 +281,7 @@ export function VipOverview({
       {/* ===== linha principal: time · hunt+plano · progresso — paineis SEMPRE
              renderizados com min-h fechado; vazio/carregando ocupa o mesmo espaco ===== */}
       <div className="grid items-stretch gap-4 lg:grid-cols-12">
-        <div className="flex lg:col-span-4 [&>*]:w-full"><TeamLive dex={dex} onManage={() => onGo("pokemons")} /></div>
+        <div className="flex lg:col-span-4 [&>*]:w-full"><TeamLive dex={dex} /></div>
 
         <div className="flex flex-col gap-4 lg:col-span-4">
           <Panel icon={<Target size={18} />} accent="var(--cyan)" title={t("vip.ov.hunt")} live={hunting} className="min-h-[8rem]" bodyClassName="justify-center">

@@ -1,34 +1,28 @@
 "use client";
 
-// Time ATIVO ao vivo (card do cockpit) — LEITURA PURA. Com o robo conectado, o time vem
-// dos frames `pokes` da sessao segurada (tempo real de verdade); sem conexao, cai no
-// snapshot do banco (rotulado). Clicar num pokemon abre os stats reais dele. TODA a
-// gestao (trocar lider, box) mora na secao "Meus Pokemons" — o cockpit so mostra.
+// Time ATIVO ao vivo (card do cockpit) — leitura + UMA acao. Com o robo conectado, o time
+// vem dos frames `pokes` da sessao segurada (tempo real de verdade); sem conexao, cai no
+// snapshot do banco (rotulado). Clicar num pokemon abre os stats reais dele. Gestao
+// (trocar lider, box) mora em "Meus Pokemons" — e o botao pra la vive na Conta.
+// A EXCECAO e curar: pokemon desmaiado nao caca, entao o cockpit mostra a vida e deixa
+// chamar a Joy dali mesmo, que e onde o problema aparece.
 
 import { useMemo, useState } from "react";
 import { useVipLive, type LiveTeamPoke } from "./vip-live";
-import { Star, Xp, Trainer, ChevronRight } from "./icons";
+import { Star, Xp, Trainer } from "./icons";
 import { Pokeball } from "./pokeball";
 import { Sprite } from "./sprite";
 import { spriteUrl } from "@/lib/sprites";
 import { useT } from "./locale-provider";
 import { PokeStatsModal } from "./mon-stats";
 import { QualityBadge } from "./badges";
+import { HpBar, HpText, HpMeter, FaintedChip, isFainted } from "./ui/hp";
+import { HealButton } from "./heal-button";
 import type { MarketDex } from "./market-advisor";
 
 const fmt = (n: number) => Math.round(n).toLocaleString("pt-BR");
 
-function HpBar({ hp, maxHp }: { hp: number; maxHp: number }) {
-  const pct = maxHp > 0 ? Math.max(0, Math.min(100, (hp / maxHp) * 100)) : 0;
-  const color = pct > 50 ? "var(--green)" : pct > 20 ? "var(--yellow)" : "var(--red)";
-  return (
-    <span className="hud-track block w-full">
-      <span className="hud-fill block" style={{ width: `${pct}%`, background: color }} />
-    </span>
-  );
-}
-
-export function TeamLive({ dex, onManage }: { dex?: Record<number, MarketDex>; onManage?: () => void }) {
+export function TeamLive({ dex }: { dex?: Record<number, MarketDex> }) {
   const t = useT();
   const { hunt, account } = useVipLive();
   // stats reais de um pokemon do time — modal so de leitura
@@ -46,12 +40,17 @@ export function TeamLive({ dex, onManage }: { dex?: Record<number, MarketDex>; o
   // time e no maximo 6: lider + 5 SLOTS fixos — slot sem pokemon mostra placeholder
   // esmaecido no mesmo lugar, e o card nunca muda de altura quando o time muda ao vivo
   const otherSlots: (LiveTeamPoke | null)[] = Array.from({ length: 5 }, (_, i) => others[i] ?? null);
+  // alguem em 0 de vida: enquanto tiver, o card oferece a Joy (o resto do time cura junto)
+  const fainted = team.some(isFainted);
 
   return (
     <div className="card flex flex-col gap-3 p-4">
       <div className="flex items-center gap-2.5">
         <Trainer size={18}  />
         <h3 className="section-title flex-1">{t("vip.team.title")}</h3>
+        {/* cura entra no cabecalho SO com alguem desmaiado — acao que aparece quando ha o
+            que resolver, e o unico botao que muta a conta neste card */}
+        {fainted && <HealButton className="btn btn-red btn-sm" />}
         {/* slot de status de ALTURA FIXA: um estado por vez (ao vivo > snapshot > nada) */}
         <span className="inline-flex h-6 items-center">
           {live ? (
@@ -74,20 +73,23 @@ export function TeamLive({ dex, onManage }: { dex?: Record<number, MarketDex>; o
           className="glow-pulse flex items-center gap-3.5 rounded border border-[color:var(--yellow)]/45 bg-[var(--well-bg)] p-3 text-left transition hover:bg-surface-2"
           style={{ "--accent": "var(--yellow)" } as React.CSSProperties}
         >
+          {/* estrela SO em shiny: no lider ela dava impressao de shiny (e um shiny lider
+              ficaria com duas). Quem diz "e o ativo" e o slot grande + o acento amarelo. */}
           <span className="relative flex h-16 w-16 shrink-0 items-center justify-center rounded bg-surface-2">
             <Sprite src={spriteUrl(leader.speciesId, leader.shiny)} alt={leader.name} size={56} />
-            <span className="absolute -right-1.5 -top-1.5 text-yellow"><Star size={16} /></span>
+            {leader.shiny && <span className="absolute -right-1.5 -top-1.5 text-yellow"><Star size={16} /></span>}
           </span>
           <span className="min-w-0 flex-1">
             <span className="flex h-6 items-center gap-2 overflow-hidden">
               <span className="truncate pixel text-base text-yellow">{leader.name}</span>
               <span className="pixel shrink-0 text-sm text-text">Lv{hunt?.fighterLevel && hunt.fighterLevel > leader.level ? hunt.fighterLevel : leader.level}</span>
               <span className={`chip shrink-0 ${leader.shiny ? "" : "invisible"}`} style={{ background: "var(--yellow)", color: "#3a2c00" }}>shiny</span>
+              {isFainted(leader) && <FaintedChip />}
               {/* raridade so do sm pra cima: a 360px o chip comia os ~75px que sobravam
                   pro NOME do lider (Lv + shiny + raridade nao cabem os tres) */}
               <span className="hidden shrink-0 sm:inline-flex"><QualityBadge quality={leader.quality} /></span>
             </span>
-            <span className="mt-1.5 block"><HpBar hp={leader.hp} maxHp={leader.maxHp} /></span>
+            <span className="mt-1.5 block"><HpMeter hp={leader.hp} maxHp={leader.maxHp} /></span>
             <span className="mt-1.5 flex h-5 items-center gap-x-3 overflow-hidden text-sm tabular-nums text-text-dim">
               <span className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-cyan"><Xp size={14} />{fmt(leader.power)} {t("vip.team.power")}</span>
               <span className="shrink-0 whitespace-nowrap">IV {leader.ivTotal}</span>
@@ -102,7 +104,7 @@ export function TeamLive({ dex, onManage }: { dex?: Record<number, MarketDex>; o
           </span>
           <span className="min-w-0 flex-1">
             <span className="flex h-6 items-center"><span className="pixel text-base slot-empty">—</span></span>
-            <span className="mt-1.5 block"><HpBar hp={0} maxHp={0} /></span>
+            <span className="mt-1.5 block"><HpMeter hp={0} maxHp={0} /></span>
             <span className="mt-1.5 flex h-5 items-center text-sm text-text-dim"><span className="truncate">{t("vip.team.empty")}</span></span>
           </span>
         </div>
@@ -124,7 +126,10 @@ export function TeamLive({ dex, onManage }: { dex?: Record<number, MarketDex>; o
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block h-6 truncate text-base leading-6 text-text">{p.name}</span>
-                <span className="block h-4 truncate text-xs leading-4 tabular-nums text-text-dim">Lv{p.level} · {fmt(p.power)}</span>
+                <span className="flex h-4 items-center gap-x-1.5 overflow-hidden text-xs leading-4 tabular-nums text-text-dim">
+                  <span className="shrink-0">Lv{p.level} · {fmt(p.power)}</span>
+                  <HpText hp={p.hp} maxHp={p.maxHp} className="text-xs" />
+                </span>
                 <HpBar hp={p.hp} maxHp={p.maxHp} />
               </span>
             </button>
@@ -135,20 +140,13 @@ export function TeamLive({ dex, onManage }: { dex?: Record<number, MarketDex>; o
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block h-6 truncate text-base leading-6 slot-empty">—</span>
-                <span className="block h-4 truncate text-xs leading-4 slot-empty">Lv —</span>
+                <span className="flex h-4 items-center text-xs leading-4 slot-empty">Lv —</span>
                 <HpBar hp={0} maxHp={0} />
               </span>
             </div>
           ),
         )}
       </div>
-
-      {/* gestao (lider/box) mora em Meus Pokemons */}
-      {onManage && (
-        <button type="button" onClick={onManage} className="btn btn-ghost self-start">
-          {t("vip.sec.pokemons")} <ChevronRight size={14} />
-        </button>
-      )}
 
       {statsPoke && (
         <PokeStatsModal poke={statsPoke} dex={dex?.[statsPoke.speciesId]} onClose={() => setStatsPoke(null)} />

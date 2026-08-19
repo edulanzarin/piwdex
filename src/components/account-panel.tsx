@@ -13,8 +13,8 @@ import { useT } from "./locale-provider";
 import { Panel } from "./ui/panel";
 import { Star, Coin, Diamond, Skull, Xp, Check, ArrowDown, Infinity_, ChevronRight, Chart } from "./icons";
 import { PokeStatsModal } from "./mon-stats";
-import { RarityBadge } from "./badges";
-import type { Rarity } from "@/lib/types";
+import { QualityBadge } from "./badges";
+import { HpBar, HpText, FaintedChip, isFainted } from "./ui/hp";
 import type { MarketDex } from "./market-advisor";
 
 const fmt = (n: number) => n.toLocaleString("pt-BR");
@@ -349,7 +349,10 @@ function BallsCard({ account }: { account: Account }) {
   );
 }
 
-function TeamMon({ p, rarity, onStats }: { p: ActivePoke; rarity?: Rarity; onStats?: () => void }) {
+// A faixa mostrada aqui e a do INDIVIDUO (quality), a mesma do painel, do modal de stats
+// e do jogo. Antes vinha a raridade da ESPECIE do catalogo: o time inteiro aparecia
+// "comum" enquanto o resto do site dizia lendaria pro mesmo bicho.
+function TeamMon({ p, onStats }: { p: ActivePoke; onStats?: () => void }) {
   const t = useT();
   return (
     <div className="flex items-center gap-3 rounded border border-border bg-[var(--well-bg)] p-2.5">
@@ -363,10 +366,13 @@ function TeamMon({ p, rarity, onStats }: { p: ActivePoke; rarity?: Rarity; onSta
               do resto da linha; os chips nao encolhem, quem trunca e o nome */}
           <span className="truncate text-sm">{p.name}</span>
           {p.leader && <span className="chip shrink-0" style={{ background: "var(--green)", color: "#052012" }}>{t("account.team.leader")}</span>}
-          {rarity && <RarityBadge rarity={rarity} />}
+          {isFainted(p) && <FaintedChip />}
+          <QualityBadge quality={p.quality} />
         </div>
         <div className="text-sm text-text-dim">Lv.{p.level}</div>
+        <HpBar hp={p.hp} maxHp={p.maxHp} className="mt-1.5" />
         <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-sm text-text-dim">
+          <span>{t("account.col.hp")} <HpText hp={p.hp} maxHp={p.maxHp} className="font-bold" /></span>
           <span>{t("account.col.power")} <span className="font-bold text-yellow">{fmt(p.power)}</span></span>
           <span>{t("account.col.iv")} <span className={`font-bold ${ivColor(p.ivTotal)}`}>{p.ivTotal}</span>/192</span>
           <span>{t("account.col.quality")} <span className="font-bold text-cyan">{p.quality.toFixed(3)}</span></span>
@@ -389,21 +395,25 @@ function TeamMon({ p, rarity, onStats }: { p: ActivePoke; rarity?: Rarity; onSta
   );
 }
 
-// Time ativo (READ-ONLY): mostra o SNAPSHOT capturado no connect, sem nunca tocar o
-// jogo. A atualizacao ao vivo do time e territorio do Robo (que ja segura a sessao de
-// jogo) — a Conta jamais rouba a sessao. Pra refrescar o snapshot: reconectar. hhmm
-// marca a hora do snapshot.
+// Time ativo (READ-ONLY): a Conta jamais abre sessao no jogo. Mas quando o ROBO ja esta
+// conectado, o time ao vivo dele ja chega aqui pelo mesmo stream — usar esse e leitura,
+// nao roubo de sessao, e e o unico jeito de a VIDA ser confiavel (snapshot de horas atras
+// dizendo "cheio" foi como um Abra morto passou despercebido). Sem robo, cai no snapshot
+// do connect, rotulado com a hora. Gestao continua fora: o botao leva a Meus Pokemons.
 const hhmm = (iso: string) => {
   if (!iso) return "";
   const d = new Date(iso);
   return Number.isNaN(d.getTime()) ? "" : d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
 };
 
-function ActiveTeamCard({ initial, dex }: { initial: TeamSnapshot | null; dex?: Record<number, MarketDex> }) {
+function ActiveTeamCard({ initial, dex, onManage }: { initial: TeamSnapshot | null; dex?: Record<number, MarketDex>; onManage?: () => void }) {
   const t = useT();
   // stats reais de um pokemon do snapshot (mesmo modal do painel/box)
   const [statsPoke, setStatsPoke] = useState<ActivePoke | null>(null);
-  if (!initial || initial.list.length === 0) {
+  const hunt = useVipLive().hunt;
+  const liveTeam = hunt?.wsOpen && hunt.team?.length ? (hunt.team as unknown as ActivePoke[]) : null;
+  const list = liveTeam ?? initial?.list ?? [];
+  if (list.length === 0) {
     return (
       <Section title={t("account.sec.team")}>
         <p className="text-base leading-relaxed text-text-dim">{t("account.team.snapshotEmpty")}</p>
@@ -414,21 +424,40 @@ function ActiveTeamCard({ initial, dex }: { initial: TeamSnapshot | null; dex?: 
     <Section
       title={t("account.sec.team")}
       extra={
-        <span className="text-xs text-text-dim">
-          {t("account.team.total").replace("{n}", fmt(initial.total))}
-          {hhmm(initial.at) && ` · ${hhmm(initial.at)}`}
+        <span className="flex items-center gap-2 text-xs text-text-dim">
+          {/* de onde vem o que voce esta lendo: ao vivo (robo ligado) ou a foto do connect */}
+          {liveTeam ? (
+            <span className="inline-flex items-center gap-1.5 uppercase text-green">
+              <span className="hud-led pulse-soft" style={{ "--led": "var(--green)" } as React.CSSProperties} />
+              {t("vip.ov.live")}
+            </span>
+          ) : (
+            <span className="chip" style={{ background: "var(--surface-2)", color: "var(--text-dim)" }}>{t("vip.team.snapshot")}</span>
+          )}
+          {initial && (
+            <span>
+              {t("account.team.total").replace("{n}", fmt(initial.total))}
+              {!liveTeam && hhmm(initial.at) && ` · ${hhmm(initial.at)}`}
+            </span>
+          )}
         </span>
       }
     >
       <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-        {initial.list.map((p) => <TeamMon key={p.id} p={p} rarity={dex?.[p.speciesId]?.rarity} onStats={p.stats ? () => setStatsPoke(p) : undefined} />)}
+        {list.map((p) => <TeamMon key={p.id} p={p} onStats={p.stats ? () => setStatsPoke(p) : undefined} />)}
       </div>
+      {/* a gestao (lider, box, curar) mora em Meus Pokemons — a Conta so aponta pra la */}
+      {onManage && (
+        <button type="button" onClick={onManage} className="btn btn-ghost self-start">
+          {t("vip.sec.pokemons")} <ChevronRight size={14} />
+        </button>
+      )}
       {statsPoke && <PokeStatsModal poke={statsPoke} dex={dex?.[statsPoke.speciesId]} onClose={() => setStatsPoke(null)} />}
     </Section>
   );
 }
 
-export function AccountPanel({ creatures, dex }: { creatures: ComboCreature[]; dex?: Record<number, MarketDex> }) {
+export function AccountPanel({ creatures, dex, onGo }: { creatures: ComboCreature[]; dex?: Record<number, MarketDex>; onGo?: (section: string) => void }) {
   const t = useT();
   // Dados AO VIVO via SSE (mesmo shape do GET /api/collection) — sem fetch nem interval aqui.
   const live = useVipLive().account;
@@ -461,7 +490,7 @@ export function AccountPanel({ creatures, dex }: { creatures: ComboCreature[]; d
         <button type="button" onClick={disconnect} className="btn btn-ghost">{t("account.disconnect")}</button>
       </div>
       <Overview account={account} />
-      <ActiveTeamCard initial={team} dex={dex} />
+      <ActiveTeamCard initial={team} dex={dex} onManage={onGo ? () => onGo("pokemons") : undefined} />
       <TrainerCard account={account} />
       <AutomationCard account={account} nameById={nameById} />
       <StreakCard account={account} />

@@ -8,6 +8,7 @@ export type RobotEventKind =
   | "brain"      // decisao do cerebro (trocou de hunt sozinho, escolheu hunt no modo auto)
   | "reconnect"  // conexao caiu e o robo religou sozinho
   | "goal"       // meta de leveling atingida
+  | "heal"       // passou na enfermeira Joy (time desmaiado nao caca)
   | "error";     // falha OPERACIONAL (venda/compra que nao rodou) — throttled na origem
 
 export interface RobotEvent {

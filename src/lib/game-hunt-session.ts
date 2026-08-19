@@ -8,8 +8,9 @@
 // eventos no banco (robot_events) — sobrevive a fechar o navegador.
 //
 // Protocolo (ver scripts/ws-protocol.md):
-//   -> enter-hunt {slug} · leave-hunt · analyzer-get · pokes-get · pending-get
+//   -> enter-hunt {slug} · leave-hunt · analyzer-get · pokes-get · pending-get · joy-heal
 //   <- analyzer · field-kill · catch-result · inventory {items} · pokes {list} · pending {list}
+//      · joy-healed
 //
 // Singleton por processo (1 container long-lived). Uma conta por vez. Server-only.
 
@@ -60,6 +61,11 @@ const REVIVE_TARGET = 20;
 // reconexao automatica: enquanto o usuario QUER o robo ligado (desiredOn), a conexao que
 // cai volta sozinha com backoff exponencial. Renova o access token antes de cada tentativa
 // (token vencido = conexao recusada direto, sem o retry-em-401 do REST).
+// enfermeira Joy: pokemon desmaiado (hp 0) nao entra em campo, entao a hunt fica ligada
+// sem matar nada. O robo passa na Joy sozinho (`joy-heal`) quando ve o LIDER desmaiado no
+// frame `pokes`. Cooldown pra nao repetir o frame a cada varredura se a cura nao pegar
+// (ex: o jogo exigir estar na cidade) — a confirmacao e o HP voltando, nao o ack.
+const HEAL_COOLDOWN_MS = 60_000;
 const RECONNECT_BASE_MS = 5_000;
 const RECONNECT_MAX_MS = 60_000;
 // SESSAO CONTESTADA (single-session): o jogo so aceita 1 conexao por conta — a mais nova
@@ -80,7 +86,7 @@ const CHAT_COOLDOWN_MS = 60_000; // anti-flood do chat do jogo (~1 msg/min) — 
 const KNOWN_FRAMES = new Set([
   "analyzer", "field", "field-init", "field-kill", "poke-xp", "catch-result", "inventory",
   "pokes", "balls", "autohelper", "boosts", "mail-badge", "events", "shiny-global",
-  "poke-summon", "trade", "badge-refresh", "hunt-config", "pending", "family",
+  "poke-summon", "trade", "badge-refresh", "hunt-config", "pending", "family", "joy-healed",
 ]);
 
 export interface Analyzer {
@@ -275,6 +281,9 @@ class GameSession {
   // conexao-primeiro: "ligar o robo" = tomar a sessao da conta e SEGURAR, mesmo sem hunt.
   // Hunt/venda viram jobs em cima da conexao viva; parar a hunt nao derruba a conexao.
   private holdOpen = false;
+  private healSentAt = 0;        // ultimo joy-heal enviado (anti-flood)
+  private healPending = false;   // curou COM alguem caido e espera o HP voltar
+  private healNoticed = false;   // ja avisou deste desmaio (1 alerta por episodio)
   private liveTeam: ActivePoke[] | null = null;  // time ao vivo (frames pokes)
   private liveTeamAt: number | null = null;
   private liveBox: ActivePoke[] | null = null;   // box ao vivo (fora do time) — so em memoria, fora do SSE
@@ -755,6 +764,23 @@ class GameSession {
     return false;
   }
 
+  /** Cura o time na enfermeira Joy pela sessao VIVA (`joy-heal`, HAR ago/2026: o jogo
+   *  responde `joy-healed` e reenvia `pokes` com o HP cheio). Cura so o TIME — pokemon no
+   *  box continua desmaiado (visto no HAR: Ledian 0/24 no box seguiu 0 depois do healed).
+   *  Retorna true se havia sessao viva; sem sessao, o caller faz o one-shot. MUTA a conta. */
+  healTeam(): boolean {
+    if (this.ws && this.status === "running") {
+      this.send({ type: "joy-heal" });
+      this.healSentAt = Date.now();
+      // so espera confirmacao se havia MESMO alguem caido — curar time inteiro nao gera
+      // evento ("curei e nada mudou" nao e noticia)
+      this.healPending = (this.liveTeam ?? []).some((p) => p.maxHp > 0 && p.hp <= 0);
+      setTimeout(() => this.send({ type: "pokes-get" }), 500); // confirma pelo estado
+      return true;
+    }
+    return false;
+  }
+
   /** Move um poke BOX <-> TIME na sessao VIVA (poke-store guarda, poke-withdraw tira do
    *  box — HAR ago/2026). Mesmo desenho do summonActive: manda na conexao segurada e pede
    *  pokes-get pra o time ao vivo/snapshot refletirem. Retorna true se havia sessao viva;
@@ -877,6 +903,10 @@ class GameSession {
         this.push({ at: Date.now(), kind: "catch", species, shiny, xp: 0, loot: [], ball });
         if (shiny && this.userId) void logRobotEvent(this.userId, { kind: "shiny", title: `Shiny ${species} capturado!`, body: ball || null, data: { species, ball } });
       }
+    } else if (m.type === "joy-healed") {
+      // ack da Joy: pede a lista JA (o HP novo e que confirma, nao o ack) — ver
+      // "Confirme a mutacao pelo estado que ela deixa".
+      this.send({ type: "pokes-get" });
     } else if (m.type === "pending" && Array.isArray(m.list)) {
       // fila de captura: o jogo reenvia a lista INTEIRA a cada mudanca. `pokeId` no frame
       // e o numero da SPECIES (nao cuid) — vira speciesId aqui pro sprite da UI.
@@ -922,10 +952,41 @@ class GameSession {
       const sig = team.map((p) => `${p.id}:${p.leader ? 1 : 0}:${p.level}:${p.hp}`).join("|");
       const prev = this.liveTeam?.map((p) => `${p.id}:${p.leader ? 1 : 0}:${p.level}:${p.hp}`).join("|");
       this.liveTeam = team;
+      this.checkFainted(team);
       this.liveBox = all.filter((p) => !p.team); // box ao vivo (modal box<->time le daqui)
       this.liveTeamAt = Date.now();
       if (sig !== prev) this.emit("session");
     } catch { /* best-effort */ }
+  }
+
+  // Desmaio do time, lido do frame `pokes` (a cada ~20s): confirma a cura que o robo pediu
+  // e, com hunt ligada, passa na Joy sozinho quando o LIDER esta em 0 HP — que e o caso em
+  // que a hunt para de render sem avisar ninguem.
+  private checkFainted(team: ActivePoke[]) {
+    const fainted = team.filter((p) => p.maxHp > 0 && p.hp <= 0);
+    if (!fainted.length) {
+      if (this.healPending && this.userId) void logRobotEvent(this.userId, {
+        kind: "heal", title: "Time curado na enfermeira Joy", body: null, data: {},
+      });
+      this.healPending = false;
+      this.healNoticed = false; // episodio fechou: o proximo desmaio avisa de novo
+      return;
+    }
+    if (!this.slug || !this.ws) return; // sem hunt, quem cura e o usuario (botao)
+    const leader = team.find((p) => p.leader) ?? team[0];
+    if (!leader || leader.maxHp <= 0 || leader.hp > 0) return;
+    if (Date.now() - this.healSentAt < HEAL_COOLDOWN_MS) return;
+    this.healTeam();
+    // UM alerta por desmaio: se a cura nao pegar, a tentativa se repete calada (o
+    // cooldown segura) em vez de encher o feed com a mesma linha a cada minuto
+    if (!this.healNoticed && this.userId) {
+      this.healNoticed = true;
+      void logRobotEvent(this.userId, {
+        kind: "heal", title: `${leader.name} desmaiou — o robo passou na Joy`,
+        body: "Pokemon em 0 de vida nao caca; o robo pediu a cura pra hunt seguir.",
+        data: { pokeId: leader.id, name: leader.name },
+      });
+    }
   }
 
   // fallback via lista de pokes (20s): se os frames de XP nao trouxerem level, a lista traz.
@@ -1406,7 +1467,7 @@ class GameSession {
 // SESSION_REV: bump SEMPRE que a classe ganhar/mudar metodo — no dev, o hot-reload
 // re-avalia o modulo mas a instancia antiga (prototype velho) fica presa no globalThis;
 // sem o rev, chamar um metodo novo dava "is not a function" ate reiniciar o server.
-const SESSION_REV = 17;
+const SESSION_REV = 18;
 const g = globalThis as unknown as { __piwSession?: GameSession; __piwSessionRev?: number };
 if (!g.__piwSession || g.__piwSessionRev !== SESSION_REV) {
   // silencia a instancia velha SEM persistir nada (stop() gravaria enabled=false no banco

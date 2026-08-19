@@ -129,6 +129,40 @@ export function summonPoke(tokens: Tokens, shard: number, pokeId: string, timeou
 // poke-store guarda no box — frames confirmados por HAR ago/2026; o jogo responde com
 // `pokes` atualizado). Mesmo desenho do summonPoke: so usar SEM sessao viva; confirma
 // pelo EFEITO (flag `team` do alvo na lista que volta) e devolve a lista lida, ou null.
+// Cura o time na enfermeira Joy sem sessao viva: abre, manda `joy-heal`, pede a lista e
+// espera o TIME voltar sem ninguem em 0 HP (confirmacao por estado — o ack `joy-healed`
+// sozinho nao prova nada). Cura so o time; pokemon no box segue desmaiado. MUTA a conta.
+export function healTeamOneShot(tokens: Tokens, shard: number, timeoutMs = 9000): Promise<Record<string, unknown>[] | null> {
+  const token = tokens.access;
+  return new Promise((resolve) => {
+    let settled = false, sent = false;
+    let ws: WebSocket;
+    const done = (v: Record<string, unknown>[] | null) => { if (settled) return; settled = true; try { ws.close(); } catch { /* noop */ } resolve(v); };
+    try {
+      ws = new WebSocket(`${WS_BASE}/ws${shard}?token=${encodeURIComponent(token)}`);
+    } catch { resolve(null); return; }
+    const to = setTimeout(() => done(null), timeoutMs);
+    ws.addEventListener("open", () => {
+      if (sent) return; sent = true;
+      try { ws.send(JSON.stringify({ type: "joy-heal" })); } catch { /* noop */ }
+      setTimeout(() => { try { ws.send(JSON.stringify({ type: "pokes-get" })); } catch { /* noop */ } }, 500);
+    });
+    ws.addEventListener("message", (ev: MessageEvent) => {
+      if (!sent) return;
+      let j: { type?: string; list?: unknown };
+      try { j = JSON.parse(typeof ev.data === "string" ? ev.data : "") as typeof j; } catch { return; }
+      if (j?.type === "pokes" && Array.isArray(j.list)) {
+        const list = j.list as Record<string, unknown>[];
+        const team = list.filter((p) => Boolean(p?.team));
+        const healed = team.length > 0 && team.every((p) => Number(p?.hp ?? 0) > 0);
+        if (healed) { clearTimeout(to); done(list); }
+      }
+    });
+    ws.addEventListener("close", () => { clearTimeout(to); done(null); });
+    ws.addEventListener("error", () => { clearTimeout(to); done(null); });
+  });
+}
+
 export function movePokeOneShot(tokens: Tokens, shard: number, pokeId: string, dir: "store" | "withdraw", timeoutMs = 9000): Promise<Record<string, unknown>[] | null> {
   const token = tokens.access;
   const wantTeam = dir === "withdraw"; // withdraw = entrou no time; store = saiu

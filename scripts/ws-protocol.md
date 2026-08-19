@@ -35,6 +35,13 @@ Conexao: `wss://poke.idleworld.online/ws<shard>?token=<accessJWT>&cmid=<hex>`
 - **`{"type":"analyzer-get"}`** -> responde `analyzer` (stats da sessao). Numa conexao
   que nao entrou no campo, volta tudo 0. O slug (ex. "ledian") vem do `hunt-config`
   REST / do `field-init`.
+- **`{"type":"joy-heal"}`** (sem parametro) -> responde `joy-healed` e reenvia `pokes`
+  com o HP cheio. E a enfermeira Joy: cura o TIME. Confirmado por HAR ago/2026 — no
+  mesmo captura, um Ledian 0/24 que estava no BOX seguiu 0/24 depois do `joy-healed`,
+  entao a cura NAO alcanca o box. Pokemon em 0 de HP nao entra em campo (a hunt fica
+  ligada sem matar nada), por isso o robo manda esse frame sozinho quando ve o lider
+  caido. MUTA a conta (reversivel/sem custo observado). Nao ha coordenada no frame: o
+  servidor nao pediu proximidade da NPC nesta captura.
 - **`{"type":"poke-summon","pokeId":"<id>"}`** -> define o pokemon ATIVO/LIDER (o que
   caca). MUTA a conta. Verificado: apos summon do Primeape, o `pokes` voltou com ele
   leader:true slot:0 e o lider anterior (Golem) leader:false slot:1. Responde com
@@ -57,6 +64,8 @@ o piwdex segura, o navegador do jogo fica em "conta em uso".
 
 ### Snapshot (uma vez, ao conectar)
 - `pokes` `{list:[GamePoke]}` — box+time individual (id, speciesId, ivTotal, quality,
+  **`hp`/`maxHp`** (vida ATUAL do bicho — 0 = desmaiado; e a unica fonte de vida fora
+  do campo, ja que `field` so existe em hunt e `/api/characters/me` nao traz HP),
   shiny, team, leader, starter, sellValue, ...). Ver `normalizeActivePokes`.
 - `inventory` `{items:[{itemId,quantity}]}`
 - `balls` `{catalog:[...], counts:{ballId:qty}, gold, selected}`

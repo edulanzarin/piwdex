@@ -6,7 +6,7 @@
 
 import { useCallback, useEffect, useRef } from "react";
 import { useT } from "./locale-provider";
-import { Star, Coin, Loot, Skull, Brain, Signal, Flag } from "./icons";
+import { Star, Coin, Loot, Skull, Brain, Signal, Flag, Heart } from "./icons";
 import { useVipLive, type LiveEvent } from "./vip-live";
 import { Panel } from "./ui/panel";
 import { FeedRow, EmptyState } from "./ui/feed";
@@ -54,6 +54,9 @@ export function RobotActivity() {
         return { icon: <Brain size={16} className="text-cyan" />, text: e.title, tone: "text-cyan" };
       case "reconnect":
         return { icon: <Signal size={16} className="text-green" />, text: e.title, tone: "text-green" };
+      case "heal":
+        // passou na enfermeira Joy (pokemon desmaiado nao entra em campo)
+        return { icon: <Heart size={16} className="text-red" />, text: e.body ? `${e.title} — ${e.body}` : e.title, tone: "text-red" };
       case "goal":
         return { icon: <Flag size={16} className="text-purple" />, text: e.title, tone: "text-purple" };
       case "error":

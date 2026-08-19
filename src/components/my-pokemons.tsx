@@ -20,6 +20,8 @@ import { LoadingBall } from "./loaders";
 import { SelectMenu } from "./select-menu";
 import { PokeStatsModal } from "./mon-stats";
 import { QualityBadge } from "./badges";
+import { HpBar, HpText, FaintedChip, isFainted } from "./ui/hp";
+import { HealButton } from "./heal-button";
 import type { MarketDex } from "./market-advisor";
 
 const fmt = (n: number) => Math.round(n).toLocaleString("pt-BR");
@@ -56,6 +58,7 @@ export function MyPokemons({ dex }: { dex?: Record<number, MarketDex> }) {
   );
   const leader = team.find((p) => p.leader) ?? team[0] ?? null;
   const teamFull = team.length >= 6;
+  const anyFainted = team.some(isFainted);
   const rarityOf = (p: LiveTeamPoke) => dex?.[p.speciesId]?.rarity;
 
   const loadBox = () => {
@@ -118,7 +121,15 @@ export function MyPokemons({ dex }: { dex?: Record<number, MarketDex> }) {
       </div>
 
       {/* ===== time ativo: trocar lider + guardar no box ===== */}
-      <Panel icon={<Trainer size={18} />} accent="var(--yellow)" title={t("vip.team.title")} className="p-4 sm:p-5" bodyClassName="gap-3">
+      <Panel
+        icon={<Trainer size={18} />}
+        accent="var(--yellow)"
+        title={t("vip.team.title")}
+        // a Joy so aparece com alguem em 0 de vida — botao com motivo, nao decoracao
+        right={anyFainted ? <HealButton className="btn btn-red btn-sm" /> : undefined}
+        className="p-4 sm:p-5"
+        bodyClassName="gap-3"
+      >
         {team.length === 0 ? (
           // vazio com a altura de uma linha de cards do time (136px: os 3 slots de acao
           // de 36px mandam na altura do card): o painel nao pula quando o time chega
@@ -135,7 +146,9 @@ export function MyPokemons({ dex }: { dex?: Record<number, MarketDex> }) {
                 >
                   <span className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded bg-surface-2">
                     <Sprite src={spriteUrl(p.speciesId, p.shiny)} alt={p.name} size={40} />
-                    {(p.shiny || isLeader) && (
+                    {/* estrela = SHINY e so. No lider ela enganava (e shiny lider daria
+                        duas); quem marca o ativo aqui e o chip LIDER + o acento amarelo. */}
+                    {p.shiny && (
                       <span className="absolute -right-1 -top-1 text-yellow"><Star size={14} /></span>
                     )}
                     {busyId === p.id && <span className="absolute inset-0 rounded radar" />}
@@ -149,13 +162,16 @@ export function MyPokemons({ dex }: { dex?: Record<number, MarketDex> }) {
                       <span className="truncate text-base text-text" title={p.name}>{p.name}</span>
                       <span className="pixel shrink-0 text-xs text-text-dim">Lv{p.level}</span>
                       {isLeader && <span className="chip shrink-0" style={{ background: "var(--yellow)", color: "#3a2c00" }}>{t("account.team.leader")}</span>}
+                      {isFainted(p) && <FaintedChip />}
                       <span className="shrink-0"><QualityBadge quality={p.quality} /></span>
                     </div>
                     <div className={`${METAROW} h-6 gap-x-2.5 text-sm tabular-nums text-text-dim`}>
+                      <HpText hp={p.hp} maxHp={p.maxHp} />
                       <span className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-cyan"><Xp size={14} />{fmt(p.power)}</span>
                       <span className="shrink-0 whitespace-nowrap">IV <span className={ivColor(p.ivTotal)}>{p.ivTotal}</span></span>
                       <span className="shrink-0 whitespace-nowrap">Q <span className="text-cyan">{p.quality.toFixed(2)}</span></span>
                     </div>
+                    <HpBar hp={p.hp} maxHp={p.maxHp} className="mt-1" />
                   </div>
                   {/* coluna de acoes com 3 SLOTS fixos: acao que nao se aplica fica invisible
                       (reserva o espaco) — lider e reserva geram cards da MESMA altura */}
@@ -242,6 +258,7 @@ export function MyPokemons({ dex }: { dex?: Record<number, MarketDex> }) {
                         <span className="shrink-0"><QualityBadge quality={p.quality} /></span>
                       </span>
                       <span className="flex h-6 items-center gap-x-2.5 overflow-hidden text-sm tabular-nums text-text-dim">
+                        <HpText hp={p.hp} maxHp={p.maxHp} />
                         <span className="shrink-0 whitespace-nowrap">IV <span className={ivColor(p.ivTotal)}>{p.ivTotal}</span></span>
                         <span className="shrink-0 whitespace-nowrap">Q <span className="text-cyan">{p.quality.toFixed(2)}</span></span>
                       </span>

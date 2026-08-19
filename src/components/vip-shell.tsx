@@ -170,7 +170,7 @@ function VipShellInner({ creatures, dex, hunts, itemIcons, lootByPoke, marketIte
               <RobotActivity />
             </div>
           )}
-          {sec === "conta" && <AccountPanel creatures={creatures} dex={dex} />}
+          {sec === "conta" && <AccountPanel creatures={creatures} dex={dex} onGo={(s2) => go(s2 as Section)} />}
         </div>
       </div>
     </div>
