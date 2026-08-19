@@ -69,7 +69,7 @@ export function RobotActivity() {
 
   return (
     <Panel
-      title={<span className="text-cyan">{t("evt.title")}</span>}
+      title={t("evt.title")}
       // botao sempre no slot: invisible reserva o espaco (cabecalho de altura estavel)
       right={<button type="button" onClick={clear} className={`btn btn-ghost btn-sm ${events.length > 0 ? "" : "invisible"}`}>{t("evt.clear")}</button>}
     >

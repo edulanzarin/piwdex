@@ -98,7 +98,7 @@ export function AlertsInbox({ onJumpToWish, itemIcons }: { onJumpToWish?: (watch
     <div className="flex flex-col gap-4">
       <Panel
         icon={<Bell size={18} />} accent="var(--green)"
-        title={<span className="text-green">{t("alerts.inbox.title")}{totalUnread > 0 ? ` (${totalUnread})` : ""}</span>}
+        title={<>{t("alerts.inbox.title")}{totalUnread > 0 ? ` (${totalUnread})` : ""}</>}
         // botao sempre no slot: invisible reserva o espaco (o cabecalho nao muda de altura)
         right={<button type="button" onClick={markAll} className={`btn btn-ghost btn-sm ${totalUnread > 0 ? "" : "invisible"}`}>{t("alerts.markAll")}</button>}
       >

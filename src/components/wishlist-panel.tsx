@@ -251,7 +251,7 @@ function NewWish({ creatures, items, onCreated }: { creatures: ComboCreature[]; 
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h2 className="section-title flex items-center gap-2">
-            <Heart size={18} className="text-pink" /> {t("wish.new.title")}
+            <Heart size={18}  /> {t("wish.new.title")}
           </h2>
           <p className="mt-2 max-w-2xl text-sm text-text-dim">{t("wish.new.help")}</p>
         </div>
@@ -565,7 +565,7 @@ export function WishlistPanel({ creatures, items, dex, focusWishId }: { creature
 
       <div className="flex flex-col gap-3">
         <h3 className="section-title flex items-center gap-2">
-          <Heart size={18} className="text-pink" /> {t("wish.list.title")}
+          <Heart size={18}  /> {t("wish.list.title")}
         </h3>
         {/* estados com a mesma altura minima de um desejo recolhido: a lista nao pula
             quando sai do carregando pro vazio/erro/cheio */}

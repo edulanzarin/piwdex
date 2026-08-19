@@ -180,7 +180,7 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
       {!huntOn ? (
         <div className="grid gap-3 md:grid-cols-3">
           {/* AUTO — o destaque: um botao e o robo se vira */}
-          <Panel icon={<Brain size={18} />} accent="var(--cyan)" title={<span className="text-cyan">{t("robo.mode.auto")}</span>} className="card-link">
+          <Panel icon={<Brain size={18} />} accent="var(--cyan)" title={t("robo.mode.auto")} className="card-link">
             <p className="flex-1 text-base leading-relaxed text-text-dim">{t("robo.mode.autoDesc")}</p>
             <button type="button" onClick={startAuto} disabled={busy} className="btn btn-cyan self-start disabled:opacity-40">
               {t("robo.mode.autoStart")} <ChevronRight size={14} />
@@ -188,7 +188,7 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
           </Panel>
 
           {/* UPAR — plano de leveling */}
-          <Panel icon={<Flag size={18} />} accent="var(--purple)" title={<span className="text-purple">{t("robo.mode.leveling")}</span>} className="card-link">
+          <Panel icon={<Flag size={18} />} accent="var(--purple)" title={t("robo.mode.leveling")} className="card-link">
             <p className="flex-1 text-base leading-relaxed text-text-dim">{t("robo.mode.levelingDesc")}</p>
             <button type="button" onClick={openPlanModal} disabled={busy || team.length === 0} className="btn btn-purple self-start disabled:opacity-40" title={team.length === 0 ? t("robo.lv.needTeam") : undefined}>
               {t("robo.mode.levelingStart")} <ChevronRight size={14} />
@@ -267,7 +267,7 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
       {huntOn && mode === "leveling" && (
         <div className="card p-4">
           <div className="mb-2.5 flex h-8 min-w-0 items-center gap-2">
-            <Flag size={18} className="shrink-0 text-purple" />
+            <Flag size={18} className="shrink-0" />
             <h3 className="section-title min-w-0 truncate">{lv ? t("robo.lv.planTitle", { name: lv.name }) : t("robo.lv.title")}</h3>
             <span className={`pixel shrink-0 text-sm ${lv ? "text-text" : "slot-empty"}`}>
               {lv ? <>{lv.currentLevel}<span className="text-text-dim"> / {lv.targetLevel}</span></> : "—/—"}
@@ -507,7 +507,7 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
       {huntOn && (
         <Panel
           icon={<Pokeball size={18} />} accent="var(--green)"
-          title={<span className="text-green">{t("robo.hunt.queue")}</span>}
+          title={<>{t("robo.hunt.queue")}</>}
           right={<span className={`pixel text-base tabular-nums ${st?.pending ? "text-text" : "slot-empty"}`}>{st?.pending ? st.pending.length : "—"}</span>}
         >
           <div className="max-h-28 min-h-11 overflow-y-auto pr-1">
@@ -538,7 +538,7 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
           Painel sempre presente com a hunt ligada: altura FIXA com rolagem interna,
           feed vazio mostra o placeholder no mesmo espaco. */}
       {huntOn && (
-        <Panel title={<span className="text-cyan">{t("robo.hunt.recent")}</span>} live>
+        <Panel title={<>{t("robo.hunt.recent")}</>} live>
           <div className="h-72 overflow-y-auto pr-1">
             {!st?.recentKills || st.recentKills.length === 0 ? (
               <p className="slot-empty flex h-full items-center justify-center text-base">—</p>

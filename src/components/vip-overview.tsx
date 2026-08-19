@@ -415,7 +415,7 @@ export function VipOverview({
       {/* ===== feeds: kills ao vivo + eventos recentes — corpo com ALTURA FIXA e
              scroll interno; item novo chegando nunca estica o painel ===== */}
       <div className="grid gap-4 lg:grid-cols-2">
-        <Panel title={<span className="text-cyan">{t("vip.ov.liveFeed")}</span>} live={hunting}>
+        <Panel title={<>{t("vip.ov.liveFeed")}</>} live={hunting}>
           <div className="h-[21rem] overflow-y-auto pr-1">
             {hunt?.recentKills?.length ? (
               <div className="flex flex-col gap-1.5">
@@ -459,7 +459,7 @@ export function VipOverview({
         </Panel>
 
         <Panel
-          title={<span className="text-yellow">{t("vip.ov.events")}</span>}
+          title={<>{t("vip.ov.events")}</>}
           right={<button type="button" onClick={() => onGo("alertas")} className="icon-btn" aria-label={t("vip.ov.allEvents")}><ChevronRight size={16} /></button>}
         >
           <div className="h-[21rem] overflow-y-auto pr-1">

@@ -174,7 +174,7 @@ function VipShellInner({ creatures, dex, hunts, itemIcons, lootByPoke, marketIte
             <div className="flex flex-col gap-6">
               {(alerts?.unread ?? 0) > 0 && (
                 <button type="button" onClick={() => go("desejos")} className="card card-link flex items-center gap-3 p-4 text-left">
-                  <span className="inline-flex text-pink"><Heart size={18} /></span>
+                  <span className="inline-flex"><Heart size={18} /></span>
                   <span className="flex-1 text-base text-text">{t("alerts.foundSummary", { n: alerts?.unread ?? 0 })}</span>
                   <ChevronRight size={16} />
                 </button>

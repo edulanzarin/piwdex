@@ -101,9 +101,9 @@ function Row({ label, value }: { label: string; value: React.ReactNode }) {
   );
 }
 // secao da Conta: Panel primitivo (titulo colorido + slot a direita)
-function Section({ title, color, extra, children }: { title: string; color: string; extra?: React.ReactNode; children: React.ReactNode }) {
+function Section({ title, extra, children }: { title: string; extra?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <Panel title={<span className={color}>{title}</span>} right={extra}>
+    <Panel title={title} right={extra}>
       {children}
     </Panel>
   );
@@ -171,7 +171,7 @@ function TrainerCard({ account }: { account: Account }) {
   const t = useT();
   const tr = account.trainer;
   return (
-    <Section title={t("account.sec.trainer")} color="text-cyan">
+    <Section title={t("account.sec.trainer")}>
       <div className="grid gap-x-6 sm:grid-cols-2">
         <Row label={t("account.f.skin")} value={skinName(tr.lookType) ? `${skinName(tr.lookType)} · #${tr.lookType}` : `#${tr.lookType}`} />
         <Row label={t("account.f.clan")} value={tr.clan ? `${tr.clan} · #${tr.clanRank}` : dash} />
@@ -191,7 +191,7 @@ function AutomationCard({ account, nameById }: { account: Account; nameById: (id
   const a = account.auto;
   const ballName = (id: number) => account.balls.find((b) => b.id === id)?.name ?? `#${id}`;
   return (
-    <Section title={t("account.sec.auto")} color="text-purple">
+    <Section title={t("account.sec.auto")}>
       <div className="grid gap-x-6 sm:grid-cols-2">
         <Row label={t("account.f.autoCatch")} value={<span><OnOff on={a.autoCatch} /> · {ballName(a.autoCatchBallId)}</span>} />
         <Row label={t("account.f.autoCatchShiny")} value={<span><OnOff on={a.autoCatchShiny} /> · {ballName(a.autoCatchShinyBallId)}</span>} />
@@ -208,7 +208,7 @@ function StreakCard({ account }: { account: Account }) {
   const t = useT();
   const s = account.streak;
   return (
-    <Section title={t("account.sec.streak")} color="text-yellow">
+    <Section title={t("account.sec.streak")}>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
         <Stat label={t("account.f.streakPoints")} value={fmt(s.available)} color="text-yellow" icon={<Coin size={14} />} />
         <Stat label={t("account.f.streakKills")} value={fmt(s.totalKills)} icon={<Skull size={14} className="text-text-dim" />} />
@@ -237,7 +237,7 @@ function BattlePassCard({ account }: { account: Account }) {
   ].filter((a) => a.value !== 0);
   if (bp.points === 0 && !bp.premium && activities.length === 0) return null;
   return (
-    <Section title={t("account.sec.pass")} color="text-purple">
+    <Section title={t("account.sec.pass")}>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
         <Stat label={t("account.f.passPoints")} value={fmt(bp.points)} color="text-purple" icon={<Star size={14} className="text-purple" />} />
         <Stat label={t("account.f.passTier")} value={bp.premium
@@ -262,7 +262,7 @@ function BreedingCard({ account }: { account: Account }) {
   const b = account.breeding;
   if (!b.unlocked && b.eggs.length === 0 && b.usedSlots === 0 && b.pheromones === 0) return null;
   return (
-    <Section title={t("account.sec.breeding")} color="text-pink">
+    <Section title={t("account.sec.breeding")}>
       <div className="grid grid-cols-3 gap-2">
         <Stat label={t("account.f.breedSlots")} value={`${b.usedSlots}/${b.maxSlots}`} />
         <Stat label={t("account.f.pheromones")} value={fmt(b.pheromones)} />
@@ -283,16 +283,16 @@ function BreedingCard({ account }: { account: Account }) {
 
 // Inventario/deposito: a secao NAO some quando vazia — o par ocupa as duas colunas
 // do grid sempre, e a lista vazia vira um tracinho esmaecido no mesmo espaco.
-function ItemsCard({ title, color, items }: { title: string; color: string; items: AccountItem[] }) {
+function ItemsCard({ title, items }: { title: string; items: AccountItem[] }) {
   if (!items.length) {
     return (
-      <Section title={`${title} (0)`} color={color}>
+      <Section title={`${title} (0)`}>
         <p className="slot-empty flex min-h-16 items-center justify-center text-base">—</p>
       </Section>
     );
   }
   return (
-    <Section title={`${title} (${items.length})`} color={color}>
+    <Section title={`${title} (${items.length})`}>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
         {items.map((it) => (
           <div key={it.id} className="flex items-center gap-2 rounded border border-border bg-[var(--well-bg)] px-2 py-1.5">
@@ -319,13 +319,13 @@ function BallsCard({ account }: { account: Account }) {
   // secao sempre presente: catalogo vazio (dado ainda nao veio) = tracinho no lugar
   if (!balls.length) {
     return (
-      <Section title={t("account.sec.balls")} color="text-cyan">
+      <Section title={t("account.sec.balls")}>
         <p className="slot-empty flex min-h-16 items-center justify-center text-base">—</p>
       </Section>
     );
   }
   return (
-    <Section title={t("account.sec.balls")} color="text-cyan">
+    <Section title={t("account.sec.balls")}>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
         {balls.map((b) => {
           const owned = b.infinite || b.count > 0;
@@ -405,7 +405,7 @@ function ActiveTeamCard({ initial, dex }: { initial: TeamSnapshot | null; dex?: 
   const [statsPoke, setStatsPoke] = useState<ActivePoke | null>(null);
   if (!initial || initial.list.length === 0) {
     return (
-      <Section title={t("account.sec.team")} color="text-green">
+      <Section title={t("account.sec.team")}>
         <p className="text-base leading-relaxed text-text-dim">{t("account.team.snapshotEmpty")}</p>
       </Section>
     );
@@ -413,7 +413,6 @@ function ActiveTeamCard({ initial, dex }: { initial: TeamSnapshot | null; dex?: 
   return (
     <Section
       title={t("account.sec.team")}
-      color="text-green"
       extra={
         <span className="text-xs text-text-dim">
           {t("account.team.total").replace("{n}", fmt(initial.total))}
@@ -469,8 +468,8 @@ export function AccountPanel({ creatures, dex }: { creatures: ComboCreature[]; d
       <BattlePassCard account={account} />
       <BreedingCard account={account} />
       <div className="grid gap-5 lg:grid-cols-2">
-        <ItemsCard title={t("account.sec.inventory")} color="text-green" items={account.inventory} />
-        <ItemsCard title={t("account.sec.depot")} color="text-yellow" items={account.depot} />
+        <ItemsCard title={t("account.sec.inventory")} items={account.inventory} />
+        <ItemsCard title={t("account.sec.depot")} items={account.depot} />
       </div>
       <BallsCard account={account} />
     </div>

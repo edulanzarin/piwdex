@@ -13,8 +13,7 @@
 import { useEffect, useRef, useState } from "react";
 import { LoadingBall } from "./loaders";
 import { ToggleButton } from "./toggle-button";
-import { Pokeball } from "./pokeball";
-import { Caret, Infinity_, Check, Coin, Gear } from "./icons";
+import { Caret, Infinity_, Check, Coin, Gear, Loot } from "./icons";
 import { useT, useRarityLabel } from "./locale-provider";
 import { useToast } from "./toast";
 import { useVipLive } from "./vip-live";
@@ -378,7 +377,7 @@ export function ConfigPanel() {
         style={{ background: "color-mix(in srgb, var(--surface-solid) 88%, transparent)" }}
       >
         <div className="flex min-w-0 items-center gap-3">
-          <span className="hidden shrink-0 text-blue sm:inline-flex"><Gear size={18} /></span>
+          <span className="hidden shrink-0 sm:inline-flex"><Gear size={18} /></span>
           <div className="min-w-0 flex-1">
             <h2 className="section-title truncate">{t("vip.sec.config")}</h2>
             <p className="mt-0.5 hidden text-sm text-text-dim sm:block">{t("config.desc")}</p>
@@ -512,7 +511,7 @@ export function ConfigPanel() {
       {/* ---- auto-compra de consumiveis ---- */}
       <section className="flex flex-col gap-3">
         <div>
-          <h3 className="section-title flex items-center gap-2"><Pokeball size={18} /> {t("robo.autobuy.title")}</h3>
+          <h3 className="section-title flex items-center gap-2"><Loot size={18} /> {t("robo.autobuy.title")}</h3>
           <p className="mt-1.5 max-w-2xl text-base text-text-dim">{t("robo.autobuy.desc")}</p>
         </div>
         <div className="card flex flex-col gap-3 p-4 sm:p-5">

@@ -50,7 +50,7 @@ export function TeamLive({ dex, onManage }: { dex?: Record<number, MarketDex>; o
   return (
     <div className="card flex flex-col gap-3 p-4">
       <div className="flex items-center gap-2.5">
-        <Trainer size={18} className="text-yellow" />
+        <Trainer size={18}  />
         <h3 className="section-title flex-1">{t("vip.team.title")}</h3>
         {/* slot de status de ALTURA FIXA: um estado por vez (ao vivo > snapshot > nada) */}
         <span className="inline-flex h-6 items-center">

@@ -42,7 +42,7 @@ function Card({ title, accent, icon, children }: { title: string; accent: string
   return (
     // sm:p-5 (e nao p-5): o Panel ja entrega p-4, que e o padding certo a 360px —
     // sobrescrever a partir do sm evita duas classes de padding brigando na base
-    <Panel collapsible icon={icon} accent={accent} title={<span style={{ color: accent }}>{title}</span>} className="sm:p-5" bodyClassName="gap-4">
+    <Panel collapsible icon={icon} accent={accent} title={title} className="sm:p-5" bodyClassName="gap-4">
       {children}
     </Panel>
   );
