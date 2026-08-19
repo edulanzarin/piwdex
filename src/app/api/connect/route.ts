@@ -60,7 +60,7 @@ export async function POST(req: Request) {
   // Vinculo renovado: se o robo estava com estado desejado ligado (a conexao caiu porque o
   // token venceu, nao porque o usuario desligou), ele RETOMA sozinho — reconectar com o
   // bookmark e a unica acao do usuario, o resto volta ao que era.
-  setTimeout(() => { void resumeRobotSessions().catch(() => {}); }, 1_000);
+  setTimeout(() => { void resumeRobotSessions(session.user!.id).catch(() => {}); }, 1_000);
 
   return NextResponse.json({ ok: true });
 }

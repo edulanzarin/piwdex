@@ -9,10 +9,17 @@ import { fighterOf, type FighterProfile } from "@/lib/hunt-brain";
 // instrumentation.ts com um delay (banco subindo). O motor e single-conta por processo:
 // religa a sessao enabled mais recente. Sem sessao enabled, nao faz nada.
 
-export async function resumeRobotSessions(): Promise<void> {
+export async function resumeRobotSessions(preferUserId?: string): Promise<void> {
   const sessions = await listEnabledSessions();
-  const first = sessions[0];
+  // Quem acabou de vincular tem preferencia. Sem isso o resume pegava sempre "a mais
+  // recente" da tabela — que no fluxo de TROCA DE CONTA e a ANTIGA, e ela tomava o motor
+  // de volta de quem acabou de conectar (a hunt velha reaparecia na tela nova).
+  const first = (preferUserId ? sessions.find((x) => x.userId === preferUserId) : null) ?? sessions[0];
   if (!first) return;
+
+  // O motor e single-conta por processo: se OUTRA conta ja esta segurando a sessao, o
+  // resume nao toma dela. Religar e pra quando o motor esta livre (boot) ou ja e dela.
+  if (gameSession.hasOwner() && !gameSession.ownedBy(first.userId)) return;
 
   const link = await getGameLink(first.userId);
   if (!link || link.status === "expired") return;

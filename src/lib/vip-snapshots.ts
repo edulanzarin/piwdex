@@ -84,7 +84,7 @@ export async function fetchAccountSnapshot(userId: string): Promise<AccountSnaps
 export async function fetchTotalsSnapshot(userId: string) {
   const [totals, acervo] = await Promise.all([getRobotSales(userId), capturedStats(userId)]);
 
-  const st = gameSession.getState();
+  const st = gameSession.getStateFor(userId);
   const a = st.status === "running" && st.slug ? st.analyzer : null;
   if (a) {
     let rareItems = 0;

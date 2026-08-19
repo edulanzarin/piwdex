@@ -217,6 +217,21 @@ function analyzerDelta(raw: Analyzer, base: Analyzer | null): Analyzer {
 const analyzerZeroed = (raw: Analyzer, base: Analyzer) =>
   ANALYZER_SUMS.some((k) => (raw[k] ?? 0) < (base[k] ?? 0));
 
+// Estado de quem NAO tem sessao carregada. E o que o motor devolve pra usuario que nao
+// e dono: mesmo formato do getState(), tudo vazio. Sem ele a alternativa seria devolver
+// null e espalhar checagem de nulo por toda a UI.
+function idleHuntState(): HuntState {
+  return {
+    status: "idle", slug: null, since: null, updatedAt: null,
+    analyzer: null, recentKills: [], soldItems: [], autoSellCount: 0,
+    pending: [], pokeSellOn: false,
+    mode: "manual", leveling: null, plan: null, queue: [],
+    desiredOn: false, reconnecting: false, nextRetryAt: null, contested: false,
+    fighterLevel: null, reviving: false, heroHp: null, heroMaxHp: null,
+    holdOpen: false, wsOpen: false, team: null, teamAt: null,
+  };
+}
+
 class GameSession {
   // barramento de eventos pro stream SSE: emit("change", topic) a cada mudanca de estado.
   // topic "hunt" = analyzer/kills/vendas mudaram; "session" = status/modo/reconexao mudou.
@@ -394,6 +409,71 @@ class GameSession {
       holdOpen: this.holdOpen, wsOpen: this.ws != null && this.status === "running",
       team: this.liveTeam, teamAt: this.liveTeamAt,
     };
+  }
+
+  // --- POSSE DA SESSAO ---------------------------------------------------
+  // O motor e SINGLE-CONTA por processo: o singleton segura UMA conta de jogo por vez.
+  // Sem checar dono, quem abrisse a area do robo via a sessao de quem estivesse
+  // carregado — a hunt de outra conta na propria tela e, pior, os comandos (mover,
+  // curar, chat, summon) caindo na conta alheia. A posse mora AQUI e nao em cada rota:
+  // o acessor sem dono nao existe, entao nao ha chamador pra esquecer a checagem.
+
+  /** Este usuario e o dono da sessao carregada? */
+  ownedBy(userId: string | null | undefined): boolean {
+    return !!userId && this.userId === userId;
+  }
+
+  /** Ha alguma conta segurando o motor? Distingue "livre" de "ocupado por outro". */
+  hasOwner(): boolean {
+    return this.userId != null;
+  }
+
+  /** Estado pra ESTE usuario: o real se ele e o dono, senao o vazio de quem nao tem
+   *  sessao. Nunca devolve o retrato de outra conta. */
+  getStateFor(userId: string | null | undefined): HuntState {
+    return this.ownedBy(userId) ? this.getState() : idleHuntState();
+  }
+
+  getChatViewFor(userId: string | null | undefined): ChatView {
+    return this.ownedBy(userId)
+      ? this.getChatView()
+      : { wsOpen: false, messages: [], announce: null, lastSentAt: null, debugFrames: [] };
+  }
+
+  getAutoSellViewFor(userId: string | null | undefined): AutoSellView {
+    return this.ownedBy(userId) ? this.getAutoSellView() : { status: "idle", soldBySpecies: [] };
+  }
+
+  getLiveBoxFor(userId: string | null | undefined): ActivePoke[] | null {
+    return this.ownedBy(userId) ? this.getLiveBox() : null;
+  }
+
+  getAutoBuyOnFor(userId: string | null | undefined): boolean {
+    return this.ownedBy(userId) && this.getAutoBuyOn();
+  }
+
+  /** Solta a conta: para tudo e ESQUECE o dono, zerando o que o disconnectSession
+   *  preserva de proposito (time ao vivo, chat, auto-compra, acervo ja gravado). Sem
+   *  isso o motor segue apontando pra conta antiga e o proximo usuario herda o retrato.
+   *  E o que o botao "Desconectar" precisa chamar. */
+  release(userId: string | null | undefined): boolean {
+    if (!this.ownedBy(userId)) return false;
+    const uid = this.userId!;
+    this.disconnectSession();
+    // auto-compra e um timer REST proprio (sobrevive ao disconnect de proposito): aqui
+    // ela cai junto, senao o processo segue comprando na conta que acabou de ser solta.
+    this.autoBuy = false;
+    if (this.buyTimer) { clearInterval(this.buyTimer); this.buyTimer = null; }
+    this.buyTokens = null; this.buyPersist = null;
+    void saveRobotDesired(uid, { autobuy: false }).catch(() => {});
+    this.userId = null; this.buyUserId = null;
+    this.tokens = null; this.onTokens = null; this.shard = 0;
+    this.liveTeam = null; this.liveTeamAt = null; this.liveBox = null;
+    this.chatLog = []; this.chatSeenIds.clear(); this.chatSeenText.clear();
+    this.setAnnounce(null);
+    this.recordedIds.clear(); this.baselineIds = null;
+    this.emit("session");
+    return true;
   }
 
   /** "Ligar o robo": TOMA a sessao da conta e segura (chuta o navegador do jogo). Nao

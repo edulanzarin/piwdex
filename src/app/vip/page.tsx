@@ -6,11 +6,9 @@ import { type MarketDex } from "@/components/market-advisor";
 import { VipShell } from "@/components/vip-shell";
 import { VipPaywall } from "@/components/vip-paywall";
 import type { ComboCreature } from "@/components/pokemon-combobox";
-import { T } from "@/components/locale-provider";
 
 export const metadata: Metadata = { title: "VIP" };
 
-const ACCENT = "var(--yellow)";
 
 export default async function VipPage({ searchParams }: { searchParams: Promise<{ status?: string }> }) {
   const session = await auth();
@@ -89,10 +87,6 @@ export default async function VipPage({ searchParams }: { searchParams: Promise<
   return (
     <div className="container-vip">
       <div className="flex flex-col gap-5">
-        <div>
-          <h1 className="pixel text-3xl break-words" style={{ color: ACCENT }}><T k="vip.active.title" /></h1>
-        </div>
-
         <VipShell creatures={slim} dex={dex} hunts={huntOptions} itemIcons={itemIcons} lootByPoke={lootByPoke} marketItems={marketItems} />
       </div>
     </div>

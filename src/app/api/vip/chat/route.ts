@@ -25,7 +25,7 @@ async function guard() {
 export async function GET() {
   const g = await guard();
   if (g.error) return g.error;
-  return NextResponse.json(gameSession.getChatView());
+  return NextResponse.json(gameSession.getChatViewFor(g.userId));
 }
 
 export async function POST(req: Request) {
@@ -38,6 +38,9 @@ export async function POST(req: Request) {
     const channel = typeof b.channel === "string" && CHANNELS.has(b.channel) ? b.channel : "world";
     if (!text) return NextResponse.json({ error: "no_text" }, { status: 400 });
     // aguarda o VEREDITO do jogo (eco = aceita; frame de sistema = recusada)
+    // sem a checagem de dono, um VIP mandava mensagem no chat do jogo PELO personagem
+    // de quem estivesse com a sessao carregada
+    if (!gameSession.ownedBy(g.userId)) return NextResponse.json({ error: "not_live" }, { status: 409 });
     const r = await gameSession.sendChat(text, channel, g.playerName);
     if (!r.ok) {
       if (r.reason === "cooldown") return NextResponse.json({ error: "cooldown", waitMs: r.waitMs ?? 0 }, { status: 429 });
@@ -46,7 +49,7 @@ export async function POST(req: Request) {
       if (r.reason === "busy") return NextResponse.json({ error: "busy" }, { status: 409 });
       return NextResponse.json({ error: "not_live" }, { status: 409 }); // liga o robo antes
     }
-    return NextResponse.json(gameSession.getChatView());
+    return NextResponse.json(gameSession.getChatViewFor(g.userId));
   }
 
   if (b.action === "announce") {
@@ -57,11 +60,11 @@ export async function POST(req: Request) {
     const channel = typeof b.channel === "string" && CHANNELS.has(b.channel) ? (b.channel as AnnounceCfg["channel"]) : "world";
     if (on && !text) return NextResponse.json({ error: "no_text" }, { status: 400 });
     const cfg: AnnounceCfg = { on, text, everySec, channel };
-    gameSession.setAnnounce(cfg);
+    if (gameSession.ownedBy(g.userId)) gameSession.setAnnounce(cfg);
     // persiste tambem por aqui: a sessao so persiste se ja tem contexto (userId) — a config
     // do anuncio tem que sobreviver mesmo configurada antes de ligar o robo
     await saveRobotDesired(g.userId, { announce: cfg }).catch(() => {});
-    return NextResponse.json(gameSession.getChatView());
+    return NextResponse.json(gameSession.getChatViewFor(g.userId));
   }
 
   return NextResponse.json({ error: "bad_action" }, { status: 400 });

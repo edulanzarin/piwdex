@@ -63,7 +63,7 @@ export async function POST(req: Request) {
   // sessao na hora (fecha e reabre o socket): snapshot novo = config nova, garantido. O
   // rendimento do trecho atual e persistido antes (nada se perde nas Estatisticas). Sem
   // sessao viva e no-op — a config gravada vale no proximo connect.
-  gameSession.bounceLive();
+  if (gameSession.ownedBy(c.userId)) gameSession.bounceLive();
 
   // Re-le o estado completo (a resposta do auto-helper pode vir parcial).
   let tokens = w.tokens;

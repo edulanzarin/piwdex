@@ -31,7 +31,7 @@ async function savedState(userId: string) {
   const d = await getRobotDesired(userId).catch(() => null);
   const saved = d?.pokeSellCfg ?? null;
   return {
-    ...gameSession.getAutoSellView(),
+    ...gameSession.getAutoSellViewFor(userId),
     on: pokeSellOn(saved),
     config: saved ? parsePokeSellCfg(saved) : null,
   };
@@ -74,9 +74,9 @@ export async function POST(req: Request) {
     // aplica na sessao VIVA na hora; sem sessao, fica salvo e religa no proximo start/connect.
     // `save` nunca CONECTA sozinho (salvar config nao toma a sessao do jogo); o `start`
     // legado mantem o comportamento antigo de conectar.
-    const live = gameSession.getState().wsOpen;
+    const live = gameSession.getStateFor(c.userId).wsOpen;
     if (!on) {
-      if (gameSession.getState().pokeSellOn) gameSession.stopPokeSell();
+      if (gameSession.getStateFor(c.userId).pokeSellOn) gameSession.stopPokeSell();
     } else if (live || b.action === "start") {
       const shard = await ensureShard(c.userId, c.tokens, c.shard);
       if (!shard) {

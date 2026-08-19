@@ -26,7 +26,7 @@ export async function POST(req: Request) {
 
   // 1) hunt viva: manda no socket que o piwdex ja segura (single-session). A sessao regrava o
   // snapshot do time quando o pokes chegar de volta (summonActive ja pede pokes-get).
-  if (gameSession.summonActive(pokeId)) return NextResponse.json({ ok: true, live: true });
+  if (gameSession.ownedBy(s.user.id) && gameSession.summonActive(pokeId)) return NextResponse.json({ ok: true, live: true });
 
   // 2) sem hunt: one-shot no shard (descobre se nao tiver cache)
   let shard = link.shard;

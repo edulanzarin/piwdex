@@ -38,6 +38,6 @@ export async function DELETE() {
   const c = await uid();
   if (c.error) return c.error;
   await clearCaptured(c.userId);
-  gameSession.resetCapturedCache();
+  if (gameSession.ownedBy(c.userId)) gameSession.resetCapturedCache();
   return NextResponse.json({ ok: true });
 }

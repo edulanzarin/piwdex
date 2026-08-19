@@ -41,7 +41,7 @@ export async function GET() {
   // fonte da verdade: o persistido. Memoria divergindo = processo renasceu -> re-arma.
   const desired = await getRobotDesired(s.user.id).catch(() => null);
   const want = desired?.autobuy ?? false;
-  if (want && !gameSession.getAutoBuyOn()) {
+  if (want && !gameSession.getAutoBuyOnFor(s.user.id)) {
     const link = await getGameLink(s.user.id).catch(() => null);
     if (link && link.status === "active") {
       const userId = s.user.id;
@@ -76,7 +76,7 @@ export async function POST(req: Request) {
     };
     await saveRobotDesired(c.userId, { supplyCfg });
     // se a auto-compra ja esta ligada, re-arma pra aplicar a escolha nova AGORA (compra 1x).
-    if (gameSession.getAutoBuyOn()) {
+    if (gameSession.getAutoBuyOnFor(c.userId)) {
       gameSession.setAutoBuy(c.userId, c.tokens, true, (t) => updateGameTokens(c.userId, t));
     }
   }
@@ -85,5 +85,5 @@ export async function POST(req: Request) {
     gameSession.setAutoBuy(c.userId, c.tokens, b.action === "start", (t) => updateGameTokens(c.userId, t));
   }
 
-  return NextResponse.json({ on: gameSession.getAutoBuyOn() });
+  return NextResponse.json({ on: gameSession.getAutoBuyOnFor(c.userId) });
 }

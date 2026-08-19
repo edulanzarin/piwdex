@@ -48,7 +48,7 @@ async function ensureShard(userId: string, tokens: Tokens, shard: number | null)
 export async function GET() {
   const c = await ctx();
   if (c.error) return c.error;
-  return NextResponse.json(gameSession.getState());
+  return NextResponse.json(gameSession.getStateFor(c.userId));
 }
 
 export async function POST(req: Request) {
@@ -57,13 +57,15 @@ export async function POST(req: Request) {
   const b = (await req.json().catch(() => ({}))) as Record<string, unknown>;
   const persist = (tk: Tokens) => updateGameTokens(c.userId, tk);
 
+  // Parar/desligar so mexe na sessao se ela for DESTE usuario — senao um VIP derrubava
+  // a hunt do outro clicando num botao da propria tela.
   if (b.action === "stop") {
-    gameSession.stopHunt();
-    return NextResponse.json(gameSession.getState());
+    if (gameSession.ownedBy(c.userId)) gameSession.stopHunt();
+    return NextResponse.json(gameSession.getStateFor(c.userId));
   }
   if (b.action === "disconnect") {
-    gameSession.disconnectSession();
-    return NextResponse.json(gameSession.getState());
+    if (gameSession.ownedBy(c.userId)) gameSession.disconnectSession();
+    return NextResponse.json(gameSession.getStateFor(c.userId));
   }
   // A config de venda SALVA (Configuracoes -> banco) vale em TODO inicio de hunt/conexao,
   // venha o start de onde vier (Painel, aba Hunt, boot). Antes so um caminho da UI mandava
@@ -87,8 +89,8 @@ export async function POST(req: Request) {
     await applySellCfg(es.shard);
     // self-heal da auto-compra: se o banco diz ligada e o processo perdeu o timer, re-arma
     const d = await getRobotDesired(c.userId).catch(() => null);
-    if (d?.autobuy && !gameSession.getAutoBuyOn()) gameSession.setAutoBuy(c.userId, c.tokens, true, persist);
-    return NextResponse.json(gameSession.getState());
+    if (d?.autobuy && !gameSession.getAutoBuyOnFor(c.userId)) gameSession.setAutoBuy(c.userId, c.tokens, true, persist);
+    return NextResponse.json(gameSession.getStateFor(c.userId));
   }
 
   if (b.action === "start") {
@@ -102,7 +104,7 @@ export async function POST(req: Request) {
       : [];
     gameSession.setHunt(c.userId, c.tokens, es.shard, slug, sellItemIds, persist);
     await applySellCfg(es.shard);
-    return NextResponse.json(gameSession.getState());
+    return NextResponse.json(gameSession.getStateFor(c.userId));
   }
 
   if (b.action === "auto" || b.action === "leveling") {
@@ -117,7 +119,7 @@ export async function POST(req: Request) {
       const pick = await gameSession.startAuto(c.userId, c.tokens, es.shard, persist, fighterOf(leader));
       if (!pick) return NextResponse.json({ error: "no_hunt_found" }, { status: 422 });
       await applySellCfg(es.shard);
-      return NextResponse.json(gameSession.getState());
+      return NextResponse.json(gameSession.getStateFor(c.userId));
     }
 
     // leveling: FILA de metas. A primeira comeca agora (o bicho vira LIDER, que e quem caca
@@ -167,7 +169,7 @@ export async function POST(req: Request) {
     );
     if (!started) return NextResponse.json({ error: "no_route" }, { status: 422 });
     await applySellCfg(es.shard);
-    return NextResponse.json(gameSession.getState());
+    return NextResponse.json(gameSession.getStateFor(c.userId));
   }
 
   return NextResponse.json({ error: "bad_action" }, { status: 400 });

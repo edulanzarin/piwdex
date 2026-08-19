@@ -45,7 +45,10 @@ export async function GET(req: Request) {
         } catch { closed = true; }
       };
 
-      const pushHunt = () => { send("hunt", gameSession.getState()); send("autosell", gameSession.getAutoSellView()); send("chat", gameSession.getChatView()); };
+      // SO o estado DESTE usuario: o motor e single-conta por processo, entao sem o
+      // filtro por dono o stream empurrava a hunt de quem estivesse carregado pra tela de
+      // qualquer VIP logado (conta nova via a hunt da conta antiga).
+      const pushHunt = () => { send("hunt", gameSession.getStateFor(userId)); send("autosell", gameSession.getAutoSellViewFor(userId)); send("chat", gameSession.getChatViewFor(userId)); };
       const pushAccount = async () => { try { send("account", await fetchAccountSnapshot(userId)); } catch { /* proximo tick */ } };
       const pushTotals = async () => { try { send("totals", await fetchTotalsSnapshot(userId)); } catch { /* proximo tick */ } };
       const pushDb = async () => {
