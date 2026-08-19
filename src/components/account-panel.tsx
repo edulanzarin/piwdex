@@ -91,7 +91,7 @@ function Row({ label, value }: { label: string; value: React.ReactNode }) {
       <span className="field-label">{label}</span>
       {/* a Chakra tem peso de verdade: o valor sai em 500 e o rotulo fica em 400/dim —
           a hierarquia da linha nao depende mais so de cor */}
-      <span className="text-right text-base font-medium text-text">{value}</span>
+      <span className="text-right text-base text-text">{value}</span>
     </div>
   );
 }
@@ -354,15 +354,15 @@ function TeamMon({ p, rarity, onStats }: { p: ActivePoke; rarity?: Rarity; onSta
         <div className="flex items-center gap-1.5">
           {/* nome do bicho fica como veio (sem caixa alta) — so o peso 500 separa ele
               do resto da linha; os chips nao encolhem, quem trunca e o nome */}
-          <span className="truncate text-sm font-medium">{p.name}</span>
+          <span className="truncate text-sm">{p.name}</span>
           {p.leader && <span className="chip shrink-0" style={{ background: "var(--green)", color: "#052012" }}>{t("account.team.leader")}</span>}
           {rarity && <RarityBadge rarity={rarity} />}
         </div>
         <div className="text-sm text-text-dim">Lv.{p.level}</div>
         <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-sm text-text-dim">
-          <span>{t("account.col.power")} <span className="font-semibold text-yellow">{fmt(p.power)}</span></span>
-          <span>{t("account.col.iv")} <span className={`font-semibold ${ivColor(p.ivTotal)}`}>{p.ivTotal}</span>/192</span>
-          <span>{t("account.col.quality")} <span className="font-semibold text-cyan">{p.quality.toFixed(3)}</span></span>
+          <span>{t("account.col.power")} <span className="font-bold text-yellow">{fmt(p.power)}</span></span>
+          <span>{t("account.col.iv")} <span className={`font-bold ${ivColor(p.ivTotal)}`}>{p.ivTotal}</span>/192</span>
+          <span>{t("account.col.quality")} <span className="font-bold text-cyan">{p.quality.toFixed(3)}</span></span>
         </div>
       </div>
       {/* botao de stats com slot fixo (40px de toque); sem stats = espaco reservado */}

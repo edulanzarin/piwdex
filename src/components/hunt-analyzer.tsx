@@ -251,8 +251,8 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
                   {st?.reconnecting ? t("vip.ov.reconnecting") : t(`robo.hunt.status.${huntStatus}`)}
                 </span>
                 <span className={`shrink-0 ${cur ? "" : "slot-empty"}`}>{cur ? `Lv${cur.level} · ${cur.area}` : "—"}</span>
-                <span className={`inline-flex min-w-[5.5rem] shrink-0 items-center gap-1 font-medium tabular-nums ${a ? "text-cyan" : "slot-empty"}`} title={a ? `${fmt(a.xpPerHour)} XP/h` : undefined}><Xp size={14} />{a ? `${fmtC(a.xpPerHour)}/h` : "—/h"}</span>
-                <span className={`inline-flex min-w-[5.5rem] shrink-0 items-center gap-1 font-medium tabular-nums ${a ? "text-green" : "slot-empty"}`} title={a ? `${fmt(a.goldPerHour)} ouro/h` : undefined}><Coin size={14} />{a ? `${fmtC(a.goldPerHour)}/h` : "—/h"}</span>
+                <span className={`inline-flex min-w-[5.5rem] shrink-0 items-center gap-1 tabular-nums ${a ? "text-cyan" : "slot-empty"}`} title={a ? `${fmt(a.xpPerHour)} XP/h` : undefined}><Xp size={14} />{a ? `${fmtC(a.xpPerHour)}/h` : "—/h"}</span>
+                <span className={`inline-flex min-w-[5.5rem] shrink-0 items-center gap-1 tabular-nums ${a ? "text-green" : "slot-empty"}`} title={a ? `${fmt(a.goldPerHour)} ouro/h` : undefined}><Coin size={14} />{a ? `${fmtC(a.goldPerHour)}/h` : "—/h"}</span>
               </div>
             </div>
             {/* parar a hunt NAO derruba a conexao (o robo segue segurando a sessao) */}
@@ -287,8 +287,8 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
                   <div key={i} className={`flex items-center gap-2.5 rounded border p-2 text-base transition ${active ? "border-[color:var(--purple)] bg-[color:var(--purple)]/10 glow-pulse" : "border-border"} ${past ? "opacity-45" : ""}`}
                     style={active ? ({ "--accent": "var(--purple)" } as React.CSSProperties) : undefined}>
                     <span className={`pixel w-20 shrink-0 text-sm tabular-nums ${active ? "text-purple" : "text-text-dim"}`}>{s.from}-{s.to}</span>
-                    <span className="min-w-0 flex-1 truncate font-medium">{s.huntName} <span className="font-normal text-text-dim">· {s.area}</span></span>
-                    <span className="inline-flex shrink-0 items-center gap-1 font-medium tabular-nums text-cyan"><Xp size={16} />{fmt(s.xpH)}/h</span>
+                    <span className="min-w-0 flex-1 truncate">{s.huntName} <span className="font-normal text-text-dim">· {s.area}</span></span>
+                    <span className="inline-flex shrink-0 items-center gap-1 tabular-nums text-cyan"><Xp size={16} />{fmt(s.xpH)}/h</span>
                     {past && <Check size={16} className="shrink-0 text-green" />}
                   </div>
                 );
@@ -330,7 +330,7 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
                           <span className="flex h-7 w-7 shrink-0 items-center justify-center">
                             {h.pokeId != null && <Sprite src={spriteUrl(h.pokeId)} alt={h.name} size={24} />}
                           </span>
-                          <span className="min-w-0 flex-1 truncate text-base font-medium">{h.name}</span>
+                          <span className="min-w-0 flex-1 truncate text-base">{h.name}</span>
                           <span className="shrink-0 text-sm tabular-nums text-text-dim">Lv{h.level}</span>
                         </button>
                       ))}
@@ -363,7 +363,7 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
                     <Sprite src={spriteUrl(p.speciesId, p.shiny)} alt={p.name} size={28} />
                     {p.leader && <span className="absolute -right-1.5 -top-1.5 text-yellow"><Star size={14} /></span>}
                   </span>
-                  <span className="min-w-0 flex-1 truncate text-base font-medium">{p.name}</span>
+                  <span className="min-w-0 flex-1 truncate text-base">{p.name}</span>
                   <span className="shrink-0 text-sm tabular-nums text-text-dim">Lv{p.level}</span>
                 </button>
               );
@@ -397,8 +397,8 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
               planSteps.map((s, i) => (
                 <div key={i} className="flex shrink-0 items-center gap-2.5 rounded border border-border p-2 text-base">
                   <span className="pixel w-20 shrink-0 text-sm tabular-nums text-purple">{s.from}-{s.to}</span>
-                  <span className="min-w-0 flex-1 truncate font-medium">{s.huntName} <span className="font-normal text-text-dim">· {s.area}</span></span>
-                  <span className="inline-flex shrink-0 items-center gap-1 font-medium tabular-nums text-cyan"><Xp size={16} />{fmt(s.xpH)}/h</span>
+                  <span className="min-w-0 flex-1 truncate">{s.huntName} <span className="font-normal text-text-dim">· {s.area}</span></span>
+                  <span className="inline-flex shrink-0 items-center gap-1 tabular-nums text-cyan"><Xp size={16} />{fmt(s.xpH)}/h</span>
                 </div>
               ))
             ) : (
@@ -435,7 +435,7 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
                   )}
                 </span>
                 <div className="min-w-0 flex-1">
-                  <div className="truncate text-base text-text">{t("robo.hunt.bestPoke")}: <span className={bestPoke ? "font-medium text-cyan" : "slot-empty"}>{bestPoke?.name ?? "—"}</span> <span className={bestPoke ? "text-text-dim" : "slot-empty"}>{bestPoke ? `Lv${bestPoke.level}` : "Lv —"}</span></div>
+                  <div className="truncate text-base text-text">{t("robo.hunt.bestPoke")}: <span className={bestPoke ? "text-cyan" : "slot-empty"}>{bestPoke?.name ?? "—"}</span> <span className={bestPoke ? "text-text-dim" : "slot-empty"}>{bestPoke ? `Lv${bestPoke.level}` : "Lv —"}</span></div>
                   <div className={`text-sm leading-relaxed ${bestPoke ? "text-text-dim" : "slot-empty"}`}>{bestPoke ? t("robo.hunt.bestPokeHint").replace("{x}", String(bestPoke.eff)) : "—"}</div>
                 </div>
                 {summonState === "done" ? (
@@ -467,7 +467,7 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
                               linha some quando o quadrado e menor que o traco */}
                           <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border ${on ? "border-cyan bg-cyan text-[#06131a]" : "border-border text-transparent"}`}><Check size={14} /></span>
                           <span className="flex h-6 w-6 shrink-0 items-center justify-center">{d.icon ? <Sprite src={assetIconUrl(d.icon)} alt={d.name} size={20} /> : null}</span>
-                          <span className="min-w-0 flex-1 truncate text-base font-medium">{d.name}</span>
+                          <span className="min-w-0 flex-1 truncate text-base">{d.name}</span>
                           <span className="inline-flex shrink-0 items-center gap-1 text-sm tabular-nums text-green"><Coin size={14} />{d.npcPrice}</span>
                         </button>
                       );
@@ -562,7 +562,7 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="truncate text-base font-medium">{k.species}</span>
+                      <span className="truncate text-base">{k.species}</span>
                       {isCatch ? (
                         <span className="ml-auto shrink-0 text-sm text-green">{t("robo.hunt.caught")}</span>
                       ) : (
@@ -618,13 +618,13 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
                 {isCatch ? (
                   <div className="flex items-center gap-2 text-base">
                     <span className="text-text-dim">{t("robo.hunt.withBall")}:</span>
-                    <span className="font-medium text-text">{k.ball || "—"}</span>
+                    <span className="text-text">{k.ball || "—"}</span>
                   </div>
                 ) : (
                   <>
                     <div className="flex items-center justify-between text-base">
                       <span className="text-text-dim">XP</span>
-                      <span className="inline-flex items-center gap-1 font-semibold tabular-nums text-cyan"><Xp size={16} />{fmt(k.xp)}</span>
+                      <span className="inline-flex items-center gap-1 font-bold tabular-nums text-cyan"><Xp size={16} />{fmt(k.xp)}</span>
                     </div>
                     <div className="field-label mt-1">{t("robo.hunt.drops")}</div>
                     {k.loot.length === 0 ? (

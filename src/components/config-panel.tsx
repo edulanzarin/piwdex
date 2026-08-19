@@ -204,7 +204,7 @@ function Slider({ value, min, max, step, decimals, onChange }: { value: number; 
       {/* trilho e caixa numerica com largura FIXA maior: na base 16px o w-32/w-20 antigo
           encolheu ~11% e a caixa ja nao segurava "192"/"3.00" mais os botoes do number */}
       <input type="range" min={min} max={max} step={step} value={value} onChange={(e) => set(Number(e.target.value))} className="min-h-10 w-36 accent-[color:var(--yellow)]" />
-      <input type="number" min={min} max={max} step={step} value={value} onChange={(e) => set(Number(e.target.value))} className="input w-24 text-right font-semibold tabular-nums text-yellow" />
+      <input type="number" min={min} max={max} step={step} value={value} onChange={(e) => set(Number(e.target.value))} className="input w-24 text-right font-bold tabular-nums text-yellow" />
     </div>
   );
 }
@@ -435,7 +435,7 @@ export function ConfigPanel() {
                   onChange={(e) => editAuto({ autoPotionThreshold: Number(e.target.value) })}
                   className="min-h-10 w-40 accent-[color:var(--yellow)]"
                 />
-                <span className="w-12 text-right text-sm font-semibold tabular-nums text-yellow">{d.auto.autoPotionThreshold}%</span>
+                <span className="w-12 text-right text-sm font-bold tabular-nums text-yellow">{d.auto.autoPotionThreshold}%</span>
               </div>
             </Row>
           )}

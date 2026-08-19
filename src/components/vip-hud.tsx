@@ -129,7 +129,7 @@ export function VipHud({ hunts }: { hunts: HuntOption[] }) {
               type="button"
               onClick={() => void connect()}
               disabled={busy}
-              className="flash-in inline-flex h-8 items-center gap-1.5 rounded border border-[color:var(--yellow)]/60 bg-[color:var(--yellow)]/10 px-2 text-xs font-medium text-yellow disabled:opacity-40"
+              className="flash-in inline-flex h-8 items-center gap-1.5 rounded border border-[color:var(--yellow)]/60 bg-[color:var(--yellow)]/10 px-2 text-xs text-yellow disabled:opacity-40"
               style={{ "--accent": "var(--yellow)" } as React.CSSProperties}
               title={t("vip.contested.note")}
             >
@@ -139,7 +139,7 @@ export function VipHud({ hunts }: { hunts: HuntOption[] }) {
           ) : expired ? (
             <a
               href="#conta"
-              className="flash-in inline-flex h-8 items-center gap-1.5 rounded border border-red/60 bg-[color:var(--red)]/10 px-2 text-xs font-medium text-red"
+              className="flash-in inline-flex h-8 items-center gap-1.5 rounded border border-red/60 bg-[color:var(--red)]/10 px-2 text-xs text-red"
               style={{ "--accent": "var(--red)" } as React.CSSProperties}
             >
               <span className="hud-led pulse-soft" style={{ "--led": "var(--red)" } as React.CSSProperties} />
@@ -166,14 +166,14 @@ export function VipHud({ hunts }: { hunts: HuntOption[] }) {
             <span className="hud-fill block bg-cyan" style={{ width: `${prof ? xpPct : 0}%` }} />
           </span>
         </span>
-        <span className={`inline-flex min-w-[5.25rem] shrink-0 items-center justify-end gap-1 text-sm font-semibold tabular-nums ${prof ? "text-green" : "slot-empty"}`} title={prof ? fmt(prof.gold) : undefined}>
+        <span className={`inline-flex min-w-[5.25rem] shrink-0 items-center justify-end gap-1 text-sm font-bold tabular-nums ${prof ? "text-green" : "slot-empty"}`} title={prof ? fmt(prof.gold) : undefined}>
           <Coin size={14} />{prof ? fmtC(prof.gold) : "—"}
         </span>
-        <span className={`inline-flex min-w-[4.25rem] shrink-0 items-center justify-end gap-1 text-sm font-semibold tabular-nums ${prof ? "text-cyan" : "slot-empty"}`} title={prof ? fmt(prof.diamonds) : undefined}>
+        <span className={`inline-flex min-w-[4.25rem] shrink-0 items-center justify-end gap-1 text-sm font-bold tabular-nums ${prof ? "text-cyan" : "slot-empty"}`} title={prof ? fmt(prof.diamonds) : undefined}>
           <Diamond size={14} />{prof ? fmtC(prof.diamonds) : "—"}
         </span>
         <span
-          className={`inline-flex min-w-[4rem] shrink-0 items-center justify-end gap-1 text-sm font-semibold tabular-nums ${!prof ? "slot-empty" : ballLow ? "text-red" : "text-text"}`}
+          className={`inline-flex min-w-[4rem] shrink-0 items-center justify-end gap-1 text-sm font-bold tabular-nums ${!prof ? "slot-empty" : ballLow ? "text-red" : "text-text"}`}
           title={balls.length ? balls.map((b) => `${b.name}: ${b.count}`).join(" · ") : undefined}
         >
           <Pokeball size={14} className={ballLow ? "pulse-soft" : ""} />{prof ? fmt(ballTotal) : "—"}
@@ -199,7 +199,7 @@ export function VipHud({ hunts }: { hunts: HuntOption[] }) {
           </span>
           {/* nome do pokemon: nome proprio, sem caixa alta. Slot mais largo porque a
               Chakra come mais horizontal que a condensada antiga. */}
-          <span className={`w-24 truncate text-sm font-medium sm:w-32 ${leader ? "text-yellow" : "slot-empty"}`}>{leader ? leader.name : "—"}</span>
+          <span className={`w-24 truncate text-sm sm:w-32 ${leader ? "text-yellow" : "slot-empty"}`}>{leader ? leader.name : "—"}</span>
           <span className={`pixel shrink-0 text-xs ${leader ? "text-text-dim" : "slot-empty"}`}>
             {leader ? `Lv${hunt?.fighterLevel && hunt.fighterLevel > leader.level ? hunt.fighterLevel : leader.level}` : "Lv —"}
           </span>
@@ -234,7 +234,7 @@ export function VipHud({ hunts }: { hunts: HuntOption[] }) {
         </span>
 
         {/* rendimento ao vivo (md+) */}
-        <span className="hidden items-center gap-3 text-sm font-medium tabular-nums md:inline-flex">
+        <span className="hidden items-center gap-3 text-sm tabular-nums md:inline-flex">
           <span className={`inline-flex min-w-[5.25rem] items-center gap-1 ${rates ? "text-cyan" : "slot-empty"}`} title={rates ? `${fmt(rates.xpPerHour)} XP/h` : undefined}>
             <Xp size={14} />{rates ? `${fmtC(rates.xpPerHour)}/h` : "—/h"}
           </span>

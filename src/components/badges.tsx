@@ -59,7 +59,7 @@ export function TypePill({ type, mult }: { type: PokeType; mult?: string }) {
   const label = useTypeLabel();
   return (
     <span
-      className="inline-flex items-center gap-1.5 rounded px-2 py-1 text-sm font-medium uppercase tracking-wide"
+      className="inline-flex items-center gap-1.5 rounded px-2 py-1 text-sm uppercase tracking-wide"
       style={{
         background: `color-mix(in srgb, ${TYPE_COLOR[type]} 22%, transparent)`,
         border: `1px solid ${TYPE_COLOR[type]}`,

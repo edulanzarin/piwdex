@@ -37,7 +37,7 @@ export function StatBar({
         <StatIcon index={iconIndex} size={14} />{label}
       </div>
       {/* valor e destaque: peso 600 + tabular, largura fixa pra 5 digitos */}
-      <div className={`w-12 shrink-0 text-right text-sm font-semibold tabular-nums ${best ? "text-yellow" : ""}`}>{value}</div>
+      <div className={`w-12 shrink-0 text-right text-sm font-bold tabular-nums ${best ? "text-yellow" : ""}`}>{value}</div>
       <div className="statbar flex-1">
         <div className="statbar-fill" style={{ width: `${pct}%`, background: `hsl(${hueFor(pct)} 68% 48%)` }} />
       </div>
@@ -63,7 +63,7 @@ export function StatCompareRow({
       <div className="statbar flex-1">
         <div className="statbar-fill" style={{ width: `${pct}%`, background: `hsl(${hueFor(pct)} 68% 48%)` }} />
       </div>
-      <span className={`${CMP_SLOT.value} shrink-0 text-right font-semibold tabular-nums text-text`}>{value}</span>
+      <span className={`${CMP_SLOT.value} shrink-0 text-right font-bold tabular-nums text-text`}>{value}</span>
       {iv != null && <span className={`${CMP_SLOT.iv} shrink-0 text-right tabular-nums ${ivClass}`}>{iv.toFixed(0)}/{ivMax}</span>}
     </div>
   );

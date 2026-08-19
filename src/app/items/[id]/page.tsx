@@ -52,7 +52,7 @@ export default async function ItemPage({
         <div className="flex flex-wrap items-center gap-2 text-sm text-text-dim">
           <span className="chip" style={{ background: "var(--surface-2)", color: "var(--text)" }}>{item.category}</span>
           {/* "raro" e rotulo curto: caixa alta fica, mas na mesma medida da linha e com peso real */}
-          {item.rare && <span className="font-semibold uppercase tracking-wide text-yellow"><T k="items.rare" /></span>}
+          {item.rare && <span className="font-bold uppercase tracking-wide text-yellow"><T k="items.rare" /></span>}
           <span className="inline-flex items-center gap-1 text-green">
             <Gold value={item.npcPrice} />
           </span>

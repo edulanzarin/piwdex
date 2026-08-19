@@ -62,7 +62,7 @@ function EffRow({ titleKey, entries, emptyKey }: { titleKey: string; entries: Ty
   return (
     <div className="grid grid-cols-1 items-start gap-x-3 gap-y-1 sm:grid-cols-[9.5rem_1fr]">
       {/* frase, nao rotulo curto: sem caixa alta nem tracking — o peso 500 ja separa */}
-      <span className="pt-1 text-base font-medium text-text-dim"><T k={titleKey} /></span>
+      <span className="pt-1 text-base text-text-dim"><T k={titleKey} /></span>
       {entries.length ? (
         <div className="flex flex-wrap gap-1.5">
           {entries.map((e) => (
@@ -173,7 +173,7 @@ export default async function CreaturePage({
             <SectionTitle><T k="cr.statsBase" /></SectionTitle>
             <p className="-mt-2 mb-4 text-base leading-relaxed text-text-dim">
               <T k="cr.statsHint" />{" "}
-              <Link href="/calc" className="inline-flex items-center gap-1 font-medium text-cyan hover:underline"><T k="cr.statsHintLink" /> <ChevronRight size={16} /></Link>
+              <Link href="/calc" className="inline-flex items-center gap-1 text-cyan hover:underline"><T k="cr.statsHintLink" /> <ChevronRight size={16} /></Link>
             </p>
             <div className="flex flex-col gap-2.5">
               {STATS.map(([label, key], i) => (
@@ -181,12 +181,12 @@ export default async function CreaturePage({
               ))}
               <div className="mt-2 flex items-baseline justify-between border-t border-border pt-2 text-base">
                 <span className="uppercase tracking-wide text-text-dim"><T k="cr.total" /></span>
-                <strong className="font-semibold tabular-nums text-cyan">{total}</strong>
+                <strong className="font-bold tabular-nums text-cyan">{total}</strong>
               </div>
               {bestMove && bestMove.power > 0 && (
                 <div className="mt-1 flex items-baseline justify-between gap-3 text-base text-text-dim">
                   <span><T k="cr.bestMove" /></span>
-                  <span className="text-text">{bestMove.name} <span className="font-semibold tabular-nums text-yellow">{bestMove.power}</span></span>
+                  <span className="text-text">{bestMove.name} <span className="font-bold tabular-nums text-yellow">{bestMove.power}</span></span>
                 </div>
               )}
             </div>
@@ -195,14 +195,14 @@ export default async function CreaturePage({
           <Reveal className="card p-5">
             <SectionTitle><T k="cr.combat" /></SectionTitle>
             {/* subtitulo e frase inteira ("Defesa: como ele recebe dano"): peso separa, caixa alta nao */}
-            <div className="mb-2 text-sm font-medium text-text-dim"><T k="cr.defenseSub" /></div>
+            <div className="mb-2 text-sm text-text-dim"><T k="cr.defenseSub" /></div>
             <div className="flex flex-col gap-3 text-sm">
               <EffRow titleKey="cr.takesMore" entries={weak} emptyKey="cr.noWeak" />
               <EffRow titleKey="cr.takesLess" entries={resist} emptyKey="cr.noResist" />
               <EffRow titleKey="cr.immune" entries={immune} emptyKey="cr.immuneEmpty" />
             </div>
             <div className="my-4 border-t border-border" />
-            <div className="mb-2 text-sm font-medium text-text-dim"><T k="cr.attackSub" /></div>
+            <div className="mb-2 text-sm text-text-dim"><T k="cr.attackSub" /></div>
             <div className="flex flex-col gap-3 text-sm">
               <EffRow titleKey="cr.stab" entries={stab} emptyKey="cr.immuneEmpty" />
               <EffRow titleKey="cr.strongVs" entries={offensive} emptyKey="cr.noStrong" />
@@ -257,7 +257,7 @@ export default async function CreaturePage({
                     {/* nome do ponto e o dado principal (peso 500, 16px); a regiao e um
                         rotulo curto abaixo — vem em minusculo do jogo, entao a caixa alta fica */}
                     <div className="flex min-w-0 flex-col">
-                      <span className="truncate text-base font-medium text-text">{h.name}</span>
+                      <span className="truncate text-base text-text">{h.name}</span>
                       <span className="text-sm uppercase tracking-wide text-text-dim">{h.area}</span>
                     </div>
                     {h.level ? (
@@ -284,9 +284,9 @@ export default async function CreaturePage({
               <thead>
                 {/* cabecalho e rotulo curto: caixa alta continua, mas o peso agora e real (500) */}
                 <tr className="text-left text-sm uppercase tracking-wide text-text-dim">
-                  <th className="pb-2 font-medium"><T k="col.item" /></th>
-                  <th className="pb-2 font-medium"><T k="col.qty" /></th>
-                  <th className="pb-2 text-right font-medium"><T k="col.chance" /></th>
+                  <th className="pb-2"><T k="col.item" /></th>
+                  <th className="pb-2"><T k="col.qty" /></th>
+                  <th className="pb-2 text-right"><T k="col.chance" /></th>
                 </tr>
               </thead>
               <tbody>
@@ -322,11 +322,11 @@ export default async function CreaturePage({
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-sm uppercase tracking-wide text-text-dim">
-                  <th className="pb-2 pr-3 font-medium"><T k="col.name" /></th>
-                  <th className="pb-2 pr-3 font-medium"><T k="col.type" /></th>
-                  <th className="pb-2 pr-3 font-medium"><T k="col.cat" /></th>
-                  <th className="pb-2 pr-3 text-right font-medium"><T k="col.power" /></th>
-                  <th className="pb-2 text-right font-medium"><T k="col.lvl" /></th>
+                  <th className="pb-2 pr-3"><T k="col.name" /></th>
+                  <th className="pb-2 pr-3"><T k="col.type" /></th>
+                  <th className="pb-2 pr-3"><T k="col.cat" /></th>
+                  <th className="pb-2 pr-3 text-right"><T k="col.power" /></th>
+                  <th className="pb-2 text-right"><T k="col.lvl" /></th>
                 </tr>
               </thead>
               <tbody>

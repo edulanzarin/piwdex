@@ -40,7 +40,7 @@ function GradeChip({ grade, label }: { grade: Grade; label: string }) {
   const c = GRADE_VAR[grade];
   return (
     <span
-      className="inline-flex shrink-0 items-center rounded px-1.5 py-0.5 text-xs font-semibold uppercase tracking-wide"
+      className="inline-flex shrink-0 items-center rounded px-1.5 py-0.5 text-xs font-bold uppercase tracking-wide"
       style={{ background: `color-mix(in srgb, ${c} 20%, transparent)`, border: `1px solid ${c}`, color: c }}
     >
       {label}
@@ -132,9 +132,9 @@ export function MarketMonCard({ mon, onClick, right, rarity }: { mon: MarketMon;
             {rarity && <span className="shrink-0"><RarityBadge rarity={rarity} /></span>}
           </div>
           <div className={`${METAROW} h-6 gap-x-3 text-sm text-text-dim`}>
-            <span className="shrink-0 whitespace-nowrap">{t("account.col.power")} <span className={mon.power != null ? "font-semibold text-yellow" : "slot-empty"}>{mon.power != null ? fmt(mon.power) : "—"}</span></span>
-            <span className="shrink-0 whitespace-nowrap">{t("account.col.iv")} <span className={mon.ivTotal != null ? `font-semibold ${ivColor(mon.ivTotal)}` : "slot-empty"}>{mon.ivTotal ?? "—"}</span>{mon.ivTotal != null ? "/192" : ""}</span>
-            <span className="shrink-0 whitespace-nowrap">{t("account.col.quality")} <span className={mon.quality != null ? `font-semibold ${qualG ? GRADE_TEXT[qualG] : "text-cyan"}` : "slot-empty"}>{mon.quality != null ? mon.quality.toFixed(3) : "—"}</span></span>
+            <span className="shrink-0 whitespace-nowrap">{t("account.col.power")} <span className={mon.power != null ? "font-bold text-yellow" : "slot-empty"}>{mon.power != null ? fmt(mon.power) : "—"}</span></span>
+            <span className="shrink-0 whitespace-nowrap">{t("account.col.iv")} <span className={mon.ivTotal != null ? `font-bold ${ivColor(mon.ivTotal)}` : "slot-empty"}>{mon.ivTotal ?? "—"}</span>{mon.ivTotal != null ? "/192" : ""}</span>
+            <span className="shrink-0 whitespace-nowrap">{t("account.col.quality")} <span className={mon.quality != null ? `font-bold ${qualG ? GRADE_TEXT[qualG] : "text-cyan"}` : "slot-empty"}>{mon.quality != null ? mon.quality.toFixed(3) : "—"}</span></span>
           </div>
           <div className={`${METAROW} mt-1 h-7 gap-1.5 pixel text-base text-text`}>
             {mon.price > 0 ? <Price currency={mon.currency} value={mon.price} size={16} /> : <span className="slot-empty shrink-0">—</span>}
@@ -352,7 +352,7 @@ export function MarketMonModal({ mon, dex, onClose, onBought }: { mon: MarketMon
             <div className="mt-1 flex items-center justify-between border-t border-border pt-2 text-sm">
               {/* rotulo curto continua em caixa alta, mas na classe sancionada */}
               <span className="field-label">{t("cr.total")}</span>
-              <span className="font-semibold tabular-nums text-cyan">{total}</span>
+              <span className="font-bold tabular-nums text-cyan">{total}</span>
             </div>
           </div>
         )}

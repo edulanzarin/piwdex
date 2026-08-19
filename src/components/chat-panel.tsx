@@ -224,7 +224,7 @@ export function ChatPanel({ creatures, dex }: { creatures: { pokeId: number; nam
                     style={{ "--accent": "var(--cyan)" } as React.CSSProperties}>
                     <span className="mr-1.5 text-xs tabular-nums text-text-dim">{hhmm(m.at)}</span>
                     <span className="mr-1 rounded px-1 text-xs uppercase" style={{ color: CH_COLOR[(m.channel as Channel)] ?? "var(--text-dim)" }}>{m.channel}</span>
-                    <span className={`mr-1 font-medium ${m.from === "?" ? "italic text-yellow" : m.admin ? "text-red" : self ? "text-cyan" : m.vip ? "text-yellow" : "text-text"}`}>
+                    <span className={`mr-1 ${m.from === "?" ? "italic text-yellow" : m.admin ? "text-red" : self ? "text-cyan" : m.vip ? "text-yellow" : "text-text"}`}>
                       {m.from === "?" ? t("vip.chat.system") : m.from}
                     </span>
                     {m.level != null && <span className="mr-1.5 text-xs tabular-nums text-text-dim">Lv{m.level}</span>}

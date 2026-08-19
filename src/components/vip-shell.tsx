@@ -134,7 +134,7 @@ function VipShellInner({ creatures, dex, hunts, itemIcons, lootByPoke, marketIte
                 >
                   <span className="lg:flex-1">{t(`vip.sec.${key}`)}</span>
                   <span
-                    className={`min-w-[1.35rem] rounded-full bg-cyan px-1.5 py-0.5 text-center text-xs font-semibold leading-none text-[#06131a] max-lg:absolute max-lg:-top-0.5 max-lg:right-0 lg:ml-auto ${badge > 0 ? "" : "invisible lg:hidden"}`}
+                    className={`min-w-[1.35rem] rounded-full bg-cyan px-1.5 py-0.5 text-center text-xs font-bold leading-none text-[#06131a] max-lg:absolute max-lg:-top-0.5 max-lg:right-0 lg:ml-auto ${badge > 0 ? "" : "invisible lg:hidden"}`}
                   >
                     {badge > 0 ? badge : 0}
                   </span>
