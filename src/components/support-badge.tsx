@@ -1,12 +1,13 @@
 "use client";
 
-// Balao FIXO no canto direito: "me apoie com meu codigo". Fechado e uma pilula
-// discreta; clicou, abre um cartao com o codigo, copiar e o link do jogo.
-// Regras que o mantem inofensivo:
-//   - dispensavel, e a dispensa fica no localStorage (nao insiste a cada pagina);
-//   - some nas telas de login/conexao, onde seria ruido;
-//   - no celular ele encosta nas duas bordas de baixo e o cartao respeita a largura
-//     da tela, entao nunca empurra nem tapa o conteudo horizontalmente.
+// Balao FIXO no canto direito: "me apoie com meu codigo". Nasce ABERTO (o visitante
+// ve o pedido de cara, pedido do Eduardo) e tem dois niveis de saida, pra "sai da
+// frente" nao virar "some pra sempre":
+//   - X do cartao        -> recolhe pra pilula;
+//   - X da pilula        -> dispensa de vez.
+// Os dois estados moram no localStorage, entao a escolha sobrevive a navegacao.
+// Some nas telas de login/conexao, onde seria ruido. No celular encosta nas bordas de
+// baixo e o cartao respeita a largura da tela: nunca empurra nem tapa na horizontal.
 
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
@@ -15,34 +16,35 @@ import { Heart, Close, Check, ChevronRight } from "./icons";
 import { SUPPORT_CODE, SUPPORT_URL } from "@/lib/support";
 
 const HIDDEN = ["/entrar", "/criar-conta", "/conectar"];
-const DISMISS_KEY = "piwdex.support.dismissed";
+// vazio/ausente = primeira visita (nasce aberto) | "collapsed" = pilula | "dismissed" = fora
+const STATE_KEY = "piwdex.support.state";
+type State = "open" | "collapsed" | "dismissed";
 
 export function SupportBadge() {
   const t = useT();
   const pathname = usePathname();
   const [ready, setReady] = useState(false);
-  const [dismissed, setDismissed] = useState(true);
-  const [open, setOpen] = useState(false);
+  const [state, setState] = useState<State>("open");
   const [copied, setCopied] = useState(false);
 
-  // a dispensa so pode ser lida DEPOIS da hidratacao (localStorage nao existe no SSR):
-  // comeca escondido e aparece no efeito, senao da hydration mismatch
+  // o estado salvo so pode ser lido DEPOIS da hidratacao (nao existe localStorage no
+  // SSR): fica invisivel ate o efeito rodar, senao da hydration mismatch
   useEffect(() => {
-    setDismissed(localStorage.getItem(DISMISS_KEY) === "1");
+    const saved = localStorage.getItem(STATE_KEY);
+    if (saved === "collapsed" || saved === "dismissed") setState(saved);
     setReady(true);
   }, []);
+
+  const go = (next: State) => {
+    setState(next);
+    localStorage.setItem(STATE_KEY, next);
+  };
 
   useEffect(() => {
     if (!copied) return;
     const id = setTimeout(() => setCopied(false), 1600);
     return () => clearTimeout(id);
   }, [copied]);
-
-  const dismiss = () => {
-    setDismissed(true);
-    setOpen(false);
-    localStorage.setItem(DISMISS_KEY, "1");
-  };
 
   const copy = async () => {
     try {
@@ -53,12 +55,12 @@ export function SupportBadge() {
     }
   };
 
-  if (!ready || dismissed) return null;
+  if (!ready || state === "dismissed") return null;
   if (HIDDEN.some((h) => pathname === h || pathname.startsWith(`${h}/`))) return null;
 
   return (
     <div className="fixed bottom-4 right-4 z-40 max-w-[calc(100vw-2rem)] sm:bottom-6 sm:right-6">
-      {open ? (
+      {state === "open" ? (
         <div
           className="card w-80 max-w-full p-4"
           style={{ borderColor: "color-mix(in srgb, var(--yellow) 45%, transparent)" }}
@@ -71,9 +73,9 @@ export function SupportBadge() {
             </div>
             <button
               type="button"
-              onClick={dismiss}
-              aria-label={t("support.close")}
-              title={t("support.close")}
+              onClick={() => go("collapsed")}
+              aria-label={t("support.hide")}
+              title={t("support.hide")}
               className="icon-btn h-8 w-8 shrink-0"
             >
               <Close size={16} />
@@ -101,7 +103,7 @@ export function SupportBadge() {
         <div className="flex items-center gap-1">
           <button
             type="button"
-            onClick={() => setOpen(true)}
+            onClick={() => go("open")}
             className="card flex min-h-10 items-center gap-2 px-3 text-sm text-yellow transition hover:brightness-125"
             style={{ borderColor: "color-mix(in srgb, var(--yellow) 45%, transparent)" }}
           >
@@ -110,7 +112,7 @@ export function SupportBadge() {
           </button>
           <button
             type="button"
-            onClick={dismiss}
+            onClick={() => go("dismissed")}
             aria-label={t("support.close")}
             title={t("support.close")}
             className="icon-btn h-10 w-10 shrink-0"

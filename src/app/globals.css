@@ -34,9 +34,9 @@
      A arte e uma cena DIURNA, clara e saturada; a UI e escura. Estes quatro botoes
      sao o unico lugar pra calibrar o quanto ela recua. Suba --bg-dim pra escurecer,
      desca --bg-saturate pra tirar cor. */
-  --bg-brightness: 0.48;   /* quanto da luz da arte sobra */
-  --bg-saturate: 0.55;     /* 1 = cor original; abaixo disso ela para de brigar com o neon */
-  --bg-dim: 0.78;          /* forca do scrim escuro por cima */
+  --bg-brightness: 0.30;   /* quanto da luz da arte sobra */
+  --bg-saturate: 0.45;     /* 1 = cor original; abaixo disso ela para de brigar com o neon */
+  --bg-dim: 0.88;          /* forca do scrim escuro por cima */
   /* O DESFOQUE nao esta aqui: ele vem assado no proprio .webp. Blur em runtime numa
      camada fixa de tela cheia e caro em celular fraco; brightness/saturate nao sao. */
 

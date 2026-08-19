@@ -144,55 +144,48 @@ export function VipOverview({
 
   return (
     <div className="flex flex-col gap-4">
-      {/* ===== FAIXA DE ALERTA: slot de altura fixa SEMPRE renderizado. Mostra o
-             alerta mais prioritario (expirado > contestada > conexao caida), um por
-             vez; sem alerta, fica o estado quieto (LED ok esmaecido). Nada empilha,
-             nada empurra o painel. ===== */}
-      <div className="flex min-h-[3.9rem] flex-col justify-center">
-        {expired ? (
-          // APITO: o jogo invalidou o vinculo — precisa do bookmark UMA vez de novo
-          <AlertBanner
-            color="var(--red)"
-            title={t("vip.conn.expired")}
-            detail={t("vip.conn.expiredHint")}
-            action={
-              <button type="button" onClick={() => onGo("conta")} className="btn btn-pink">
-                {t("vip.conn.expiredCta")} <ChevronRight size={14} />
-              </button>
-            }
-          />
-        ) : contested ? (
-          // CEDEU A SESSAO: a conta foi tomada (usuario entrou no jogo). Um clique religa.
-          <AlertBanner
-            color="var(--yellow)"
-            title={t("vip.contested.status")}
-            detail={t("vip.contested.note")}
-            action={
-              <button type="button" onClick={() => void send({ action: "connect" }, t("toast.connected"))} disabled={busy} className="btn btn-yellow disabled:opacity-40">
-                {t("vip.contested.resume")} <ChevronRight size={14} />
-              </button>
-            }
-          />
-        ) : troubled ? (
-          // APITO: quer conectado mas a conexao falhou/caiu
-          <AlertBanner
-            color="var(--red)"
-            title={t("vip.conn.alarm")}
-            detail={<>{hunt?.error ? `${hunt.error} · ` : ""}{retryIn != null ? t("vip.hud.retry", { s: retryIn }) : t("vip.conn.retrying")}</>}
-            action={
-              <button type="button" onClick={() => void send({ action: "connect" })} disabled={busy} className="btn btn-pink disabled:opacity-40">
-                {t("vip.conn.forceRetry")}
-              </button>
-            }
-          />
-        ) : (
-          // estado quieto: mesma faixa, LED ok discreto — o slot nunca desaparece
-          <div className="flex min-h-[3.9rem] items-center gap-3 rounded border border-border/40 px-4">
-            <Led color={connected ? "var(--green)" : "var(--text-dim)"} />
-            <span className="slot-empty text-sm">—</span>
-          </div>
-        )}
-      </div>
+      {/* ===== FAIXA DE ALERTA: um alerta por vez (expirado > contestada > conexao
+             caida). SEM alerta nao existe faixa nenhuma — reservar altura aqui so
+             deixava um box vazio com um LED, que nao quer dizer nada pra quem le.
+             Reserva de espaco vale pra dado que vai e volta toda hora (o HUD); alerta
+             e evento raro e existe justamente pra interromper. ===== */}
+      {expired ? (
+        // APITO: o jogo invalidou o vinculo — precisa do bookmark UMA vez de novo
+        <AlertBanner
+          color="var(--red)"
+          title={t("vip.conn.expired")}
+          detail={t("vip.conn.expiredHint")}
+          action={
+            <button type="button" onClick={() => onGo("conta")} className="btn btn-pink">
+              {t("vip.conn.expiredCta")} <ChevronRight size={14} />
+            </button>
+          }
+        />
+      ) : contested ? (
+        // CEDEU A SESSAO: a conta foi tomada (usuario entrou no jogo). Um clique religa.
+        <AlertBanner
+          color="var(--yellow)"
+          title={t("vip.contested.status")}
+          detail={t("vip.contested.note")}
+          action={
+            <button type="button" onClick={() => void send({ action: "connect" }, t("toast.connected"))} disabled={busy} className="btn btn-yellow disabled:opacity-40">
+              {t("vip.contested.resume")} <ChevronRight size={14} />
+            </button>
+          }
+        />
+      ) : troubled ? (
+        // APITO: quer conectado mas a conexao falhou/caiu
+        <AlertBanner
+          color="var(--red)"
+          title={t("vip.conn.alarm")}
+          detail={<>{hunt?.error ? `${hunt.error} · ` : ""}{retryIn != null ? t("vip.hud.retry", { s: retryIn }) : t("vip.conn.retrying")}</>}
+          action={
+            <button type="button" onClick={() => void send({ action: "connect" })} disabled={busy} className="btn btn-pink disabled:opacity-40">
+              {t("vip.conn.forceRetry")}
+            </button>
+          }
+        />
+      ) : null}
 
       {/* ===== BARRA DE COMANDO DO ROBO: duas linhas de ALTURA FIXA (como o HUD).
              Linha 1: led + status + chip keep-alive (invisible reserva o lugar).

@@ -3,8 +3,8 @@
 // Chamariz pra quem NAO e VIP: UM card no fim da pagina (ultimo bloco, no fluxo normal —
 // so aparece quando voce rola ate la embaixo, sem nada fixo tapando a tela). Dois caminhos:
 //   - ADQUIRIR O BOT -> /vip.
-//   - APOIAR COM O CODIGO -> quem nao vai assinar ainda ajuda usando o codigo do Eduardo
-//     ao comprar diamante no jogo (nao custa nada a mais pro jogador).
+//   - ME APOIE -> abre o jogo com o codigo do Eduardo ja no link (o codigo NAO aparece
+//     no botao: quem so quer ajudar nao precisa decorar nada, e um clique).
 // O argumento NAO e "caca sozinho": o jogo ja e idle. O argumento e VELOCIDADE.
 // Some na propria area VIP e nas telas de login/conexao, e pra quem ja e VIP.
 
@@ -12,7 +12,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useT } from "./locale-provider";
 import { Star, ChevronRight } from "./icons";
-import { SUPPORT_CODE, SUPPORT_URL } from "@/lib/support";
+import { SUPPORT_URL } from "@/lib/support";
 
 const HIDDEN = ["/vip", "/entrar", "/criar-conta", "/conectar"];
 
@@ -51,7 +51,7 @@ export function VipCta({ vip }: { vip: boolean }) {
             className="btn btn-ghost w-full sm:w-auto"
             title={t("vipcta.playHint")}
           >
-            {t("vipcta.play")} <span className="pixel tracking-widest">{SUPPORT_CODE}</span>
+            {t("vipcta.play")} <ChevronRight size={14} />
           </a>
           <Link href="/vip" className="btn btn-yellow w-full sm:w-auto">
             {t("vipcta.btn")} <ChevronRight size={14} />
