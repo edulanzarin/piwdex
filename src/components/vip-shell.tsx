@@ -13,7 +13,6 @@ import { SessionHoldNotice } from "./session-hold-notice";
 import { VipOverview } from "./vip-overview";
 import { MarketAdvisor, type MarketDex } from "./market-advisor";
 import { WishlistPanel } from "./wishlist-panel";
-import { AlertsInbox } from "./alerts-inbox";
 import { RobotActivity } from "./robot-activity";
 import { AccountPanel } from "./account-panel";
 import { MyPokemons } from "./my-pokemons";
@@ -69,7 +68,6 @@ function VipShellInner({ creatures, dex, hunts, itemIcons, lootByPoke, marketIte
   const t = useT();
   const { events, alerts, account } = useVipLive();
   const [sec, setSec] = useState<Section>("painel");
-  const [focusWish, setFocusWish] = useState<string | null>(null);
   const autoRouted = useRef(false);
 
   useEffect(() => {
@@ -99,13 +97,6 @@ function VipShellInner({ creatures, dex, hunts, itemIcons, lootByPoke, marketIte
   const go = (v: Section) => {
     setSec(v);
     history.replaceState(null, "", `#${v}`);
-  };
-
-  // Resumo de alerta clicado: vai pra secao Desejos, abre o desejo e rola ate ele.
-  const jumpToWish = (watchlistId: string) => {
-    setFocusWish(watchlistId);
-    go("desejos");
-    setTimeout(() => document.getElementById(`wish-${watchlistId}`)?.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
   };
 
   const badgeOf = (key: Section): number =>
@@ -164,12 +155,9 @@ function VipShellInner({ creatures, dex, hunts, itemIcons, lootByPoke, marketIte
           {sec === "capturados" && <PokeCaught creatures={creatures} />}
           {sec === "estatisticas" && <RoboStats />}
           {sec === "mercado" && <MarketAdvisor creatures={creatures} dex={dex} />}
-          {sec === "desejos" && (
-            <div className="flex flex-col gap-6">
-              <AlertsInbox onJumpToWish={jumpToWish} itemIcons={itemIcons} />
-              <WishlistPanel creatures={creatures} items={marketItems} dex={dex} focusWishId={focusWish} />
-            </div>
-          )}
+          {/* Sem "Central de desejos": ela repetia, na MESMA pagina, os achados que a
+              lista de desejos ja mostra expandindo o desejo. */}
+          {sec === "desejos" && <WishlistPanel creatures={creatures} items={marketItems} dex={dex} />}
           {sec === "alertas" && (
             <div className="flex flex-col gap-6">
               {(alerts?.unread ?? 0) > 0 && (

@@ -542,6 +542,24 @@ export function WishlistPanel({ creatures, items, dex, focusWishId }: { creature
     });
     load(); // resync da watchlist; os achados (esconder/voltar) chegam pelo stream
   };
+  // Abrir a secao JA e ter visto os achados: a Central de desejos (que tinha o botao
+  // "marcar tudo lido") saiu por ser redundante — a lista de desejos, logo abaixo, mostra
+  // os mesmos achados na MESMA pagina. Sem isto o contador do menu nunca zeraria.
+  const markedRead = useRef(false);
+  useEffect(() => {
+    if (markedRead.current || !alerts || alerts.unread <= 0) return;
+    markedRead.current = true;
+    applyAlerts({
+      notifications: alerts.notifications.map((n) => ({ ...n, readAt: n.readAt ?? new Date().toISOString() })),
+      unread: 0,
+    });
+    void fetch("/api/vip/alerts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ all: true }),
+    });
+  }, [alerts, applyAlerts]);
+
   const dismiss = async (id: string) => {
     // otimista: tira da lista local; o stream confirma no proximo push
     const rest = matches.filter((n) => n.id !== id);
