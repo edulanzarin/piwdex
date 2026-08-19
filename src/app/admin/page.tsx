@@ -2,9 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { getAdminOverview } from "@/lib/admin-data";
-import { ToolFrame } from "@/components/tool-frame";
 import { AdminDashboard } from "@/components/admin-dashboard";
-import { Gear } from "@/components/icons";
 
 export const metadata: Metadata = { title: "Admin", robots: { index: false, follow: false } };
 // Moedas ao vivo por request: nunca cachear.
@@ -22,14 +20,12 @@ export default async function AdminPage() {
 
   return (
     <div className="container-vip">
-      <ToolFrame accent={ACCENT} label="ADMIN" icon={<Gear size={16} />}>
-        <div className="flex flex-col gap-5">
-          <div>
-            <h1 className="pixel text-3xl" style={{ color: ACCENT }}>Contas do PIWdex</h1>
-          </div>
-          <AdminDashboard users={users} />
+      <div className="flex flex-col gap-5">
+        <div>
+          <h1 className="pixel text-3xl" style={{ color: ACCENT }}>Contas do PIWdex</h1>
         </div>
-      </ToolFrame>
+        <AdminDashboard users={users} />
+      </div>
     </div>
   );
 }

@@ -2,12 +2,10 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { getData } from "@/lib/data";
-import { ToolFrame } from "@/components/tool-frame";
 import { type MarketDex } from "@/components/market-advisor";
 import { VipShell } from "@/components/vip-shell";
 import { VipPaywall } from "@/components/vip-paywall";
 import type { ComboCreature } from "@/components/pokemon-combobox";
-import { Star } from "@/components/icons";
 import { T } from "@/components/locale-provider";
 
 export const metadata: Metadata = { title: "VIP" };
@@ -22,9 +20,7 @@ export default async function VipPage({ searchParams }: { searchParams: Promise<
   // Sem VIP: paywall.
   if (!session.user.vip) {
     return (
-      <ToolFrame accent={ACCENT} label="VIP" icon={<Star size={16} />}>
-        <VipPaywall status={status ?? null} />
-      </ToolFrame>
+      <VipPaywall status={status ?? null} />
     );
   }
 
@@ -92,15 +88,13 @@ export default async function VipPage({ searchParams }: { searchParams: Promise<
   // cockpit: estoura o container do site (104rem) — a area VIP usa a tela inteira
   return (
     <div className="container-vip">
-      <ToolFrame accent={ACCENT} label="VIP" icon={<Star size={16} />}>
-        <div className="flex flex-col gap-5">
-          <div>
-            <h1 className="pixel text-3xl" style={{ color: ACCENT }}><T k="vip.active.title" /></h1>
-          </div>
-
-          <VipShell creatures={slim} dex={dex} hunts={huntOptions} itemIcons={itemIcons} lootByPoke={lootByPoke} marketItems={marketItems} />
+      <div className="flex flex-col gap-5">
+        <div>
+          <h1 className="pixel text-3xl" style={{ color: ACCENT }}><T k="vip.active.title" /></h1>
         </div>
-      </ToolFrame>
+
+        <VipShell creatures={slim} dex={dex} hunts={huntOptions} itemIcons={itemIcons} lootByPoke={lootByPoke} marketItems={marketItems} />
+      </div>
     </div>
   );
 }

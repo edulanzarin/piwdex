@@ -5,8 +5,6 @@ import { enemyCombatStats, type EnemyCombat, type Species, type Move } from "@/l
 import { HuntTool } from "@/components/hunt-tool";
 import type { HuntRow } from "@/components/hunt-planner";
 import type { PokeType } from "@/lib/types";
-import { ToolFrame } from "@/components/tool-frame";
-import { NavHunt } from "@/components/nav-icons";
 import { T } from "@/components/locale-provider";
 
 export const metadata: Metadata = { title: "Hunt Planner" };
@@ -92,17 +90,15 @@ export default async function HuntPage() {
   }
 
   return (
-    <ToolFrame accent="var(--yellow)" label="HUNT" icon={<NavHunt size={16} />}>
-      <div className="flex flex-col gap-6">
-        <div>
-          <p className="eyebrow"><T k="hunt.eyebrow" /></p>
-          <h1 className="pixel mt-1 text-3xl" style={{ color: "var(--yellow)" }}><T k="hunt.title" /></h1>
-          <p className="mt-3 max-w-2xl text-base text-text-dim">
-            <T k="hunt.route.desc" />
-          </p>
-        </div>
-        <HuntTool rows={rows} areas={areas} species={species} enemies={enemies} />
+    <div className="flex flex-col gap-6">
+      <div>
+        <p className="eyebrow"><T k="hunt.eyebrow" /></p>
+        <h1 className="pixel mt-1 text-3xl" style={{ color: "var(--yellow)" }}><T k="hunt.title" /></h1>
+        <p className="mt-3 max-w-2xl text-base text-text-dim">
+          <T k="hunt.route.desc" />
+        </p>
       </div>
-    </ToolFrame>
+      <HuntTool rows={rows} areas={areas} species={species} enemies={enemies} />
+    </div>
   );
 }

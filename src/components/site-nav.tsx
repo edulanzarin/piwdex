@@ -4,7 +4,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { Pokeball } from "./pokeball";
-import { NavDex, NavItems, NavHunt, NavCalc, NavLab, NavBreed, NavAccount, NavLogout } from "./nav-icons";
+import { NavAccount, NavLogout } from "./nav-icons";
+import { PokedexIcon } from "./pokedex-icon";
+import { ItemsIcon, HuntIcon, CalcIcon, LabIcon, BreedIcon } from "./tool-icons";
 import { Star } from "./icons";
 import { useT } from "./locale-provider";
 import { LangSwitcher } from "./lang-switcher";
@@ -17,13 +19,16 @@ export interface NavUser {
   admin?: boolean;
 }
 
+// MESMA ordem e MESMOS icones dos cards da home (pedido do Eduardo): quem decorou a
+// home reconhece a ferramenta no topo sem reler o rotulo. Mexeu aqui, mexa em
+// src/app/page.tsx — e vice-versa.
 const TABS: { key: string; href: string; Icon: (p: { size?: number }) => React.ReactNode }[] = [
-  { key: "nav.dex", href: "/dex", Icon: NavDex },
-  { key: "nav.items", href: "/items", Icon: NavItems },
-  { key: "nav.hunt", href: "/hunt", Icon: NavHunt },
-  { key: "nav.calc", href: "/calc", Icon: NavCalc },
-  { key: "nav.breed", href: "/breed", Icon: NavBreed },
-  { key: "nav.eevee", href: "/eevee", Icon: NavLab },
+  { key: "nav.dex", href: "/dex", Icon: PokedexIcon },
+  { key: "nav.items", href: "/items", Icon: ItemsIcon },
+  { key: "nav.hunt", href: "/hunt", Icon: HuntIcon },
+  { key: "nav.calc", href: "/calc", Icon: CalcIcon },
+  { key: "nav.eevee", href: "/eevee", Icon: LabIcon },
+  { key: "nav.breed", href: "/breed", Icon: BreedIcon },
   // Conta saiu do topo: virou aba do /vip (depende da sessao de jogo, que e VIP).
   // Entra pelo botao VIP.
 ];

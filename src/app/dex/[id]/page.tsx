@@ -120,227 +120,231 @@ export default async function CreaturePage({
   const bestMove = moves.reduce<typeof moves[number] | null>((best, m) => (m.power > (best?.power ?? 0) ? m : best), null);
   const roles = roleTags(c);
 
+  // container-wide: mesmo container largo da grade — o aparelho nao muda de largura
+  // quando a ficha abre.
   return (
-    <PokedexShell animate={false}>
-    <div className="flex flex-col gap-6">
-      <Link href="/dex" className="inline-flex min-h-10 items-center gap-1.5 self-start text-base uppercase tracking-wide text-text-dim hover:text-cyan">
-        <ChevronLeft size={16} /> <T k="cr.back" />
-      </Link>
+    <div className="container-wide">
+      <PokedexShell animate={false}>
+      <div className="flex flex-col gap-6">
+        <Link href="/dex" className="inline-flex min-h-10 items-center gap-1.5 self-start text-base uppercase tracking-wide text-text-dim hover:text-cyan">
+          <ChevronLeft size={16} /> <T k="cr.back" />
+        </Link>
 
-      {/* Cabecalho */}
-      <div className="card flex flex-col gap-6 p-6 sm:flex-row sm:items-center">
-        <HeroSprite pokeId={c.pokeId} name={c.name} />
-        <div className="flex flex-1 flex-col gap-3">
-          <div className="pixel text-sm text-text-dim">#{String(c.pokeId).padStart(3, "0")}</div>
-          <h1 className="pixel text-2xl text-text">{c.name}</h1>
-          <div className="flex flex-wrap items-center gap-2">
-            <TypeBadges t1={c.type1} t2={c.type2} />
-            <AcqBadge kind={acq} />
-          </div>
-          <p className="text-sm leading-relaxed text-text-dim">{c.description}</p>
-
-          {roles.length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
-              {roles.map((r) => (
-                <span key={r} className="chip" style={{ background: "var(--surface-2)", color: "var(--text)" }}><T k={r} /></span>
-              ))}
+        {/* Cabecalho */}
+        <div className="card flex flex-col gap-6 p-6 sm:flex-row sm:items-center">
+          <HeroSprite pokeId={c.pokeId} name={c.name} />
+          <div className="flex flex-1 flex-col gap-3">
+            <div className="pixel text-sm text-text-dim">#{String(c.pokeId).padStart(3, "0")}</div>
+            <h1 className="pixel text-2xl text-text">{c.name}</h1>
+            <div className="flex flex-wrap items-center gap-2">
+              <TypeBadges t1={c.type1} t2={c.type2} />
+              <AcqBadge kind={acq} />
             </div>
-          )}
+            <p className="text-sm leading-relaxed text-text-dim">{c.description}</p>
 
-          {/* grade de mini-stats — preenche o cabecalho com dado util */}
-          <div className="mt-1 grid grid-cols-2 gap-2 sm:grid-cols-4">
-            <StatTile label={<T k="cr.totalBase" />} value={total} accent="var(--cyan)" />
-            <StatTile label={<T k="cr.huntLvl" />} value={c.huntLevel} accent="var(--cyan)" />
-            <StatTile
-              label={<T k="cr.xp" />}
-              value={c.experience.toLocaleString("pt-BR")}
-              icon={<Xp size={14} className="text-yellow" />}
-              accent="var(--cyan)"
-            />
-            <StatTile
-              label={<T k={CASINO_PRICE[c.pokeId] ? "cr.casino" : "cr.value"} />}
-              value={<Gold value={CASINO_PRICE[c.pokeId] ?? (c.sellValue > 0 ? c.sellValue : c.priceNpc)} />}
-            />
-          </div>
-        </div>
-      </div>
-
-      <div className="grid gap-5 lg:grid-cols-2">
-        <Reveal className="card p-5">
-          <SectionTitle><T k="cr.statsBase" /></SectionTitle>
-          <p className="-mt-2 mb-4 text-base leading-relaxed text-text-dim">
-            <T k="cr.statsHint" />{" "}
-            <Link href="/calc" className="inline-flex items-center gap-1 font-medium text-cyan hover:underline"><T k="cr.statsHintLink" /> <ChevronRight size={16} /></Link>
-          </p>
-          <div className="flex flex-col gap-2.5">
-            {STATS.map(([label, key], i) => (
-              <StatBar key={key} iconIndex={i} label={label} value={c[key]} best={c[key] === bestStat} />
-            ))}
-            <div className="mt-2 flex items-baseline justify-between border-t border-border pt-2 text-base">
-              <span className="uppercase tracking-wide text-text-dim"><T k="cr.total" /></span>
-              <strong className="font-semibold tabular-nums text-cyan">{total}</strong>
-            </div>
-            {bestMove && bestMove.power > 0 && (
-              <div className="mt-1 flex items-baseline justify-between gap-3 text-base text-text-dim">
-                <span><T k="cr.bestMove" /></span>
-                <span className="text-text">{bestMove.name} <span className="font-semibold tabular-nums text-yellow">{bestMove.power}</span></span>
+            {roles.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {roles.map((r) => (
+                  <span key={r} className="chip" style={{ background: "var(--surface-2)", color: "var(--text)" }}><T k={r} /></span>
+                ))}
               </div>
             )}
-          </div>
-        </Reveal>
 
-        <Reveal className="card p-5">
-          <SectionTitle><T k="cr.combat" /></SectionTitle>
-          {/* subtitulo e frase inteira ("Defesa: como ele recebe dano"): peso separa, caixa alta nao */}
-          <div className="mb-2 text-sm font-medium text-text-dim"><T k="cr.defenseSub" /></div>
-          <div className="flex flex-col gap-3 text-sm">
-            <EffRow titleKey="cr.takesMore" entries={weak} emptyKey="cr.noWeak" />
-            <EffRow titleKey="cr.takesLess" entries={resist} emptyKey="cr.noResist" />
-            <EffRow titleKey="cr.immune" entries={immune} emptyKey="cr.immuneEmpty" />
+            {/* grade de mini-stats — preenche o cabecalho com dado util */}
+            <div className="mt-1 grid grid-cols-2 gap-2 sm:grid-cols-4">
+              <StatTile label={<T k="cr.totalBase" />} value={total} accent="var(--cyan)" />
+              <StatTile label={<T k="cr.huntLvl" />} value={c.huntLevel} accent="var(--cyan)" />
+              <StatTile
+                label={<T k="cr.xp" />}
+                value={c.experience.toLocaleString("pt-BR")}
+                icon={<Xp size={14} className="text-yellow" />}
+                accent="var(--cyan)"
+              />
+              <StatTile
+                label={<T k={CASINO_PRICE[c.pokeId] ? "cr.casino" : "cr.value"} />}
+                value={<Gold value={CASINO_PRICE[c.pokeId] ?? (c.sellValue > 0 ? c.sellValue : c.priceNpc)} />}
+              />
+            </div>
           </div>
-          <div className="my-4 border-t border-border" />
-          <div className="mb-2 text-sm font-medium text-text-dim"><T k="cr.attackSub" /></div>
-          <div className="flex flex-col gap-3 text-sm">
-            <EffRow titleKey="cr.stab" entries={stab} emptyKey="cr.immuneEmpty" />
-            <EffRow titleKey="cr.strongVs" entries={offensive} emptyKey="cr.noStrong" />
-          </div>
-        </Reveal>
-      </div>
+        </div>
 
-      {/* estrutura ESTAVEL entre fichas irmas: sempre 2 colunas no lg, a celula de
-          evolucao existe sempre — linha unica vira o "estado" dela (nao some do grid) */}
-      <div className="grid gap-5 lg:grid-cols-2">
-        {isEevee ? (
-          <Reveal className="card flex flex-col p-5">
-            <SectionTitle><T k="cr.evolution" /></SectionTitle>
-            <div className="flex flex-1 flex-col items-center justify-center gap-4 py-4 text-center">
-              <p className="max-w-xs text-sm text-text-dim"><T k="eevee.branches" /></p>
-              <Link href="/eevee" className="btn btn-cyan">
-                <T k="eevee.open" /> <ChevronRight size={14} />
-              </Link>
+        <div className="grid gap-5 lg:grid-cols-2">
+          <Reveal className="card p-5">
+            <SectionTitle><T k="cr.statsBase" /></SectionTitle>
+            <p className="-mt-2 mb-4 text-base leading-relaxed text-text-dim">
+              <T k="cr.statsHint" />{" "}
+              <Link href="/calc" className="inline-flex items-center gap-1 font-medium text-cyan hover:underline"><T k="cr.statsHintLink" /> <ChevronRight size={16} /></Link>
+            </p>
+            <div className="flex flex-col gap-2.5">
+              {STATS.map(([label, key], i) => (
+                <StatBar key={key} iconIndex={i} label={label} value={c[key]} best={c[key] === bestStat} />
+              ))}
+              <div className="mt-2 flex items-baseline justify-between border-t border-border pt-2 text-base">
+                <span className="uppercase tracking-wide text-text-dim"><T k="cr.total" /></span>
+                <strong className="font-semibold tabular-nums text-cyan">{total}</strong>
+              </div>
+              {bestMove && bestMove.power > 0 && (
+                <div className="mt-1 flex items-baseline justify-between gap-3 text-base text-text-dim">
+                  <span><T k="cr.bestMove" /></span>
+                  <span className="text-text">{bestMove.name} <span className="font-semibold tabular-nums text-yellow">{bestMove.power}</span></span>
+                </div>
+              )}
             </div>
           </Reveal>
-        ) : (
-          <Reveal className="card flex flex-col p-5">
-            <SectionTitle><T k="cr.evolution" /></SectionTitle>
-            <div className="flex flex-1 flex-wrap items-center justify-center gap-3">
-              {chain.map((stage, i) => (
-                <div key={stage.creature.pokeId} className="flex items-center gap-3">
-                  {i > 0 && (
-                    <span className="pixel inline-flex items-center gap-1 text-xs text-text-dim">lvl {stage.evolveLevel ?? "?"} <ChevronRight size={14} /></span>
-                  )}
-                  <Link
-                    href={`/dex/${stage.creature.pokeId}`}
-                    className={`flex flex-col items-center rounded p-2 hover:bg-surface-2 ${
-                      stage.creature.pokeId === c.pokeId ? "bg-surface-2 ring-1 ring-[color:var(--border-strong)]" : ""
-                    }`}
-                  >
-                    <Sprite src={spriteUrl(stage.creature.pokeId)} alt={stage.creature.name} size={68} />
-                    <span className="text-base">{stage.creature.name}</span>
-                  </Link>
-                </div>
-              ))}
+
+          <Reveal className="card p-5">
+            <SectionTitle><T k="cr.combat" /></SectionTitle>
+            {/* subtitulo e frase inteira ("Defesa: como ele recebe dano"): peso separa, caixa alta nao */}
+            <div className="mb-2 text-sm font-medium text-text-dim"><T k="cr.defenseSub" /></div>
+            <div className="flex flex-col gap-3 text-sm">
+              <EffRow titleKey="cr.takesMore" entries={weak} emptyKey="cr.noWeak" />
+              <EffRow titleKey="cr.takesLess" entries={resist} emptyKey="cr.noResist" />
+              <EffRow titleKey="cr.immune" entries={immune} emptyKey="cr.immuneEmpty" />
+            </div>
+            <div className="my-4 border-t border-border" />
+            <div className="mb-2 text-sm font-medium text-text-dim"><T k="cr.attackSub" /></div>
+            <div className="flex flex-col gap-3 text-sm">
+              <EffRow titleKey="cr.stab" entries={stab} emptyKey="cr.immuneEmpty" />
+              <EffRow titleKey="cr.strongVs" entries={offensive} emptyKey="cr.noStrong" />
             </div>
           </Reveal>
-        )}
+        </div>
 
-        <Reveal className="card p-5">
-          <SectionTitle><T k="cr.whereHunt" /></SectionTitle>
-          {locations.length ? (
-            <div className="flex flex-col gap-2">
-              {locations.map((h) => (
-                <div key={h.slug} className="well flex items-center gap-3">
-                  <span className="text-red"><MapPin size={18} /></span>
-                  {/* nome do ponto e o dado principal (peso 500, 16px); a regiao e um
-                      rotulo curto abaixo — vem em minusculo do jogo, entao a caixa alta fica */}
-                  <div className="flex min-w-0 flex-col">
-                    <span className="truncate text-base font-medium text-text">{h.name}</span>
-                    <span className="text-sm uppercase tracking-wide text-text-dim">{h.area}</span>
-                  </div>
-                  {h.level ? (
-                    <span className="chip ml-auto" style={{ background: "var(--surface-2)", color: "var(--text)" }}>lvl {h.level}</span>
-                  ) : null}
-                </div>
-              ))}
-            </div>
+        {/* estrutura ESTAVEL entre fichas irmas: sempre 2 colunas no lg, a celula de
+            evolucao existe sempre — linha unica vira o "estado" dela (nao some do grid) */}
+        <div className="grid gap-5 lg:grid-cols-2">
+          {isEevee ? (
+            <Reveal className="card flex flex-col p-5">
+              <SectionTitle><T k="cr.evolution" /></SectionTitle>
+              <div className="flex flex-1 flex-col items-center justify-center gap-4 py-4 text-center">
+                <p className="max-w-xs text-sm text-text-dim"><T k="eevee.branches" /></p>
+                <Link href="/eevee" className="btn btn-cyan">
+                  <T k="eevee.open" /> <ChevronRight size={14} />
+                </Link>
+              </div>
+            </Reveal>
           ) : (
-            <div className="flex flex-col gap-2">
-              <AcqBadge kind={acq} className="self-start" />
-              <p className="text-sm text-text-dim">
-                <T k={acq === "special" ? "dex.acq.specialHint" : "dex.acq.evoHint"} />
-              </p>
-            </div>
+            <Reveal className="card flex flex-col p-5">
+              <SectionTitle><T k="cr.evolution" /></SectionTitle>
+              <div className="flex flex-1 flex-wrap items-center justify-center gap-3">
+                {chain.map((stage, i) => (
+                  <div key={stage.creature.pokeId} className="flex items-center gap-3">
+                    {i > 0 && (
+                      <span className="pixel inline-flex items-center gap-1 text-xs text-text-dim">lvl {stage.evolveLevel ?? "?"} <ChevronRight size={14} /></span>
+                    )}
+                    <Link
+                      href={`/dex/${stage.creature.pokeId}`}
+                      className={`flex flex-col items-center rounded p-2 hover:bg-surface-2 ${
+                        stage.creature.pokeId === c.pokeId ? "bg-surface-2 ring-1 ring-[color:var(--border-strong)]" : ""
+                      }`}
+                    >
+                      <Sprite src={spriteUrl(stage.creature.pokeId)} alt={stage.creature.name} size={68} />
+                      <span className="text-base">{stage.creature.name}</span>
+                    </Link>
+                  </div>
+                ))}
+              </div>
+            </Reveal>
           )}
+
+          <Reveal className="card p-5">
+            <SectionTitle><T k="cr.whereHunt" /></SectionTitle>
+            {locations.length ? (
+              <div className="flex flex-col gap-2">
+                {locations.map((h) => (
+                  <div key={h.slug} className="well flex items-center gap-3">
+                    <span className="text-red"><MapPin size={18} /></span>
+                    {/* nome do ponto e o dado principal (peso 500, 16px); a regiao e um
+                        rotulo curto abaixo — vem em minusculo do jogo, entao a caixa alta fica */}
+                    <div className="flex min-w-0 flex-col">
+                      <span className="truncate text-base font-medium text-text">{h.name}</span>
+                      <span className="text-sm uppercase tracking-wide text-text-dim">{h.area}</span>
+                    </div>
+                    {h.level ? (
+                      <span className="chip ml-auto" style={{ background: "var(--surface-2)", color: "var(--text)" }}>lvl {h.level}</span>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex flex-col gap-2">
+                <AcqBadge kind={acq} className="self-start" />
+                <p className="text-sm text-text-dim">
+                  <T k={acq === "special" ? "dex.acq.specialHint" : "dex.acq.evoHint"} />
+                </p>
+              </div>
+            )}
+          </Reveal>
+        </div>
+
+        <Reveal className="card p-5">
+          <SectionTitle><T k="cr.drops" /> ({loot.length})</SectionTitle>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                {/* cabecalho e rotulo curto: caixa alta continua, mas o peso agora e real (500) */}
+                <tr className="text-left text-sm uppercase tracking-wide text-text-dim">
+                  <th className="pb-2 font-medium"><T k="col.item" /></th>
+                  <th className="pb-2 font-medium"><T k="col.qty" /></th>
+                  <th className="pb-2 text-right font-medium"><T k="col.chance" /></th>
+                </tr>
+              </thead>
+              <tbody>
+                {loot.map((l) => {
+                  const item = getItemByName(l.name);
+                  const p = l.chance / 1000;
+                  return (
+                    <tr key={l.name} className={`border-t border-border ${item ? "group cursor-pointer hover:bg-surface-2" : ""}`}>
+                      <td className="py-2 pr-3">
+                        {item ? (
+                          <Link href={`/items/${item.id}`} className="flex items-center gap-2 whitespace-nowrap text-cyan group-hover:underline">
+                            <Sprite src={itemIconUrl(item)} alt="" size={22} />
+                            {l.name}
+                            <span className="text-text-dim opacity-0 transition group-hover:opacity-100"><ChevronRight size={14} /></span>
+                          </Link>
+                        ) : (
+                          <span className="flex items-center gap-2 whitespace-nowrap">{l.name}</span>
+                        )}
+                      </td>
+                      <td className="py-2 pr-3 whitespace-nowrap tabular-nums text-text-dim">{l.minCount === l.maxCount ? l.minCount : `${l.minCount}–${l.maxCount}`}</td>
+                      <td className="py-2 text-right whitespace-nowrap tabular-nums">{l.chance === 0 ? <T k="special" /> : pctLabel(p)}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </Reveal>
+
+        <Reveal className="card p-5">
+          <SectionTitle><T k="cr.moves" /> ({moves.length})</SectionTitle>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-sm uppercase tracking-wide text-text-dim">
+                  <th className="pb-2 pr-3 font-medium"><T k="col.name" /></th>
+                  <th className="pb-2 pr-3 font-medium"><T k="col.type" /></th>
+                  <th className="pb-2 pr-3 font-medium"><T k="col.cat" /></th>
+                  <th className="pb-2 pr-3 text-right font-medium"><T k="col.power" /></th>
+                  <th className="pb-2 text-right font-medium"><T k="col.lvl" /></th>
+                </tr>
+              </thead>
+              <tbody>
+                {moves.map((m, i) => (
+                  <tr key={`${m.name}-${i}`} className="border-t border-border">
+                    <td className="py-2 pr-3 whitespace-nowrap">{m.name}</td>
+                    <td className="py-2 pr-3"><TypeBadge type={m.type} /></td>
+                    <td className="py-2 pr-3 whitespace-nowrap text-text-dim"><T k={`cat.${m.category}`} /></td>
+                    <td className="py-2 pr-3 text-right tabular-nums">{m.power || <span className="slot-empty">—</span>}</td>
+                    <td className="py-2 text-right tabular-nums">{m.learnLevel}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </Reveal>
       </div>
-
-      <Reveal className="card p-5">
-        <SectionTitle><T k="cr.drops" /> ({loot.length})</SectionTitle>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              {/* cabecalho e rotulo curto: caixa alta continua, mas o peso agora e real (500) */}
-              <tr className="text-left text-sm uppercase tracking-wide text-text-dim">
-                <th className="pb-2 font-medium"><T k="col.item" /></th>
-                <th className="pb-2 font-medium"><T k="col.qty" /></th>
-                <th className="pb-2 text-right font-medium"><T k="col.chance" /></th>
-              </tr>
-            </thead>
-            <tbody>
-              {loot.map((l) => {
-                const item = getItemByName(l.name);
-                const p = l.chance / 1000;
-                return (
-                  <tr key={l.name} className={`border-t border-border ${item ? "group cursor-pointer hover:bg-surface-2" : ""}`}>
-                    <td className="py-2 pr-3">
-                      {item ? (
-                        <Link href={`/items/${item.id}`} className="flex items-center gap-2 whitespace-nowrap text-cyan group-hover:underline">
-                          <Sprite src={itemIconUrl(item)} alt="" size={22} />
-                          {l.name}
-                          <span className="text-text-dim opacity-0 transition group-hover:opacity-100"><ChevronRight size={14} /></span>
-                        </Link>
-                      ) : (
-                        <span className="flex items-center gap-2 whitespace-nowrap">{l.name}</span>
-                      )}
-                    </td>
-                    <td className="py-2 pr-3 whitespace-nowrap tabular-nums text-text-dim">{l.minCount === l.maxCount ? l.minCount : `${l.minCount}–${l.maxCount}`}</td>
-                    <td className="py-2 text-right whitespace-nowrap tabular-nums">{l.chance === 0 ? <T k="special" /> : pctLabel(p)}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </Reveal>
-
-      <Reveal className="card p-5">
-        <SectionTitle><T k="cr.moves" /> ({moves.length})</SectionTitle>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left text-sm uppercase tracking-wide text-text-dim">
-                <th className="pb-2 pr-3 font-medium"><T k="col.name" /></th>
-                <th className="pb-2 pr-3 font-medium"><T k="col.type" /></th>
-                <th className="pb-2 pr-3 font-medium"><T k="col.cat" /></th>
-                <th className="pb-2 pr-3 text-right font-medium"><T k="col.power" /></th>
-                <th className="pb-2 text-right font-medium"><T k="col.lvl" /></th>
-              </tr>
-            </thead>
-            <tbody>
-              {moves.map((m, i) => (
-                <tr key={`${m.name}-${i}`} className="border-t border-border">
-                  <td className="py-2 pr-3 whitespace-nowrap">{m.name}</td>
-                  <td className="py-2 pr-3"><TypeBadge type={m.type} /></td>
-                  <td className="py-2 pr-3 whitespace-nowrap text-text-dim"><T k={`cat.${m.category}`} /></td>
-                  <td className="py-2 pr-3 text-right tabular-nums">{m.power || <span className="slot-empty">—</span>}</td>
-                  <td className="py-2 text-right tabular-nums">{m.learnLevel}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Reveal>
+      </PokedexShell>
     </div>
-    </PokedexShell>
   );
 }

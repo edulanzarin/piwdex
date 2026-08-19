@@ -1,16 +1,16 @@
 import type { Metadata } from "next";
-import { JetBrains_Mono, Chakra_Petch } from "next/font/google";
+import { JetBrains_Mono, Quantico } from "next/font/google";
 import { LocaleProvider } from "@/components/locale-provider";
 import { SiteNav } from "@/components/site-nav";
 import { VipCta } from "@/components/vip-cta";
 import { auth } from "@/lib/auth";
 import "./globals.css";
 
-// Fonte do site: Chakra Petch — quadrada/tech, moderna e com pesos de verdade
-// (decisao do Eduardo, ago/2026: fim da fonte pixel; o pixel fica nos sprites do
-// jogo). A variavel mantem o nome historico --font-pixel pra nao tocar o CSS inteiro.
-const pixel = Chakra_Petch({
-  weight: ["400", "500", "600", "700"],
+// Fonte do site: Quantico — quadrada/tech, so 400 e 700 (nao tem 500/600: o CSS usa
+// 400 pro corpo e 700 pro destaque, nada de peso intermediario). A variavel mantem o
+// nome historico --font-pixel pra nao tocar o CSS inteiro.
+const pixel = Quantico({
+  weight: ["400", "700"],
   subsets: ["latin"],
   variable: "--font-pixel",
   display: "swap",

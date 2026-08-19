@@ -15,13 +15,18 @@ export default async function DexPage() {
   const acq: Record<number, ReturnType<typeof db.acquisitionOf>> = {};
   for (const c of creatures) acq[c.pokeId] = db.acquisitionOf(c);
   return (
-    <PokedexShell>
-      <div className="flex flex-col gap-6">
-        <div>
-          <h1 className="pixel text-3xl text-cyan"><T k="dex.title" /></h1>
+    // container-wide: o aparelho da Pokedex estoura o container do site pra a grade
+    // caber os dois tipos lado a lado (ver .container-wide no globals.css). A ficha
+    // (/dex/[id]) usa o mesmo container pra o aparelho nao mudar de largura ao abrir.
+    <div className="container-wide">
+      <PokedexShell>
+        <div className="flex flex-col gap-6">
+          <div>
+            <h1 className="pixel text-3xl text-cyan"><T k="dex.title" /></h1>
+          </div>
+          <DexBrowser creatures={ordered} acq={acq} />
         </div>
-        <DexBrowser creatures={ordered} acq={acq} />
-      </div>
-    </PokedexShell>
+      </PokedexShell>
+    </div>
   );
 }

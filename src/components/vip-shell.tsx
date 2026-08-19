@@ -2,7 +2,7 @@
 
 // Shell da area VIP (cockpit): HUD fixo no topo + navegacao LATERAL com uma secao por
 // capacidade — achatou os dois niveis de abas antigos (VipTabs > RoboModule) numa fila so.
-// Cada secao tem icone de linha e acento proprio. A secao mora no hash da URL (deep-link);
+// A nav e texto puro, sem icone nem cor por secao. A secao mora no hash da URL (deep-link);
 // hashes antigos (#robo, #conta...) continuam funcionando. Os dados vivos vem todos do
 // VipLiveProvider (SSE) — os paineis nao fazem mais polling proprio.
 
@@ -17,7 +17,6 @@ import { AlertsInbox } from "./alerts-inbox";
 import { RobotActivity } from "./robot-activity";
 import { AccountPanel } from "./account-panel";
 import { MyPokemons } from "./my-pokemons";
-import { Pokeball } from "./pokeball";
 import { ConfigPanel } from "./config-panel";
 import { DropSeller } from "./drop-seller";
 import { PokeSold } from "./poke-sold";
@@ -28,24 +27,18 @@ import { ChatPanel } from "./chat-panel";
 import { ToastProvider } from "./toast";
 import type { ComboCreature } from "./pokemon-combobox";
 import { useT } from "./locale-provider";
-import { Star, Dollar, Heart, Bell, Trainer, Target, Chart, Backpack, ChevronRight, Gear, Bubble } from "./icons";
+import { Heart, ChevronRight } from "./icons";
 
 type Section =
   | "painel" | "pokemons" | "hunt" | "chat" | "config" | "capturados" | "estatisticas"
   | "mercado" | "desejos" | "alertas" | "conta";
 
-const SECTIONS: { key: Section; accent: string; Icon: (p: { size?: number; className?: string }) => React.ReactNode }[] = [
-  { key: "painel", accent: "var(--yellow)", Icon: Star },
-  { key: "pokemons", accent: "var(--red)", Icon: Pokeball },
-  { key: "hunt", accent: "var(--cyan)", Icon: Target },
-  { key: "chat", accent: "var(--green)", Icon: Bubble },
-  { key: "config", accent: "var(--blue)", Icon: Gear },
-  { key: "capturados", accent: "var(--blue)", Icon: Backpack },
-  { key: "estatisticas", accent: "var(--purple)", Icon: Chart },
-  { key: "mercado", accent: "var(--green)", Icon: Dollar },
-  { key: "desejos", accent: "var(--pink)", Icon: Heart },
-  { key: "alertas", accent: "var(--yellow)", Icon: Bell },
-  { key: "conta", accent: "var(--cyan)", Icon: Trainer },
+// So a chave: a nav do VIP e texto puro, sem icone e sem cor por secao (pedido do
+// Eduardo). O ativo se distingue por superficie + peso, via .vnav-active.
+const SECTIONS: { key: Section }[] = [
+  { key: "painel" }, { key: "pokemons" }, { key: "hunt" }, { key: "chat" },
+  { key: "config" }, { key: "capturados" }, { key: "estatisticas" },
+  { key: "mercado" }, { key: "desejos" }, { key: "alertas" }, { key: "conta" },
 ];
 const isSection = (v: string): v is Section => SECTIONS.some((s) => s.key === v);
 // hashes antigos -> secao nova (links salvos continuam funcionando)
@@ -125,11 +118,10 @@ function VipShellInner({ creatures, dex, hunts, itemIcons, lootByPoke, marketIte
         {/* navegacao lateral (desktop) / trilho horizontal ROLAVEL de altura fixa
             (mobile) — nada de wrap: a fila nunca cresce na vertical, e o rotulo fica
             visivel. O badge de contagem e absoluto: aparecer nao empurra o vizinho. */}
-        {/* 13rem: cabe o rotulo mais longo ("Meus Pokemons") ao lado do icone de 18
-            na Chakra Petch, sem truncar */}
-        <aside className="shrink-0 lg:w-52">
+        {/* sem icone, o rotulo mais longo ("Meus Pokemons") cabe em 12rem na Quantico */}
+        <aside className="shrink-0 lg:w-48">
           <nav className="vnav max-lg:-mx-1 max-lg:flex-row max-lg:flex-nowrap max-lg:overflow-x-auto max-lg:px-1 max-lg:pb-1.5 max-lg:[scrollbar-width:none] max-lg:[&::-webkit-scrollbar]:hidden lg:sticky lg:top-20">
-            {SECTIONS.map(({ key, accent, Icon }) => {
+            {SECTIONS.map(({ key }) => {
               const on = key === sec;
               const badge = badgeOf(key);
               return (
@@ -139,9 +131,7 @@ function VipShellInner({ creatures, dex, hunts, itemIcons, lootByPoke, marketIte
                   onClick={() => go(key)}
                   aria-pressed={on}
                   className={`vnav-item relative max-lg:shrink-0 ${on ? "vnav-active" : ""}`}
-                  style={{ "--vn": accent } as React.CSSProperties}
                 >
-                  <Icon size={18} />
                   <span className="lg:flex-1">{t(`vip.sec.${key}`)}</span>
                   <span
                     className={`min-w-[1.35rem] rounded-full bg-cyan px-1.5 py-0.5 text-center text-xs font-semibold leading-none text-[#06131a] max-lg:absolute max-lg:-top-0.5 max-lg:right-0 lg:ml-auto ${badge > 0 ? "" : "invisible lg:hidden"}`}

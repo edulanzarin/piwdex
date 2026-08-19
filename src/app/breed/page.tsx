@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import { getData } from "@/lib/data";
 import { BreedTool, type BreedCreature } from "@/components/breed-tool";
-import { ToolFrame } from "@/components/tool-frame";
-import { NavBreed } from "@/components/nav-icons";
 import { T } from "@/components/locale-provider";
 
 export const metadata: Metadata = { title: "Planejador de Breeding" };
@@ -21,18 +19,16 @@ export default async function BreedPage() {
     .sort((a, b) => a.name.localeCompare(b.name));
 
   return (
-    <ToolFrame accent="var(--pink)" label="BREEDING" icon={<NavBreed size={16} />}>
-      <div className="flex flex-col gap-6">
-        <div>
-          <p className="eyebrow"><T k="breed.eyebrow" /></p>
-          <h1 className="pixel mt-1 inline-flex flex-wrap items-center gap-2 text-3xl" style={{ color: "var(--pink)" }}>
-            <T k="breed.title" />
-            <span className="chip" style={{ background: "var(--pink)", color: "#2a0a12" }}><T k="breed.alpha" /></span>
-          </h1>
-          <p className="mt-3 max-w-2xl text-base text-text-dim"><T k="breed.desc" /></p>
-        </div>
-        <BreedTool creatures={slim} />
+    <div className="flex flex-col gap-6">
+      <div>
+        <p className="eyebrow"><T k="breed.eyebrow" /></p>
+        <h1 className="pixel mt-1 inline-flex flex-wrap items-center gap-2 text-3xl" style={{ color: "var(--pink)" }}>
+          <T k="breed.title" />
+          <span className="chip" style={{ background: "var(--pink)", color: "#2a0a12" }}><T k="breed.alpha" /></span>
+        </h1>
+        <p className="mt-3 max-w-2xl text-base text-text-dim"><T k="breed.desc" /></p>
       </div>
-    </ToolFrame>
+      <BreedTool creatures={slim} />
+    </div>
   );
 }

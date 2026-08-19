@@ -5,28 +5,51 @@ import { RARITY_COLOR, TYPE_COLOR } from "@/lib/typing";
 import { TypeIcon } from "./type-icon";
 import { useTypeLabel } from "./locale-provider";
 
-export function TypeBadge({ type, icon = true }: { type: PokeType | string; icon?: boolean }) {
+export function TypeBadge({
+  type,
+  icon = true,
+  labelFrom,
+}: {
+  type: PokeType | string;
+  icon?: boolean;
+  /** `sm`: esconde o rotulo abaixo do breakpoint (fica so o icone). Usado no card da
+   *  grade, onde a coluna e estreita demais pra dois rotulos lado a lado. */
+  labelFrom?: "sm";
+}) {
   const label = useTypeLabel();
   const color = TYPE_COLOR[type as PokeType] ?? "#6b7280";
   return (
     <span
-      className="chip"
+      className="chip shrink-0"
+      title={label(type)}
       style={{ background: color, color: "#fff", textShadow: "0 1px 1px rgba(0,0,0,0.45)" }}
     >
       {/* icone de linha casa com a altura do texto do chip (.chip = text-xs, 14px);
           abaixo disso o traco lucide vira borrao. O .chip ja centraliza (align-items)
           e o TypeIcon ja e shrink-0, entao o glifo nao desalinha nem espreme o rotulo. */}
       {icon && <TypeIcon type={type} size={14} />}
-      {label(type)}
+      {labelFrom === "sm" ? <span className="hidden sm:inline">{label(type)}</span> : label(type)}
     </span>
   );
 }
 
-export function TypeBadges({ t1, t2, icon = true }: { t1: PokeType; t2: PokeType | null; icon?: boolean }) {
+export function TypeBadges({
+  t1,
+  t2,
+  icon = true,
+  labelFrom,
+}: {
+  t1: PokeType;
+  t2: PokeType | null;
+  icon?: boolean;
+  labelFrom?: "sm";
+}) {
+  // flex-nowrap: os dois tipos ficam SEMPRE na mesma linha (pedido do Eduardo). Quem
+  // garante que cabe e a largura do container + o rotulo que some no celular.
   return (
-    <span className="inline-flex flex-wrap gap-1.5">
-      <TypeBadge type={t1} icon={icon} />
-      {t2 && <TypeBadge type={t2} icon={icon} />}
+    <span className="inline-flex flex-nowrap gap-1.5">
+      <TypeBadge type={t1} icon={icon} labelFrom={labelFrom} />
+      {t2 && <TypeBadge type={t2} icon={icon} labelFrom={labelFrom} />}
     </span>
   );
 }

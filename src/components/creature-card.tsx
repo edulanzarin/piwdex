@@ -5,16 +5,16 @@ import { TypeBadges } from "./badges";
 import { AcqBadge } from "./acq-badge";
 import { Sprite } from "./sprite";
 
-// Altura minima recalibrada pra base 16px: 12.5rem valia 225px na base 18px antiga e
-// virou 200px, apertando o card. 13.5rem = 216px cobre o pior caso real — sprite 76 +
-// #id + nome + badge de tipo em DUAS linhas (nome de tipo longo em es/en nao cabe lado
-// a lado na largura de uma coluna da grade). Se mexer aqui, mexa no GridSkeleton.
+// Altura minima: os dois tipos agora ficam SEMPRE numa linha so (no celular o chip
+// vira so o icone), entao o pior caso caiu de duas linhas de badge pra uma —
+// 12rem = 192px cobre sprite 76 + #id + nome + a linha de badge.
+// Se mexer aqui, mexa no GridSkeleton (ele espelha este card).
 export function CreatureCard({ creature, acq }: { creature: Creature; acq?: Acquisition }) {
   return (
     <Link
       href={`/dex/${creature.pokeId}`}
       title={creature.name}
-      className="card card-link relative flex min-h-[13.5rem] flex-col items-center gap-2 p-3"
+      className="card card-link relative flex min-h-[12rem] flex-col items-center gap-2 p-3"
     >
       {/* So marca as origens fora do comum (evolucao/especial); caca e o padrao.
           Badge ABSOLUTO no canto: nunca entra no fluxo, nao empurra o card. */}
@@ -30,7 +30,7 @@ export function CreatureCard({ creature, acq }: { creature: Creature; acq?: Acqu
         {/* .pixel = peso 600 da Chakra: o nome salta do #id sem precisar de caixa alta */}
         <div className="pixel truncate text-lg leading-tight">{creature.name}</div>
       </div>
-      <TypeBadges t1={creature.type1} t2={creature.type2} />
+      <TypeBadges t1={creature.type1} t2={creature.type2} labelFrom="sm" />
     </Link>
   );
 }
