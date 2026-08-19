@@ -69,8 +69,7 @@ export function LangSwitcher() {
         // vidro tambem no flutuante: mesmo material do card, so com a superficie mais
         // opaca (88%) pra o texto de baixo nao vazar por tras dos rotulos
         <div
-          className="glass absolute right-0 z-50 mt-1 w-40 overflow-hidden border-[color:var(--border-strong)] shadow-[0_10px_40px_-10px_rgba(0,0,0,0.8)]"
-          style={{ background: "color-mix(in srgb, var(--surface-solid) 88%, transparent)" }}
+          className="glass glass-over absolute right-0 z-50 mt-1 w-40 overflow-hidden border-[color:var(--border-strong)] shadow-[0_10px_40px_-10px_rgba(0,0,0,0.8)]"
         >
           {LOCALES.map(({ code, name }) => (
             <button

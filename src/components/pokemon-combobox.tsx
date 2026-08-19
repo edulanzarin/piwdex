@@ -100,14 +100,13 @@ export function PokemonCombobox<T extends ComboCreature>({
             // VIDRO no flutuante: era bg-[#0b1122] chapado, agora e o mesmo material do
             // card (.glass = blur + fio de luz). So a opacidade da superficie sobe AQUI —
             // menu com lista densa precisa de leitura limpa, nao de mais transparencia.
-            className="glass fadein fixed z-[9999] overflow-y-auto p-1"
+            className="glass glass-over fadein fixed z-[9999] overflow-y-auto p-1"
             style={{
               top: rect.top,
               left: rect.left,
               width: rect.width,
               maxHeight: rect.maxH,
               transform: rect.up ? "translateY(-100%)" : undefined,
-              background: "color-mix(in srgb, var(--surface-solid) 88%, transparent)",
               borderColor: "var(--border-strong)",
             }}
           >

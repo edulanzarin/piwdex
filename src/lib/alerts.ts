@@ -345,6 +345,9 @@ export function matchSnipes(watchlists: Watchlist[], mons: ScoredMon[]): NewNoti
           quality: m.quality,
           ivTotal: m.ivTotal,
           power: m.power,
+          // stats REAIS do individuo: sem isso o modal do desejo caia nos stats
+          // BASE da especie, ficando diferente do modal do mercado
+          stats: m.stats,
           belowNpc: m.belowNpc,
           sellers: m.sellers,
           fairPrice: m.fairPrice ?? null,

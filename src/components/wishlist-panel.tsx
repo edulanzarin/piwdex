@@ -83,7 +83,7 @@ function ItemPicker({ items, value, onSelect, placeholder }: { items: WishItem[]
       {open && (
         // menu flutuante em vidro (o .card ja traz blur): a superficie sobe pra 92% do
         // solido SO aqui — e o unico jeito de ter menu sobre lista sem texto no texto
-        <div className="card fadein absolute z-30 mt-1 w-full p-1" style={{ background: "color-mix(in srgb, var(--surface-solid) 92%, transparent)" }}>
+        <div className="card glass-over fadein absolute z-30 mt-1 w-full p-1">
           <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder={placeholder} className="input input-sm mb-1" />
           <div className="max-h-56 overflow-auto">
             {value && (
@@ -144,7 +144,8 @@ function monFromNotif(n: LiveNotification, name: string): MarketMon {
     ivTotal: nn(d.ivTotal),
     quality: nn(d.quality),
     power: nn(d.power),
-    stats: null, // o alerta nao carrega stats — o modal cai nos base
+    stats: (d.stats as MarketMon["stats"]) ?? null, // guardado pelo sniper desde ago/2026;
+    // alerta antigo (sem stats) faz o primitivo cair nos base da especie sozinho
     type1: (d.type1 as PokeType) ?? null,
     type2: (d.type2 as PokeType) ?? null,
     price: Number(d.price ?? 0),

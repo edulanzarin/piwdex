@@ -103,7 +103,7 @@ function BallSelect({ balls, value, onChange, disabled }: { balls: Ball[]; value
         // flutuante em VIDRO: mantem o card (blur + fio de luz) e sobe a OPACIDADE da
         // superficie so aqui (88%, mesma densidade do HUD) pra o conteudo de baixo nao
         // "vazar" no meio da lista. Nada de voltar pro fundo 100% chapado.
-        <div role="listbox" className="card fadein absolute z-30 mt-1 max-h-64 w-full overflow-auto p-1" style={{ background: "color-mix(in srgb, var(--surface-solid) 88%, transparent)" }}>
+        <div role="listbox" className="card glass-over fadein absolute z-30 mt-1 max-h-64 w-full overflow-auto p-1">
           {balls.map((b) => (
             <button
               key={b.id}
@@ -157,7 +157,7 @@ function SupplySelect({ opts, value, onChange, bestLabel }: { opts: Opt[]; value
         // flutuante em VIDRO: mantem o card (blur + fio de luz) e sobe a OPACIDADE da
         // superficie so aqui (88%, mesma densidade do HUD) pra o conteudo de baixo nao
         // "vazar" no meio da lista. Nada de voltar pro fundo 100% chapado.
-        <div role="listbox" className="card fadein absolute z-30 mt-1 max-h-64 w-full overflow-auto p-1" style={{ background: "color-mix(in srgb, var(--surface-solid) 88%, transparent)" }}>
+        <div role="listbox" className="card glass-over fadein absolute z-30 mt-1 max-h-64 w-full overflow-auto p-1">
           <button
             type="button"
             onClick={() => { onChange(null); setOpen(false); }}
@@ -373,8 +373,7 @@ export function ConfigPanel() {
           o par cai pra uma segunda linha (a 360px chip + botao somavam ~330px numa
           calha de 288); as duas linhas existem SEMPRE, so a forma muda por breakpoint. */}
       <div
-        className="card sticky top-[4.4rem] z-20 flex flex-col gap-2 p-4 sm:flex-row sm:items-center sm:gap-3"
-        style={{ background: "color-mix(in srgb, var(--surface-solid) 88%, transparent)" }}
+        className="card glass-over sticky top-[4.4rem] z-20 flex flex-col gap-2 p-4 sm:flex-row sm:items-center sm:gap-3"
       >
         <div className="flex min-w-0 items-center gap-3">
           <span className="hidden shrink-0 sm:inline-flex"><Gear size={18} /></span>

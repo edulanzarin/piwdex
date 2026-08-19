@@ -274,7 +274,7 @@ export function MarketMonModal({ mon, dex, onClose, onBought }: { mon: MarketMon
           </div>
           <div className="flex flex-wrap items-center gap-1.5">
             {dex ? <TypeBadges t1={dex.type1} t2={dex.type2} /> : mon.type1 ? <TypeBadges t1={mon.type1 as PokeType} t2={null} /> : null}
-            {dex && <RarityBadge rarity={dex.rarity} />}
+            {mon.quality != null ? <QualityBadge quality={mon.quality} /> : dex && <RarityBadge rarity={dex.rarity} />}
             {mon.belowNpc && (
               <span className="chip" style={{ background: "var(--green)", color: "#052012" }}>{t("account.market.belowNpc")}</span>
             )}
@@ -338,28 +338,14 @@ export function MarketMonModal({ mon, dex, onClose, onBought }: { mon: MarketMon
           )}
         </div>
 
-        {/* Stats REAIS do individuo a venda (o anuncio ja traz); sem eles, cai nos base
-            da especie. Com dex + qualidade, cada barra compara com o perfeito (IV 32). */}
-        {mon.stats ? (
-          <MonStatsSection
-            stats={mon.stats}
-            bases={dex ? [dex.baseHp, dex.baseAtk, dex.baseDef, dex.baseSpAtk, dex.baseSpDef, dex.baseSpeed] : null}
-            level={mon.level}
-            quality={mon.quality}
-          />
-        ) : dex && (
-          <div className="flex flex-col gap-2.5">
-            <div className="section-title">{t("cr.statsBase")}</div>
-            {STATS.map(([label, key], i) => (
-              <StatBar key={key} iconIndex={i} label={label} value={dex[key] as number} best={(dex[key] as number) === best} />
-            ))}
-            <div className="mt-1 flex items-center justify-between border-t border-border pt-2 text-sm">
-              {/* rotulo curto continua em caixa alta, mas na classe sancionada */}
-              <span className="field-label">{t("cr.total")}</span>
-              <span className="font-bold tabular-nums text-cyan">{total}</span>
-            </div>
-          </div>
-        )}
+        {/* UM primitivo pra stats: com os stats do anuncio ele compara com o perfeito;
+            sem eles, o proprio primitivo cai nos base da especie. */}
+        <MonStatsSection
+          stats={mon.stats}
+          bases={dex ? [dex.baseHp, dex.baseAtk, dex.baseDef, dex.baseSpAtk, dex.baseSpDef, dex.baseSpeed] : null}
+          level={mon.level}
+          quality={mon.quality}
+        />
 
         <div className="flex flex-wrap items-center gap-2">
           {buyable && !confirming && (

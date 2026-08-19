@@ -64,8 +64,8 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
             onClick={() => setToasts((ts) => ts.filter((x) => x.id !== t.id))}
             // vidro (.glass) no lugar do fundo chapado; a opacidade sobe pra 92% porque o
             // toast pousa em cima de qualquer tela e precisa ser lido de primeira
-            className="pointer-events-auto glass flash-in flex items-center gap-2.5 px-3.5 py-2.5 text-left"
-            style={{ background: "color-mix(in srgb, var(--surface-solid) 92%, transparent)", borderColor: `color-mix(in srgb, ${ACCENT[t.kind]} 55%, transparent)`, boxShadow: `inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 8px 24px -12px ${ACCENT[t.kind]}`, "--accent": ACCENT[t.kind] } as React.CSSProperties}
+            className="pointer-events-auto glass glass-over flash-in flex items-center gap-2.5 px-3.5 py-2.5 text-left"
+            style={{ borderColor: `color-mix(in srgb, ${ACCENT[t.kind]} 55%, transparent)`, boxShadow: `inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 8px 24px -12px ${ACCENT[t.kind]}`, "--accent": ACCENT[t.kind] } as React.CSSProperties}
           >
             <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded" style={{ background: `color-mix(in srgb, ${ACCENT[t.kind]} 18%, transparent)`, color: ACCENT[t.kind] }}>
               {ICON[t.kind]}

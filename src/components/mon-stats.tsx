@@ -24,34 +24,43 @@ const IV_MAX = 32;
 // Mesmas faixas do ivColor do total (150/192 e 100/192), na escala de 1 stat (0..32).
 const ivClass = (iv: number) => (iv >= 25 ? "text-green" : iv >= 16.7 ? "text-yellow" : "text-text");
 
+/** Bloco de stats de UM pokemon. Cobre os tres casos que o site tem, pra nenhum
+ *  chamador precisar reimplementar o fallback:
+ *   - stats do individuo + bases + quality -> barra compara com o perfeito (IV 32) e
+ *     mostra o IV estimado de cada stat;
+ *   - stats do individuo sem bases/quality -> barra simples entre os proprios stats;
+ *   - SEM stats (so o catalogo) -> stats BASE da especie, com o titulo trocado. */
 export function MonStatsSection({
   stats, bases, level, quality,
 }: {
-  stats: MonStats;
+  stats: MonStats | null;
   bases?: number[] | null; // 6 stats base na ordem STAT_KEYS (do catalogo da especie)
   level: number;
   quality: number | null;
 }) {
   const t = useT();
-  const values = STAT_KEYS.map((k) => stats[k]);
+  const speciesOnly = !stats;
+  const shown: number[] = stats ? STAT_KEYS.map((k) => stats[k]) : (bases ?? []);
+  if (!stats && shown.length !== 6) return null;
+  const values = shown;
   const total = values.reduce((a, b) => a + b, 0);
-  const canCompare = !!bases && bases.length === 6 && quality != null && level > 0;
+  const canCompare = !!stats && !!bases && bases.length === 6 && quality != null && level > 0;
 
   return (
     <div className="flex flex-col gap-2.5">
-      <div className="section-title">{t("mon.stats.title")}</div>
+      <div className="section-title">{t(speciesOnly ? "cr.statsBase" : "mon.stats.title")}</div>
       {canCompare
         ? STAT_KEYS.map((k, i) => {
             const perfect = projectStat(bases![i], IV_MAX, level, quality!, i);
-            const iv = Math.min(IV_MAX, Math.max(0, estimateIv(bases![i], stats[k], level, quality!, i)));
+            const iv = Math.min(IV_MAX, Math.max(0, estimateIv(bases![i], stats![k], level, quality!, i)));
             return (
-              <StatCompareRow key={k} iconIndex={i} label={STAT_LABELS[i]} value={stats[k]}
+              <StatCompareRow key={k} iconIndex={i} label={STAT_LABELS[i]} value={stats![k]}
                 max={perfect} iv={iv} ivMax={IV_MAX} ivClass={ivClass(iv)} />
             );
           })
         : STAT_KEYS.map((k, i) => (
-            <StatBar key={k} iconIndex={i} label={STAT_LABELS[i]} value={stats[k]}
-              max={Math.max(...values)} best={stats[k] === Math.max(...values)} />
+            <StatBar key={k} iconIndex={i} label={STAT_LABELS[i]} value={values[i]}
+              max={Math.max(...values)} best={values[i] === Math.max(...values)} />
           ))}
       <div className="mt-1 flex items-center justify-between border-t border-border pt-2 text-sm">
         <span className="text-sm uppercase tracking-wide text-text-dim">{t("cr.total")}</span>

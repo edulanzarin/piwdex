@@ -69,8 +69,7 @@ export function SelectMenu({
           // fundo chapado. So a OPACIDADE da superficie sobe aqui — por cima de uma grade
           // de cards o vidro padrao deixava texto brigando com texto.
           // Teto de altura em vh: no celular o menu cabe na tela e a lista rola por dentro.
-          className="card fadein absolute z-30 mt-1 max-h-[min(18rem,60vh)] w-full overflow-y-auto p-1"
-          style={{ background: "color-mix(in srgb, var(--surface-solid) 86%, transparent)" }}
+          className="card glass-over fadein absolute z-30 mt-1 max-h-[min(18rem,60vh)] w-full overflow-y-auto p-1"
         >
           {options.map((o) => (
             <button

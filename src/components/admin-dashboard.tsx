@@ -177,8 +177,7 @@ export function AdminDashboard({ users }: { users: AdminUser[] }) {
         // flutuante em vidro denso (mesma receita do HUD) e com teto de largura:
         // inset-x-4 + max-w-md garante que a 360px ele nao passa da tela
         <div
-          className="glass fixed inset-x-4 bottom-5 z-50 mx-auto max-w-md rounded-md border border-[color:var(--border-strong)] px-4 py-2.5 text-center text-base text-text shadow-lg"
-          style={{ background: "color-mix(in srgb, var(--surface-solid) 88%, transparent)" }}
+          className="glass glass-over fixed inset-x-4 bottom-5 z-50 mx-auto max-w-md rounded-md border border-[color:var(--border-strong)] px-4 py-2.5 text-center text-base text-text shadow-lg"
         >
           {toast}
         </div>
