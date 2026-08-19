@@ -157,6 +157,36 @@ export interface ChatView {
   debugFrames: { at: number; type: string; raw: string }[]; // modo descoberta
 }
 
+// Campos ACUMULATIVOS do frame `analyzer` (o resto e taxa derivada, recalculada no delta).
+const ANALYZER_SUMS = [
+  "kills", "seconds", "xpGained", "lootItems", "lootGold", "ballsUsed", "potionsUsed",
+  "supplyGold", "captures", "shinyCaptures", "capturesGold",
+] as const;
+
+// O analyzer do jogo e cumulativo por CONEXAO: subtrai a base pra sobrar so a hunt atual.
+// Saldo e taxas sao RECALCULADOS (nao dao pra subtrair): saldo = loot + capturas - supply,
+// taxa = total/horas do trecho.
+function analyzerDelta(raw: Analyzer, base: Analyzer | null): Analyzer {
+  if (!base) return raw;
+  const out = { ...raw } as Analyzer;
+  for (const k of ANALYZER_SUMS) out[k] = Math.max(0, (raw[k] ?? 0) - (base[k] ?? 0));
+  out.balance = out.lootGold + out.capturesGold - out.supplyGold;
+  const h = out.seconds / 3600;
+  out.goldPerHour = h > 0 ? out.balance / h : 0;
+  out.xpPerHour = h > 0 ? out.xpGained / h : 0;
+  out.killsPerHour = h > 0 ? out.kills / h : 0;
+  // drops tambem sao cumulativos, item a item: sobra so o que caiu depois da base
+  const before = new Map((base.drops ?? []).map((d) => [d.itemId, d]));
+  out.drops = (raw.drops ?? [])
+    .map((d) => { const b = before.get(d.itemId); return b ? { ...d, qty: d.qty - b.qty, gold: d.gold - b.gold } : d; })
+    .filter((d) => d.qty > 0);
+  return out;
+}
+
+// o jogo zerou o analyzer por conta propria (reconexao): algum acumulado veio MENOR que a base
+const analyzerZeroed = (raw: Analyzer, base: Analyzer) =>
+  ANALYZER_SUMS.some((k) => (raw[k] ?? 0) < (base[k] ?? 0));
+
 class GameSession {
   // barramento de eventos pro stream SSE: emit("change", topic) a cada mudanca de estado.
   // topic "hunt" = analyzer/kills/vendas mudaram; "session" = status/modo/reconexao mudou.
@@ -190,6 +220,15 @@ class GameSession {
   private since: number | null = null;
   private updatedAt: number | null = null;
   private analyzer: Analyzer | null = null;
+  // O analyzer do JOGO e por CONEXAO, nao por hunt: `enter-hunt` NAO zera nada (so
+  // reconectar zera). Trocar de hunt na sessao segurada (manual -> auto, ou o cerebro
+  // trocando de faixa) deixava os numeros da hunt anterior colados na hunt nova — e o
+  // logSummary ainda relancava o acumulado INTEIRO no totalizador (dupla contagem no
+  // dashboard de Estatisticas). Bug do "liguei o auto e a hunt do Abra continuou",
+  // ago/2026. Solucao: guarda uma BASE (o frame no marco zero da hunt) e o que a UI,
+  // o logSummary e os totais veem e sempre o DELTA em cima dela.
+  private analyzerBase: Analyzer | null = null;
+  private analyzerRebase = false; // proximo frame vira a base (hunt nova comecou)
   private recentKills: KillLog[] = [];
   private pending: PendingCatch[] = []; // fila de captura ao vivo (frame pending)
   private soldItems: SoldItem[] = [];
@@ -495,6 +534,14 @@ class GameSession {
     };
   }
 
+  // Comeco de hunt: o proximo frame do analyzer vira a BASE (o jogo segue contando do
+  // trecho anterior). Ate ele chegar, a UI mostra "—" em vez dos numeros da hunt velha.
+  private rebaseAnalyzer() {
+    this.analyzerBase = null;
+    this.analyzerRebase = true;
+    this.analyzer = null;
+  }
+
   private ctx(userId: string, tokens: Tokens, shard: number, onTokens: (t: Tokens) => Promise<void>) {
     this.userId = userId; this.tokens = tokens; this.shard = shard; this.onTokens = onTokens;
   }
@@ -508,7 +555,8 @@ class GameSession {
     this.inv.clear();
     // trocar de hunt zera o que foi vendido NA HUNT (itens e pokemon por raridade). O
     // totalizador cumulativo (robot_sales) NAO zera — vive no banco.
-    this.analyzer = null; this.recentKills = []; this.soldItems = []; this.poke.soldBySpecies = {}; this.summaryLogged = false;
+    this.rebaseAnalyzer();
+    this.recentKills = []; this.soldItems = []; this.poke.soldBySpecies = {}; this.summaryLogged = false;
     this.pending = [];
     this.clearContested(); // acao do usuario (comecar hunt) religa se estava pausado
     this.desiredOn = true;
@@ -688,7 +736,7 @@ class GameSession {
     this.ws = null;
     this.clearTimers();
     try { oldWs.close(); } catch { /* ja caiu */ }
-    this.analyzer = null;
+    this.analyzer = null; this.analyzerBase = null;
     this.summaryLogged = false; // o proximo trecho gera o proprio resumo ao fechar
     this.connect();    // reabre AGORA (snapshot novo -> autohelper nova; enter-hunt no open)
     return true;
@@ -730,6 +778,8 @@ class GameSession {
     if (!this.tokens) return;
     this.setStatus("connecting");
     this.since = Date.now(); this.updatedAt = null;
+    // conexao nova = analyzer do jogo zerado: sem base, o frame JA e so desta hunt
+    this.analyzerBase = null; this.analyzerRebase = false;
     const url = `${WS_BASE}/ws${this.shard}?token=${encodeURIComponent(this.tokens.access)}&cmid=${crypto.randomBytes(16).toString("hex")}`;
     let ws: WebSocket;
     try {
@@ -803,7 +853,12 @@ class GameSession {
     let m: Record<string, unknown>;
     try { m = JSON.parse(typeof ev.data === "string" ? ev.data : String(ev.data)); } catch { return; }
     if (m.type === "analyzer") {
-      this.analyzer = m as unknown as Analyzer; this.updatedAt = Date.now();
+      const raw = m as unknown as Analyzer;
+      // marco zero da hunt nova; senao, se o jogo zerou sozinho (reconexao), larga a base
+      if (this.analyzerRebase) { this.analyzerBase = raw; this.analyzerRebase = false; }
+      else if (this.analyzerBase && analyzerZeroed(raw, this.analyzerBase)) this.analyzerBase = null;
+      this.analyzer = analyzerDelta(raw, this.analyzerBase);
+      this.updatedAt = Date.now();
       this.emit("hunt");
     } else if (m.type === "field-kill") {
       if (!this.slug) return; // hunt desligada: ignora kills (o char ainda pode estar saindo do campo)
@@ -933,12 +988,12 @@ class GameSession {
   }
 
   // troca de hunt NA MESMA conexao (enter-hunt), atualizando alvo/drops. Mantem o feed de
-  // kills (a sensacao e de continuidade); o analyzer zera porque e por-campo.
+  // kills (a sensacao e de continuidade); o analyzer rebaseia (o do jogo nao zera sozinho).
   private async switchHunt(slug: string, targetId: number, why: string) {
     this.logSummary(); // fecha o resumo da faixa anterior antes de trocar o slug
     this.slug = slug; this.currentTargetId = targetId;
     try { this.sellIds = new Set((await getBrainData()).sellableLoot(targetId)); } catch { /* mantem a lista atual */ }
-    this.analyzer = null; this.summaryLogged = false; this.inv.clear(); this.pending = [];
+    this.rebaseAnalyzer(); this.summaryLogged = false; this.inv.clear(); this.pending = [];
     if (this.ws) { this.enterHunt(slug); this.refreshTimers(); }
     if (this.userId) void logRobotEvent(this.userId, { kind: "brain", title: `Robo trocou de hunt: ${slug}`, body: why, data: { slug, targetId } });
     this.persistDesired({ slug, sellItemIds: [...this.sellIds] });
@@ -1341,6 +1396,7 @@ class GameSession {
     if (this.ws) { try { this.ws.close(); } catch {} this.ws = null; }
     this.inv.clear(); this.pending = [];
     this.since = null; this.updatedAt = null;
+    this.analyzerBase = null; this.analyzerRebase = false;
     this.setStatus("idle");
     this.emit("hunt");
   }
@@ -1350,7 +1406,7 @@ class GameSession {
 // SESSION_REV: bump SEMPRE que a classe ganhar/mudar metodo — no dev, o hot-reload
 // re-avalia o modulo mas a instancia antiga (prototype velho) fica presa no globalThis;
 // sem o rev, chamar um metodo novo dava "is not a function" ate reiniciar o server.
-const SESSION_REV = 16;
+const SESSION_REV = 17;
 const g = globalThis as unknown as { __piwSession?: GameSession; __piwSessionRev?: number };
 if (!g.__piwSession || g.__piwSessionRev !== SESSION_REV) {
   // silencia a instancia velha SEM persistir nada (stop() gravaria enabled=false no banco
