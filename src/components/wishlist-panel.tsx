@@ -398,6 +398,28 @@ function WishBlock({
   const safePage = Math.min(page, pageCount - 1);
   const paged = matches.slice(safePage * MATCH_PAGE, safePage * MATCH_PAGE + MATCH_PAGE);
 
+  // O alerta e o RETRATO do momento em que o anuncio casou — e alerta criado antes dos
+  // stats existirem nasceu sem eles, o que fazia o modal cair nos stats BASE da especie
+  // (todos os Alakazam iguais). Aqui a pagina aberta relê os anuncios VIVOS por listingId
+  // e o retrato so preenche o que o mercado nao respondeu mais (anuncio vendido).
+  const [live, setLive] = useState<Record<string, MarketMon>>({});
+  const pageIds = paged
+    .map((n) => String(((n.data ?? {}) as Record<string, unknown>).listingId ?? ""))
+    .filter(Boolean)
+    .join(",");
+  useEffect(() => {
+    if (!expanded || !pageIds) return;
+    let alive = true;
+    void fetch(`/api/market?ids=${encodeURIComponent(pageIds)}`, { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j: { mons?: MarketMon[] } | null) => {
+        if (!alive || !j?.mons?.length) return;
+        setLive((prev) => ({ ...prev, ...Object.fromEntries(j.mons!.map((m) => [m.listingId, m])) }));
+      })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [expanded, pageIds]);
+
   return (
     <div id={`wish-${w.id}`} className={`card p-3 sm:p-4 ${w.active ? "" : "opacity-60"}`}>
       {/* em 360px o cabecalho carrega chevron + tile + texto + liga/desliga + excluir:
@@ -454,7 +476,8 @@ function WishBlock({
                     />
                   );
                 }
-                const mon = monFromNotif(n, nameOf(Number((n.data ?? {}).speciesId ?? 0)));
+                const snap = monFromNotif(n, nameOf(Number((n.data ?? {}).speciesId ?? 0)));
+                const mon = live[snap.listingId] ?? snap;
                 return (
                   <MarketMonCard
                     key={n.id}

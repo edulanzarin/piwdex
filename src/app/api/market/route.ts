@@ -77,6 +77,25 @@ export async function GET(req: Request) {
   // INTEIRO (todas as especies), pra "ta caro?" nao depender do punhado filtrado.
   const { creatures } = await getData();
   const { model: priceModel, ceilOf } = await marketPriceModel(loaded.mons);
+  const withFair = (m: MarketMon): MarketMon => ({
+    ...m,
+    fairPrice: fairPriceOf(
+      { speciesId: m.speciesId, currency: m.currency, price: m.price, ceil: ceilOf(m), quality: m.quality, shiny: m.shiny },
+      priceModel,
+    ),
+  });
+
+  // ---- ANUNCIOS POR ID (?ids=a,b,c): o alerta guardado so tem o retrato do momento em
+  // que casou, e alerta antigo nasceu sem os stats do individuo. Quem tem o listingId
+  // relê o anuncio VIVO daqui (mesmo cache de 60s) em vez de mostrar dado velho — e o
+  // que sumiu do mercado simplesmente nao volta na lista. ----
+  const idsParam = q.get("ids");
+  if (idsParam) {
+    const want = new Set(idsParam.split(",").map((x) => x.trim()).filter(Boolean).slice(0, 60));
+    const found = loaded.mons.filter((m) => want.has(m.listingId)).map(withFair);
+    if (loaded.changed) await updateGameTokens(session.user.id, loaded.tokens);
+    return NextResponse.json({ connected: true, mons: found, total: found.length });
+  }
 
   let mons = loaded.mons;
   if (sp != null) mons = mons.filter((m) => m.speciesId === sp);
@@ -111,14 +130,7 @@ export async function GET(req: Request) {
     }
   };
   mons = [...mons].sort((a, b) => rank(b) - rank(a) || a.price - b.price).slice(0, 120);
-  // Anexa o preco justo estimado (motor acima) em cada anuncio retornado.
-  mons = mons.map((m) => ({
-    ...m,
-    fairPrice: fairPriceOf(
-      { speciesId: m.speciesId, currency: m.currency, price: m.price, ceil: ceilOf(m), quality: m.quality, shiny: m.shiny },
-      priceModel,
-    ),
-  }));
+  mons = mons.map(withFair); // preco justo estimado (motor acima) em cada anuncio
 
   if (loaded.changed) await updateGameTokens(session.user.id, loaded.tokens);
   return NextResponse.json({ connected: true, mons, total: loaded.mons.length });

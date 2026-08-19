@@ -258,7 +258,9 @@ export function MarketMonModal({ mon, dex, onClose, onBought }: { mon: MarketMon
   const breeding = isBreedingStock(mon.quality) && genes === "great";
 
   return (
-    <Modal onClose={onClose} className="w-full max-w-md gap-5 p-4 sm:p-5">
+    // max-w-lg (512px): o modal carrega preco de 8+ digitos no botao de compra e a regua
+    // de stats ao lado do IV — no max-w-md a linha "COMPRAR POR 10.000.000" espremia
+    <Modal onClose={onClose} className="w-full max-w-lg gap-5 p-4 sm:p-5">
         {/* Cabecalho */}
         <div className="flex flex-col gap-3">
           <div className="flex items-center gap-3 sm:gap-4">
@@ -347,21 +349,22 @@ export function MarketMonModal({ mon, dex, onClose, onBought }: { mon: MarketMon
           quality={mon.quality}
         />
 
+        {/* So a compra: o "ver na dex" disputava a linha com o preco e o modal existe pra
+            decidir a COMPRA — a dex esta a um clique no card, atras. */}
         <div className="flex flex-wrap items-center gap-2">
           {buyable && !confirming && (
-            <button type="button" onClick={() => setConfirming(true)} className="btn btn-green">
+            <button type="button" onClick={() => setConfirming(true)} className="btn btn-green w-full">
               {t("market.buy.for")} <Price currency={mon.currency} value={mon.price} />
             </button>
           )}
           {buyable && confirming && (
             <>
-              <button type="button" onClick={() => void doBuy()} disabled={busy} className="btn btn-green disabled:opacity-40">
+              <button type="button" onClick={() => void doBuy()} disabled={busy} className="btn btn-green flex-1 disabled:opacity-40">
                 <Check size={14} /> {busy ? "…" : t("market.buy.confirm")}
               </button>
-              <button type="button" onClick={() => setConfirming(false)} disabled={busy} className="btn btn-ghost disabled:opacity-40">{t("market.buy.cancel")}</button>
+              <button type="button" onClick={() => setConfirming(false)} disabled={busy} className="btn btn-ghost shrink-0 disabled:opacity-40">{t("market.buy.cancel")}</button>
             </>
           )}
-          <a href={`/dex/${mon.speciesId}`} className="btn btn-cyan ms-auto">{t("account.market.viewDex")} <ChevronRight size={14} /></a>
         </div>
     </Modal>
   );
