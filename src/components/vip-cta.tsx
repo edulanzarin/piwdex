@@ -2,19 +2,19 @@
 
 // Chamariz pra quem NAO e VIP: UM card no fim da pagina (ultimo bloco, no fluxo normal —
 // so aparece quando voce rola ate la embaixo, sem nada fixo tapando a tela). Dois caminhos:
-//   - ASSINAR VIP -> /vip (libera o robo).
-//   - JOGAR COM MEU LINK -> abre o jogo pela indicacao do Eduardo (quem entra por ali
-//     fortalece a conta que move o piwdex). Link de indicacao publico, confirmado por ele.
+//   - ADQUIRIR O BOT -> /vip.
+//   - APOIAR COM O CODIGO -> quem nao vai assinar ainda ajuda usando o codigo do Eduardo
+//     ao comprar diamante no jogo (nao custa nada a mais pro jogador).
+// O argumento NAO e "caca sozinho": o jogo ja e idle. O argumento e VELOCIDADE.
 // Some na propria area VIP e nas telas de login/conexao, e pra quem ja e VIP.
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useT } from "./locale-provider";
 import { Star, ChevronRight } from "./icons";
+import { SUPPORT_CODE, SUPPORT_URL } from "@/lib/support";
 
 const HIDDEN = ["/vip", "/entrar", "/criar-conta", "/conectar"];
-// Link de indicacao do Poke Idle World (codigo do Eduardo). Trocar aqui se o codigo mudar.
-const REF_URL = "https://poke.idleworld.online/?ref=DQVF6Q2";
 
 export function VipCta({ vip }: { vip: boolean }) {
   const t = useT();
@@ -45,13 +45,13 @@ export function VipCta({ vip }: { vip: boolean }) {
             lado a lado so a partir do sm — sem flex-wrap mudando a altura */}
         <div className="flex w-full shrink-0 flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
           <a
-            href={REF_URL}
+            href={SUPPORT_URL}
             target="_blank"
             rel="noopener noreferrer"
             className="btn btn-ghost w-full sm:w-auto"
             title={t("vipcta.playHint")}
           >
-            {t("vipcta.play")} <ChevronRight size={14} />
+            {t("vipcta.play")} <span className="pixel tracking-widest">{SUPPORT_CODE}</span>
           </a>
           <Link href="/vip" className="btn btn-yellow w-full sm:w-auto">
             {t("vipcta.btn")} <ChevronRight size={14} />

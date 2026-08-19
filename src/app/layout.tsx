@@ -3,6 +3,7 @@ import { JetBrains_Mono, Quantico } from "next/font/google";
 import { LocaleProvider } from "@/components/locale-provider";
 import { SiteNav } from "@/components/site-nav";
 import { VipCta } from "@/components/vip-cta";
+import { SupportBadge } from "@/components/support-badge";
 import { auth } from "@/lib/auth";
 import "./globals.css";
 
@@ -42,8 +43,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body className="min-h-screen">
         <LocaleProvider>
           <SiteNav user={user} />
-          <main className="container-page py-10">{children}</main>
+          {/* pb maior que o normal: o balao de apoio e fixo no canto de baixo e nao pode
+              cobrir o fim do conteudo */}
+          <main className="container-page pb-24 pt-10">{children}</main>
           <VipCta vip={user?.vip ?? false} />
+          {/* balao fixo de apoio: vale pra todo mundo, VIP inclusive */}
+          <SupportBadge />
         </LocaleProvider>
       </body>
     </html>
