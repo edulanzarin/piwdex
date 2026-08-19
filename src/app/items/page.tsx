@@ -11,8 +11,7 @@ export default async function ItemsPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <p className="eyebrow"><T k="items.eyebrow" /></p>
-        <h1 className="pixel mt-1 text-3xl break-words" style={{ color: "var(--green)" }}><T k="items.title" /></h1>
+        <h1 className="pixel text-3xl break-words" style={{ color: "var(--green)" }}><T k="items.title" /></h1>
         {/* mesma medida das outras ferramentas (hunt/calc/breed/eevee): base 16px,
             largura de leitura fechada em max-w-2xl */}
         <p className="mt-3 max-w-2xl text-base text-text-dim">

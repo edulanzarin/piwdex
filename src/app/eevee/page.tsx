@@ -50,11 +50,10 @@ export default async function EeveePage() {
   return (
     <div className="flex flex-col gap-6">
       {/* Cabecalho da ferramenta: sem a moldura colorida quem da corpo e o vidro do
-          card — eyebrow, titulo e descricao ficam num painel so, e o conteudo
+          card — titulo e descricao ficam num painel so, e o conteudo
           abaixo (cards) nao fica solto na pagina. */}
       <header className="card p-5 sm:p-6">
-        <p className="eyebrow"><T k="eevee.eyebrow" /></p>
-        <h1 className="pixel mt-1 text-3xl [overflow-wrap:anywhere]" style={{ color: "var(--cyan)" }}><T k="eevee.title" /></h1>
+        <h1 className="pixel text-3xl [overflow-wrap:anywhere]" style={{ color: "var(--cyan)" }}><T k="eevee.title" /></h1>
         <p className="mt-3 max-w-2xl text-base text-text-dim"><T k="eevee.desc" /></p>
         <Link href={`/dex/${EEVEE_ID}`} className="mt-1 inline-flex min-h-10 items-center gap-1 text-base uppercase tracking-wide text-cyan hover:underline">
           <T k="eevee.backDex" /> <ChevronRight size={16} />
