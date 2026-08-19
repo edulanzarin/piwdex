@@ -39,6 +39,8 @@ export interface LiveLeveling {
   pokeId: string; speciesId: number; name: string;
   startLevel: number; targetLevel: number; currentLevel: number; done: boolean;
 }
+/** Plano que ainda nao comecou (fila): so alvo, sem nivel de partida. */
+export interface LiveQueuedGoal { pokeId: string; speciesId: number; name: string; targetLevel: number }
 
 export interface LiveHunt {
   status: LiveStatus; error?: string;
@@ -47,6 +49,7 @@ export interface LiveHunt {
   pending: LivePending[];
   autoSellCount: number; pokeSellOn: boolean;
   mode: LiveMode; leveling: LiveLeveling | null; plan: LivePlanStep[] | null;
+  queue: LiveQueuedGoal[];     // proximos planos (comecam sozinhos quando o atual fecha)
   desiredOn: boolean; reconnecting: boolean; nextRetryAt: number | null;
   contested: boolean;          // pausou porque a conta foi tomada (usuario entrou no jogo)
   fighterLevel: number | null;

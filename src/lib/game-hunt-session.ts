@@ -22,8 +22,8 @@ import {
   type PlanStep, type FighterProfile,
 } from "./hunt-brain";
 import {
-  saveRobotDesired, saveRobotStatus, getRobotDesired,
-  type RobotMode, type LevelingGoal, type RobotDesired, type AnnounceCfg,
+  saveRobotDesired, saveRobotStatus, getRobotDesired, MAX_GOALS,
+  type RobotMode, type LevelingGoal, type QueuedGoal, type RobotDesired, type AnnounceCfg,
 } from "./robot-session-store";
 import { sellItems, sellPokes, fetchShop, buyBall, buyItem, fetchInventory, fetchLocks, gameErrorMsg } from "./game-shop";
 import { readAuto, parseBalls } from "./game-auto";
@@ -130,6 +130,7 @@ export interface HuntState {
   mode: RobotMode;
   leveling: LevelingGoal | null;
   plan: PlanStep[] | null;
+  queue: QueuedGoal[];         // planos que comecam sozinhos quando o atual fecha
   desiredOn: boolean;          // usuario quer o robo rodando (religa sozinho)
   reconnecting: boolean;       // ha tentativa de reconexao agendada
   nextRetryAt: number | null;  // quando a proxima tentativa dispara
@@ -281,6 +282,9 @@ class GameSession {
   // conexao-primeiro: "ligar o robo" = tomar a sessao da conta e SEGURAR, mesmo sem hunt.
   // Hunt/venda viram jobs em cima da conexao viva; parar a hunt nao derruba a conexao.
   private holdOpen = false;
+  // FILA de planos: quando o plano corrente fecha, o proximo daqui comeca sozinho
+  // (summon do bicho + rota nova). Ate MAX_GOALS no total, contando o que ja roda.
+  private queue: QueuedGoal[] = [];
   private healSentAt = 0;        // ultimo joy-heal enviado (anti-flood)
   private healPending = false;   // curou COM alguem caido e espera o HP voltar
   private healNoticed = false;   // ja avisou deste desmaio (1 alerta por episodio)
@@ -347,7 +351,7 @@ class GameSession {
       status: this.status, error: this.error, slug: this.slug, since: this.since, updatedAt: this.updatedAt,
       analyzer: this.analyzer, recentKills: this.recentKills.slice(0, 50), soldItems: this.soldItems.slice(0, 30),
       pending: this.pending, autoSellCount: this.sellIds.size, pokeSellOn: this.pokeCfg != null,
-      mode: this.mode, leveling: this.leveling, plan: this.plan,
+      mode: this.mode, leveling: this.leveling, plan: this.plan, queue: this.queue,
       desiredOn: this.desiredOn, reconnecting: this.reconnectTimer != null, nextRetryAt: this.nextRetryAt,
       contested: this.contested,
       fighterLevel: this.fighter?.level ?? null,
@@ -379,10 +383,11 @@ class GameSession {
     this.cancelReconnect();
     this.slug = null; this.sellIds.clear(); this.pokeCfg = null; this.poke.on = false;
     this.mode = "manual"; this.leveling = null; this.plan = null; this.currentTargetId = null; this.fighter = null;
+    this.queue = [];
     this.analyzer = null; this.recentKills = []; this.soldItems = []; this.poke.soldBySpecies = {};
     // NAO apaga poke_sell_cfg: desligar o robo nao e "desligar a venda" — a config do
     // usuario sobrevive e religa junto com a proxima conexao/hunt.
-    this.persistDesired({ enabled: false, mode: "manual", slug: null, leveling: null });
+    this.persistDesired({ enabled: false, mode: "manual", slug: null, leveling: null, levelingQueue: [] });
     this.teardown();
   }
 
@@ -577,9 +582,9 @@ class GameSession {
 
   // liga/atualiza o job de HUNT em modo MANUAL (o usuario escolheu a hunt)
   setHunt(userId: string, tokens: Tokens, shard: number, slug: string, sellItemIds: number[], onTokens: (t: Tokens) => Promise<void>) {
-    this.mode = "manual"; this.leveling = null; this.plan = null; this.currentTargetId = null;
+    this.mode = "manual"; this.leveling = null; this.plan = null; this.currentTargetId = null; this.queue = [];
     this.beginHunt(userId, tokens, shard, slug, sellItemIds, onTokens);
-    this.persistDesired({ enabled: true, mode: "manual", slug, sellItemIds, leveling: null });
+    this.persistDesired({ enabled: true, mode: "manual", slug, sellItemIds, leveling: null, levelingQueue: [] });
   }
 
   /** Modo AUTO: o cerebro escolhe a melhor hunt pro pokemon dado (lider) e vai. Re-escolhe
@@ -587,11 +592,11 @@ class GameSession {
   async startAuto(userId: string, tokens: Tokens, shard: number, onTokens: (t: Tokens) => Promise<void>, fighter: FighterProfile) {
     const pick = await pickBestHunt(fighter, true);
     if (!pick) return null;
-    this.mode = "auto"; this.leveling = null; this.plan = null;
+    this.mode = "auto"; this.leveling = null; this.plan = null; this.queue = [];
     this.fighter = fighter; this.currentTargetId = pick.target.pokeId;
     const sellIds = (await getBrainData()).sellableLoot(pick.target.pokeId);
     this.beginHunt(userId, tokens, shard, pick.target.slug, sellIds, onTokens);
-    this.persistDesired({ enabled: true, mode: "auto", slug: pick.target.slug, sellItemIds: sellIds, leveling: null });
+    this.persistDesired({ enabled: true, mode: "auto", slug: pick.target.slug, sellItemIds: sellIds, leveling: null, levelingQueue: [] });
     if (this.userId) void logRobotEvent(this.userId, {
       kind: "brain", title: `Auto-hunt: ${pick.target.huntName}`,
       body: `${pick.target.name} · ~${Math.round(pick.est.xpH).toLocaleString("pt-BR")} XP/h`,
@@ -605,9 +610,11 @@ class GameSession {
   async startLeveling(
     userId: string, tokens: Tokens, shard: number, onTokens: (t: Tokens) => Promise<void>,
     fighter: FighterProfile, goal: { pokeId: string; name: string; targetLevel: number },
+    queue: QueuedGoal[] = [],
   ) {
     const plan = await buildLevelPlan(fighter, goal.targetLevel, true);
     if (!plan.length) return null;
+    this.queue = queue.slice(0, MAX_GOALS - 1);
     const step = stepForLevel(plan, fighter.level)!;
     this.mode = "leveling"; this.fighter = fighter; this.plan = plan; this.currentTargetId = step.targetId;
     this.leveling = {
@@ -616,11 +623,12 @@ class GameSession {
     };
     const sellIds = (await getBrainData()).sellableLoot(step.targetId);
     this.beginHunt(userId, tokens, shard, step.slug, sellIds, onTokens);
-    this.persistDesired({ enabled: true, mode: "leveling", slug: step.slug, sellItemIds: sellIds, leveling: this.leveling });
+    this.persistDesired({ enabled: true, mode: "leveling", slug: step.slug, sellItemIds: sellIds, leveling: this.leveling, levelingQueue: this.queue });
     if (this.userId) void logRobotEvent(this.userId, {
       kind: "brain", title: `Plano de leveling: ${goal.name} ${fighter.level} -> ${goal.targetLevel}`,
-      body: `${plan.length} etapa${plan.length > 1 ? "s" : ""} · comeca em ${step.huntName}`,
-      data: { targetLevel: goal.targetLevel, steps: plan.length },
+      body: `${plan.length} etapa${plan.length > 1 ? "s" : ""} · comeca em ${step.huntName}`
+        + (this.queue.length ? ` · +${this.queue.length} na fila` : ""),
+      data: { targetLevel: goal.targetLevel, steps: plan.length, queued: this.queue.length },
     });
     return { plan, step };
   }
@@ -629,6 +637,7 @@ class GameSession {
   async resume(userId: string, tokens: Tokens, shard: number, onTokens: (t: Tokens) => Promise<void>, d: RobotDesired, fighter: FighterProfile | null) {
     this.ctx(userId, tokens, shard, onTokens);
     this.mode = d.mode; this.leveling = d.leveling; this.fighter = fighter;
+    this.queue = d.mode === "leveling" ? d.levelingQueue : []; // a fila volta com o plano
     // config salva com on:false NAO religa a venda (as travas ficam guardadas, so isso)
     if (pokeSellOn(d.pokeSellCfg)) { this.pokeCfg = d.pokeSellCfg; this.poke.on = true; this.baselineIds = null; }
     if (d.autobuy) this.setAutoBuy(userId, tokens, true, onTokens);
@@ -668,11 +677,12 @@ class GameSession {
     this.slug = null; this.sellIds.clear(); this.inv.clear();
     this.analyzer = null; this.recentKills = []; this.soldItems = []; this.poke.soldBySpecies = {};
     this.mode = "manual"; this.leveling = null; this.plan = null; this.currentTargetId = null; this.fighter = null;
+    this.queue = []; // parar a hunt cancela a fila (ela e da hunt, nao da conexao)
     // A VENDA DE POKEMON NAO MORRE AQUI: parar a hunt parava a venda e ainda APAGAVA a
     // config do banco — a proxima hunt nascia sem venda e tudo ia pro acervo (bug dos
     // uncommon vendaveis "mantidos", ago/2026). Com a conexao segurada a venda continua;
     // sem conexao, a config persiste e religa no proximo start.
-    this.persistDesired({ enabled: this.holdOpen, mode: "manual", slug: null, leveling: null });
+    this.persistDesired({ enabled: this.holdOpen, mode: "manual", slug: null, leveling: null, levelingQueue: [] });
     if (this.holdOpen) { this.refreshTimers(); this.emit("hunt"); this.emit("session"); return; }
     this.desiredOn = false;
     this.cancelReconnect();
@@ -709,8 +719,9 @@ class GameSession {
     this.desiredOn = false; this.cancelReconnect();
     this.slug = null; this.sellIds.clear(); this.pokeCfg = null; this.pokeSellBlocked.clear();
     this.mode = "manual"; this.leveling = null; this.plan = null; this.currentTargetId = null; this.fighter = null;
+    this.queue = [];
     // poke_sell_cfg fica no banco (so o interruptor da venda apaga/desliga a config)
-    this.persistDesired({ enabled: false, mode: "manual", slug: null, leveling: null });
+    this.persistDesired({ enabled: false, mode: "manual", slug: null, leveling: null, levelingQueue: [] });
     this.teardown();
   }
 
@@ -1021,11 +1032,16 @@ class GameSession {
           this.leveling.done = true;
           void logRobotEvent(this.userId, {
             kind: "goal", title: `Meta atingida: ${this.leveling.name} chegou ao nivel ${level}!`,
-            body: `Plano ${this.leveling.startLevel} -> ${this.leveling.targetLevel} concluido`,
-            data: { level, pokeId: this.leveling.pokeId },
+            body: `Plano ${this.leveling.startLevel} -> ${this.leveling.targetLevel} concluido`
+              + (this.queue.length ? ` · proximo da fila: ${this.queue[0].name}` : ""),
+            data: { level, pokeId: this.leveling.pokeId, queued: this.queue.length },
           });
+          // FILA: em vez de cair direto no auto, comeca o proximo plano (summon + rota
+          // nova). Sem fila (ou se nenhum da fila servir), o auto assume — o robo nunca
+          // fica parado depois de bater a meta.
+          if (await this.nextGoal()) { this.emit("session"); return; }
           this.mode = "auto"; this.plan = null;
-          this.persistDesired({ mode: "auto", leveling: this.leveling });
+          this.persistDesired({ mode: "auto", leveling: this.leveling, levelingQueue: [] });
           // cai no bloco do modo auto abaixo (re-escolhe a hunt pro nivel atual)
         } else if (this.plan) {
           const step = stepForLevel(this.plan, level);
@@ -1046,6 +1062,48 @@ class GameSession {
       }
       this.emit("session");
     } catch { /* cerebro nunca derruba a sessao */ } finally { this.thinking = false; }
+  }
+
+  /** Puxa o proximo plano da fila e comeca: troca o LIDER (quem caca e quem upa), monta a
+   *  rota do nivel atual e entra na primeira faixa. Plano invalido (bicho saiu do time, ja
+   *  passou do nivel, sem rota) e PULADO com alerta, em vez de travar a fila inteira.
+   *  false = nao sobrou nada pra comecar. */
+  private async nextGoal(): Promise<boolean> {
+    while (this.queue.length) {
+      const next = this.queue.shift()!;
+      const poke = this.liveTeam?.find((p) => p.id === next.pokeId);
+      const skip = (why: string) => {
+        if (this.userId) void logRobotEvent(this.userId, {
+          kind: "error", title: `Plano de ${next.name} pulado`, body: why,
+          data: { pokeId: next.pokeId, targetLevel: next.targetLevel },
+        });
+      };
+      if (!poke) { skip("O pokemon nao esta mais no time (guardado, vendido ou trocado)."); continue; }
+      if (poke.level >= next.targetLevel) { skip(`Ja estava no nivel ${poke.level}, na meta ${next.targetLevel} ou acima.`); continue; }
+
+      const fighter: FighterProfile = { speciesId: poke.speciesId, level: poke.level, ivTotal: poke.ivTotal, quality: poke.quality };
+      const plan = await buildLevelPlan(fighter, next.targetLevel, true).catch(() => []);
+      const step = plan.length ? stepForLevel(plan, fighter.level) : null;
+      if (!step) { skip("O cerebro nao achou rota pra esse alvo."); continue; }
+
+      // quem upa e quem caca: o proximo da fila vira o LIDER antes de entrar no campo
+      if (!poke.leader) this.summonActive(next.pokeId);
+      this.mode = "leveling"; this.fighter = fighter; this.plan = plan;
+      this.leveling = {
+        pokeId: next.pokeId, speciesId: poke.speciesId, name: next.name,
+        startLevel: poke.level, targetLevel: next.targetLevel, currentLevel: poke.level, done: false,
+      };
+      await this.switchHunt(step.slug, step.targetId, `Fila: comecou o plano de ${next.name} ate o nivel ${next.targetLevel}`);
+      this.persistDesired({ mode: "leveling", leveling: this.leveling, levelingQueue: this.queue });
+      if (this.userId) void logRobotEvent(this.userId, {
+        kind: "goal", title: `Proximo da fila: ${next.name} ${poke.level} -> ${next.targetLevel}`,
+        body: `${plan.length} etapa${plan.length > 1 ? "s" : ""} · comeca em ${step.huntName}`
+          + (this.queue.length ? ` · ainda ${this.queue.length} na fila` : ""),
+        data: { pokeId: next.pokeId, targetLevel: next.targetLevel, steps: plan.length },
+      });
+      return true;
+    }
+    return false;
   }
 
   // troca de hunt NA MESMA conexao (enter-hunt), atualizando alvo/drops. Mantem o feed de
@@ -1467,7 +1525,7 @@ class GameSession {
 // SESSION_REV: bump SEMPRE que a classe ganhar/mudar metodo — no dev, o hot-reload
 // re-avalia o modulo mas a instancia antiga (prototype velho) fica presa no globalThis;
 // sem o rev, chamar um metodo novo dava "is not a function" ate reiniciar o server.
-const SESSION_REV = 18;
+const SESSION_REV = 19;
 const g = globalThis as unknown as { __piwSession?: GameSession; __piwSessionRev?: number };
 if (!g.__piwSession || g.__piwSessionRev !== SESSION_REV) {
   // silencia a instancia velha SEM persistir nada (stop() gravaria enabled=false no banco

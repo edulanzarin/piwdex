@@ -12,7 +12,7 @@
 import { useMemo, useState } from "react";
 import { useT } from "./locale-provider";
 import { useVipLive, type LiveHunt, type LivePlanStep, type LiveTeamPoke } from "./vip-live";
-import { Coin, Star, Xp, Skull, Clock, Check, ChevronRight, Brain, Flag, Target } from "./icons";
+import { Coin, Star, Xp, Skull, Clock, Check, ChevronRight, Brain, Flag, Target, Plus, Close } from "./icons";
 import { Modal } from "./modal";
 import { CloseButton } from "./icon-button";
 import { Sprite } from "./sprite";
@@ -29,6 +29,7 @@ export interface HuntOption { slug: string; name: string; level: number; area: s
 // Um drop vendavel daquela hunt (pro modal de venda automatica ao ligar).
 export interface DropOption { itemId: number; name: string; icon: string; npcPrice: number }
 
+const MAX_PLANS = 3; // espelha MAX_GOALS do servidor (robot-session-store)
 const fmt = (n: number) => Math.round(n).toLocaleString("pt-BR");
 // numeros grandes (xp/h, ouro/h) em notacao compacta: o slot nao estica quando o valor cresce
 const compactFmt = new Intl.NumberFormat("pt-BR", { notation: "compact", maximumFractionDigits: 1 });
@@ -61,6 +62,9 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
   const [planSteps, setPlanSteps] = useState<LivePlanStep[] | null>(null);
   const [planBusy, setPlanBusy] = useState(false);
   const [planErr, setPlanErr] = useState<string | null>(null);
+  // FILA de planos: o que voce ja empilhou. O plano em edicao (planPoke/planTarget) conta
+  // como o ULTIMO da fila na hora de iniciar — o que esta na tela e o que vai.
+  const [planQueue, setPlanQueue] = useState<{ poke: LiveTeamPoke; target: number; steps: number }[]>([]);
 
   const pokeByName = useMemo(() => {
     const m = new Map<string, number>();
@@ -107,6 +111,7 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
   const mode = st?.mode ?? "manual";
   const lv = st?.leveling ?? null;
   const plan = st?.plan ?? null;
+  const queue = st?.queue ?? [];
 
   // a config de venda NAO viaja mais no start: o servidor aplica a config SALVA (banco)
   // em todo inicio de hunt, venha de onde vier.
@@ -147,15 +152,30 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
     } catch { setPlanErr(t("robo.lv.noRoute")); } finally { setPlanBusy(false); }
   };
 
+  // metas que serao enviadas: a fila + o plano em edicao (se ja tem rota calculada)
+  const planGoals = () => {
+    const list = planQueue.map((g) => ({ pokeId: g.poke.id, targetLevel: g.target }));
+    if (planPoke && planSteps) list.push({ pokeId: planPoke.id, targetLevel: Math.floor(Number(planTarget)) });
+    return list;
+  };
+
+  // empilha o plano em edicao e limpa o formulario pro proximo
+  const queuePlan = () => {
+    if (!planPoke || !planSteps || planQueue.length >= MAX_PLANS - 1) return;
+    setPlanQueue([...planQueue, { poke: planPoke, target: Math.floor(Number(planTarget)), steps: planSteps.length }]);
+    setPlanPoke(null); setPlanTarget(""); setPlanSteps(null); setPlanErr(null);
+  };
+
   const startLeveling = async () => {
-    if (!planPoke || !planSteps) return;
-    const ok = await send({ action: "leveling", pokeId: planPoke.id, targetLevel: Math.floor(Number(planTarget)) }, t("toast.planOn"));
-    if (ok) { setPlanOpen(false); setPlanSteps(null); setPlanPoke(null); setPlanTarget(""); }
+    const goals = planGoals();
+    if (!goals.length) return;
+    const ok = await send({ action: "leveling", goals }, t("toast.planOn"));
+    if (ok) { setPlanOpen(false); setPlanSteps(null); setPlanPoke(null); setPlanTarget(""); setPlanQueue([]); }
   };
 
   const openPlanModal = () => {
     setPlanPoke(team.find((p) => p.leader) ?? team[0] ?? null);
-    setPlanTarget(""); setPlanSteps(null); setPlanErr(null); setPlanOpen(true);
+    setPlanTarget(""); setPlanSteps(null); setPlanErr(null); setPlanQueue([]); setPlanOpen(true);
   };
 
   return (
@@ -301,6 +321,26 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
               </>
             )}
           </div>
+
+          {/* FILA: o que comeca sozinho quando esta meta fechar. Sem fila nao existe
+              secao — o normal e upar um bicho so, e um bloco vazio nao diz nada. */}
+          {queue.length > 0 && (
+            <div className="mt-3 border-t border-border pt-3">
+              <div className="field-label mb-1">{t("robo.lv.nextUp", { n: queue.length })}</div>
+              <div className="flex flex-col gap-1">
+                {queue.map((g, i) => (
+                  <div key={g.pokeId} className="well flex min-w-0 items-center gap-2.5 p-2 text-base opacity-70">
+                    <span className="pixel w-6 shrink-0 text-sm text-purple">{i + 1}</span>
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center">
+                      <Sprite src={spriteUrl(g.speciesId)} alt={g.name} size={24} />
+                    </span>
+                    <span className="min-w-0 flex-1 truncate">{g.name}</span>
+                    <span className="shrink-0 tabular-nums text-purple">Lv{g.targetLevel}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -356,15 +396,18 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
           <div className="mb-3 grid gap-1 sm:grid-cols-2">
             {team.map((p) => {
               const on = planPoke?.id === p.id;
+              // ja empilhado: um plano por pokemon (dois planos do mesmo bicho brigariam)
+              const queued = planQueue.some((g) => g.poke.id === p.id);
               return (
-                <button key={p.id} type="button" onClick={() => { setPlanPoke(p); setPlanSteps(null); setPlanErr(null); }}
-                  className={`flex items-center gap-2 rounded border p-1.5 text-left transition ${on ? "border-[color:var(--purple)] bg-[color:var(--purple)]/10" : "border-border hover:bg-surface-2"}`}>
+                <button key={p.id} type="button" disabled={queued}
+                  onClick={() => { setPlanPoke(p); setPlanSteps(null); setPlanErr(null); }}
+                  className={`flex items-center gap-2 rounded border p-1.5 text-left transition disabled:opacity-35 ${on ? "border-[color:var(--purple)] bg-[color:var(--purple)]/10" : "border-border hover:bg-surface-2"}`}>
                   <span className="relative flex h-8 w-8 shrink-0 items-center justify-center">
                     <Sprite src={spriteUrl(p.speciesId, p.shiny)} alt={p.name} size={28} />
-                    {p.leader && <span className="absolute -right-1.5 -top-1.5 text-yellow"><Star size={14} /></span>}
+                    {p.shiny && <span className="absolute -right-1.5 -top-1.5 text-yellow"><Star size={14} /></span>}
                   </span>
                   <span className="min-w-0 flex-1 truncate text-base">{p.name}</span>
-                  <span className="shrink-0 text-sm tabular-nums text-text-dim">Lv{p.level}</span>
+                  <span className="shrink-0 text-sm tabular-nums text-text-dim">{queued ? t("robo.lv.queued") : `Lv${p.level}`}</span>
                 </button>
               );
             })}
@@ -405,13 +448,42 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
               <p className="slot-empty flex h-full items-center justify-center text-base">—</p>
             )}
           </div>
+          {/* FILA: os planos ja empilhados, na ordem em que vao rodar. So aparece quando
+              tem algo — fila vazia e o caso normal de quem quer upar um bicho so. */}
+          {planQueue.length > 0 && (
+            <div className="mb-3">
+              <div className="field-label mb-1">{t("robo.lv.queue", { n: planQueue.length + 1, max: MAX_PLANS })}</div>
+              <div className="flex flex-col gap-1">
+                {planQueue.map((g, i) => (
+                  <div key={g.poke.id} className="well flex min-w-0 items-center gap-2.5 p-2 text-base">
+                    <span className="pixel w-6 shrink-0 text-sm text-purple">{i + 1}</span>
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center">
+                      <Sprite src={spriteUrl(g.poke.speciesId, g.poke.shiny)} alt={g.poke.name} size={24} />
+                    </span>
+                    <span className="min-w-0 flex-1 truncate">{g.poke.name} <span className="text-text-dim">Lv{g.poke.level}</span> <ChevronRight size={14} className="inline" /> <span className="text-purple">Lv{g.target}</span></span>
+                    <span className="shrink-0 text-sm text-text-dim">{t("robo.lv.route", { n: g.steps })}</span>
+                    <button type="button" onClick={() => setPlanQueue(planQueue.filter((x) => x.poke.id !== g.poke.id))}
+                      title={t("vip.team.cancel")} className="icon-btn shrink-0"><Close size={14} /></button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="flex items-center justify-between gap-2 border-t border-border pt-3">
             <span className={`min-w-0 truncate text-sm ${planSteps ? "text-text-dim" : "slot-empty"}`}>
               {planPoke ? <>{planPoke.name} · Lv{planPoke.level} <ChevronRight size={14} className="inline" /> <span className={planTarget ? "text-purple" : "slot-empty"}>Lv{planTarget || "—"}</span></> : "—"}
             </span>
-            <button type="button" onClick={() => void startLeveling()} disabled={busy || !planSteps} className="btn btn-purple shrink-0 disabled:opacity-40">
-              {t("robo.lv.start")} <ChevronRight size={14} />
-            </button>
+            <span className="flex shrink-0 items-center gap-2">
+              {/* empilhar so faz sentido com rota calculada e espaco na fila */}
+              <button type="button" onClick={queuePlan} disabled={!planSteps || planQueue.length >= MAX_PLANS - 1}
+                className="btn btn-ghost disabled:opacity-40" title={t("robo.lv.queueHint")}>
+                <Plus size={14} /> {t("robo.lv.queueAdd")}
+              </button>
+              <button type="button" onClick={() => void startLeveling()} disabled={busy || planGoals().length === 0} className="btn btn-purple disabled:opacity-40">
+                {t("robo.lv.start")} <ChevronRight size={14} />
+              </button>
+            </span>
           </div>
         </Modal>
       )}

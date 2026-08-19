@@ -19,6 +19,31 @@ export interface LevelingGoal {
   done: boolean;
 }
 
+// Um plano AINDA NAO COMECADO na fila. Nao tem startLevel/currentLevel: eles so existem
+// quando o plano vira o corrente (o nivel de partida e o que o bicho tiver na hora).
+export interface QueuedGoal {
+  pokeId: string;
+  speciesId: number;
+  name: string;
+  targetLevel: number;
+}
+
+export const MAX_GOALS = 3; // o que roda + os que esperam
+
+function normalizeQueue(v: unknown): QueuedGoal[] {
+  if (!Array.isArray(v)) return [];
+  return v
+    .map((g) => (g ?? {}) as Record<string, unknown>)
+    .filter((g) => typeof g.pokeId === "string" && g.pokeId && Number.isFinite(Number(g.targetLevel)))
+    .slice(0, MAX_GOALS - 1)
+    .map((g) => ({
+      pokeId: String(g.pokeId),
+      speciesId: Number(g.speciesId ?? 0),
+      name: String(g.name ?? "?"),
+      targetLevel: Math.floor(Number(g.targetLevel)),
+    }));
+}
+
 export interface AnnounceCfg {
   on: boolean;
   text: string;
@@ -59,6 +84,7 @@ export interface RobotDesired {
   autobuy: boolean;
   supplyCfg: SupplyCfg | null;
   leveling: LevelingGoal | null;
+  levelingQueue: QueuedGoal[]; // planos que comecam sozinhos quando o atual fecha
   announce: AnnounceCfg | null;
   lastStatus: string;
   lastError: string | null;
@@ -74,6 +100,7 @@ interface Row {
   autobuy: boolean;
   supply_cfg: SupplyCfg | null;
   leveling: LevelingGoal | null;
+  leveling_queue: QueuedGoal[] | null;
   announce: AnnounceCfg | null;
   last_status: string;
   last_error: string | null;
@@ -89,6 +116,7 @@ function fromRow(r: Row): RobotDesired {
     autobuy: r.autobuy,
     supplyCfg: normalizeSupply(r.supply_cfg),
     leveling: r.leveling,
+    levelingQueue: normalizeQueue(r.leveling_queue),
     announce: normalizeAnnounce(r.announce),
     lastStatus: r.last_status,
     lastError: r.last_error,
@@ -114,10 +142,10 @@ export async function saveRobotDesired(
   patch: Partial<Omit<RobotDesired, "lastStatus" | "lastError">>,
 ): Promise<void> {
   await query(
-    `INSERT INTO robot_sessions (user_id, enabled, mode, slug, sell_item_ids, poke_sell_cfg, autobuy, leveling, announce, supply_cfg)
+    `INSERT INTO robot_sessions (user_id, enabled, mode, slug, sell_item_ids, poke_sell_cfg, autobuy, leveling, announce, supply_cfg, leveling_queue)
      VALUES ($1,
              COALESCE($2, false), COALESCE($3, 'manual'), $4,
-             COALESCE($5, '[]'::jsonb), $6, COALESCE($7, false), $8, $12, $14)
+             COALESCE($5, '[]'::jsonb), $6, COALESCE($7, false), $8, $12, $14, $16)
      ON CONFLICT (user_id) DO UPDATE SET
        enabled       = COALESCE($2, robot_sessions.enabled),
        mode          = COALESCE($3, robot_sessions.mode),
@@ -128,6 +156,7 @@ export async function saveRobotDesired(
        leveling      = CASE WHEN $11 THEN $8 ELSE robot_sessions.leveling END,
        announce      = CASE WHEN $13 THEN $12 ELSE robot_sessions.announce END,
        supply_cfg    = CASE WHEN $15 THEN $14 ELSE robot_sessions.supply_cfg END,
+       leveling_queue = CASE WHEN $17 THEN $16 ELSE robot_sessions.leveling_queue END,
        updated_at    = now()`,
     [
       userId,
@@ -145,6 +174,8 @@ export async function saveRobotDesired(
       "announce" in patch,
       patch.supplyCfg ? JSON.stringify(patch.supplyCfg) : null,
       "supplyCfg" in patch,
+      patch.levelingQueue ? JSON.stringify(patch.levelingQueue) : null,
+      "levelingQueue" in patch,
     ],
   );
 }

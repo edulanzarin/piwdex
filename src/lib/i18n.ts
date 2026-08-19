@@ -668,7 +668,7 @@ const pt: Dict = {
   "robo.mode.levelingStart": "Montar plano",
   "robo.mode.manual": "Hunt manual",
   "robo.lv.title": "Plano de leveling",
-  "robo.lv.desc": "Em cada nível, a hunt de maior XP/h. O robô troca de hunt sozinho.",
+  "robo.lv.desc": "Em cada nível, a hunt de maior XP/h. O robô troca de hunt sozinho. Dá pra empilhar até 3 planos: quando um fecha, o próximo começa sozinho.",
   "robo.lv.pickPoke": "Pokémon do time",
   "robo.lv.target": "Nível alvo",
   "robo.lv.calc": "Calcular rota",
@@ -678,6 +678,11 @@ const pt: Dict = {
   "robo.lv.noRoute": "Não achei rota pra esse alvo. Confira o nível.",
   "robo.lv.needTeam": "Conecte a conta pra listar seu time.",
   "robo.lv.planTitle": "Plano: {name}",
+  "robo.lv.queueAdd": "Somar à fila",
+  "robo.lv.queueHint": "Empilha este plano e libera o formulário pro próximo (até 3)",
+  "robo.lv.queue": "Fila de planos ({n}/{max})",
+  "robo.lv.queued": "na fila",
+  "robo.lv.nextUp": "Depois deste ({n})",
 
   // secoes da area VIP (navegacao lateral)
   "vip.sec.painel": "Painel",

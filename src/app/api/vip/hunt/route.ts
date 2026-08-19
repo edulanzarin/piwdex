@@ -4,7 +4,7 @@ import { getGameLink, saveGameShard, updateGameTokens, saveTeamSnapshot } from "
 import { fetchActivePokes, summonPoke } from "@/lib/game-ws";
 import { gameSession } from "@/lib/game-hunt-session";
 import { parsePokeSellCfg, pokeSellOn } from "@/lib/poke-sell";
-import { getRobotDesired } from "@/lib/robot-session-store";
+import { getRobotDesired, MAX_GOALS, type QueuedGoal } from "@/lib/robot-session-store";
 import type { Tokens } from "@/lib/game-auth";
 import { normalizeActivePokes, type ActivePoke } from "@/lib/game-account";
 import type { FighterProfile } from "@/lib/hunt-brain";
@@ -19,8 +19,11 @@ export const runtime = "nodejs";
 //   start    {slug, sellItemIds, pokeSellConfig?}  — hunt MANUAL (job em cima da conexao)
 //   auto     {pokeSellConfig?}                     — modo AUTO (cerebro escolhe a melhor hunt
 //                                                    pro lider e re-escolhe a cada level-up)
-//   leveling {pokeId, targetLevel, pokeSellConfig?} — plano de leveling: sobe o pokemon ate o
-//                                                    alvo seguindo a sequencia otima de hunts
+//   leveling {goals:[{pokeId,targetLevel}], pokeSellConfig?} — FILA de planos (ate 3): sobe o
+//                                                    primeiro pokemon ate o alvo seguindo a
+//                                                    sequencia otima de hunts e, ao fechar,
+//                                                    ja comeca o proximo da fila sozinho.
+//                                                    Aceita o formato antigo {pokeId,targetLevel}.
 //   stop                                           — para SO a hunt (a conexao continua)
 // Ver src/lib/game-hunt-session.ts e src/lib/hunt-brain.ts.
 
@@ -120,15 +123,35 @@ export async function POST(req: Request) {
       return NextResponse.json(gameSession.getState());
     }
 
-    // leveling: acha o pokemon, garante que ele e o LIDER (quem caca e quem upa) e segue o plano
-    const pokeId = typeof b.pokeId === "string" ? b.pokeId : String(b.pokeId ?? "");
-    const targetLevel = Number(b.targetLevel);
-    if (!pokeId || !Number.isFinite(targetLevel) || targetLevel < 2 || targetLevel > 400) {
-      return NextResponse.json({ error: "bad_goal" }, { status: 400 });
+    // leveling: FILA de metas. A primeira comeca agora (o bicho vira LIDER, que e quem caca
+    // e quem upa); as outras esperam na sessao e comecam sozinhas quando a anterior fecha.
+    // Formato antigo ({pokeId,targetLevel}) continua valendo — vira uma fila de um.
+    const rawGoals = Array.isArray(b.goals) && b.goals.length
+      ? (b.goals as unknown[])
+      : [{ pokeId: b.pokeId, targetLevel: b.targetLevel }];
+    if (rawGoals.length > MAX_GOALS) return NextResponse.json({ error: "too_many_goals" }, { status: 400 });
+
+    const goals: { poke: ActivePoke; targetLevel: number }[] = [];
+    for (const raw of rawGoals) {
+      const g = (raw ?? {}) as Record<string, unknown>;
+      const gid = typeof g.pokeId === "string" ? g.pokeId : String(g.pokeId ?? "");
+      const lvl = Number(g.targetLevel);
+      if (!gid || !Number.isFinite(lvl) || lvl < 2 || lvl > 400) {
+        return NextResponse.json({ error: "bad_goal" }, { status: 400 });
+      }
+      const poke = pokes.find((p) => p.id === gid);
+      if (!poke) return NextResponse.json({ error: "poke_not_found" }, { status: 404 });
+      if (poke.level >= lvl) return NextResponse.json({ error: "already_there" }, { status: 400 });
+      // o mesmo bicho duas vezes na fila viraria plano em cima de plano
+      if (goals.some((x) => x.poke.id === gid)) return NextResponse.json({ error: "dup_goal" }, { status: 400 });
+      goals.push({ poke, targetLevel: Math.floor(lvl) });
     }
-    const target = pokes.find((p) => p.id === pokeId);
-    if (!target) return NextResponse.json({ error: "poke_not_found" }, { status: 404 });
-    if (target.level >= targetLevel) return NextResponse.json({ error: "already_there" }, { status: 400 });
+
+    const { poke: target, targetLevel } = goals[0];
+    const pokeId = target.id;
+    const queue: QueuedGoal[] = goals.slice(1).map((g) => ({
+      pokeId: g.poke.id, speciesId: g.poke.speciesId, name: g.poke.name, targetLevel: g.targetLevel,
+    }));
 
     if (!target.leader) {
       // summon ANTES de ligar a hunt (sessao viva usa o socket; senao one-shot)
@@ -142,7 +165,8 @@ export async function POST(req: Request) {
     }
     const started = await gameSession.startLeveling(
       c.userId, c.tokens, es.shard, persist, profileOf(target),
-      { pokeId, name: target.name, targetLevel: Math.floor(targetLevel) },
+      { pokeId, name: target.name, targetLevel },
+      queue,
     );
     if (!started) return NextResponse.json({ error: "no_route" }, { status: 422 });
     await applySellCfg(es.shard);

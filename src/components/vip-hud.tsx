@@ -191,7 +191,8 @@ export function VipHud({ hunts }: { hunts: HuntOption[] }) {
             {leader ? (
               <>
                 <Sprite src={spriteUrl(leader.speciesId, leader.shiny)} alt={leader.name} size={22} />
-                <span className="absolute -right-1 -top-1 text-yellow"><Star size={14} /></span>
+                {/* estrela = shiny. O ativo ja se identifica pelo nome em amarelo. */}
+                {leader.shiny && <span className="absolute -right-1 -top-1 text-yellow"><Star size={14} /></span>}
               </>
             ) : (
               <span className="slot-empty"><Pokeball size={16} /></span>
