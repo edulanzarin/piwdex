@@ -62,21 +62,25 @@ export function PokeXpBar({
       {label && (
         <div className="flex items-baseline justify-between gap-2 text-xs">
           <span className="field-label">{t("xp.toNext", { n: level + 1 })}</span>
-          <span className="tabular-nums text-text-dim">
-            {known ? `${fmt(p.done!)} / ${fmt(p.need)}` : `${fmt(p.need)} XP`}
-          </span>
         </div>
       )}
+      {/* Mesma régua do medidor de vida logo acima: barra + par de números à direita.
+          Sem o par, a barra de XP era a única da tela sem como conferir onde está. */}
       {known && (
-        <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface-2">
-          <div className="h-full rounded-full bg-[color:var(--cyan)]" style={{ width: `${(p.pct ?? 0) * 100}%` }} />
-        </div>
+        <span className="flex items-center gap-2">
+          <span className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-surface-2">
+            <span className="block h-full rounded-full bg-[color:var(--cyan)]" style={{ width: `${(p.pct ?? 0) * 100}%` }} />
+          </span>
+          <span className="shrink-0 text-sm tabular-nums text-cyan">{fmt(p.done!)}/{fmt(p.need)}</span>
+        </span>
       )}
       <div className="flex items-baseline justify-between gap-2 text-xs text-text-dim">
         <span className="tabular-nums">
-          {p.left != null ? t("xp.left", { n: fmt(p.left) }) : t("xp.levelCost", { n: fmt(p.need) })}
+          {p.left != null
+            ? `${t("xp.left", { n: fmt(p.left) })} → Lv${level + 1}`
+            : `Lv${level + 1}: ${t("xp.levelCost", { n: fmt(p.need) })}`}
         </span>
-        {eta != null && <span className="tabular-nums text-cyan">{fmtEta(eta)}</span>}
+        {eta != null && <span className="shrink-0 tabular-nums text-cyan">{fmtEta(eta)}</span>}
       </div>
     </div>
   );

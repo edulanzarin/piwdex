@@ -56,6 +56,7 @@ export interface LiveHunt {
   desiredOn: boolean; reconnecting: boolean; nextRetryAt: number | null;
   contested: boolean;          // pausou porque a conta foi tomada (usuario entrou no jogo)
   fighterLevel: number | null;
+  pokeXpPerHour: number | null;   // ritmo do POKEMON (o do treinador esta no analyzer)
   reviving: boolean;           // lider desmaiado: o robo esta levantando (Revive/Joy)
   heroHp: number | null;       // vida do lider no campo (frame `field`)
   heroMaxHp: number | null;

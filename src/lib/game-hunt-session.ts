@@ -155,6 +155,9 @@ export interface HuntState {
   nextRetryAt: number | null;  // quando a proxima tentativa dispara
   contested: boolean;          // pausou porque a conta foi tomada (usuario entrou no jogo)
   fighterLevel: number | null; // nivel AO VIVO do pokemon que caca (frames do WS)
+  // XP/h do POKEMON medido nesta sessao — grandeza diferente do XP/h do treinador,
+  // que vive no analyzer. null = sem amostra ainda.
+  pokeXpPerHour: number | null;
   // desmaio do lider: a hunt esta parada e o robo esta levantando o bicho (Revive/Joy)
   reviving: boolean;
   heroHp: number | null;       // vida do lider no campo (frame `field`, ~2/s)
@@ -227,7 +230,7 @@ function idleHuntState(): HuntState {
     pending: [], pokeSellOn: false,
     mode: "manual", leveling: null, plan: null, queue: [],
     desiredOn: false, reconnecting: false, nextRetryAt: null, contested: false,
-    fighterLevel: null, reviving: false, heroHp: null, heroMaxHp: null,
+    fighterLevel: null, pokeXpPerHour: null, reviving: false, heroHp: null, heroMaxHp: null,
     holdOpen: false, wsOpen: false, team: null, teamAt: null,
   };
 }
@@ -326,6 +329,8 @@ class GameSession {
   private leveling: LevelingGoal | null = null;
   private plan: PlanStep[] | null = null;
   private fighter: FighterProfile | null = null; // perfil de combate do pokemon que caca
+  // ritmo de XP do POKEMON medido na sessao (o do treinador vive no analyzer)
+  private pokeXp: { id: string; since: number; gained: number; lastTotal: number | null } | null = null;
   private currentTargetId: number | null = null; // especie-alvo da hunt atual (pro reconsider)
   private thinking = false;                      // lock do cerebro (evita trocas concorrentes)
   private desiredOn = false;                     // usuario QUER o robo rodando -> reconecta sozinho
@@ -422,6 +427,7 @@ class GameSession {
       desiredOn: this.desiredOn, reconnecting: this.reconnectTimer != null, nextRetryAt: this.nextRetryAt,
       contested: this.contested,
       fighterLevel: this.fighter?.level ?? null,
+      pokeXpPerHour: this.pokeXpPerHour(),
       reviving: this.downSince != null || this.owesEnter,
       heroHp: this.heroMaxHp > 0 ? this.heroHp : null,
       heroMaxHp: this.heroMaxHp > 0 ? this.heroMaxHp : null,
@@ -1050,7 +1056,10 @@ class GameSession {
     } else if (m.type === "poke-xp") {
       // XP por pokemon: no leveling, so interessa o pokemon do plano
       const id = String(m.id ?? "");
-      if (!this.leveling || id === this.leveling.pokeId) this.trackLevel(Number(m.level), Boolean(m.leveledUp));
+      if (!this.leveling || id === this.leveling.pokeId) {
+        this.trackLevel(Number(m.level), Boolean(m.leveledUp));
+        this.trackPokeXp(id, m);
+      }
     } else if (m.type === "catch-result") {
       if (m.success && this.slug) {
         const species = String(m.speciesName ?? "?"), shiny = Boolean(m.shiny), ball = String(m.ballName ?? "");
@@ -1311,6 +1320,43 @@ class GameSession {
       this.fighter.ivTotal = fresh.ivTotal; this.fighter.quality = fresh.quality;
       if (target.level > this.fighter.level) this.trackLevel(target.level, true);
     } catch { /* fallback e best-effort */ }
+  }
+
+  /**
+   * Ritmo de XP do POKEMON — que NAO e o do treinador. O jogo paga os dois por abate,
+   * em curvas independentes (tem ate boost separado pra cada: "+50% trainer XP" e
+   * "+50% Pokemon XP"). Usar o XP/h do analyzer, que e do treinador, pra estimar o
+   * proximo nivel do bicho dava um tempo otimista por ordens de grandeza.
+   *
+   * Aqui medimos o que de fato acontece: acumula o XP ganho pelo pokemon desde a
+   * primeira leitura da sessao e divide pelo tempo. O frame nao documenta o nome do
+   * campo, entao aceitamos os apelidos comuns — sem campo, fica sem ritmo (e a UI
+   * esconde o tempo em vez de mostrar um numero de outra grandeza).
+   */
+  private trackPokeXp(id: string, m: Record<string, unknown>) {
+    const gained = [m.xpGained, m.gained, m.amount].map((v) => Number(v ?? 0)).find((v) => v > 0) ?? 0;
+    const total = [m.xp, m.exp, m.total].map((v) => Number(v ?? 0)).find((v) => v > 0) ?? 0;
+    const now = Date.now();
+    if (!this.pokeXp || this.pokeXp.id !== id) {
+      // trocou de pokemon (summon, plano novo): o ritmo do anterior nao vale pro novo
+      this.pokeXp = { id, since: now, gained: 0, lastTotal: total || null };
+      return;
+    }
+    if (gained > 0) this.pokeXp.gained += gained;
+    else if (total > 0 && this.pokeXp.lastTotal != null && total > this.pokeXp.lastTotal) {
+      // sem o delta no frame, o proprio acumulado da o ganho entre duas leituras
+      this.pokeXp.gained += total - this.pokeXp.lastTotal;
+    }
+    if (total > 0) this.pokeXp.lastTotal = total;
+  }
+
+  /** XP/h do pokemon medido nesta sessao. null enquanto nao ha amostra suficiente. */
+  private pokeXpPerHour(): number | null {
+    const p = this.pokeXp;
+    if (!p || p.gained <= 0) return null;
+    const hours = (Date.now() - p.since) / 3_600_000;
+    // menos de um minuto de amostra faz o numero pular demais pra valer de estimativa
+    return hours >= 1 / 60 ? p.gained / hours : null;
   }
 
   // registra o nivel observado nos frames do WS; num level-up, deixa o cerebro decidir.

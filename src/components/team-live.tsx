@@ -101,7 +101,7 @@ export function TeamLive({ dex }: { dex?: Record<number, MarketDex> }) {
               <PokeXpBar
                 level={hunt?.fighterLevel && hunt.fighterLevel > leader.level ? hunt.fighterLevel : leader.level}
                 xp={leader.xp}
-                xpPerHour={hunt?.analyzer?.xpPerHour}
+                xpPerHour={hunt?.pokeXpPerHour ?? undefined}
               />
             </span>
           </span>
