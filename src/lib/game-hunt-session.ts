@@ -1819,7 +1819,14 @@ class GameSession {
     this.summaryLogged = true;
     const slug = this.slug ?? "";
     const userId = this.userId;
-    void logRobotEvent(userId, { kind: "hunt-summary", title: `Hunt ${slug} — resumo`, body: `${a.kills} kills · ${a.captures} capturas · +$${Math.round(a.balance)}`, data: { slug, kills: a.kills, captures: a.captures, xp: a.xpGained, balance: a.balance, seconds: a.seconds } });
+    // QUEM lutou. Sem isto, a reta de velocidade nao sabe a quem pertence a medida, e
+    // calibrar o motor por lutador vira chute — o `data` e JSONB, entao nao custa nada
+    // guardar e destrava um ajuste por pokemon quando houver pontos suficientes.
+    const lead = (this.liveTeam ?? []).find((p: ActivePoke) => p.leader);
+    const leaderTag = lead
+      ? { leaderSpeciesId: lead.speciesId, leaderLevel: lead.level, leaderQuality: lead.quality }
+      : {};
+    void logRobotEvent(userId, { kind: "hunt-summary", title: `Hunt ${slug} — resumo`, body: `${a.kills} kills · ${a.captures} capturas · +$${Math.round(a.balance)}`, data: { slug, kills: a.kills, captures: a.captures, xp: a.xpGained, balance: a.balance, seconds: a.seconds, ...leaderTag } });
     // totalizador cumulativo (pra sempre) do que a hunt rendeu — alimenta o dashboard de
     // Estatisticas. Itens raros = soma da qtd dos drops marcados `rare` nos dados (resolve
     // pelo nome; cai pro itemId se o nome nao bater).

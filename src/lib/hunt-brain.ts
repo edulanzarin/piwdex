@@ -385,6 +385,13 @@ export interface PlayStyle {
    * fixos que o motor assumia.
    */
   killSpeed?: { perHp: number; overhead: number; points: number } | null;
+  /**
+   * A quem a velocidade medida pertence. A calibracao do motor divide o DPS medido pelo
+   * DPS que o motor daria PARA ESTE bicho — se a ancora for "o lider de agora", trocar o
+   * ativo re-escala o ranking inteiro sem nada ter mudado no jogo. Vem do ultimo
+   * `hunt-summary` etiquetado; null = cai no lider atual (e a tela avisa).
+   */
+  speedRef?: { speciesId: number; level: number; quality: number } | null;
 }
 
 /**
@@ -529,6 +536,51 @@ export async function rankMoney(
     ? [...pokes].sort((a, b) => b.power - a.power).slice(0, MAX_POKES)
     : pokes;
 
+  // --- CALIBRACAO DA VELOCIDADE -----------------------------------------------------
+  //
+  // A reta medida (`ttk = perHp * HP_do_alvo + overhead`) nao tem termo de LUTADOR: ela
+  // foi ajustada nas hunts reais e, aplicada crua, da o mesmo tempo por abate pro box
+  // inteiro. O efeito era o ranking empatar tudo e o desempate cair no primeiro da lista
+  // — o lider. Trocar de pokemon mudava o rotulo "COM" e nao mudava numero nenhum.
+  //
+  // O conserto e a reta CALIBRAR o motor em vez de substitui-lo. O motor sabe a diferenca
+  // entre lutadores (`est.dps`, a soma do moveset contra aquele alvo); o que ele errava
+  // era a escala. Entao mede-se um fator unico
+  //
+  //     k = DPS_medido / DPS_do_motor(lutador de referencia, spots medidos)
+  //
+  // e o tempo por abate de QUALQUER lutador vira `HP / (DPS_motor * k) + overhead`. A
+  // ancora empirica continua; a diferenca entre pokemons volta.
+  //
+  // Referencia = o lider (foi ele quem produziu as hunts que a reta mediu), medido nos
+  // MESMOS spots do historico, em media geometrica — a escala e multiplicativa.
+  const ks = style.killSpeed;
+  let calK = 0;
+  if (ks && ks.points >= 2 && ks.perHp > 0) {
+    // Ancora: o bicho que REALMENTE cacou as hunts medidas. So cai no lider atual quando
+    // nao ha evento etiquetado (historico anterior a 20/08/2026).
+    const sr = style.speedRef;
+    const refSp = data.species.get(sr?.speciesId ?? (pool.find((p) => p.leader) ?? pool.find((p) => p.team) ?? pool[0])?.speciesId ?? 0);
+    const refPoke = sr ? null : (pool.find((p) => p.leader) ?? pool.find((p) => p.team) ?? pool[0]);
+    if (refSp) {
+      const rf = sr
+        ? { speciesId: sr.speciesId, level: sr.level, ivTotal: 0, quality: sr.quality } as FighterProfile
+        : fighterOf(refPoke!);
+      const rIvs = ivsOf(rf, refSp);
+      const dpsList: number[] = [];
+      for (const slug of style.bySlug?.keys() ?? []) {
+        const t = data.targets.find((x) => x.slug === slug);
+        if (!t) continue;
+        const e = estimateHunt(refSp, rf.level, rIvs, rf.quality, t, data.movesOf(t.pokeId), vip);
+        if (e && e.dps > 0) dpsList.push(e.dps);
+      }
+      if (dpsList.length) {
+        const geo = Math.exp(dpsList.reduce((a, d) => a + Math.log(d), 0) / dpsList.length);
+        if (geo > 0) calK = (1 / ks.perHp) / geo;
+      }
+    }
+  }
+
   // Economia por ALVO: independe de quem caca, entao sai uma vez so.
   const noDay: LootBonuses = { ...bonuses, typeDay: null };
   const econ = new Map<number, {
@@ -579,10 +631,17 @@ export async function rankMoney(
       // Velocidade: com ajuste medido, a reta manda (ela ja embute a sua forca real);
       // sem ele, o motor com o fator unico. O erro de velocidade contamina loot, captura
       // e supply de uma vez, porque os tres sao por abate.
-      const ks = style.killSpeed;
-      const kosH = ks && ks.points >= 2
-        ? 3600 / Math.max(0.5, ks.perHp * t.hp + ks.overhead)
-        : est.kosH * style.speedFactor;
+      // Com calibracao, o motor manda (e ele conhece o lutador); a reta so re-escala.
+      // O fator `est.ttkS / ttkCal` preserva o desconto de desmaio que ja esta no
+      // est.kosH — sem ele, alvo que te derruba voltaria a parecer rentavel.
+      const ttkCal = calK > 0 && est.dps > 0
+        ? Math.max(0.5, t.hp / (est.dps * calK) + ks!.overhead)
+        : 0;
+      const kosH = ttkCal > 0
+        ? est.kosH * (est.ttkS / ttkCal)
+        : ks && ks.points >= 2
+          ? 3600 / Math.max(0.5, ks.perHp * t.hp + ks.overhead)
+          : est.kosH * style.speedFactor;
       // SUPPLY em duas partes, porque elas se comportam de forma diferente:
       //   bola  — uma por corpo, praticamente igual em qualquer alvo;
       //   pocao — sai do dano que ESTE alvo te causa. Alvo que te obriga a potar sem

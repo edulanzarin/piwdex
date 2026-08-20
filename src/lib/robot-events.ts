@@ -128,3 +128,41 @@ export async function captureRatesBySlug(userId: string): Promise<Map<string, Sl
   }
   return out;
 }
+
+
+/**
+ * O lutador das hunts que a reta de velocidade mediu.
+ *
+ * A calibracao do motor precisa saber A QUEM a medida pertence: ancorar no lider ATUAL
+ * faz o ranking inteiro se re-escalar quando voce troca de pokemon ativo — o mesmo alvo
+ * passava de 780 pra 731 kos/h so por mudar quem esta na frente. A medida e do bicho que
+ * caçou, nao de quem esta na tela agora.
+ *
+ * `hunt-summary` passou a gravar `leaderSpeciesId/Level/Quality` (JSONB, sem migracao).
+ * Enquanto nao houver evento etiquetado, o caller cai no lider atual — e a tela diz isso.
+ */
+export interface SpeedRef { speciesId: number; level: number; quality: number }
+
+export async function speedRefOf(userId: string): Promise<SpeedRef | null> {
+  try {
+    const rows = await query<{ sid: string; lv: string; q: string }>(
+      `SELECT data->>'leaderSpeciesId' AS sid,
+              data->>'leaderLevel'     AS lv,
+              data->>'leaderQuality'   AS q
+         FROM robot_events
+        WHERE user_id = $1 AND kind = 'hunt-summary'
+          AND data ? 'leaderSpeciesId'
+          AND criado_em > now() - interval '${WINDOW}'
+        ORDER BY criado_em DESC
+        LIMIT 1`,
+      [userId],
+    );
+    const r = rows[0];
+    if (!r?.sid) return null;
+    const speciesId = Number(r.sid), level = Number(r.lv), quality = Number(r.q);
+    if (!Number.isFinite(speciesId) || speciesId <= 0) return null;
+    return { speciesId, level: Number.isFinite(level) ? level : 1, quality: Number.isFinite(quality) ? quality : 1 };
+  } catch {
+    return null; // sem historico etiquetado: o caller ancora no lider atual
+  }
+}

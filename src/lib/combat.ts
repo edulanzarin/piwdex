@@ -146,6 +146,11 @@ export interface HuntEstimate {
   eff: number; // efetividade amplificada desse golpe
   hits: number; // hits pra derrubar (estimativa)
   ttkS: number; // segundos por kill (combate + overhead)
+  /** DPS do moveset INTEIRO deste lutador contra ESTE alvo. Fica exposto porque e o
+   *  unico numero do motor que separa um lutador do outro — a reta de velocidade medida
+   *  (`ttk = perHp * HP + overhead`) nao tem termo de lutador, entao sozinha ela faz o
+   *  box inteiro empatar. Quem calibra a reta precisa deste valor. */
+  dps: number;
   kosH: number; // KOs/h EFETIVO (ja descontando o tempo parado por desmaio)
   xpH: number; // XP/h efetivo (com VIP se ligado)
   goldH: number; // ouro/h efetivo (loot)
@@ -263,6 +268,7 @@ export function estimateHunt(
     eff: bm.eff,
     hits,
     ttkS: Math.round(ttkS * 10) / 10,
+    dps: bm.total,
     kosH,
     xpH: e.xp * kosH * (vip ? 1.5 : 1),
     goldH: e.goldEV * kosH,

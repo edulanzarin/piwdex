@@ -5,7 +5,7 @@ import { fetchActivePokes } from "@/lib/game-ws";
 import { normalizeActivePokes, type ActivePoke } from "@/lib/game-account";
 import { sessionFor } from "@/lib/game-hunt-session";
 import { getRobotSales } from "@/lib/robot-sales";
-import { captureRatesBySlug } from "@/lib/robot-events";
+import { captureRatesBySlug, speedRefOf } from "@/lib/robot-events";
 import { fetchCatchData, fitCatchLaw, rateFromMeter } from "@/lib/game-catch";
 import { predictCatchRate } from "@/lib/catch-law";
 import { fetchGameBoosts, lootBonusesOf } from "@/lib/game-boosts";
@@ -253,6 +253,7 @@ export async function GET(req: Request) {
   const supply = numParam(q.get("supply"));
   const speedFactor = await measureSpeed(userId, pokes, true).catch(() => 1);
   const killSpeed = await fitKillSpeed(userId, measured.bySlug ?? new Map()).catch(() => null);
+  const speedRef = await speedRefOf(userId).catch(() => null);
   const style: PlayStyle = {
     capturePerKill: capture != null ? capture : measured.capturePerKill,
     supplyPerKill: supply != null ? supply : measured.supplyPerKill,
@@ -267,6 +268,7 @@ export async function GET(req: Request) {
     sellShare: measured.sellShare,
     speedFactor,
     killSpeed,
+    speedRef,
   };
 
   // VIP do JOGO (1,5x XP): assume ligado, como o /api/vip/best-poke, pra nao pagar mais
