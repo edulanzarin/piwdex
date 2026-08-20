@@ -9,6 +9,8 @@
 import ballsData from "@/data/balls.json";
 
 export interface Ball {
+  /** id do jogo — e a chave em `used-balls.balls` e no `autoCatchBallId` da conta */
+  id: number;
   key: string;
   name: string;
   catchRate: number;
@@ -22,6 +24,7 @@ export const BALLS: Ball[] = ballsData.balls;
 export const BALLS_SYNCED_AT: string | null = ballsData.syncedAt;
 
 export const ballByKey = (key: string): Ball | undefined => BALLS.find((b) => b.key === key);
+export const ballById = (id: number): Ball | undefined => BALLS.find((b) => b.id === id);
 
 /** Eficiencia RELATIVA de captura vs Poke Ball (catchRate 1). Ultra (4) = ~4x menos
  *  bolas por captura. Nao e "% de captura" — o jogo nao publica a formula absoluta. */

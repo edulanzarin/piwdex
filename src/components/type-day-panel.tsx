@@ -52,6 +52,8 @@ interface Style {
   capturePerKill: number; supplyPerKill: number;
   from: "live" | "totals" | "default"; sample: number;
   speedFactor: number; sellShare: number; spots: number; species: number;
+  autoCatch: boolean; ballName: string;
+  law: { sample: number; spread: number } | null;
 }
 
 interface MoneyRes {
@@ -417,9 +419,13 @@ export function TypeDayPanel({ onHunt, huntOn = false }: { onHunt: (row: MoneyRo
         {data && data.style.speedFactor !== 1
           ? ` ${t("robo.day.speed", { v: data.style.speedFactor.toFixed(2) })}`
           : ""}
+        {data && data.style.law && data.style.law.sample > 0
+          ? ` ${t("robo.day.law", { n: data.style.law.sample, x: data.style.law.spread.toFixed(1), ball: data.style.ballName })}`
+          : ""}
         {data && data.style.species > 0
           ? ` ${t("robo.day.meter", { n: data.style.species })}`
           : ""}
+        {data && !data.style.autoCatch ? ` ${t("robo.day.noAuto")}` : ""}
         {data && data.style.sellShare !== 1
           ? ` ${t("robo.day.share", { v: Math.round(data.style.sellShare * 100) })}`
           : ""}

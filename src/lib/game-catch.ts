@@ -23,6 +23,11 @@
 
 import { gameFetch, type Tokens } from "./game-auth";
 import { getGameLink, updateGameTokens } from "./game-link";
+import { BALLS, ballById } from "./balls";
+import type { Creature } from "./types";
+
+/** catchRate por id de bola (dado-verdade do jogo, em src/data/balls.json). */
+const BALL_RATE = new Map<number, number>(BALLS.map((b) => [b.id, b.catchRate]));
 
 export interface SpeciesCatch {
   speciesId: number;
@@ -34,6 +39,9 @@ export interface SpeciesCatch {
   goldSpent: number;
   /** preco medio da bola usada aqui — o custo real de uma tentativa */
   ballCost: number;
+  /** catchRate MEDIO das bolas gastas nesta especie. A chance e linear nele, entao sem
+   *  dividir por ele a medida mistura "bicho dificil" com "joguei bola fraca". */
+  ballRate: number;
   /** ja capturou esta especie alguma vez (o medidor zerou pelo menos uma vez) */
   everCaught: boolean;
 }
@@ -42,6 +50,12 @@ export interface CatchData {
   bySpecies: Map<number, SpeciesCatch>;
   /** bolas gastas somadas — serve de amostra pra dizer se vale confiar */
   totalBalls: number;
+  /** auto-catch LIGADO na conta. Desligado, nao existe renda de captura nenhuma — e o
+   *  primeiro fato a conferir antes de projetar ouro de bicho vendido. */
+  autoCatch: boolean;
+  /** catchRate da bola que o auto-catch usa (a chance e linear nele) */
+  ballRate: number;
+  ballName: string;
   at: number;
 }
 
@@ -69,6 +83,19 @@ export async function fetchCatchData(userId: string, force = false): Promise<Cat
     return null;
   }
 
+  // o auto-catch decide se existe captura, e com que bola
+  let autoCatch = false, ballRate = 1, ballName = "";
+  try {
+    const r = await gameFetch("/api/game/auto-helper", tokens);
+    if (r.changed) { tokens = r.tokens; await updateGameTokens(userId, tokens).catch(() => {}); }
+    if (r.res.ok) {
+      const h = (await r.res.json().catch(() => null)) as Record<string, unknown> | null;
+      autoCatch = Boolean(h?.autoCatch);
+      const ball = ballById(num(h?.autoCatchBallId));
+      if (ball) { ballRate = ball.catchRate; ballName = ball.name; }
+    }
+  } catch { /* sem o auto-helper, assume a bola fraca (subestima, nao inventa) */ }
+
   const list = (raw as { pokemons?: unknown[] } | null)?.pokemons;
   if (!Array.isArray(list)) return null;
 
@@ -86,18 +113,31 @@ export async function fetchCatchData(userId: string, force = false): Promise<Cat
     const goldSpent = num(p.goldSpent);
     if (total <= 0) continue;
     totalBalls += total;
+
+    let weighted = 0, counted = 0;
+    const balls = p.balls;
+    if (balls && typeof balls === "object") {
+      for (const [id, qty] of Object.entries(balls as Record<string, unknown>)) {
+        const n = num(qty);
+        if (n <= 0) continue;
+        weighted += (BALL_RATE.get(Number(id)) ?? 1) * n;
+        counted += n;
+      }
+    }
+    const ballRate = counted > 0 ? weighted / counted : 1;
     bySpecies.set(speciesId, {
       speciesId,
       attempts,
       total,
       goldSpent,
       ballCost: goldSpent > 0 ? goldSpent / total : 0,
+      ballRate,
       // o medidor zera na captura: gastou mais na vida do que desde a ultima = ja capturou
       everCaught: attempts < total,
     });
   }
 
-  const data: CatchData = { bySpecies, totalBalls, at: now };
+  const data: CatchData = { bySpecies, totalBalls, autoCatch, ballRate, ballName, at: now };
   cache.set(userId, { data, exp: now + CACHE_MS });
   return data;
 }
@@ -116,4 +156,79 @@ export async function fetchCatchData(userId: string, force = false): Promise<Cat
 export function rateFromMeter(s: SpeciesCatch | undefined, globalRate: number, prior = 4): number | null {
   if (!s || s.total < 10) return null; // sem bola suficiente, sem evidencia
   return (1 + prior * globalRate) / (s.attempts + 1 + prior);
+}
+
+
+// --- A LEI: quanto vale mais, mais dificil de capturar ---------------------------------
+//
+// O jogo nao publica a chance de captura por especie, e exigir que o jogador cace em todo
+// spot pra descobrir seria inutil — a pergunta que o painel responde e justamente "pra
+// onde eu vou?". Entao a chance se DERIVA.
+//
+// Cada especie no /api/game/used-balls entrega uma observacao: bolas gastas desde a
+// ultima captura. Dividindo pelo catchRate medio das bolas usadas nela (a chance e linear
+// na bola — a formula do shiny, visivel no bundle do jogo, prova), sobra a chance BASE da
+// especie. Cruzando as 51 especies com bola suficiente contra os atributos do catalogo, o
+// que explica a dificuldade e o VALOR DE VENDA, e forte: correlacao -0,82 em log-log
+// (contra -0,65 antes de normalizar pela bola). O jogo cobra pelo bicho caro.
+//
+//     chanceBase = A * sellValue^b        (A ~ 4,7 e b ~ -0,71 na conta do Eduardo)
+//     chance     = min(1, chanceBase * catchRate da bola)
+//
+// Conferencia: pro Yanma (9.000) a lei da 2,98% por abate com Ultra Ball; a hunt real
+// mediu 2,4% (14 capturas em 586 abates).
+//
+// ISTO NAO E A FORMULA DO JOGO. E um ajuste empirico sobre uma observacao por especie, com
+// erro mediano de ~1,9x — serve pra ORDENAR alvos, nao pra prometer numero. E por isso o
+// ajuste e refeito com os dados de QUEM PERGUNTA: quanto mais especies a conta tiver no
+// medidor, mais a lei descreve aquele jogador (bolas, profissao e bonus de pokedex dele
+// entram embutidos). Os valores abaixo sao so o ponto de partida de quem nao tem dado.
+
+export const CATCH_LAW_FALLBACK = { a: 4.738, b: -0.709 };
+
+export interface CatchLaw {
+  a: number;
+  b: number;
+  /** quantas especies sustentaram o ajuste; 0 = usando o fallback */
+  sample: number;
+  /** erro mediano do ajuste, em "vezes" (1,9 = erra por fator ~2 pra cima ou pra baixo) */
+  spread: number;
+}
+
+/** Ajusta `chanceBase = a * sellValue^b` sobre as especies com bola suficiente. */
+export function fitCatchLaw(data: CatchData | null, creatureOf: (id: number) => Creature | undefined): CatchLaw {
+  const xs: number[] = [];
+  const ys: number[] = [];
+  if (data) {
+    for (const s of data.bySpecies.values()) {
+      const c = creatureOf(s.speciesId);
+      if (!c || c.sellValue <= 0 || s.total < 30) continue;
+      // capturou alguma vez -> o intervalo mede a chance; nunca capturou -> teto de 1/total
+      const observed = (s.everCaught ? 1 / (s.attempts + 1) : 1 / (s.total + 1)) / Math.max(1, s.ballRate);
+      if (!(observed > 0)) continue;
+      xs.push(Math.log(c.sellValue));
+      ys.push(Math.log(observed));
+    }
+  }
+  if (xs.length < 12) return { ...CATCH_LAW_FALLBACK, sample: xs.length, spread: 0 };
+
+  const mx = xs.reduce((s, v) => s + v, 0) / xs.length;
+  const my = ys.reduce((s, v) => s + v, 0) / ys.length;
+  let sxy = 0, sxx = 0;
+  for (let i = 0; i < xs.length; i++) { sxy += (xs[i] - mx) * (ys[i] - my); sxx += (xs[i] - mx) ** 2; }
+  if (sxx <= 0) return { ...CATCH_LAW_FALLBACK, sample: xs.length, spread: 0 };
+  const b = sxy / sxx;
+  const a = Math.exp(my - b * mx);
+  // expoente fora do plausivel = ajuste dominado por ruido; melhor o fallback
+  if (!Number.isFinite(a) || !Number.isFinite(b) || b > -0.2 || b < -1.5) {
+    return { ...CATCH_LAW_FALLBACK, sample: xs.length, spread: 0 };
+  }
+  const errs = xs.map((x, i) => Math.abs(ys[i] - (Math.log(a) + b * x))).sort((p, q) => p - q);
+  return { a, b, sample: xs.length, spread: Math.exp(errs[Math.floor(errs.length / 2)]) };
+}
+
+/** Chance de captura por ABATE prevista pela lei, com a bola que o jogador usa. */
+export function predictCatchRate(law: CatchLaw, sellValue: number, ballCatchRate: number): number {
+  if (sellValue <= 0) return 0;
+  return Math.min(1, law.a * Math.pow(sellValue, law.b) * Math.max(1, ballCatchRate));
 }

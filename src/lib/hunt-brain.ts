@@ -333,6 +333,16 @@ export interface PlayStyle {
   /** dificuldade de captura POR ESPECIE, do medidor de investimento do jogo
    *  (speciesId -> chance por abate). Ver lib/game-catch.ts. */
   bySpecies?: Map<number, number>;
+  /** A LEI: chance prevista pra QUALQUER especie a partir do valor de venda dela, sem
+   *  precisar ter cacado la. E o que responde "pra onde eu vou?" — evidencia propria so
+   *  existe onde voce ja esteve. Ver o cabecalho de lib/game-catch.ts. */
+  predictRate?: (sellValue: number) => number;
+  /** o ajuste da lei (amostra e dispersao), so pra a tela poder dizer em que se apoia */
+  law?: { sample: number; spread: number } | null;
+  /** auto-catch ligado na conta; desligado, nao ha renda de captura */
+  autoCatch?: boolean;
+  /** bola que o auto-catch usa */
+  ballName?: string;
   /**
    * Quanto da renda de captura que o modelo projeta REALMENTE virou ouro na sua conta.
    *
@@ -365,7 +375,7 @@ export interface PlayStyle {
  */
 const RATE_PRIOR = 60;
 
-function captureRatesFor(style: PlayStyle, slug: string, speciesId: number): { floor: number; guess: number } {
+function captureRatesFor(style: PlayStyle, slug: string, speciesId: number, sellValue: number): { floor: number; guess: number } {
   const geral = style.capturePerKill;
   // 1) o mais forte: os SEUS abates e capturas naquele spot, medidos pelo robo.
   const spot = style.bySlug?.get(slug);
@@ -379,7 +389,11 @@ function captureRatesFor(style: PlayStyle, slug: string, speciesId: number): { f
   // quantas bolas voce ja queimou nesta especie desde a ultima captura.
   const meter = style.bySpecies?.get(speciesId);
   if (meter != null) return { floor: meter, guess: Math.max(meter, geral) };
-  // 3) nada: nao ha o que defender, e o otimista fica a cargo da taxa geral.
+  // 3) nunca pisou la nem gastou bola: a LEI preve pelo valor do bicho. Nao e evidencia
+  // sua, entao entra como piso conservador — mas e previsao, nao a taxa media herdada,
+  // que era o que fazia bicho de 75.000 liderar por engano.
+  const law = style.predictRate?.(sellValue);
+  if (law != null && law > 0) return { floor: law, guess: Math.max(law, geral) };
   return { floor: 0, guess: geral };
 }
 
@@ -500,7 +514,7 @@ export async function rankMoney(
     // A venda do capturado, nos dois cenarios. O supply (bola + pocao) NAO e custo fixo
     // do spot: o auto-catch joga bola em cada corpo, entao ele acompanha os abates — e e
     // por isso que spot rapido de bicho barato consegue dar prejuizo.
-    const rates = captureRatesFor(style, t.slug, t.pokeId);
+    const rates = captureRatesFor(style, t.slug, t.pokeId, t.sellValue);
     const share = style.sellShare ?? 1;
     const capture = rates.floor * t.sellValue * share;
     const captureGuess = rates.guess * t.sellValue * share;

@@ -6,7 +6,7 @@ import { normalizeActivePokes, type ActivePoke } from "@/lib/game-account";
 import { sessionFor } from "@/lib/game-hunt-session";
 import { getRobotSales } from "@/lib/robot-sales";
 import { captureRatesBySlug } from "@/lib/robot-events";
-import { fetchCatchData, rateFromMeter } from "@/lib/game-catch";
+import { fetchCatchData, fitCatchLaw, predictCatchRate, rateFromMeter } from "@/lib/game-catch";
 import { fetchGameBoosts, lootBonusesOf } from "@/lib/game-boosts";
 import { lootMultiplier, NO_BONUS, STREAK_STEP, type LootBonuses } from "@/lib/boost";
 import { rankMoney, NO_STYLE, type MoneyMode, type PlayStyle } from "@/lib/hunt-brain";
@@ -71,6 +71,15 @@ async function measureStyle(userId: string): Promise<PlayStyle> {
     }
   }
 
+  // A LEI, ajustada com as especies DESTA conta (bola, profissao e bonus de pokedex dela
+  // entram embutidos). E o que permite prever um spot onde voce nunca pisou.
+  const db = await getData();
+  const law = fitCatchLaw(catchData, (id) => db.getCreature(id));
+  const ballRate = catchData?.ballRate ?? 1;
+  const canCatch = catchData ? catchData.autoCatch : true;
+  const predictRate = (sellValue: number) =>
+    canCatch ? predictCatchRate(law, sellValue, ballRate) : 0;
+
   // ANCORA: o modelo projeta renda de captura; o robo REGISTRA quanto de venda de
   // pokemon realmente entrou. A razao entre os dois corrige de uma vez tudo que separa
   // "capturei" de "recebi" — o que a config manda guardar, o que o jogo recusou vender,
@@ -93,6 +102,10 @@ async function measureStyle(userId: string): Promise<PlayStyle> {
     sample: kills,
     bySlug: await captureRatesBySlug(userId),
     bySpecies,
+    predictRate,
+    law,
+    autoCatch: canCatch,
+    ballName: catchData?.ballName ?? "",
     speedFactor: 1, // medido depois, contra o alvo em que voce esta agora
   };
 }
@@ -184,6 +197,7 @@ export async function GET(req: Request) {
     // taxa informada na mao vale pra TODO alvo — quem digitou quer aquele numero
     bySlug: capture != null ? undefined : measured.bySlug,
     bySpecies: capture != null ? undefined : measured.bySpecies,
+    predictRate: capture != null ? undefined : measured.predictRate,
     sellShare: measured.sellShare,
     speedFactor,
   };
@@ -229,6 +243,9 @@ export async function GET(req: Request) {
       sellShare: style.sellShare ?? 1,
       spots: style.bySlug?.size ?? 0,
       species: style.bySpecies?.size ?? 0,
+      autoCatch: measured.autoCatch ?? true,
+      ballName: measured.ballName ?? "",
+      law: measured.law ? { sample: measured.law.sample, spread: measured.law.spread } : null,
     },
     // frescor do CATALOGO: e ele que decide se o ranking vale
     catalog: { live: db.live, at: db.generatedAt, error: db.error, checkedAt: db.checkedAt },
