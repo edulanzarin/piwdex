@@ -22,23 +22,32 @@ export const STREAK_POINT_COST = 25_000;
 /** 1 ponto de Streak liberado a cada 1000 abates totais. */
 export const KILLS_PER_POINT = 1000;
 /**
- * Tipo do Dia: +50% de loot (e de XP) — mas SO nos pokemons daquele tipo. E a
+ * Tipo do Dia: bonus de loot (e de XP) que vale SO nos pokemons do tipo premiado. E a
  * diferenca que muda a conta: os outros bonus valem em qualquer alvo, este e um
  * bonus CONDICIONAL. Tratar como percentual global inflava o ganho do catalogo
  * inteiro e mandava caçar no lugar errado nos dias em que o tipo nao batia.
- * O valor nao esta na pokepedia — vem da observacao do jogo (Eduardo, ago/2026).
+ *
+ * Este numero e so o PADRAO de quem nao tem conta conectada. O jogo publica o valor do
+ * dia em /api/game/boosts ("+20% de XP e +20% de loot em Pokemon do tipo Sombrio", lido
+ * com token real em ago/2026) e quem le de la manda: ver `typeDayPct` abaixo. O 0,5 que
+ * ficava aqui era palpite e inflava em 2,5x o ganho prometido pelo bonus.
  */
-export const TYPE_DAY_BONUS = 0.5;
+export const TYPE_DAY_BONUS = 0.2;
 
 export interface LootBonuses {
   /** pontos de Streak na trilha Loot */
   streakLoot: number;
   /** Loot Boost de 1h ativo */
   lootBoost: boolean;
-  /** evento global em curso, em % */
+  /** percentual de fundo em curso (evento global, boost temporario ativo), em % */
   eventPct: number;
   /** tipo premiado hoje; null = nenhum. So rende nos alvos DESSE tipo. */
   typeDay: PokeType | null;
+  /**
+   * Quanto o Tipo do Dia paga HOJE, em fracao. O jogo publica esse numero e ele varia;
+   * ausente cai em TYPE_DAY_BONUS (o padrao de quem nao tem conta conectada).
+   */
+  typeDayPct?: number;
 }
 
 export const NO_BONUS: LootBonuses = {
@@ -64,7 +73,7 @@ export function lootMultiplier(b: LootBonuses, targetTypes: (PokeType | null)[] 
     b.streakLoot * STREAK_STEP +
     (b.lootBoost ? LOOT_BOOST : 0) +
     b.eventPct / 100 +
-    (typeDayHits ? TYPE_DAY_BONUS : 0)
+    (typeDayHits ? b.typeDayPct ?? TYPE_DAY_BONUS : 0)
   );
 }
 

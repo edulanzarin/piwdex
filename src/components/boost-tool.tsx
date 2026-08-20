@@ -10,6 +10,7 @@ import {
   paybackKills,
   streakCostRange,
   streakPointsUnlocked,
+  TYPE_DAY_BONUS,
   type LootBonuses,
   type PricedDrop,
 } from "@/lib/boost";
@@ -88,6 +89,9 @@ function Field({
 
 export function BoostTool({ rows, areas }: { rows: BoostRow[]; areas: string[] }) {
   const t = useT();
+  // quanto o Tipo do Dia paga, em % — sai da constante do motor pra tela nunca discordar
+  // do calculo (o "+50%" chumbado aqui sobreviveu ao valor real por um patch inteiro)
+  const dayPct = Math.round(TYPE_DAY_BONUS * 100);
 
   // Cenario de bonus
   const [streakLoot, setStreakLoot] = useState("10");
@@ -186,7 +190,7 @@ export function BoostTool({ rows, areas }: { rows: BoostRow[]; areas: string[] }
             suffix="pts"
           />
           <Field label={t("boost.event")} value={eventPct} onChange={setEventPct} suffix="%" />
-          <label className="flex flex-col gap-1" title={t("boost.typeDayHint")}>
+          <label className="flex flex-col gap-1" title={t("boost.typeDayHint", { pct: dayPct })}>
             <span className="field-label">{t("boost.typeDay")}</span>
             <TypeFilter value={typeDay} onChange={setTypeDay} />
           </label>
@@ -235,7 +239,7 @@ export function BoostTool({ rows, areas }: { rows: BoostRow[]; areas: string[] }
           />
         </div>
         <p className="text-sm text-text-dim">{t("boost.capNote")}</p>
-        <p className="text-sm text-text-dim">{t("boost.typeDayNote")}</p>
+        <p className="text-sm text-text-dim">{t("boost.typeDayNote", { pct: dayPct })}</p>
       </Panel>
 
       <Panel icon={<Coin />} title={t("boost.streakTitle")} accent="var(--yellow)" collapsible defaultOpen={false}>
@@ -306,8 +310,8 @@ export function BoostTool({ rows, areas }: { rows: BoostRow[]; areas: string[] }
                         <div className="flex flex-wrap items-center gap-1.5">
                           <span className="truncate text-text">{row.name}</span>
                           {roi.typeDayHits && (
-                            <span className="chip" style={{ background: "var(--yellow)", color: "#2a2200" }} title={t("boost.typeDayHint")}>
-                              +50%
+                            <span className="chip" style={{ background: "var(--yellow)", color: "#2a2200" }} title={t("boost.typeDayHint", { pct: dayPct })}>
+                              +{dayPct}%
                             </span>
                           )}
                         </div>
