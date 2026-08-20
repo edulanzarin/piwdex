@@ -51,7 +51,14 @@ export async function POST(req: Request) {
     if (refusal?.kind === "rate_limited") {
       return NextResponse.json({ ok: false, error: "rate_limited", reason: refusal.message }, { status: 429 });
     }
-    return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
+    // Falha que nao classificamos: devolve o codigo e a frase do jogo mesmo assim. E o
+    // que permite descobrir COMO ele sinaliza cada recusa sem chutar — se um ban chegar
+    // aqui como 401, a tela mostra o numero e a frase, e a regra se ajusta com evidencia.
+    const raw = await refusalOf(result.res);
+    return NextResponse.json(
+      { ok: false, error: "unauthorized", status: result.res.status, reason: raw?.message },
+      { status: 401 },
+    );
   }
 
   const data = (await result.res.json().catch(() => null)) as

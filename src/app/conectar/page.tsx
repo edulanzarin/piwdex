@@ -30,7 +30,7 @@ export default function ConectarPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ raw }),
         });
-        const j = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string; reason?: string };
+        const j = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string; reason?: string; status?: number };
         if (res.ok && j.ok) {
           setStatus("ok");
           setTimeout(() => router.replace("/vip#conta"), 700);
@@ -39,7 +39,9 @@ export default function ConectarPage() {
           // a recusa do jogo vem com a frase DELE: mostra as duas — a nossa explica o que
           // fazer, a dele prova o que aconteceu
           const base = t(`account.err.${j.error ?? "unauthorized"}`);
-          setErr(j.reason ? `${base}\n\n"${j.reason}"` : base);
+          const said = [j.status ? `HTTP ${j.status}` : "", j.reason ? `"${j.reason}"` : ""]
+            .filter(Boolean).join(" · ");
+          setErr(said ? `${base}\n\n${said}` : base);
         }
       } catch {
         setStatus("error");
