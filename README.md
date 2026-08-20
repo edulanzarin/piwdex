@@ -24,6 +24,18 @@ não no snapshot — assim o snapshot é diffável contra o jogo.
 
 `chance` vem numa escala 0–100000; a porcentagem é `chance / 1000`.
 
+Dois campos da fonte que é fácil deixar passar e mudam conta:
+
+- **`tm` no ataque** — guarda o TIPO da máquina; ausente quer dizer golpe natural.
+  Os 187 golpes de poder 600 do jogo são TODOS de TM, e 165 das 482 espécies têm
+  alguma. Tratar TM como golpe natural faz o motor prometer até 10x o DPS que o
+  jogador tem. Por isso todo motor daqui recebe um **pool** (`natural` por padrão,
+  `tm` quando o jogador diz que comprou a máquina), e o lado selvagem nunca usa TM.
+- **`area` / `captureBase` na espécie** — `area: "orre"` marca as 72 espécies de
+  Orre, que têm stats próprios; `captureBase` aponta a espécie que se captura, e é
+  o que separa variante de skin (Brave Blastoise) de espécie de verdade. O conjunto
+  "jogável" do meta sai daí.
+
 ## Rodar
 
 ```bash
@@ -37,8 +49,9 @@ Par de portas reservado (chassi do Brain): app **4070**, banco **5070**.
 ## Roadmap
 
 - [x] Camada 1 — base pública: pokedex, ficha completa, itens e índice reverso de drop.
-- [ ] Camada 2 — calculadoras (lucro/hora de farm, melhor spot por item, comparador de
-  stats), com fórmulas raspadas de `/pokepedia/systems/*`.
+- [x] Camada 2 — calculadoras: análise de status, hunt planner com rota, boost, breeding,
+  Eevee e o **Meta Analyzer** (`/meta`: tier list, rankings, perfil, tipos e Stadium).
+  Fórmulas conferidas contra `/pokepedia/systems/*`.
 - [ ] Camada 3 — companion logado: proxy da API JWT do jogo + WebSocket (progresso da
   dex, inventário, alertas). Aqui entra o chassi Postgres + Docker compose.
 

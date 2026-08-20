@@ -13,8 +13,7 @@ import { Sprite } from "./sprite";
 import { TypeBadges, TypeBadge } from "./badges";
 import { StatIcon } from "./stat-icons";
 import { PokemonCombobox } from "./pokemon-combobox";
-import { TierBadge, AxisBar } from "./meta-badges";
-import { fmtDps, MonCell } from "./meta-tool";
+import { TierBadge, AxisBar, MonCell, fmtDps } from "./meta-badges";
 import { useT } from "./locale-provider";
 
 const ACCENT = "var(--pink)";

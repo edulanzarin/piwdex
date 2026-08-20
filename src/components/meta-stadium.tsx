@@ -28,12 +28,11 @@ interface Card {
 }
 
 interface Deck {
-  name: string;
   target: Card | null;
   team: Card[];
 }
 
-const EMPTY: Deck = { name: "", target: null, team: [] };
+const EMPTY: Deck = { target: null, team: [] };
 
 const newCard = (mon: MetaMon, wild: boolean): Card => ({
   id: `${mon.pokeId}-${Math.round(performance.now() * 1000)}`,
@@ -67,7 +66,12 @@ function decodeDeck(code: string): Deck | null {
     };
     if (d.target && !okCard(d.target)) return null;
     if (d.team.length > TEAM_MAX || !d.team.every(okCard)) return null;
-    return { name: String(d.name ?? "").slice(0, 80), target: d.target ?? null, team: d.team };
+    // id vem do link e so serve de key do React — se faltar, geramos um.
+    const withId = (c: Card, i: number): Card => ({ ...c, id: c.id || `${c.pokeId}-${i}` });
+    return {
+      target: d.target ? withId(d.target, 0) : null,
+      team: (d.team as Card[]).map(withId),
+    };
   } catch {
     return null;
   }

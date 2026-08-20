@@ -8,7 +8,7 @@ import type { PokeType } from "@/lib/types";
 import { Sprite } from "./sprite";
 import { spriteUrl } from "@/lib/sprites";
 import { TypeBadge, TypeBadges } from "./badges";
-import { fmtDps, MonCell } from "./meta-tool";
+import { MonCell, fmtDps } from "./meta-badges";
 import { useT } from "./locale-provider";
 
 const ACCENT = "var(--pink)";

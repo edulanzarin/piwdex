@@ -12,7 +12,7 @@ import { Sprite } from "./sprite";
 import { TypeBadges } from "./badges";
 import { Tabs } from "./tabs";
 import { TypeFilter } from "./type-filter";
-import { TierBadge, AxisBar } from "./meta-badges";
+import { TierBadge, AxisBar, MonCell, fmtDps } from "./meta-badges";
 import { MetaProfile } from "./meta-profile";
 import { MetaTypes } from "./meta-types";
 import { MetaStadium } from "./meta-stadium";
@@ -21,10 +21,6 @@ import { useT } from "./locale-provider";
 type View = "tiers" | "rankings" | "profile" | "types" | "stadium";
 
 const ACCENT = "var(--pink)";
-
-/** Formata DPS pra caber na coluna: o numero cru vai a 14 mil. */
-export const fmtDps = (v: number): string =>
-  v >= 1000 ? `${(v / 1000).toFixed(1)}k` : v.toFixed(0);
 
 export function MetaTool({ mons }: { mons: MetaMon[] }) {
   const t = useT();
@@ -139,25 +135,6 @@ function FilterBar({
       </label>
       {children}
     </div>
-  );
-}
-
-/** Linha de pokemon reutilizada nas listas: sprite + nome + tipos. */
-export function MonCell({ mon, onOpen }: { mon: MetaMon; onOpen?: (m: MetaMon) => void }) {
-  const inner = (
-    <span className="flex min-w-0 items-center gap-2">
-      <Sprite src={spriteUrl(mon.pokeId)} alt={mon.name} size={32} />
-      <span className="min-w-0">
-        <span className="block truncate text-text">{mon.name}</span>
-        {mon.area === "orre" && <span className="block text-[0.8em] uppercase tracking-wide text-purple">Orre</span>}
-      </span>
-    </span>
-  );
-  if (!onOpen) return inner;
-  return (
-    <button type="button" className="flex min-w-0 text-left transition hover:text-cyan" onClick={() => onOpen(mon)}>
-      {inner}
-    </button>
   );
 }
 
