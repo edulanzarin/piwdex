@@ -14,10 +14,15 @@ export function TypeFilter({
   value,
   onChange,
   className,
+  emptyLabel,
 }: {
   value: PokeType | "";
   onChange: (t: PokeType | "") => void;
   className?: string;
+  /** o que "nenhum tipo" quer dizer AQUI. Em filtro de lista e "todos os tipos"; num
+   *  seletor de cenario (Tipo do Dia) o vazio significa outra coisa, e o rotulo generico
+   *  fazia o campo mentir. */
+  emptyLabel?: string;
 }) {
   const t = useT();
   const typeLabel = useTypeLabel();
@@ -68,7 +73,7 @@ export function TypeFilter({
               <span>{typeLabel(value)}</span>
             </>
           ) : (
-            <span className="text-text-dim">{t("dex.allTypes")}</span>
+            <span className="text-text-dim">{emptyLabel ?? t("dex.allTypes")}</span>
           )}
         </span>
         <span className="inline-flex text-cyan" style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform .15s" }}>
@@ -90,7 +95,7 @@ export function TypeFilter({
             className={`flex min-h-10 w-full items-center gap-2 rounded px-2 text-left text-sm hover:bg-surface-2 ${value === "" ? "bg-surface-2" : ""}`}
           >
             <span className="flex h-5 w-5 items-center justify-center rounded border border-border text-xs text-text-dim">•</span>
-            {t("dex.allTypes")}
+            {emptyLabel ?? t("dex.allTypes")}
           </button>
           {ALL_TYPES.map((pt) => (
             <button

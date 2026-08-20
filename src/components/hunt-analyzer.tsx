@@ -23,6 +23,7 @@ import { Led } from "./ui/status";
 import { useToast } from "./toast";
 import { spriteUrl, assetIconUrl } from "@/lib/sprites";
 import { RISK_COLOR, type RiskLevel } from "@/lib/combat";
+import { TypeDayPanel, type MoneyRow } from "./type-day-panel";
 
 // Uma hunt do catalogo do jogo: o `slug` e exatamente o que o enter-hunt come; o resto
 // e detalhe pro seletor (nivel, area, sprite do pokemon daquele ponto).
@@ -31,6 +32,14 @@ export interface HuntOption { slug: string; name: string; level: number; area: s
 export interface DropOption { itemId: number; name: string; icon: string; npcPrice: number }
 
 const MAX_PLANS = 3; // espelha MAX_GOALS do servidor (robot-session-store)
+
+// Quem o modal de inicio sugere pra caçar o alvo. Vem do /api/vip/best-poke (maior XP/h
+// efetivo) ou, quando o inicio nasce do painel do Tipo do Dia, ja vem escolhido de la
+// (maior OURO/h) — sao criterios diferentes, e o modal mostra o que decidiu a escolha.
+type BestPoke = {
+  pokeId: string; speciesId: number; name: string; level: number;
+  power?: number; eff: number; risk: RiskLevel; killsPerLife: number;
+};
 const fmt = (n: number) => Math.round(n).toLocaleString("pt-BR");
 // numeros grandes (xp/h, ouro/h) em notacao compacta: o slot nao estica quando o valor cresce
 const compactFmt = new Intl.NumberFormat("pt-BR", { notation: "compact", maximumFractionDigits: 1 });
@@ -50,7 +59,7 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
   const [detail, setDetail] = useState<LiveHunt["recentKills"][number] | null>(null);
   const [dropsOpen, setDropsOpen] = useState(false); // modal de opcoes do modo manual
   const [sellDropIds, setSellDropIds] = useState<Set<number>>(new Set());
-  const [bestPoke, setBestPoke] = useState<{ pokeId: string; speciesId: number; name: string; level: number; power: number; eff: number; risk: RiskLevel; killsPerLife: number } | null>(null);
+  const [bestPoke, setBestPoke] = useState<BestPoke | null>(null);
   const [summonState, setSummonState] = useState<"idle" | "busy" | "done" | "fail">("idle");
   const [slug, setSlug] = useState("");
   const [busy, setBusy] = useState(false);
@@ -123,12 +132,26 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
   const startAuto = () => void send({ action: "auto" }, t("toast.autoOn"));
 
   const huntDrops = (selected?.pokeId != null ? lootByPoke[selected.pokeId] : undefined) ?? [];
-  const openStart = () => {
-    setSellDropIds(new Set()); setBestPoke(null); setSummonState("idle"); setDropsOpen(true);
-    if (selected?.pokeId != null) {
-      fetch(`/api/vip/best-poke?pokeId=${selected.pokeId}`, { cache: "no-store" })
+  // `nextSlug` porque o inicio pode vir de fora do seletor (painel do Tipo do Dia): o
+  // setSlug do mesmo clique ainda nao valeu neste render, entao o alvo vem por argumento.
+  // `preset` pula a consulta do melhor pokemon quando quem chamou ja escolheu um.
+  const openStart = (nextSlug?: string, preset?: BestPoke) => {
+    const target = nextSlug ? hunts.find((h) => h.slug === nextSlug) ?? null : selected;
+    setSellDropIds(new Set()); setBestPoke(preset ?? null); setSummonState("idle"); setDropsOpen(true);
+    if (!preset && target?.pokeId != null) {
+      fetch(`/api/vip/best-poke?pokeId=${target.pokeId}`, { cache: "no-store" })
         .then((r) => r.json()).then((j) => setBestPoke(j?.best ?? null)).catch(() => {});
     }
+  };
+
+  // Uma linha do ranking do dia vira o inicio de hunt normal: mesmo modal, mesmos drops,
+  // mesma confirmacao — com o alvo e o pokemon ja preenchidos.
+  const huntFromDay = (r: MoneyRow) => {
+    setSlug(r.slug);
+    openStart(r.slug, {
+      pokeId: r.poke.id, speciesId: r.poke.speciesId, name: r.poke.name, level: r.poke.level,
+      eff: r.eff, risk: r.risk, killsPerLife: r.killsPerLife,
+    });
   };
 
   const summon = async (pokeId: string) => {
@@ -231,7 +254,7 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
                 )}
               </button>
             </div>
-            <button type="button" onClick={openStart} disabled={busy || !slug.trim()} className="btn btn-ghost self-start disabled:opacity-40">
+            <button type="button" onClick={() => openStart()} disabled={busy || !slug.trim()} className="btn btn-ghost self-start disabled:opacity-40">
               {t("robo.hunt.start")} <ChevronRight size={14} />
             </button>
           </Panel>
@@ -284,6 +307,11 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
           </section>
         );
       })()}
+
+      {/* TIPO DO DIA: o que paga mais por hora HOJE com os pokemons que voce tem. Fica
+          logo abaixo do controle porque e uma decisao de ANTES de ligar a hunt — e o
+          botao de cada linha cai no mesmo modal de inicio do modo manual. */}
+      <TypeDayPanel onHunt={huntFromDay} />
 
       {/* plano de leveling em andamento: o card existe enquanto o MODO for leveling
           (escolha do usuario); a rota que ainda nao chegou vira skeleton com as
