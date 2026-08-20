@@ -60,9 +60,10 @@ async function measureStyle(userId: string): Promise<PlayStyle> {
 
   const globalRate = captures / kills;
 
-  // Dificuldade POR ESPECIE, do medidor de investimento do jogo. E o que impede uma
-  // especie de 75.000 que voce nunca capturou de herdar a taxa de uma de 9.000 que voce
-  // captura toda hora.
+  // Dificuldade POR ESPECIE, do medidor de investimento do jogo (o mesmo que as strings
+  // do jogo descrevem: sobe a cada bola, zera na captura). E o que impede uma especie de
+  // 75.000 que voce nunca capturou de herdar a taxa de uma de 9.000 que voce captura toda
+  // hora.
   const catchData = await fetchCatchData(userId).catch(() => null);
   const bySpecies = new Map<number, number>();
   if (catchData) {

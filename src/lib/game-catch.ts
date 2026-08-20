@@ -8,8 +8,9 @@
 //     shiny, visivel no bundle, prova que o termo da bola e linear);
 //   - existe um MEDIDOR DE INVESTIMENTO por especie: "quanto mais bolas voce investe numa
 //     especie, maior a chance" — e ele ZERA a cada captura;
-//   - profissao multiplica ate x1,18; a pokedex da +1% aos 1.000 abates, +2% aos 50.000 e
-//     +3% aos 100.000; VIP nao da chance nenhuma (so libera o auto-catch).
+//   - profissao multiplica a chance DIRETA em +3% por rank (E ate S, teto x1,18); a
+//     pokedex da +1% aos 1.000 abates, +2% aos 50.000 e +3% aos 100.000; o Capture Boost
+//     dobra; VIP nao da chance nenhuma (so libera o auto-catch).
 //
 // Sem formula, a saida e medir. E o jogo guarda a medida em /api/game/used-balls:
 // `attempts` = bolas gastas NESTA especie DESDE A ULTIMA CAPTURA. E o numero que separa o
