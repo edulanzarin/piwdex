@@ -39,6 +39,7 @@ export interface MoneyRow {
   t1: PokeType; t2: PokeType | null;
   slug: string; huntName: string; area: string; huntLevel: number;
   goldH: number; lootH: number; captureH: number; supplyH: number;
+  potionH: number; dmgPerKill: number;
   plainGoldH: number; goldPerKill: number;
   kosH: number; xpH: number; plainXpH: number;
   eff: number; moveType: PokeType;
@@ -53,6 +54,7 @@ interface Style {
   from: "live" | "totals" | "default"; sample: number;
   speedFactor: number; sellShare: number; spots: number; species: number;
   autoCatch: boolean; ballName: string;
+  ballCost: number; potion: { heal: number; price: number } | null;
   killSpeed: { dps: number; overhead: number; points: number } | null;
   law: { sample: number; spread: number } | null;
 }
@@ -372,6 +374,11 @@ export function TypeDayPanel({ onHunt, huntOn = false }: { onHunt: (row: MoneyRo
                           })}
                         >
                           {compact(r.lootH)} + {compact(r.captureH)} − {compact(r.supplyH)}
+                          {r.potionH > r.supplyH * 0.4 && r.potionH > 0 && (
+                            <span className="ml-1 text-red" title={t("robo.day.potionHint", { v: compact(r.potionH), d: Math.round(r.dmgPerKill) })}>
+                              {t("robo.day.potionFlag")}
+                            </span>
+                          )}
                         </span>
                       )}
                     </span>

@@ -74,9 +74,22 @@ async function measureStyle(userId: string): Promise<PlayStyle> {
 
   // A LEI, ajustada com as especies DESTA conta (bola, profissao e bonus de pokedex dela
   // entram embutidos). E o que permite prever um spot onde voce nunca pisou.
-  const db = await getData();
-  const law = fitCatchLaw(catchData, (id) => db.getCreature(id));
+  const db0 = await getData();
+  const law = fitCatchLaw(catchData, (id) => db0.getCreature(id));
   const ballRate = catchData?.ballRate ?? 1;
+
+  // Bola: custo real por arremesso, do que a conta gastou (goldSpent/total). Pocao: a que
+  // o auto-potion usa, com quanto cura e quanto custa — e o que transforma "levo dano" em
+  // "gasto ouro". Sem isso o gasto de cura era media, e alvo que machuca passava batido.
+  let ballCost = 0, ballN = 0;
+  if (catchData) {
+    for (const s2 of catchData.bySpecies.values()) { if (s2.ballCost > 0) { ballCost += s2.ballCost * s2.total; ballN += s2.total; } }
+  }
+  ballCost = ballN > 0 ? ballCost / ballN : 0;
+  const potionItem = catchData?.potionItemId ? db0.getItem(catchData.potionItemId) : undefined;
+  const potion = potionItem?.healAmount && potionItem.healAmount > 0
+    ? { heal: potionItem.healAmount, price: potionItem.priceGold ?? potionItem.npcPrice ?? 0 }
+    : null;
   const canCatch = catchData ? catchData.autoCatch : true;
   const predictRate = (sellValue: number) =>
     canCatch ? predictCatchRate(law, sellValue, ballRate) : 0;
@@ -103,6 +116,8 @@ async function measureStyle(userId: string): Promise<PlayStyle> {
     sample: kills,
     bySlug: await captureRatesBySlug(userId),
     bySpecies,
+    ballCost,
+    potion,
     predictRate,
     law,
     autoCatch: canCatch,
@@ -236,6 +251,8 @@ export async function GET(req: Request) {
     // taxa informada na mao vale pra TODO alvo — quem digitou quer aquele numero
     bySlug: capture != null ? undefined : measured.bySlug,
     bySpecies: capture != null ? undefined : measured.bySpecies,
+    ballCost: supply != null ? undefined : measured.ballCost,
+    potion: supply != null ? null : measured.potion,
     predictRate: capture != null ? undefined : measured.predictRate,
     sellShare: measured.sellShare,
     speedFactor,
@@ -284,6 +301,8 @@ export async function GET(req: Request) {
         ? { dps: Math.round(1 / style.killSpeed.perHp), overhead: style.killSpeed.overhead, points: style.killSpeed.points }
         : null,
       sellShare: style.sellShare ?? 1,
+      ballCost: style.ballCost ?? 0,
+      potion: style.potion ?? null,
       spots: style.bySlug?.size ?? 0,
       species: style.bySpecies?.size ?? 0,
       autoCatch: measured.autoCatch ?? true,

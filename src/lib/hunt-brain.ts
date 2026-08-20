@@ -22,7 +22,7 @@ import { goldPerKill, lootMultiplier, pricedDrops, type LootBonuses, type Priced
 import { getData, type DB } from "@/lib/data";
 import { itemIconUrl } from "@/lib/sprites";
 import type { ActivePoke } from "@/lib/game-account";
-import { estimateIvs } from "@/lib/stats";
+import { estimateIvs, projectStat } from "@/lib/stats";
 import type { PokeType } from "@/lib/types";
 
 export interface HuntTarget extends EnemyCombat {
@@ -322,8 +322,20 @@ export interface MoneyPoke {
 export interface PlayStyle {
   /** capturas por abate, no geral (14 capturas em 586 abates = 0,024) */
   capturePerKill: number;
-  /** ouro de bola + pocao gasto por abate */
+  /** ouro de bola + pocao gasto por abate, MEDIDO (media de tudo que voce cacou) */
   supplyPerKill: number;
+  /**
+   * Custo de BOLA por abate. O auto-catch joga uma bola em cada corpo, entao esta parte
+   * e ~constante por abate — nao depende do alvo.
+   */
+  ballCost?: number;
+  /**
+   * A pocao que o auto-potion usa: quanto cura e quanto custa. Com ela o gasto de cura
+   * deixa de ser media e passa a sair do DANO QUE O ALVO TE CAUSA — que e o que decide
+   * se a hunt paga. Um alvo que te obriga a potar sem parar pode render MENOS que um que
+   * paga menos e nao te toca.
+   */
+  potion?: { heal: number; price: number } | null;
   /** de onde veio a medida, pra a tela poder dizer */
   from: "live" | "totals" | "default";
   /** abates que sustentam a medida (amostra pequena = numero fraco) */
@@ -445,10 +457,14 @@ export interface MoneyRow {
   huntLevel: number;
   /** renda liquida por hora: loot + captura - supply, ja descontado o tempo caido na Joy */
   goldH: number;
-  /** as tres parcelas, pra a tela poder abrir a conta */
+  /** as parcelas, pra a tela poder abrir a conta */
   lootH: number;
   captureH: number;
   supplyH: number;
+  /** so a parte de POCAO do supply — a que depende de quanto o alvo te machuca */
+  potionH: number;
+  /** dano que voce leva por abate neste alvo (em pontos de vida) */
+  dmgPerKill: number;
   /** a mesma renda num dia sem Tipo do Dia — a diferenca e o que o dia adiciona */
   plainGoldH: number;
   goldPerKill: number;
@@ -502,6 +518,9 @@ export async function rankMoney(
   // linha contradiria o proprio cabecalho do painel.
   const dayXp = opts.dayXpPct ?? 0;
   const style = opts.style ?? NO_STYLE;
+  const potion = style.potion ?? null;
+  // sem medida separada, assume que metade do supply medido e bola (o resto e cura)
+  const ballCost = style.ballCost ?? style.supplyPerKill * 0.5;
 
   const data = await getBrainData();
   if (!pokes.length) return [];
@@ -513,7 +532,7 @@ export async function rankMoney(
   // Economia por ALVO: independe de quem caca, entao sai uma vez so.
   const noDay: LootBonuses = { ...bonuses, typeDay: null };
   const econ = new Map<number, {
-    loot: number; lootPlain: number; capture: number; captureGuess: number; supply: number;
+    loot: number; lootPlain: number; capture: number; captureGuess: number;
     hits: boolean; dayUse: number; rate: number; guessRate: number; sample: number;
   }>();
   for (const t of data.targets) {
@@ -530,7 +549,6 @@ export async function rankMoney(
     const share = style.sellShare ?? 1;
     const capture = rates.floor * t.sellValue * share;
     const captureGuess = rates.guess * t.sellValue * share;
-    const supply = style.supplyPerKill;
     if (loot + captureGuess <= 0) continue; // alvo que nao paga nada nem no otimista
     // Quanto do bonus do dia sobreviveu ao teto: o ganho REAL sobre o ganho que ele teria
     // se nenhuma chance esbarrasse em 100%.
@@ -538,7 +556,7 @@ export async function rankMoney(
     const hits = multDay > multPlain;
     const theoretical = hits ? lootPlain * (multDay / multPlain - 1) : 0;
     const dayUse = theoretical > 0 ? Math.max(0, Math.min(1, (loot - lootPlain) / theoretical)) : 0;
-    econ.set(t.pokeId, { loot, lootPlain, capture, captureGuess, supply, hits, dayUse, rate: rates.floor, guessRate: rates.guess, sample });
+    econ.set(t.pokeId, { loot, lootPlain, capture, captureGuess, hits, dayUse, rate: rates.floor, guessRate: rates.guess, sample });
   }
 
   const best = new Map<number, MoneyRow>();
@@ -548,6 +566,9 @@ export async function rankMoney(
     const f = fighterOf(p);
     const ivs = ivsOf(f, sp);
     const reach = reachOf(f.level);
+    // sua vida cheia: e o que converte "aguento N abates por vida" em "levo X de dano
+    // por abate", e dai em quantas pocoes a hunt te cobra.
+    const selfHp = projectStat(sp.bases[0], ivs[0], f.level, f.quality, 0);
     for (const t of data.targets) {
       if (t.huntLevel > reach) continue;
       const e = econ.get(t.pokeId);
@@ -562,9 +583,20 @@ export async function rankMoney(
       const kosH = ks && ks.points >= 2
         ? 3600 / Math.max(0.5, ks.perHp * t.hp + ks.overhead)
         : est.kosH * style.speedFactor;
+      // SUPPLY em duas partes, porque elas se comportam de forma diferente:
+      //   bola  — uma por corpo, praticamente igual em qualquer alvo;
+      //   pocao — sai do dano que ESTE alvo te causa. Alvo que te obriga a potar sem
+      //           parar come o lucro, e a media escondia isso.
+      const dmgPerKill = selfHp / Math.max(0.1, est.threat.killsPerLife);
+      const potionPerKill = potion && potion.heal > 0
+        ? (dmgPerKill / potion.heal) * potion.price
+        : Math.max(0, style.supplyPerKill - ballCost); // sem catalogo de pocao, cai na media
+      const supplyPerKill = ballCost + potionPerKill;
+
       const lootH = e.loot * kosH;
       const captureH = e.capture * kosH;
-      const supplyH = e.supply * kosH;
+      const supplyH = supplyPerKill * kosH;
+      const potionH = potionPerKill * kosH;
       const goldH = lootH + captureH - supplyH;
       const goldGuessH = lootH + e.captureGuess * kosH - supplyH;
       const xpH = est.xpH * style.speedFactor * (e.hits ? 1 + dayXp : 1);
@@ -576,9 +608,9 @@ export async function rankMoney(
         poke: moneyPokeOf(p),
         targetId: t.pokeId, targetName: t.name, t1: t.t1, t2: t.t2,
         slug: t.slug, huntName: t.huntName, area: t.area, huntLevel: t.huntLevel,
-        goldH, goldGuessH, lootH, captureH, supplyH,
+        goldH, goldGuessH, lootH, captureH, supplyH, potionH, dmgPerKill,
         plainGoldH: e.lootPlain * kosH + captureH - supplyH,
-        goldPerKill: e.loot + e.capture - e.supply,
+        goldPerKill: e.loot + e.capture - supplyPerKill,
         kosH,
         xpH,
         plainXpH: est.xpH * style.speedFactor,

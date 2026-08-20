@@ -57,6 +57,8 @@ export interface CatchData {
   /** catchRate da bola que o auto-catch usa (a chance e linear nele) */
   ballRate: number;
   ballName: string;
+  /** id da pocao que o auto-potion usa — o custo de cura sai dela */
+  potionItemId: number;
   at: number;
 }
 
@@ -85,7 +87,7 @@ export async function fetchCatchData(userId: string, force = false): Promise<Cat
   }
 
   // o auto-catch decide se existe captura, e com que bola
-  let autoCatch = false, ballRate = 1, ballName = "";
+  let autoCatch = false, ballRate = 1, ballName = "", potionItemId = 0;
   try {
     const r = await gameFetch("/api/game/auto-helper", tokens);
     if (r.changed) { tokens = r.tokens; await updateGameTokens(userId, tokens).catch(() => {}); }
@@ -94,6 +96,7 @@ export async function fetchCatchData(userId: string, force = false): Promise<Cat
       autoCatch = Boolean(h?.autoCatch);
       const ball = ballById(num(h?.autoCatchBallId));
       if (ball) { ballRate = ball.catchRate; ballName = ball.name; }
+      potionItemId = num(h?.autoPotionItemId);
     }
   } catch { /* sem o auto-helper, assume a bola fraca (subestima, nao inventa) */ }
 
@@ -138,7 +141,7 @@ export async function fetchCatchData(userId: string, force = false): Promise<Cat
     });
   }
 
-  const data: CatchData = { bySpecies, totalBalls, autoCatch, ballRate, ballName, at: now };
+  const data: CatchData = { bySpecies, totalBalls, autoCatch, ballRate, ballName, potionItemId, at: now };
   cache.set(userId, { data, exp: now + CACHE_MS });
   return data;
 }
