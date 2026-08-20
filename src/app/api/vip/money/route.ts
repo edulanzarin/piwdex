@@ -4,29 +4,62 @@ import { getGameLink, saveGameShard } from "@/lib/game-link";
 import { fetchActivePokes } from "@/lib/game-ws";
 import { normalizeActivePokes, type ActivePoke } from "@/lib/game-account";
 import { sessionFor } from "@/lib/game-hunt-session";
+import { getRobotSales } from "@/lib/robot-sales";
 import { fetchGameBoosts, lootBonusesOf } from "@/lib/game-boosts";
-import { lootMultiplier } from "@/lib/boost";
-import { rankMoney } from "@/lib/hunt-brain";
+import { lootMultiplier, STREAK_STEP, type LootBonuses } from "@/lib/boost";
+import { rankMoney, NO_STYLE, type MoneyMode, type PlayStyle } from "@/lib/hunt-brain";
+import { getData } from "@/lib/data";
 import { ALL_TYPES } from "@/lib/typing";
 import type { PokeType } from "@/lib/types";
 
 export const runtime = "nodejs";
 
-// "Com os pokemons que eu TENHO, o que paga mais por hora HOJE?"
+// "Com os pokemons que eu TENHO, o que rende mais por hora HOJE?"
 //
-// Junta tres coisas que ja existiam separadas: o tipo premiado do dia (lido do jogo em
-// /api/game/boosts), o motor de combate (quanto voce mata por hora em cada spot, ja
-// descontando desmaio) e o motor de loot com TETO de chance (quanto cada abate paga com
-// os bonus ligados). Ver lib/game-boosts.ts, lib/combat.ts e lib/boost.ts.
+// Junta quatro coisas que viviam separadas: o tipo premiado do dia (lido do jogo), o motor
+// de combate (quantos abates por hora em cada spot, ja descontando desmaio), o motor de
+// loot com TETO de chance, e COMO VOCE JOGA — capturas e supply por abate, medidos da sua
+// propria hunt. Sem a quarta o ranking media 13% da renda: no Yanma do Eduardo o loot deu
+// 12.321 e a venda dos capturados 81.000.
 //
-// O roster e o time MAIS o box: "os pokemons que eu tenho" nao para na equipe ativa. Os
+// O roster e time MAIS box: "os pokemons que eu tenho" nao para na equipe ativa. Os
 // individuais so existem no frame `pokes` do WebSocket, entao com sessao viva a lista sai
 // da memoria e sem sessao sai de uma leitura one-shot (mesmo desenho do /api/vip/team).
-//
-// `?type=` simula outro dia (ou `none` pra ver a lista sem o bonus); `?refresh=1` fura o
-// cache de 60s dos bonus.
 
 const isType = (v: string): v is PokeType => (ALL_TYPES as string[]).includes(v);
+const numParam = (v: string | null): number | null => {
+  if (v == null || v.trim() === "") return null;
+  const n = Number(v.replace(",", "."));
+  return Number.isFinite(n) && n >= 0 ? n : null;
+};
+
+/** Amostra minima pra uma taxa medida valer mais que zero. Abaixo disso a razao
+ *  captura/abate oscila demais (2 capturas em 5 abates = 40%, e nao e verdade). */
+const MIN_SAMPLE = 25;
+
+/** Como o jogador joga, medido: primeiro a hunt AO VIVO (é o agora), depois o acumulado
+ *  do robo (mais amostra, menos atual). Sem nenhum dos dois, so loot. */
+async function measureStyle(userId: string): Promise<PlayStyle> {
+  const live = sessionFor(userId).getState().analyzer;
+  if (live && live.kills >= MIN_SAMPLE) {
+    return {
+      capturePerKill: live.captures / live.kills,
+      supplyPerKill: live.supplyGold / live.kills,
+      from: "live",
+      sample: live.kills,
+    };
+  }
+  const t = await getRobotSales(userId).catch(() => null);
+  if (t && t.kills >= MIN_SAMPLE) {
+    return {
+      capturePerKill: t.captures / t.kills,
+      supplyPerKill: t.supplyGold / t.kills,
+      from: "totals",
+      sample: t.kills,
+    };
+  }
+  return NO_STYLE;
+}
 
 export async function GET(req: Request) {
   const s = await auth();
@@ -37,12 +70,17 @@ export async function GET(req: Request) {
   const link = await getGameLink(userId);
   if (!link || link.status === "expired") return NextResponse.json({ error: "not_connected" }, { status: 409 });
 
-  const url = new URL(req.url);
-  const rawType = (url.searchParams.get("type") ?? "").toUpperCase();
-  const refresh = url.searchParams.get("refresh") === "1";
+  const q = new URL(req.url).searchParams;
+  const refresh = q.get("refresh") === "1";
+  const mode: MoneyMode = q.get("mode") === "xp" ? "xp" : "gold";
+  const rawType = (q.get("type") ?? "").toUpperCase();
   // undefined = usa o tipo real do dia; null = simula um dia sem bonus; tipo = simula ele
   const override: PokeType | null | undefined =
     rawType === "" ? undefined : rawType === "NONE" ? null : isType(rawType) ? rawType : undefined;
+
+  // Refresh do painel tambem confere o CATALOGO: patch de balanceamento muda o ranking
+  // mais que qualquer bonus (Ledian saiu de 493 pra 38 de ouro/abate em 20/08/2026).
+  if (refresh) await getData(true).catch(() => {});
 
   // --- roster: time + box -----------------------------------------------------------
   const session = sessionFor(userId);
@@ -61,22 +99,42 @@ export async function GET(req: Request) {
   }
   if (!pokes.length) return NextResponse.json({ error: "no_pokes" }, { status: 409 });
 
-  // --- bonus de hoje ----------------------------------------------------------------
+  // --- bonus de hoje, com os ajustes que o usuario mandar ---------------------------
   const boosts = await fetchGameBoosts(userId, refresh);
-  const bonuses = lootBonusesOf(boosts, override);
+  const base = lootBonusesOf(boosts, override);
+  const streakPct = numParam(q.get("streak"));   // % da trilha Loot
+  const eventPct = numParam(q.get("event"));     // % de evento/boost de fundo
+  const bonuses: LootBonuses = {
+    ...base,
+    streakLoot: streakPct != null ? Math.round(streakPct / 100 / STREAK_STEP) : base.streakLoot,
+    lootBoost: q.get("boost") === "1" ? true : q.get("boost") === "0" ? false : base.lootBoost,
+    eventPct: eventPct ?? base.eventPct,
+  };
   const dayType = bonuses.typeDay;
   const dayXpPct = dayType ? boosts?.typeDay?.xpPct ?? boosts?.typeDay?.lootPct ?? 0 : 0;
 
-  // VIP do JOGO (1,5x XP): so escala a coluna de XP — o ranking e por ouro, que o VIP
-  // nao toca. Assume ligado, como o /api/vip/best-poke, pra nao pagar mais uma ida ao jogo.
-  const rows = await rankMoney(pokes, bonuses, true, { limit: 12, dayXpPct });
+  // --- como voce joga ---------------------------------------------------------------
+  const measured = await measureStyle(userId);
+  const capture = numParam(q.get("capture"));
+  const supply = numParam(q.get("supply"));
+  const style: PlayStyle = {
+    capturePerKill: capture != null ? capture : measured.capturePerKill,
+    supplyPerKill: supply != null ? supply : measured.supplyPerKill,
+    from: capture != null || supply != null ? "default" : measured.from,
+    sample: measured.sample,
+  };
 
-  // multiplicador de FUNDO (o que vale em qualquer alvo) x o dele com o bonus do dia
+  // VIP do JOGO (1,5x XP): assume ligado, como o /api/vip/best-poke, pra nao pagar mais
+  // uma ida ao jogo. So escala a coluna de XP.
+  const rows = await rankMoney(pokes, bonuses, true, { limit: 12, mode, dayXpPct, style });
+
   const background = lootMultiplier(bonuses);
   const withDay = dayType ? lootMultiplier(bonuses, [dayType]) : background;
+  const db = await getData();
 
   return NextResponse.json({
     live,
+    mode,
     pokes: pokes.length,
     typeDay: boosts?.typeDay
       ? {
@@ -87,16 +145,18 @@ export async function GET(req: Request) {
           until: boosts.typeDay.until,
         }
       : null,
-    // o tipo que a lista USOU (pode ser simulacao) e de onde ele veio
     applied: dayType,
     source: override === undefined ? "game" : override === null ? "off" : "manual",
     mult: {
-      streak: boosts?.streakLootPct ?? 0,
-      boost: boosts?.boostLootPct ?? 0,
+      streak: bonuses.streakLoot * STREAK_STEP,
+      boost: bonuses.eventPct / 100 + (bonuses.lootBoost ? 0.4 : 0),
       day: dayType ? boosts?.typeDay?.lootPct ?? 0 : 0,
       background,
       withDay,
     },
+    style,
+    // frescor do CATALOGO: e ele que decide se o ranking vale
+    catalog: { live: db.live, at: db.generatedAt, error: db.error, checkedAt: db.checkedAt },
     rows,
   });
 }

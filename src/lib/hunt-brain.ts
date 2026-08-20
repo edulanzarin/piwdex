@@ -19,7 +19,7 @@ import {
   type EnemyCombat, type Species, type Move, type RouteStep, type HuntEstimate, type MovesOf, type RiskLevel,
 } from "@/lib/combat";
 import { goldPerKill, lootMultiplier, pricedDrops, type LootBonuses, type PricedDrop } from "@/lib/boost";
-import { getData } from "@/lib/data";
+import { getData, type DB } from "@/lib/data";
 import { itemIconUrl } from "@/lib/sprites";
 import type { ActivePoke } from "@/lib/game-account";
 import { estimateIvs } from "@/lib/stats";
@@ -29,6 +29,9 @@ export interface HuntTarget extends EnemyCombat {
   slug: string;        // spot pra enter-hunt (o de nivel mais proximo do huntLevel do alvo)
   huntName: string;
   area: string;
+  /** ouro que o NPC paga pelo pokemon capturado. Numa hunt de verdade ISTO costuma ser a
+   *  maior fonte de ouro — no Yanma do Eduardo, 81k de captura contra 12k de loot. */
+  sellValue: number;
 }
 
 export interface BrainData {
@@ -42,16 +45,26 @@ export interface BrainData {
   dropsOf: (speciesId: number) => PricedDrop[];
 }
 
-// Dados de combate derivados do piwdex.json (estatico) — memo de modulo, montado 1x por processo.
-let brainData: Promise<BrainData> | null = null;
+// Dados de combate derivados do catalogo, guardados por VERSAO da fonte.
+//
+// Isto era um memo SEM CHAVE ("montado 1x por processo") e foi o pior vazamento de dado
+// velho do projeto: o container do Railway nao reinicia sozinho (restart ON_FAILURE,
+// 1 replica), entao o cerebro do robo ficava com o catalogo do boot PARA SEMPRE. No patch
+// de 20/08/2026 o Ledian caiu de 493 pra 38 de ouro por abate — um robo ligado antes do
+// patch seguiria escolhendo hunt por um numero 13x maior que o real, e nada na tela
+// denunciaria. A chave e o `version` do catalogo (ETag da fonte): o jogo publica, a
+// proxima leitura reconstroi.
+let brainData: { version: string; data: Promise<BrainData> } | null = null;
 
-export function getBrainData(): Promise<BrainData> {
-  if (!brainData) brainData = build();
-  return brainData;
+export async function getBrainData(): Promise<BrainData> {
+  const db = await getData();
+  if (brainData && brainData.version === db.version) return brainData.data;
+  const data = build(db);
+  brainData = { version: db.version, data };
+  return data;
 }
 
-async function build(): Promise<BrainData> {
-  const db = await getData();
+async function build(db: DB): Promise<BrainData> {
   const species = new Map<number, Species>();
   const targets: HuntTarget[] = [];
   const lootCache = new Map<number, number[]>();
@@ -84,7 +97,7 @@ async function build(): Promise<BrainData> {
       pokeId: c.pokeId, name: c.name, t1: c.type1, t2: c.type2, huntLevel: hl,
       areas: [...new Set(locs.map((h) => h.area))].sort(), spotCount: locs.length,
       xp: c.experience, goldEV: Math.round(goldEV), ...cs,
-      slug: spot.slug, huntName: spot.name, area: spot.area,
+      slug: spot.slug, huntName: spot.name, area: spot.area, sellValue: c.sellValue,
     });
   }
 
@@ -271,17 +284,23 @@ export function stepForLevel(steps: PlanStep[], level: number): PlanStep | null 
   return steps.find((s) => level >= s.from && level <= s.to) ?? steps[steps.length - 1];
 }
 
-// --- Ranking de DINHEIRO (Tipo do Dia) ----------------------------------------------
+// --- Ranking de rendimento (o que paga/upa mais agora) --------------------------------
 // A pergunta que isto responde e outra da rota: nao "onde eu upo", e "com o que eu tenho,
-// o que paga mais AGORA". Duas diferencas de motor:
+// o que rende mais AGORA". Tres diferencas de motor:
 //
 //  1. o `goldEV` do alvo (usado pelo goldH do combat.ts) e ouro SEM bonus e SEM teto. Um
 //     bonus de loot MULTIPLICA a chance de cada drop, e chance nao passa de 100% — entao
 //     em alvo cujos drops comuns ja nascem em 95% o bonus vira quase nada. Aqui o ouro
 //     por abate e recalculado drop a drop, com o teto (lib/boost.ts).
-//  2. o Tipo do Dia so vale nos alvos DAQUELE tipo, entao ele reordena a lista em vez de
-//     escalar todo mundo igual. E por isso que o ranking mede os dois cenarios: sem o
-//     bonus do dia dizer quanto o dia esta realmente adicionando seria chute.
+//  2. LOOT NAO E A RENDA. Medir so o loot foi o erro da primeira versao: numa hunt real
+//     do Eduardo (Yanma, 30 min) o loot deu 12.321 e a VENDA DOS CAPTURADOS deu 81.000,
+//     com 47.710 gastos em bola e pocao. O ranking que via so o loot mostrava 23k/h onde
+//     o jogo pagava 91k/h de saldo — e ordenava pela parcela errada.
+//     Entao o rendimento e `loot + captura - supply`, e as duas taxas novas saem da SUA
+//     hunt (o analyzer ao vivo, ou o acumulado do robo), nao de um chute nosso.
+//  3. o Tipo do Dia so vale nos alvos DAQUELE tipo, entao ele reordena a lista em vez de
+//     escalar todo mundo igual. Por isso o ranking mede os dois cenarios: sem o bonus,
+//     dizer quanto o dia esta adicionando seria chute.
 //
 // Sai o MELHOR pokemon seu por alvo (a lista repetida com os 6 do time em cima do mesmo
 // spot nao decide nada) e o alvo que te mata continua fora — hunt que te derruba rende
@@ -298,6 +317,23 @@ export interface MoneyPoke {
   shiny: boolean;
 }
 
+/** Como voce joga, medido da SUA hunt — e o que transforma "ouro do loot" em renda.
+ *  Zerado, o ranking vira o de loot puro (que e o que sobra pra quem nunca cacou). */
+export interface PlayStyle {
+  /** capturas por abate (9 capturas em 367 abates = 0,0245) */
+  capturePerKill: number;
+  /** ouro de bola + pocao gasto por abate */
+  supplyPerKill: number;
+  /** de onde veio a medida, pra a tela poder dizer */
+  from: "live" | "totals" | "default";
+  /** abates que sustentam a medida (amostra pequena = numero fraco) */
+  sample: number;
+}
+
+export const NO_STYLE: PlayStyle = { capturePerKill: 0, supplyPerKill: 0, from: "default", sample: 0 };
+
+export type MoneyMode = "gold" | "xp";
+
 export interface MoneyRow {
   poke: MoneyPoke;
   targetId: number;
@@ -308,13 +344,19 @@ export interface MoneyRow {
   huntName: string;
   area: string;
   huntLevel: number;
-  /** ouro/h efetivo com os bonus de hoje (ja descontado o tempo caido na Joy) */
+  /** renda liquida por hora: loot + captura - supply, ja descontado o tempo caido na Joy */
   goldH: number;
-  /** o mesmo, num dia sem Tipo do Dia — a diferenca e o que o dia adiciona */
+  /** as tres parcelas, pra a tela poder abrir a conta */
+  lootH: number;
+  captureH: number;
+  supplyH: number;
+  /** a mesma renda num dia sem Tipo do Dia — a diferenca e o que o dia adiciona */
   plainGoldH: number;
   goldPerKill: number;
   kosH: number;
   xpH: number;
+  /** XP/h sem o bonus do dia */
+  plainXpH: number;
   eff: number;
   moveType: PokeType;
   risk: RiskLevel;
@@ -333,16 +375,29 @@ const moneyPokeOf = (p: ActivePoke): MoneyPoke => ({
  *  por alvo sem mudar a resposta — os fracos nunca ganham. Corta pelos mais fortes. */
 const MAX_POKES = 60;
 
+export interface RankOpts {
+  limit?: number;
+  /** o que ordena a lista: renda ou XP */
+  mode?: MoneyMode;
+  /** quanto o Tipo do Dia paga de XP (o loot vai em `bonuses`) */
+  dayXpPct?: number;
+  /** como voce joga (captura/abate e supply/abate) */
+  style?: PlayStyle;
+}
+
 export async function rankMoney(
   pokes: ActivePoke[],
   bonuses: LootBonuses,
   vip: boolean,
-  opts: { limit?: number; dayXpPct?: number } = {},
+  opts: RankOpts = {},
 ): Promise<MoneyRow[]> {
   const limit = opts.limit ?? 12;
+  const mode = opts.mode ?? "gold";
   // o Tipo do Dia paga XP junto com o loot, e so nos mesmos alvos — sem isto o XP/h da
   // linha contradiria o proprio cabecalho do painel.
   const dayXp = opts.dayXpPct ?? 0;
+  const style = opts.style ?? NO_STYLE;
+
   const data = await getBrainData();
   if (!pokes.length) return [];
 
@@ -352,22 +407,26 @@ export async function rankMoney(
 
   // Economia por ALVO: independe de quem caca, entao sai uma vez so.
   const noDay: LootBonuses = { ...bonuses, typeDay: null };
-  const econ = new Map<number, { gpk: number; gpkPlain: number; hits: boolean; dayUse: number }>();
+  const econ = new Map<number, {
+    loot: number; lootPlain: number; capture: number; supply: number; hits: boolean; dayUse: number;
+  }>();
   for (const t of data.targets) {
     const drops = data.dropsOf(t.pokeId);
-    if (!drops.length) continue; // alvo sem drop vendavel nao e alvo de dinheiro
     const types = [t.t1, t.t2];
     const multDay = lootMultiplier(bonuses, types);
     const multPlain = lootMultiplier(noDay, types);
-    const gpk = goldPerKill(drops, multDay);
-    const gpkPlain = goldPerKill(drops, multPlain);
-    if (gpk <= 0) continue;
+    const loot = drops.length ? goldPerKill(drops, multDay) : 0;
+    const lootPlain = drops.length ? goldPerKill(drops, multPlain) : 0;
+    // a venda do capturado: quantos voce captura por abate x o que o NPC paga por ele
+    const capture = style.capturePerKill * t.sellValue;
+    const supply = style.supplyPerKill;
+    if (loot + capture <= 0) continue; // alvo que nao paga nada nao e alvo de dinheiro
     // Quanto do bonus do dia sobreviveu ao teto: o ganho REAL sobre o ganho que ele teria
     // se nenhuma chance esbarrasse em 100%.
     const hits = multDay > multPlain;
-    const theoretical = hits ? gpkPlain * (multDay / multPlain - 1) : 0;
-    const dayUse = theoretical > 0 ? Math.max(0, Math.min(1, (gpk - gpkPlain) / theoretical)) : 0;
-    econ.set(t.pokeId, { gpk, gpkPlain, hits, dayUse });
+    const theoretical = hits ? lootPlain * (multDay / multPlain - 1) : 0;
+    const dayUse = theoretical > 0 ? Math.max(0, Math.min(1, (loot - lootPlain) / theoretical)) : 0;
+    econ.set(t.pokeId, { loot, lootPlain, capture, supply, hits, dayUse });
   }
 
   const best = new Map<number, MoneyRow>();
@@ -383,18 +442,26 @@ export async function rankMoney(
       if (!e) continue;
       const est = estimateHunt(sp, f.level, ivs, f.quality, t, data.movesOf(t.pokeId), vip);
       if (!est || est.threat.risk === "deadly") continue; // morrer nao paga
-      const goldH = e.gpk * est.kosH;
+
+      const lootH = e.loot * est.kosH;
+      const captureH = e.capture * est.kosH;
+      const supplyH = e.supply * est.kosH;
+      const goldH = lootH + captureH - supplyH;
+      const xpH = est.xpH * (e.hits ? 1 + dayXp : 1);
+      const score = mode === "xp" ? xpH : goldH;
+
       const cur = best.get(t.pokeId);
-      if (cur && cur.goldH >= goldH) continue;
+      if (cur && (mode === "xp" ? cur.xpH : cur.goldH) >= score) continue;
       best.set(t.pokeId, {
         poke: moneyPokeOf(p),
         targetId: t.pokeId, targetName: t.name, t1: t.t1, t2: t.t2,
         slug: t.slug, huntName: t.huntName, area: t.area, huntLevel: t.huntLevel,
-        goldH,
-        plainGoldH: e.gpkPlain * est.kosH,
-        goldPerKill: e.gpk,
+        goldH, lootH, captureH, supplyH,
+        plainGoldH: e.lootPlain * est.kosH + captureH - supplyH,
+        goldPerKill: e.loot + e.capture - e.supply,
         kosH: est.kosH,
-        xpH: est.xpH * (e.hits ? 1 + dayXp : 1),
+        xpH,
+        plainXpH: est.xpH,
         eff: est.eff,
         moveType: est.moveName,
         risk: est.threat.risk,
@@ -405,5 +472,6 @@ export async function rankMoney(
     }
   }
 
-  return [...best.values()].sort((a, b) => b.goldH - a.goldH).slice(0, limit);
+  const key = (r: MoneyRow) => (mode === "xp" ? r.xpH : r.goldH);
+  return [...best.values()].sort((a, b) => key(b) - key(a)).slice(0, limit);
 }

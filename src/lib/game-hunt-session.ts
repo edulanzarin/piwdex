@@ -360,7 +360,8 @@ class GameSession {
   private reviveSentAt = 0;                  // ultimo field-revive
   private owesEnter = false;                 // deve uma entrada em `slug` (esta fora do campo)
   private recoverWarned = false;             // ja avisou que a cura esta demorando
-  private reviveIds: Set<number> | null = null; // itens de categoria "revive" (dado estatico)
+  private reviveIds: Set<number> | null = null; // itens de categoria "revive" (do catalogo)
+  private reviveIdsVersion: string | null = null; // versao do catalogo que produziu o set acima
   private deaths = new Map<number, number>();  // alvo -> desmaios seguidos nele
   private banned = new Map<number, number>();  // alvo banido -> nivel do bicho quando caiu
   private healSentAt = 0;        // ultimo joy-heal enviado (anti-flood)
@@ -1220,12 +1221,16 @@ class GameSession {
     this.emit("session");
   }
 
-  // itens de categoria "revive" (dado estatico, carregado uma vez por processo)
+  // Itens de categoria "revive" do catalogo. NAO e dado estatico: item novo (ou removido)
+  // entra em patch, e a sessao vive o processo inteiro — por isso o set carrega a versao
+  // do catalogo que o produziu e se refaz quando ela muda.
   private hasRevive(): boolean {
-    if (!this.reviveIds) {
-      void getData().then((d) => { this.reviveIds = new Set(d.items.filter((i) => i.category === "revive").map((i) => i.id)); }).catch(() => {});
-      return true; // ainda nao sei quais sao: tentar o frame e barato
-    }
+    void getData().then((d) => {
+      if (this.reviveIdsVersion === d.version) return;
+      this.reviveIds = new Set(d.items.filter((i) => i.category === "revive").map((i) => i.id));
+      this.reviveIdsVersion = d.version;
+    }).catch(() => {});
+    if (!this.reviveIds) return true; // ainda nao sei quais sao: tentar o frame e barato
     if (!this.inv.size) return true; // inventario ainda nao chegou nesta conexao
     for (const [id, qty] of this.inv) if (qty > 0 && this.reviveIds.has(id)) return true;
     return false;

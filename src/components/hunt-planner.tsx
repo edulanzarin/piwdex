@@ -31,6 +31,8 @@ export interface HuntRow {
   spotCount: number;
   topDrop: { name: string; icon: string } | null;
   bases: number[]; // hp, atk, def, spAtk, spDef, speed — pro peek de stats
+  /** o alvo e do tipo premiado hoje: o `gold` da linha ja vem com o bonus aplicado */
+  dayHit?: boolean;
 }
 
 type Sort = "gold" | "xp" | "lvl" | "name";
@@ -267,8 +269,15 @@ export function EconomyTable({ rows, areas }: { rows: HuntRow[]; areas: string[]
                     <div className="tabular-nums text-text">{r.xp.toLocaleString("pt-BR")}</div>
                   </td>
                   <td className="px-4 py-2.5 text-right">
-                    <div className="inline-flex items-center justify-end gap-1 tabular-nums text-text">
+                    {/* com Tipo do Dia ligado o valor JA vem com o bonus (e com o teto de
+                        chance); o selo diz que esta linha e uma das premiadas */}
+                    <div className="inline-flex items-center justify-end gap-1.5 tabular-nums text-text">
                       <Gold value={r.gold} />
+                      {r.dayHit && (
+                        <span className="chip shrink-0" style={{ background: "var(--yellow)", color: "#2a2200" }} title={t("hunt.day.rowHint")}>
+                          {t("hunt.day.chip")}
+                        </span>
+                      )}
                     </div>
                   </td>
                   <td className="px-4 py-2.5">

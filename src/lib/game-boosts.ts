@@ -169,6 +169,20 @@ function parseStreakLoot(streak: unknown): number {
   return 0;
 }
 
+// O tipo premiado e estado GLOBAL do jogo: e o mesmo pra todo mundo, e so a leitura dele
+// exige token. Guardar o ultimo que qualquer conta conectada leu deixa a parte PUBLICA do
+// site (o Hunt Planner, que nao tem login) ja abrir no tipo certo em vez de pedir pro
+// visitante adivinhar. Nada aqui e dado de conta — e o mesmo aviso que o jogo pinta na
+// tela de todos os jogadores.
+let lastTypeDay: TypeDayBonus | null = null;
+
+/** Ultimo tipo premiado que o servidor viu, se ainda estiver valendo. */
+export function lastKnownTypeDay(): TypeDayBonus | null {
+  if (!lastTypeDay) return null;
+  if (lastTypeDay.until && lastTypeDay.until <= Date.now()) return null; // o dia virou
+  return lastTypeDay;
+}
+
 // O tipo do dia e global e dura horas; os boosts temporarios sao do jogador e podem
 // entrar/sair a qualquer momento. Um TTL curto atende os dois sem martelar o jogo a cada
 // abertura do painel.
@@ -204,8 +218,10 @@ export async function fetchGameBoosts(userId: string, force = false): Promise<Ga
   if (changed) await updateGameTokens(userId, tokens).catch(() => {});
   if (!boostsRes && !streakRes) return null;
 
+  const typeDay = parseTypeDay(boostsRes?.events);
+  if (typeDay?.type) lastTypeDay = typeDay;
   const data: GameBoosts = {
-    typeDay: parseTypeDay(boostsRes?.events),
+    typeDay,
     streakLootPct: parseStreakLoot(streakRes),
     boostLootPct: activeBoostPct(boostsRes?.boosts, LOOT_WORDS),
     boostXpPct: activeBoostPct(boostsRes?.boosts, XP_WORDS),
