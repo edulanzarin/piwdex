@@ -26,6 +26,7 @@ import { TypeIcon } from "./type-icon";
 import { TypeFilter } from "./type-filter";
 import { ToggleButton } from "./toggle-button";
 import { Coin, Clock, Xp, Caret, ChevronRight } from "./icons";
+import { patchAge, patchTitle } from "./catalog-stamp";
 import { useT, useTypeLabel } from "./locale-provider";
 
 export interface MoneyPoke {
@@ -93,15 +94,6 @@ function left(until: number | null, now: number): string {
 }
 
 /** Idade do catalogo em texto curto — e o numero que valida a lista inteira. */
-function age(iso: string, now: number): string {
-  const t = Date.parse(iso);
-  if (!Number.isFinite(t)) return "";
-  const m = Math.floor((now - t) / 60000);
-  if (m < 1) return "agora";
-  if (m < 60) return `${m}min`;
-  const h = Math.floor(m / 60);
-  return h < 48 ? `${h}h` : `${Math.floor(h / 24)}d`;
-}
 
 // A grade e UMA so, compartilhada pelo cabecalho e pelas linhas, dentro de um container
 // que rola na horizontal. Foi assim que as tres colunas de metrica pararam de se
@@ -267,10 +259,10 @@ export function TypeDayPanel({ onHunt, huntOn = false }: { onHunt: (row: MoneyRo
             {data && (
               <span
                 className={`ms-auto inline-flex shrink-0 items-center gap-1.5 text-sm ${data.catalog.live ? "text-text-dim" : "text-yellow"}`}
-                title={data.catalog.error ?? t("robo.day.catalogHint")}
+                title={data.catalog.error ?? patchTitle(data.catalog.at, t, true)}
               >
                 {data.catalog.live
-                  ? t("robo.day.catalogLive", { t: age(data.catalog.at, now) })
+                  ? t("robo.day.catalogLive", { t: patchAge(data.catalog.at, now, t) })
                   : t("robo.day.catalogStale")}
               </span>
             )}
