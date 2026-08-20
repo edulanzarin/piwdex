@@ -53,7 +53,7 @@ export function AccountSettings({ email, nome, vip }: { email: string; nome: str
           {vip ? (
             <span className="chip shrink-0 self-start" style={{ background: "var(--yellow)", color: "#3a2c00" }}>BOT</span>
           ) : (
-            <Link href="/vip" className="btn btn-yellow shrink-0 self-start" style={{ "--accent": "var(--yellow)" } as React.CSSProperties}>
+            <Link href="/bot-app" className="btn btn-yellow shrink-0 self-start" style={{ "--accent": "var(--yellow)" } as React.CSSProperties}>
               <Star size={14} /> {t("vipcta.btn")}
             </Link>
           )}
@@ -92,7 +92,7 @@ export function AccountSettings({ email, nome, vip }: { email: string; nome: str
 
       {/* atalho pra area do BOT (conta do jogo, robo etc) */}
       {/* link de verdade: min-h-10 da o alvo de toque de 40px no celular */}
-      <Link href="/vip" className="flex min-h-10 items-center justify-center gap-1 text-base text-text-dim hover:text-cyan">
+      <Link href="/bot-app" className="flex min-h-10 items-center justify-center gap-1 text-base text-text-dim hover:text-cyan">
         {t("conta.toVip")} <ChevronRight size={16} />
       </Link>
     </div>

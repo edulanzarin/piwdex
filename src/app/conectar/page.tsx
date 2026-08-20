@@ -68,7 +68,7 @@ export default function ConectarPage() {
             <>
               <div className="pixel text-lg text-red">{t("connect.failed")}</div>
               <p className="text-sm text-text-dim">{err}</p>
-              <a href="/vip#conta" className="btn btn-cyan mt-2">{t("connect.back")}</a>
+              <a href="/bot-app#conta" className="btn btn-cyan mt-2">{t("connect.back")}</a>
             </>
           )}
         </div>

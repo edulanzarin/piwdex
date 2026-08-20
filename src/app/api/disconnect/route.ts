@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { deleteGameLink } from "@/lib/game-link";
-import { gameSession } from "@/lib/game-hunt-session";
+import { dropSession } from "@/lib/game-hunt-session";
 import { saveRobotDesired } from "@/lib/robot-session-store";
 
 export const runtime = "nodejs";
@@ -22,8 +22,8 @@ export async function POST() {
   if (!session?.user?.id) return NextResponse.json({ ok: false, error: "not_logged" }, { status: 401 });
   const userId = session.user.id;
 
-  // 1) motor: so solta se a sessao carregada for DESTA conta (outro usuario pode ser o dono)
-  gameSession.release(userId);
+  // 1) motor: solta a sessao deste usuario e tira do registro (o Map nao pode so crescer)
+  dropSession(userId);
 
   // 2) desejado: sem isso o religamento automatico ressuscita a sessao que acabou de cair
   await saveRobotDesired(userId, {

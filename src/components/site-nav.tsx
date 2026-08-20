@@ -78,7 +78,7 @@ export function SiteNav({ user }: { user: NavUser | null }) {
             </Link>
           )}
           <Link
-            href="/vip"
+            href={user?.vip ? "/bot-app" : "/bot"}
             title={user?.vip ? t("vip.eyebrow") : t("vipcta.btn")}
             className={`inline-flex h-10 shrink-0 items-center gap-1.5 rounded-md border border-[color:var(--yellow)] px-2.5 pixel text-base text-yellow transition ${user?.vip ? "bg-[color:var(--yellow)]/20 hover:bg-[color:var(--yellow)]/30" : "glow-pulse bg-[color:var(--yellow)]/12 hover:bg-[color:var(--yellow)]/22"}`}
             style={{ "--accent": "var(--yellow)" } as React.CSSProperties}

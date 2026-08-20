@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { getGameLink, saveGameShard, updateGameTokens, saveTeamSnapshot } from "@/lib/game-link";
 import { fetchActivePokes, summonPoke } from "@/lib/game-ws";
-import { gameSession } from "@/lib/game-hunt-session";
+import { sessionFor } from "@/lib/game-hunt-session";
 import { parsePokeSellCfg, pokeSellOn } from "@/lib/poke-sell";
 import { getRobotDesired, MAX_GOALS, type QueuedGoal } from "@/lib/robot-session-store";
 import type { Tokens } from "@/lib/game-auth";
@@ -48,7 +48,7 @@ async function ensureShard(userId: string, tokens: Tokens, shard: number | null)
 export async function GET() {
   const c = await ctx();
   if (c.error) return c.error;
-  return NextResponse.json(gameSession.getStateFor(c.userId));
+  return NextResponse.json(sessionFor(c.userId).getState());
 }
 
 export async function POST(req: Request) {
@@ -60,12 +60,12 @@ export async function POST(req: Request) {
   // Parar/desligar so mexe na sessao se ela for DESTE usuario — senao um VIP derrubava
   // a hunt do outro clicando num botao da propria tela.
   if (b.action === "stop") {
-    if (gameSession.ownedBy(c.userId)) gameSession.stopHunt();
-    return NextResponse.json(gameSession.getStateFor(c.userId));
+    sessionFor(c.userId).stopHunt();
+    return NextResponse.json(sessionFor(c.userId).getState());
   }
   if (b.action === "disconnect") {
-    if (gameSession.ownedBy(c.userId)) gameSession.disconnectSession();
-    return NextResponse.json(gameSession.getStateFor(c.userId));
+    sessionFor(c.userId).disconnectSession();
+    return NextResponse.json(sessionFor(c.userId).getState());
   }
   // A config de venda SALVA (Configuracoes -> banco) vale em TODO inicio de hunt/conexao,
   // venha o start de onde vier (Painel, aba Hunt, boot). Antes so um caminho da UI mandava
@@ -74,23 +74,23 @@ export async function POST(req: Request) {
   const applySellCfg = async (shard: number) => {
     if (b.pokeSellConfig) {
       const cfg = parsePokeSellCfg(b.pokeSellConfig);
-      if (cfg.sellRarities.length) { gameSession.setPokeSell(c.userId, c.tokens, shard, cfg, persist); return; }
+      if (cfg.sellRarities.length) { sessionFor(c.userId).setPokeSell(c.userId, c.tokens, shard, cfg, persist); return; }
     }
     const d = await getRobotDesired(c.userId).catch(() => null);
     if (pokeSellOn(d?.pokeSellCfg)) {
-      gameSession.setPokeSell(c.userId, c.tokens, shard, parsePokeSellCfg(d!.pokeSellCfg), persist);
+      sessionFor(c.userId).setPokeSell(c.userId, c.tokens, shard, parsePokeSellCfg(d!.pokeSellCfg), persist);
     }
   };
 
   if (b.action === "connect") {
     const es = await ensureShard(c.userId, c.tokens, c.shard);
     if (!es.shard) return NextResponse.json({ error: "no_shard" }, { status: 502 });
-    gameSession.connectSession(c.userId, c.tokens, es.shard, persist);
+    sessionFor(c.userId).connectSession(c.userId, c.tokens, es.shard, persist);
     await applySellCfg(es.shard);
     // self-heal da auto-compra: se o banco diz ligada e o processo perdeu o timer, re-arma
     const d = await getRobotDesired(c.userId).catch(() => null);
-    if (d?.autobuy && !gameSession.getAutoBuyOnFor(c.userId)) gameSession.setAutoBuy(c.userId, c.tokens, true, persist);
-    return NextResponse.json(gameSession.getStateFor(c.userId));
+    if (d?.autobuy && !sessionFor(c.userId).getAutoBuyOn()) sessionFor(c.userId).setAutoBuy(c.userId, c.tokens, true, persist);
+    return NextResponse.json(sessionFor(c.userId).getState());
   }
 
   if (b.action === "start") {
@@ -102,9 +102,9 @@ export async function POST(req: Request) {
     const sellItemIds = Array.isArray(b.sellItemIds)
       ? (b.sellItemIds as unknown[]).map(Number).filter((n) => Number.isInteger(n) && n > 0)
       : [];
-    gameSession.setHunt(c.userId, c.tokens, es.shard, slug, sellItemIds, persist);
+    sessionFor(c.userId).setHunt(c.userId, c.tokens, es.shard, slug, sellItemIds, persist);
     await applySellCfg(es.shard);
-    return NextResponse.json(gameSession.getStateFor(c.userId));
+    return NextResponse.json(sessionFor(c.userId).getState());
   }
 
   if (b.action === "auto" || b.action === "leveling") {
@@ -116,10 +116,10 @@ export async function POST(req: Request) {
 
     if (b.action === "auto") {
       const leader = pokes.find((p) => p.leader) ?? pokes[0];
-      const pick = await gameSession.startAuto(c.userId, c.tokens, es.shard, persist, fighterOf(leader));
+      const pick = await sessionFor(c.userId).startAuto(c.userId, c.tokens, es.shard, persist, fighterOf(leader));
       if (!pick) return NextResponse.json({ error: "no_hunt_found" }, { status: 422 });
       await applySellCfg(es.shard);
-      return NextResponse.json(gameSession.getStateFor(c.userId));
+      return NextResponse.json(sessionFor(c.userId).getState());
     }
 
     // leveling: FILA de metas. A primeira comeca agora (o bicho vira LIDER, que e quem caca
@@ -154,7 +154,7 @@ export async function POST(req: Request) {
 
     if (!target.leader) {
       // summon ANTES de ligar a hunt (sessao viva usa o socket; senao one-shot)
-      if (!gameSession.summonActive(pokeId)) {
+      if (!sessionFor(c.userId).summonActive(pokeId)) {
         const raw = await summonPoke(c.tokens, es.shard, pokeId).catch(() => null);
         if (!raw) return NextResponse.json({ error: "summon_failed" }, { status: 502 });
         const live = normalizeActivePokes(raw);
@@ -162,14 +162,14 @@ export async function POST(req: Request) {
         await saveTeamSnapshot(c.userId, team, live.length);
       }
     }
-    const started = await gameSession.startLeveling(
+    const started = await sessionFor(c.userId).startLeveling(
       c.userId, c.tokens, es.shard, persist, fighterOf(target),
       { pokeId, name: target.name, targetLevel },
       queue,
     );
     if (!started) return NextResponse.json({ error: "no_route" }, { status: 422 });
     await applySellCfg(es.shard);
-    return NextResponse.json(gameSession.getStateFor(c.userId));
+    return NextResponse.json(sessionFor(c.userId).getState());
   }
 
   return NextResponse.json({ error: "bad_action" }, { status: 400 });

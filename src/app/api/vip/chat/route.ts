@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { getGameLink } from "@/lib/game-link";
-import { gameSession } from "@/lib/game-hunt-session";
+import { sessionFor } from "@/lib/game-hunt-session";
 import { saveRobotDesired, type AnnounceCfg } from "@/lib/robot-session-store";
 
 export const runtime = "nodejs";
@@ -25,7 +25,7 @@ async function guard() {
 export async function GET() {
   const g = await guard();
   if (g.error) return g.error;
-  return NextResponse.json(gameSession.getChatViewFor(g.userId));
+  return NextResponse.json(sessionFor(g.userId).getChatView());
 }
 
 export async function POST(req: Request) {
@@ -40,8 +40,8 @@ export async function POST(req: Request) {
     // aguarda o VEREDITO do jogo (eco = aceita; frame de sistema = recusada)
     // sem a checagem de dono, um VIP mandava mensagem no chat do jogo PELO personagem
     // de quem estivesse com a sessao carregada
-    if (!gameSession.ownedBy(g.userId)) return NextResponse.json({ error: "not_live" }, { status: 409 });
-    const r = await gameSession.sendChat(text, channel, g.playerName);
+    if (!sessionFor(g.userId).ownedBy(g.userId)) return NextResponse.json({ error: "not_live" }, { status: 409 });
+    const r = await sessionFor(g.userId).sendChat(text, channel, g.playerName);
     if (!r.ok) {
       if (r.reason === "cooldown") return NextResponse.json({ error: "cooldown", waitMs: r.waitMs ?? 0 }, { status: 429 });
       if (r.reason === "rejected") return NextResponse.json({ error: "rejected" }, { status: 422 });
@@ -49,7 +49,7 @@ export async function POST(req: Request) {
       if (r.reason === "busy") return NextResponse.json({ error: "busy" }, { status: 409 });
       return NextResponse.json({ error: "not_live" }, { status: 409 }); // liga o robo antes
     }
-    return NextResponse.json(gameSession.getChatViewFor(g.userId));
+    return NextResponse.json(sessionFor(g.userId).getChatView());
   }
 
   if (b.action === "announce") {
@@ -60,11 +60,11 @@ export async function POST(req: Request) {
     const channel = typeof b.channel === "string" && CHANNELS.has(b.channel) ? (b.channel as AnnounceCfg["channel"]) : "world";
     if (on && !text) return NextResponse.json({ error: "no_text" }, { status: 400 });
     const cfg: AnnounceCfg = { on, text, everySec, channel };
-    if (gameSession.ownedBy(g.userId)) gameSession.setAnnounce(cfg);
+    sessionFor(g.userId).setAnnounce(cfg);
     // persiste tambem por aqui: a sessao so persiste se ja tem contexto (userId) — a config
     // do anuncio tem que sobreviver mesmo configurada antes de ligar o robo
     await saveRobotDesired(g.userId, { announce: cfg }).catch(() => {});
-    return NextResponse.json(gameSession.getChatViewFor(g.userId));
+    return NextResponse.json(sessionFor(g.userId).getChatView());
   }
 
   return NextResponse.json({ error: "bad_action" }, { status: 400 });

@@ -14,6 +14,12 @@ const nextConfig: NextConfig = {
         destination: "https://piwdex.com.br/:path*",
         permanent: true,
       },
+      // O cockpit saiu de /vip pra /bot-app: o plano se chama BOT na tela ha tempos e a
+      // rota era a ultima peca dizendo "vip". Redirect PERMANENTE porque ha link salvo
+      // (o proprio jogo, o Discord, favoritos). O nome INTERNO segue vip — users.vip_ate,
+      // /api/vip/*, o webhook do pagamento — renomear aquilo quebraria cobranca ativa.
+      { source: "/vip", destination: "/bot-app", permanent: true },
+      { source: "/vip/:path*", destination: "/bot-app/:path*", permanent: true },
     ];
   },
 

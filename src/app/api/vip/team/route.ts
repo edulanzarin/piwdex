@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth";
 import { getGameLink, saveGameShard, saveTeamSnapshot } from "@/lib/game-link";
 import { fetchActivePokes, movePokeOneShot, healTeamOneShot } from "@/lib/game-ws";
 import { normalizeActivePokes } from "@/lib/game-account";
-import { gameSession } from "@/lib/game-hunt-session";
+import { sessionFor } from "@/lib/game-hunt-session";
 
 export const runtime = "nodejs";
 
@@ -23,7 +23,7 @@ export async function GET() {
   if (!s.user.vip) return NextResponse.json({ error: "vip_only" }, { status: 403 });
 
   // 1) sessao viva: box ja esta em memoria (frames pokes)
-  const live = gameSession.getLiveBoxFor(s.user.id);
+  const live = sessionFor(s.user.id).getLiveBox();
   if (live) return NextResponse.json({ box: live, live: true });
 
   // 2) sem sessao: one-shot de leitura no shard
@@ -60,7 +60,7 @@ export async function POST(req: Request) {
 
   // CURA (sem pokeId): a Joy cura o time inteiro de uma vez
   if (b.action === "heal") {
-    if (gameSession.ownedBy(s.user.id) && gameSession.healTeam()) return NextResponse.json({ ok: true, live: true });
+    if (sessionFor(s.user.id).healTeam()) return NextResponse.json({ ok: true, live: true });
     const shard = await withShard();
     if (!shard) return NextResponse.json({ error: "no_shard" }, { status: 502 });
     const list = await healTeamOneShot(link.tokens, shard).catch(() => null);
@@ -76,7 +76,7 @@ export async function POST(req: Request) {
   if (!pokeId || !action) return NextResponse.json({ error: "bad_request" }, { status: 400 });
 
   // 1) sessao viva: manda no socket segurado (a sessao ja pede pokes-get e atualiza tudo)
-  if (gameSession.ownedBy(s.user.id) && gameSession.movePoke(pokeId, action)) return NextResponse.json({ ok: true, live: true });
+  if (sessionFor(s.user.id).movePoke(pokeId, action)) return NextResponse.json({ ok: true, live: true });
 
   // 2) sem sessao: one-shot no shard (descobre se nao tiver cache)
   const shard = await withShard();

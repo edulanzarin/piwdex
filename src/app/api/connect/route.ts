@@ -5,6 +5,7 @@ import { saveGameLink, saveGameShard, saveTeamSnapshot } from "@/lib/game-link";
 import { fetchActivePokes } from "@/lib/game-ws";
 import { normalizeActivePokes } from "@/lib/game-account";
 import { resumeRobotSessions } from "@/lib/robot-boot";
+import { dropSession } from "@/lib/game-hunt-session";
 
 export const runtime = "nodejs";
 
@@ -41,6 +42,11 @@ export async function POST(req: Request) {
     | { character?: { name?: string }; name?: string }
     | null;
   const playerName = data?.character?.name ?? data?.name ?? null;
+
+  // Vincular conta nova = a anterior morreu AQUI. Sem isso o motor seguia segurando o WS
+  // da conta antiga entre o connect e o proximo "ligar o robo" — e nesse meio o chat, o
+  // time ao vivo e os comandos ainda eram do personagem velho.
+  dropSession(session.user.id);
 
   await saveGameLink(session.user.id, result.tokens, { playerName });
 

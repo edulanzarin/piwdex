@@ -232,6 +232,20 @@ function idleHuntState(): HuntState {
   };
 }
 
+// Identidade da conta do jogo a partir do access token. Le o claim `sub` sem verificar
+// assinatura: aqui o token nao esta sendo autenticado, so COMPARADO com o que ja esta
+// carregado. Token ilegivel devolve null e o chamador trata como "nao sei" (conservador).
+function gameAccountIdOf(tokens: Tokens): string | null {
+  try {
+    const payload = tokens.access.split(".")[1];
+    if (!payload) return null;
+    const json = JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as { sub?: unknown };
+    return typeof json.sub === "string" && json.sub ? json.sub : null;
+  } catch {
+    return null;
+  }
+}
+
 class GameSession {
   // barramento de eventos pro stream SSE: emit("change", topic) a cada mudanca de estado.
   // topic "hunt" = analyzer/kills/vendas mudaram; "session" = status/modo/reconexao mudou.
@@ -250,6 +264,11 @@ class GameSession {
   private summaryLogged = false;
 
   private userId: string | null = null;
+  // Identidade da CONTA DO JOGO segurada (claim `sub` do JWT). O userId diz de quem e a
+  // assinatura no piwdex; ESTE campo diz qual Poke Idle esta na ponta do socket. Sao
+  // coisas diferentes: o mesmo assinante pode trocar de conta do jogo, e ai tudo que
+  // passa pelo WS (chat inclusive) sairia pelo personagem velho.
+  private gameAccountId: string | null = null;
   private tokens: Tokens | null = null;
   private onTokens: ((t: Tokens) => Promise<void>) | null = null;
   private shard = 0;
@@ -411,51 +430,27 @@ class GameSession {
     };
   }
 
-  // --- POSSE DA SESSAO ---------------------------------------------------
-  // O motor e SINGLE-CONTA por processo: o singleton segura UMA conta de jogo por vez.
-  // Sem checar dono, quem abrisse a area do robo via a sessao de quem estivesse
-  // carregado — a hunt de outra conta na propria tela e, pior, os comandos (mover,
-  // curar, chat, summon) caindo na conta alheia. A posse mora AQUI e nao em cada rota:
-  // o acessor sem dono nao existe, entao nao ha chamador pra esquecer a checagem.
+  // --- POSSE ---------------------------------------------------------------
+  // Cada usuario tem a SUA instancia (ver o registro no fim do arquivo), entao ler a
+  // sessao de outro deixou de ser possivel — nao ha referencia compartilhada. O que
+  // sobra pra checar e a identidade DENTRO da instancia: ela so solta/serve a conta que
+  // realmente carregou.
 
-  /** Este usuario e o dono da sessao carregada? */
+  /** Este usuario e o dono desta instancia? */
   ownedBy(userId: string | null | undefined): boolean {
     return !!userId && this.userId === userId;
   }
 
-  /** Ha alguma conta segurando o motor? Distingue "livre" de "ocupado por outro". */
-  hasOwner(): boolean {
-    return this.userId != null;
+  /** Zera TUDO que pertence a conta carregada e que o disconnectSession preserva de
+   *  proposito (time ao vivo, box, chat, anuncio, acervo ja gravado). Nao mexe em banco:
+   *  quem chama decide o que persistir. */
+  private wipeAccountState() {
+    this.liveTeam = null; this.liveTeamAt = null; this.liveBox = null;
+    this.chatLog = []; this.chatSeenIds.clear(); this.chatSeenText.clear();
+    this.setAnnounce(null);
+    this.recordedIds.clear(); this.baselineIds = null;
   }
 
-  /** Estado pra ESTE usuario: o real se ele e o dono, senao o vazio de quem nao tem
-   *  sessao. Nunca devolve o retrato de outra conta. */
-  getStateFor(userId: string | null | undefined): HuntState {
-    return this.ownedBy(userId) ? this.getState() : idleHuntState();
-  }
-
-  getChatViewFor(userId: string | null | undefined): ChatView {
-    return this.ownedBy(userId)
-      ? this.getChatView()
-      : { wsOpen: false, messages: [], announce: null, lastSentAt: null, debugFrames: [] };
-  }
-
-  getAutoSellViewFor(userId: string | null | undefined): AutoSellView {
-    return this.ownedBy(userId) ? this.getAutoSellView() : { status: "idle", soldBySpecies: [] };
-  }
-
-  getLiveBoxFor(userId: string | null | undefined): ActivePoke[] | null {
-    return this.ownedBy(userId) ? this.getLiveBox() : null;
-  }
-
-  getAutoBuyOnFor(userId: string | null | undefined): boolean {
-    return this.ownedBy(userId) && this.getAutoBuyOn();
-  }
-
-  /** Solta a conta: para tudo e ESQUECE o dono, zerando o que o disconnectSession
-   *  preserva de proposito (time ao vivo, chat, auto-compra, acervo ja gravado). Sem
-   *  isso o motor segue apontando pra conta antiga e o proximo usuario herda o retrato.
-   *  E o que o botao "Desconectar" precisa chamar. */
   release(userId: string | null | undefined): boolean {
     if (!this.ownedBy(userId)) return false;
     const uid = this.userId!;
@@ -466,12 +461,9 @@ class GameSession {
     if (this.buyTimer) { clearInterval(this.buyTimer); this.buyTimer = null; }
     this.buyTokens = null; this.buyPersist = null;
     void saveRobotDesired(uid, { autobuy: false }).catch(() => {});
-    this.userId = null; this.buyUserId = null;
+    this.userId = null; this.buyUserId = null; this.gameAccountId = null;
     this.tokens = null; this.onTokens = null; this.shard = 0;
-    this.liveTeam = null; this.liveTeamAt = null; this.liveBox = null;
-    this.chatLog = []; this.chatSeenIds.clear(); this.chatSeenText.clear();
-    this.setAnnounce(null);
-    this.recordedIds.clear(); this.baselineIds = null;
+    this.wipeAccountState();
     this.emit("session");
     return true;
   }
@@ -673,7 +665,21 @@ class GameSession {
   }
 
   private ctx(userId: string, tokens: Tokens, shard: number, onTokens: (t: Tokens) => Promise<void>) {
-    this.userId = userId; this.tokens = tokens; this.shard = shard; this.onTokens = onTokens;
+    // TROCA DE CONTA: o socket vivo pertence a outra conta do jogo (ou a outro assinante).
+    // Ele tem que MORRER antes do contexto novo entrar — reaproveitar a conexao fazia todo
+    // comando seguir saindo pelo personagem anterior (o chat entregava com o nome velho).
+    // A checagem mora aqui, no unico ponto por onde TODO caminho instala contexto
+    // (connect, hunt, auto, leveling, venda, resume), em vez de em cada rota.
+    const account = gameAccountIdOf(tokens);
+    const switched =
+      (account != null && this.gameAccountId != null && account !== this.gameAccountId) ||
+      (this.userId != null && this.userId !== userId);
+    if (switched) {
+      this.teardown();
+      this.wipeAccountState();
+    }
+    this.userId = userId; this.gameAccountId = account;
+    this.tokens = tokens; this.shard = shard; this.onTokens = onTokens;
   }
 
   // corpo comum de "entrar numa hunt" (reinicia a acumulacao daquela caca)
@@ -1829,23 +1835,75 @@ class GameSession {
 // sem o rev, chamar um metodo novo dava "is not a function" ate reiniciar o server.
 const SESSION_REV = 19;
 const g = globalThis as unknown as { __piwSession?: GameSession; __piwSessionRev?: number };
-if (!g.__piwSession || g.__piwSessionRev !== SESSION_REV) {
-  // silencia a instancia velha SEM persistir nada (stop() gravaria enabled=false no banco
-  // e apagaria a intencao do usuario so por causa de um hot-reload)
+// ---------------------------------------------------------------------------
+// REGISTRO DE SESSOES — uma instancia POR USUARIO.
+//
+// Era um singleton de processo: uma conta de jogo por servidor inteiro. Isso nao e um
+// detalhe de implementacao, e o teto do produto — dois assinantes nao conseguiam farmar
+// ao mesmo tempo, e conectar a conta B derrubava a hunt da conta A no meio. Enquanto o
+// singleton foi compartilhado tambem VAZAVA: a tela de um mostrava a hunt do outro.
+//
+// Agora cada usuario tem a sua GameSession, guardada num Map no globalThis (sobrevive ao
+// hot-reload do dev, igual o singleton antigo). A posse deixa de ser uma checagem que
+// alguem pode esquecer e vira a PROPRIA estrutura: nao existe caminho pra ler a sessao
+// de outro usuario, porque nao existe referencia compartilhada pra ler.
+//
+// A troca de CONTA DO JOGO dentro do mesmo usuario continua sendo tratada no ctx().
+const store = globalThis as unknown as {
+  __piwSessions?: Map<string, GameSession>;
+  __piwSessionsRev?: number;
+};
+
+// Hot-reload: silencia as instancias velhas SEM persistir nada (stop() gravaria
+// enabled=false e apagaria a intencao do usuario so por causa de um reload).
+if (!store.__piwSessions || store.__piwSessionsRev !== SESSION_REV) {
   try {
-    const old = g.__piwSession as unknown as Record<string, unknown> | undefined;
-    if (old) {
-      old.desiredOn = false; old.holdOpen = false;
+    for (const old of store.__piwSessions?.values() ?? []) {
+      const o = old as unknown as Record<string, unknown>;
+      o.desiredOn = false; o.holdOpen = false;
       for (const k of ["analyzerPoll", "pokesPoll", "dropTimer", "buyTimer"]) {
-        const t = old[k]; if (t) clearInterval(t as ReturnType<typeof setInterval>);
+        const t = o[k]; if (t) clearInterval(t as ReturnType<typeof setInterval>);
       }
       for (const k of ["reconnectTimer", "contestedSurvive"]) {
-        const tm = old[k]; if (tm) clearTimeout(tm as ReturnType<typeof setTimeout>);
+        const tm = o[k]; if (tm) clearTimeout(tm as ReturnType<typeof setTimeout>);
       }
-      (old.ws as { close?: () => void } | null | undefined)?.close?.();
+      (o.ws as { close?: () => void } | null | undefined)?.close?.();
     }
   } catch { /* melhor um socket orfao no dev que derrubar o modulo */ }
-  g.__piwSession = new GameSession();
-  g.__piwSessionRev = SESSION_REV;
+  store.__piwSessions = new Map();
+  store.__piwSessionsRev = SESSION_REV;
 }
-export const gameSession: GameSession = g.__piwSession;
+
+const sessions: Map<string, GameSession> = store.__piwSessions;
+
+/** A sessao DESTE usuario, criando se ainda nao existe. Use quando vai COMANDAR. */
+export function sessionFor(userId: string): GameSession {
+  let s = sessions.get(userId);
+  if (!s) { s = new GameSession(); sessions.set(userId, s); }
+  return s;
+}
+
+/** A sessao deste usuario se ela existe. Use quando vai LER — usuario sem sessao nao
+ *  precisa de uma instancia criada so pra devolver estado vazio. */
+export function peekSession(userId: string): GameSession | null {
+  return sessions.get(userId) ?? null;
+}
+
+/** Estado pra leitura: o real, ou o vazio de quem nao tem sessao. */
+export function stateOf(userId: string): HuntState {
+  return peekSession(userId)?.getState() ?? idleHuntState();
+}
+
+/** Todas as sessoes vivas (boot/diagnostico). */
+export function liveSessions(): { userId: string; session: GameSession }[] {
+  return [...sessions.entries()].map(([userId, session]) => ({ userId, session }));
+}
+
+/** Solta a sessao do usuario e tira do registro (Desconectar). Sem a remocao o Map so
+ *  cresce: uma instancia morta por conta que ja passou pelo servidor. */
+export function dropSession(userId: string): void {
+  const s = sessions.get(userId);
+  if (!s) return;
+  s.release(userId);
+  sessions.delete(userId);
+}

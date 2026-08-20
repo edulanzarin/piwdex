@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth";
 import { getGameLink, saveGameShard, saveTeamSnapshot } from "@/lib/game-link";
 import { fetchActivePokes, summonPoke } from "@/lib/game-ws";
 import { normalizeActivePokes } from "@/lib/game-account";
-import { gameSession } from "@/lib/game-hunt-session";
+import { sessionFor } from "@/lib/game-hunt-session";
 
 export const runtime = "nodejs";
 
@@ -26,7 +26,7 @@ export async function POST(req: Request) {
 
   // 1) hunt viva: manda no socket que o piwdex ja segura (single-session). A sessao regrava o
   // snapshot do time quando o pokes chegar de volta (summonActive ja pede pokes-get).
-  if (gameSession.ownedBy(s.user.id) && gameSession.summonActive(pokeId)) return NextResponse.json({ ok: true, live: true });
+  if (sessionFor(s.user.id).summonActive(pokeId)) return NextResponse.json({ ok: true, live: true });
 
   // 2) sem hunt: one-shot no shard (descobre se nao tiver cache)
   let shard = link.shard;

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { listCaptured, clearCaptured, type CapturedFilters } from "@/lib/captured-pokes";
-import { gameSession } from "@/lib/game-hunt-session";
+import { sessionFor } from "@/lib/game-hunt-session";
 import type { PokeType, Rarity } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -38,6 +38,6 @@ export async function DELETE() {
   const c = await uid();
   if (c.error) return c.error;
   await clearCaptured(c.userId);
-  if (gameSession.ownedBy(c.userId)) gameSession.resetCapturedCache();
+  sessionFor(c.userId).resetCapturedCache();
   return NextResponse.json({ ok: true });
 }

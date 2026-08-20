@@ -3,7 +3,7 @@ import { getGameLink, updateGameTokens, markGameLinkExpired, type TeamSnapshot }
 import { normalizeAccount, type Account } from "@/lib/game-account";
 import { getRobotSales } from "@/lib/robot-sales";
 import { capturedStats } from "@/lib/captured-pokes";
-import { gameSession } from "@/lib/game-hunt-session";
+import { stateOf } from "@/lib/game-hunt-session";
 import { getData } from "@/lib/data";
 
 // Snapshots da area VIP compartilhados entre as rotas REST e o stream SSE (/api/vip/stream):
@@ -84,7 +84,7 @@ export async function fetchAccountSnapshot(userId: string): Promise<AccountSnaps
 export async function fetchTotalsSnapshot(userId: string) {
   const [totals, acervo] = await Promise.all([getRobotSales(userId), capturedStats(userId)]);
 
-  const st = gameSession.getStateFor(userId);
+  const st = stateOf(userId);
   const a = st.status === "running" && st.slug ? st.analyzer : null;
   if (a) {
     let rareItems = 0;

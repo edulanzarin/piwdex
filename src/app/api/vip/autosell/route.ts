@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { getGameLink, saveGameShard, updateGameTokens } from "@/lib/game-link";
 import { fetchActivePokes } from "@/lib/game-ws";
-import { gameSession } from "@/lib/game-hunt-session";
+import { sessionFor } from "@/lib/game-hunt-session";
 import { parsePokeSellCfg, pokeSellOn, DEFAULT_POKE_SELL } from "@/lib/poke-sell";
 import { getRobotDesired, saveRobotDesired } from "@/lib/robot-session-store";
 import type { Tokens } from "@/lib/game-auth";
@@ -31,7 +31,7 @@ async function savedState(userId: string) {
   const d = await getRobotDesired(userId).catch(() => null);
   const saved = d?.pokeSellCfg ?? null;
   return {
-    ...gameSession.getAutoSellViewFor(userId),
+    ...sessionFor(userId).getAutoSellView(),
     on: pokeSellOn(saved),
     config: saved ? parsePokeSellCfg(saved) : null,
   };
@@ -74,15 +74,15 @@ export async function POST(req: Request) {
     // aplica na sessao VIVA na hora; sem sessao, fica salvo e religa no proximo start/connect.
     // `save` nunca CONECTA sozinho (salvar config nao toma a sessao do jogo); o `start`
     // legado mantem o comportamento antigo de conectar.
-    const live = gameSession.getStateFor(c.userId).wsOpen;
+    const live = sessionFor(c.userId).getState().wsOpen;
     if (!on) {
-      if (gameSession.getStateFor(c.userId).pokeSellOn) gameSession.stopPokeSell();
+      if (sessionFor(c.userId).getState().pokeSellOn) sessionFor(c.userId).stopPokeSell();
     } else if (live || b.action === "start") {
       const shard = await ensureShard(c.userId, c.tokens, c.shard);
       if (!shard) {
         if (b.action === "start") return NextResponse.json({ error: "no_shard" }, { status: 502 });
       } else {
-        gameSession.setPokeSell(c.userId, c.tokens, shard, cfg, persist);
+        sessionFor(c.userId).setPokeSell(c.userId, c.tokens, shard, cfg, persist);
       }
     }
     return NextResponse.json(await savedState(c.userId));

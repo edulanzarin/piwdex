@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { getGameLink, updateGameTokens } from "@/lib/game-link";
-import { gameSession } from "@/lib/game-hunt-session";
+import { sessionFor } from "@/lib/game-hunt-session";
 import { getRobotDesired, saveRobotDesired } from "@/lib/robot-session-store";
 import { getData } from "@/lib/data";
 
@@ -41,11 +41,11 @@ export async function GET() {
   // fonte da verdade: o persistido. Memoria divergindo = processo renasceu -> re-arma.
   const desired = await getRobotDesired(s.user.id).catch(() => null);
   const want = desired?.autobuy ?? false;
-  if (want && !gameSession.getAutoBuyOnFor(s.user.id)) {
-    const link = await getGameLink(s.user.id).catch(() => null);
+  const userId = s.user.id;
+  if (want && !sessionFor(userId).getAutoBuyOn()) {
+    const link = await getGameLink(userId).catch(() => null);
     if (link && link.status === "active") {
-      const userId = s.user.id;
-      gameSession.setAutoBuy(userId, link.tokens, true, (t) => updateGameTokens(userId, t));
+      sessionFor(userId).setAutoBuy(userId, link.tokens, true, (t) => updateGameTokens(userId, t));
     }
   }
   const opts = await supplyOptions();
@@ -76,14 +76,14 @@ export async function POST(req: Request) {
     };
     await saveRobotDesired(c.userId, { supplyCfg });
     // se a auto-compra ja esta ligada, re-arma pra aplicar a escolha nova AGORA (compra 1x).
-    if (gameSession.getAutoBuyOnFor(c.userId)) {
-      gameSession.setAutoBuy(c.userId, c.tokens, true, (t) => updateGameTokens(c.userId, t));
+    if (sessionFor(c.userId).getAutoBuyOn()) {
+      sessionFor(c.userId).setAutoBuy(c.userId, c.tokens, true, (t) => updateGameTokens(c.userId, t));
     }
   }
 
   if (b.action === "start" || b.action === "stop") {
-    gameSession.setAutoBuy(c.userId, c.tokens, b.action === "start", (t) => updateGameTokens(c.userId, t));
+    sessionFor(c.userId).setAutoBuy(c.userId, c.tokens, b.action === "start", (t) => updateGameTokens(c.userId, t));
   }
 
-  return NextResponse.json({ on: gameSession.getAutoBuyOnFor(c.userId) });
+  return NextResponse.json({ on: sessionFor(c.userId).getAutoBuyOn() });
 }

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { getGameLink, updateGameTokens, markGameLinkExpired } from "@/lib/game-link";
 import { readAuto, applyAuto, AUTO_FIELDS, type AutoField } from "@/lib/game-auto";
-import { gameSession } from "@/lib/game-hunt-session";
+import { sessionFor } from "@/lib/game-hunt-session";
 
 export const runtime = "nodejs";
 
@@ -63,7 +63,7 @@ export async function POST(req: Request) {
   // sessao na hora (fecha e reabre o socket): snapshot novo = config nova, garantido. O
   // rendimento do trecho atual e persistido antes (nada se perde nas Estatisticas). Sem
   // sessao viva e no-op — a config gravada vale no proximo connect.
-  if (gameSession.ownedBy(c.userId)) gameSession.bounceLive();
+  sessionFor(c.userId).bounceLive();
 
   // Re-le o estado completo (a resposta do auto-helper pode vir parcial).
   let tokens = w.tokens;

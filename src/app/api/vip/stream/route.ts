@@ -1,5 +1,5 @@
 import { auth } from "@/lib/auth";
-import { gameSession } from "@/lib/game-hunt-session";
+import { sessionFor } from "@/lib/game-hunt-session";
 import { listRobotEvents, unreadRobotEvents } from "@/lib/robot-events";
 import { listNotifications, unreadCount } from "@/lib/alerts";
 import { fetchAccountSnapshot, fetchTotalsSnapshot } from "@/lib/vip-snapshots";
@@ -28,6 +28,8 @@ export async function GET(req: Request) {
   if (!s?.user?.id) return new Response("not_logged", { status: 401 });
   if (!s.user.vip) return new Response("vip_only", { status: 403 });
   const userId = s.user.id;
+  // a sessao DESTE usuario (instancia propria: nao ha referencia compartilhada pra vazar)
+  const sess = sessionFor(userId);
 
   const enc = new TextEncoder();
 
@@ -48,7 +50,7 @@ export async function GET(req: Request) {
       // SO o estado DESTE usuario: o motor e single-conta por processo, entao sem o
       // filtro por dono o stream empurrava a hunt de quem estivesse carregado pra tela de
       // qualquer VIP logado (conta nova via a hunt da conta antiga).
-      const pushHunt = () => { send("hunt", gameSession.getStateFor(userId)); send("autosell", gameSession.getAutoSellViewFor(userId)); send("chat", gameSession.getChatViewFor(userId)); };
+      const pushHunt = () => { send("hunt", sess.getState()); send("autosell", sess.getAutoSellView()); send("chat", sess.getChatView()); };
       const pushAccount = async () => { try { send("account", await fetchAccountSnapshot(userId)); } catch { /* proximo tick */ } };
       const pushTotals = async () => { try { send("totals", await fetchTotalsSnapshot(userId)); } catch { /* proximo tick */ } };
       const pushDb = async () => {
@@ -70,7 +72,7 @@ export async function GET(req: Request) {
           if (huntDirty) { huntDirty = false; pushHunt(); }
         }, HUNT_THROTTLE_MS);
       };
-      gameSession.bus.on("change", onChange);
+      sess.bus.on("change", onChange);
 
       // snapshot inicial completo (a UI nasce preenchida, sem cascata de fetches)
       pushHunt();
@@ -83,7 +85,7 @@ export async function GET(req: Request) {
       const cleanup = () => {
         if (closed) return;
         closed = true;
-        gameSession.bus.off("change", onChange);
+        sess.bus.off("change", onChange);
         for (const t of timers) clearInterval(t);
         if (huntTimer) clearTimeout(huntTimer);
         try { controller.close(); } catch { /* ja fechado */ }
