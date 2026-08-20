@@ -4,7 +4,7 @@
 // rodavam, INCLUSIVE offline (gravado no banco). Le do stream ao vivo (useVipLive) e marca
 // tudo como lido ao abrir. Texto localizado a partir do kind + data do evento.
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useT } from "./locale-provider";
 import { Star, Coin, Loot, Skull, Brain, Signal, Flag, Heart } from "./icons";
 import { useVipLive, type LiveEvent } from "./vip-live";
@@ -17,10 +17,25 @@ const when = (iso: string) => {
   return Number.isNaN(d.getTime()) ? "" : d.toLocaleString(undefined, { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
 };
 
+/** Quantos kinds o filtro oferece. Sem filtro, procurar "por que o robo parou ontem"
+ *  e rolar 300 linhas de resumo de hunt. */
+const FILTERS = ["all", "problema", "hunt", "venda", "cerebro"] as const;
+type Filter = (typeof FILTERS)[number];
+
+const GROUP: Record<string, Filter> = {
+  error: "problema", blocked: "problema", reconnect: "problema", heal: "problema",
+  "hunt-summary": "hunt", goal: "hunt", brain: "cerebro",
+  "poke-sold": "venda", "item-sold": "venda", "item-bought": "venda", shiny: "hunt",
+};
+
 export function RobotActivity() {
   const t = useT();
   const { events: live, applyEvents } = useVipLive();
-  const events = live?.events ?? [];
+  // `more` = historico completo puxado sob demanda; enquanto nao pedirem, vale o do stream
+  const [more, setMore] = useState<LiveEvent[] | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [filter, setFilter] = useState<Filter>("all");
+  const events = more ?? live?.events ?? [];
 
   // ao abrir a aba, marca tudo como lido no servidor e zera o contador local
   const liveRef = useRef(live);
@@ -31,11 +46,22 @@ export function RobotActivity() {
       .catch(() => {});
   }, [applyEvents]);
 
-  // limpa o feed inteiro (some tudo). Alem disso o backend expira sozinho o que passa de 48h.
+  // limpa o feed inteiro (some tudo). Alem disso o backend expira sozinho o que envelhece.
   const clear = useCallback(async () => {
     applyEvents({ events: [], unread: 0 });
+    setMore(null);
     try { await fetch("/api/vip/events", { method: "DELETE" }); } catch {}
   }, [applyEvents]);
+
+  // o stream manda os ultimos 40; o resto do historico so vem quando se pede
+  const loadAll = useCallback(async () => {
+    setLoading(true);
+    try {
+      const r = await fetch("/api/vip/events?limit=800", { cache: "no-store" });
+      const j = (await r.json().catch(() => null)) as { events?: LiveEvent[] } | null;
+      if (j?.events) setMore(j.events);
+    } catch { /* fica com o que o stream deu */ } finally { setLoading(false); }
+  }, []);
 
   const render = (e: LiveEvent): { icon: React.ReactNode; text: string; tone?: string } => {
     const d = e.data ?? {};
@@ -67,8 +93,10 @@ export function RobotActivity() {
     }
   };
 
-  // sempre os ultimos 10 (o backend ja limita/expira; corta aqui por garantia)
-  const shown = events.slice(0, 10);
+  const shown = useMemo(
+    () => (filter === "all" ? events : events.filter((e) => GROUP[e.kind] === filter)),
+    [events, filter],
+  );
 
   return (
     <Panel
@@ -76,12 +104,27 @@ export function RobotActivity() {
       // botao sempre no slot: invisible reserva o espaco (cabecalho de altura estavel)
       right={<button type="button" onClick={clear} className={`btn btn-ghost btn-sm ${events.length > 0 ? "" : "invisible"}`}>{t("evt.clear")}</button>}
     >
+      {/* filtro por assunto: achar "o que deu errado" sem rolar os resumos de hunt */}
+      <div className="flex flex-wrap items-center gap-1.5">
+        {FILTERS.map((f) => (
+          <button
+            key={f}
+            type="button"
+            onClick={() => setFilter(f)}
+            aria-pressed={filter === f}
+            className={`chip ${filter === f ? "bg-cyan text-[#06131a]" : "bg-[var(--surface-2)] text-text-dim"}`}
+          >
+            {t(`evt.filter.${f}`)}
+          </button>
+        ))}
+        <span className="ms-auto text-xs text-text-dim">{t("evt.count", { n: shown.length })}</span>
+      </div>
       {/* feed vivo: ALTURA FIXA com rolagem propria — evento novo nao empurra a pagina.
           O estado vazio ocupa exatamente a mesma caixa. */}
       {shown.length === 0 ? (
         <div className="flex h-80 items-center justify-center"><EmptyState message={t("evt.empty")} /></div>
       ) : (
-        <div className="flex h-80 flex-col gap-1.5 overflow-y-auto pr-1">
+        <div className="flex h-[26rem] flex-col gap-1.5 overflow-y-auto pr-1">
           {shown.map((e, idx) => {
             const r = render(e);
             return (
@@ -95,6 +138,13 @@ export function RobotActivity() {
             );
           })}
         </div>
+      )}
+
+      {/* o stream so traz os recentes; o historico inteiro (14 dias) vem sob demanda */}
+      {more == null && (
+        <button type="button" onClick={loadAll} disabled={loading} className="btn btn-ghost btn-sm w-full justify-center disabled:opacity-40">
+          {loading ? `${t("evt.loading")}...` : t("evt.loadAll")}
+        </button>
       )}
     </Panel>
   );

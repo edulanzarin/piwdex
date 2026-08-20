@@ -317,10 +317,10 @@ export interface MoneyPoke {
   shiny: boolean;
 }
 
-/** Como voce joga, medido da SUA hunt — e o que transforma "ouro do loot" em renda.
+/** Como voce joga, medido do SEU historico — e o que transforma "ouro do loot" em renda.
  *  Zerado, o ranking vira o de loot puro (que e o que sobra pra quem nunca cacou). */
 export interface PlayStyle {
-  /** capturas por abate (9 capturas em 367 abates = 0,0245) */
+  /** capturas por abate, no geral (14 capturas em 586 abates = 0,024) */
   capturePerKill: number;
   /** ouro de bola + pocao gasto por abate */
   supplyPerKill: number;
@@ -328,6 +328,25 @@ export interface PlayStyle {
   from: "live" | "totals" | "default";
   /** abates que sustentam a medida (amostra pequena = numero fraco) */
   sample: number;
+  /** taxa medida POR SPOT (slug -> abates/capturas), do historico de hunts */
+  bySlug?: Map<string, { kills: number; captures: number }>;
+}
+
+/**
+ * Peso da taxa geral quando o spot tem historico proprio. E o numero que impede os dois
+ * extremos: 0 capturas em 49 abates virando "aqui nunca se captura", e 1 em 10 virando
+ * "aqui se captura 10%". Na pratica o spot so passa a mandar na propria taxa depois de
+ * ~60 abates — antes disso ele apenas puxa a taxa geral pro lado que os dados apontam.
+ */
+const RATE_PRIOR = 60;
+
+/** Taxa de captura a usar NESTE spot: a dele quando ha volume, encolhida na geral quando
+ *  nao ha. Uma media so nunca representou os dois casos. */
+function captureRateFor(style: PlayStyle, slug: string): number {
+  const geral = style.capturePerKill;
+  const hit = style.bySlug?.get(slug);
+  if (!hit || hit.kills <= 0) return geral;
+  return (hit.captures + RATE_PRIOR * geral) / (hit.kills + RATE_PRIOR);
 }
 
 export const NO_STYLE: PlayStyle = { capturePerKill: 0, supplyPerKill: 0, from: "default", sample: 0 };
@@ -364,6 +383,9 @@ export interface MoneyRow {
   typeDayHits: boolean;
   /** fracao do bonus do dia que este alvo converte: 1 = tudo, 0 = tudo bateu no teto */
   dayUse: number;
+  /** taxa de captura usada NESTE spot, e quantos abates seus a sustentam */
+  captureRate: number;
+  captureSample: number;
 }
 
 const moneyPokeOf = (p: ActivePoke): MoneyPoke => ({
@@ -409,6 +431,7 @@ export async function rankMoney(
   const noDay: LootBonuses = { ...bonuses, typeDay: null };
   const econ = new Map<number, {
     loot: number; lootPlain: number; capture: number; supply: number; hits: boolean; dayUse: number;
+    rate: number; sample: number;
   }>();
   for (const t of data.targets) {
     const drops = data.dropsOf(t.pokeId);
@@ -417,16 +440,18 @@ export async function rankMoney(
     const multPlain = lootMultiplier(noDay, types);
     const loot = drops.length ? goldPerKill(drops, multDay) : 0;
     const lootPlain = drops.length ? goldPerKill(drops, multPlain) : 0;
-    // a venda do capturado: quantos voce captura por abate x o que o NPC paga por ele
-    const capture = style.capturePerKill * t.sellValue;
+    // a venda do capturado: quantos voce captura NESTE spot x o que o NPC paga por ele
+    const capture = captureRateFor(style, t.slug) * t.sellValue;
     const supply = style.supplyPerKill;
     if (loot + capture <= 0) continue; // alvo que nao paga nada nao e alvo de dinheiro
     // Quanto do bonus do dia sobreviveu ao teto: o ganho REAL sobre o ganho que ele teria
     // se nenhuma chance esbarrasse em 100%.
+    const rate = captureRateFor(style, t.slug);
+    const sample = style.bySlug?.get(t.slug)?.kills ?? 0;
     const hits = multDay > multPlain;
     const theoretical = hits ? lootPlain * (multDay / multPlain - 1) : 0;
     const dayUse = theoretical > 0 ? Math.max(0, Math.min(1, (loot - lootPlain) / theoretical)) : 0;
-    econ.set(t.pokeId, { loot, lootPlain, capture, supply, hits, dayUse });
+    econ.set(t.pokeId, { loot, lootPlain, capture, supply, hits, dayUse, rate, sample });
   }
 
   const best = new Map<number, MoneyRow>();
@@ -468,6 +493,8 @@ export async function rankMoney(
         killsPerLife: est.threat.killsPerLife,
         typeDayHits: e.hits,
         dayUse: e.dayUse,
+        captureRate: e.rate,
+        captureSample: e.sample,
       });
     }
   }

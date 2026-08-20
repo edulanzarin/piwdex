@@ -44,6 +44,7 @@ export interface MoneyRow {
   eff: number; moveType: PokeType;
   risk: RiskLevel; killsPerLife: number;
   typeDayHits: boolean; dayUse: number;
+  captureRate: number; captureSample: number;
 }
 
 interface Style { capturePerKill: number; supplyPerKill: number; from: "live" | "totals" | "default"; sample: number }
@@ -197,7 +198,7 @@ export function TypeDayPanel({ onHunt, huntOn = false }: { onHunt: (row: MoneyRo
     const st = data?.style;
     if (!st) return null;
     if (st.from === "default" && !st.capturePerKill && !st.supplyPerKill) return t("robo.day.styleNone");
-    const key = st.from === "live" ? "robo.day.styleLive" : st.from === "totals" ? "robo.day.styleTotals" : "robo.day.styleManual";
+    const key = st.from === "default" ? "robo.day.styleManual" : "robo.day.styleTotals";
     return t(key, {
       cap: (st.capturePerKill * 100).toFixed(1),
       sup: compact(st.supplyPerKill),
@@ -340,7 +341,13 @@ export function TypeDayPanel({ onHunt, huntOn = false }: { onHunt: (row: MoneyRo
                         {isXp ? <Xp size={14} /> : <Coin size={14} />}{compact(value)}
                       </span>
                       {!isXp && (
-                        <span className="whitespace-nowrap text-[0.68rem] tabular-nums text-text-dim" title={t("robo.day.breakHint")}>
+                        <span
+                          className="whitespace-nowrap text-[0.68rem] tabular-nums text-text-dim"
+                          title={t(r.captureSample > 0 ? "robo.day.breakSpot" : "robo.day.breakHint", {
+                            rate: (r.captureRate * 100).toFixed(1),
+                            n: r.captureSample.toLocaleString("pt-BR"),
+                          })}
+                        >
                           {compact(r.lootH)} + {compact(r.captureH)} − {compact(r.supplyH)}
                         </span>
                       )}

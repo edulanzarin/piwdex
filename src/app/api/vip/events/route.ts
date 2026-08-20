@@ -14,10 +14,14 @@ async function ctx() {
   return { userId: s.user.id };
 }
 
-export async function GET() {
+export async function GET(req: Request) {
   const c = await ctx();
   if (c.error) return c.error;
-  const [events, unread] = await Promise.all([listRobotEvents(c.userId), unreadRobotEvents(c.userId)]);
+  // `?limit=` pro botao "ver mais" do feed: o padrao cabe na tela, o teto e o que o
+  // banco guarda. Sem isso a unica memoria do que o robo fez sozinho eram 10 linhas.
+  const raw = Number(new URL(req.url).searchParams.get("limit"));
+  const limit = Number.isFinite(raw) && raw > 0 ? raw : undefined;
+  const [events, unread] = await Promise.all([listRobotEvents(c.userId, limit), unreadRobotEvents(c.userId)]);
   return NextResponse.json({ events, unread });
 }
 

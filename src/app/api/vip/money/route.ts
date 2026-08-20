@@ -5,6 +5,7 @@ import { fetchActivePokes } from "@/lib/game-ws";
 import { normalizeActivePokes, type ActivePoke } from "@/lib/game-account";
 import { sessionFor } from "@/lib/game-hunt-session";
 import { getRobotSales } from "@/lib/robot-sales";
+import { captureRatesBySlug } from "@/lib/robot-events";
 import { fetchGameBoosts, lootBonusesOf } from "@/lib/game-boosts";
 import { lootMultiplier, STREAK_STEP, type LootBonuses } from "@/lib/boost";
 import { rankMoney, NO_STYLE, type MoneyMode, type PlayStyle } from "@/lib/hunt-brain";
@@ -33,32 +34,30 @@ const numParam = (v: string | null): number | null => {
   return Number.isFinite(n) && n >= 0 ? n : null;
 };
 
-/** Amostra minima pra uma taxa medida valer mais que zero. Abaixo disso a razao
- *  captura/abate oscila demais (2 capturas em 5 abates = 40%, e nao e verdade). */
-const MIN_SAMPLE = 25;
+/** Amostra minima pra a taxa geral valer alguma coisa. Uma taxa de ~2% nao se mede em
+ *  dezenas de abates: 0 capturas em 49 e o resultado MAIS PROVAVEL de quem captura 2,4%
+ *  (chance de ~30%), e mesmo assim fazia o ranking inteiro trocar de recomendacao. */
+const MIN_SAMPLE = 200;
 
-/** Como o jogador joga, medido: primeiro a hunt AO VIVO (é o agora), depois o acumulado
- *  do robo (mais amostra, menos atual). Sem nenhum dos dois, so loot. */
+/** Como o jogador joga, medido do historico INTEIRO do robo mais a hunt em andamento.
+ *  Somar os dois e o mesmo desenho do totalizador ao vivo (persistido + em curso): a hunt
+ *  de agora entra na conta sem PODER sozinha virar a conta. */
 async function measureStyle(userId: string): Promise<PlayStyle> {
   const live = sessionFor(userId).getState().analyzer;
-  if (live && live.kills >= MIN_SAMPLE) {
-    return {
-      capturePerKill: live.captures / live.kills,
-      supplyPerKill: live.supplyGold / live.kills,
-      from: "live",
-      sample: live.kills,
-    };
-  }
   const t = await getRobotSales(userId).catch(() => null);
-  if (t && t.kills >= MIN_SAMPLE) {
-    return {
-      capturePerKill: t.captures / t.kills,
-      supplyPerKill: t.supplyGold / t.kills,
-      from: "totals",
-      sample: t.kills,
-    };
-  }
-  return NO_STYLE;
+
+  const kills = (t?.kills ?? 0) + (live?.kills ?? 0);
+  const captures = (t?.captures ?? 0) + (live?.captures ?? 0);
+  const supply = (t?.supplyGold ?? 0) + (live?.supplyGold ?? 0);
+  if (kills < MIN_SAMPLE) return NO_STYLE;
+
+  return {
+    capturePerKill: captures / kills,
+    supplyPerKill: supply / kills,
+    from: live?.kills ? "live" : "totals",
+    sample: kills,
+    bySlug: await captureRatesBySlug(userId),
+  };
 }
 
 export async function GET(req: Request) {
@@ -122,6 +121,8 @@ export async function GET(req: Request) {
     supplyPerKill: supply != null ? supply : measured.supplyPerKill,
     from: capture != null || supply != null ? "default" : measured.from,
     sample: measured.sample,
+    // taxa informada na mao vale pra TODO alvo — quem digitou quer aquele numero
+    bySlug: capture != null ? undefined : measured.bySlug,
   };
 
   // VIP do JOGO (1,5x XP): assume ligado, como o /api/vip/best-poke, pra nao pagar mais

@@ -56,7 +56,7 @@ export async function GET(req: Request) {
       const pushDb = async () => {
         try {
           const [events, unreadEv, notifications, unreadAl] = await Promise.all([
-            listRobotEvents(userId, 20), unreadRobotEvents(userId), listNotifications(userId), unreadCount(userId),
+            listRobotEvents(userId, 40), unreadRobotEvents(userId), listNotifications(userId), unreadCount(userId),
           ]);
           send("events", { events, unread: unreadEv });
           send("alerts", { notifications, unread: unreadAl });
