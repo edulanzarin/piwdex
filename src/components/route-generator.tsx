@@ -237,21 +237,25 @@ export function RouteGenerator({ species, enemies }: { species: Species[]; enemi
                   </div>
                 </div>
 
-                {/* tres metricas em 360px: gap menor e celula min-w-0 — o rotulo mais
-                    longo ("Dolares/h") trunca com title em vez de esticar o card */}
-                <div className="grid grid-cols-3 gap-2 border-t border-border/50 pt-3 text-right lg:w-56 lg:shrink-0 lg:gap-3 lg:border-l lg:border-t-0 lg:pl-4 lg:pt-0">
+                {/* Tres metricas numa faixa estreita. `truncate` sozinho NAO segura o
+                    rotulo: dentro de um `items-end` o span fica com largura de conteudo e
+                    vaza pra CELULA VIZINHA — era o "DOLARES/H" montando em cima do
+                    "XP/H". Quem corta e o `w-full`, que da ao truncate uma borda contra a
+                    qual cortar. A faixa tambem ganhou 64px pra o rotulo mais longo caber
+                    inteiro em vez de virar reticencia. */}
+                <div className="grid grid-cols-3 gap-2 border-t border-border/50 pt-3 text-right lg:w-72 lg:shrink-0 lg:gap-3 lg:border-l lg:border-t-0 lg:pl-4 lg:pt-0">
                   <div className="flex min-w-0 flex-col items-end gap-0.5">
-                    <span className="truncate text-xs uppercase tracking-wide text-text-dim" title={t("hunt.col.kosh")}>{t("hunt.col.kosh")}</span>
+                    <span className="w-full truncate text-right text-xs uppercase tracking-wide text-text-dim" title={t("hunt.col.kosh")}>{t("hunt.col.kosh")}</span>
                     <span className="tabular-nums text-sm text-cyan">{compact(est.kosH)}</span>
                   </div>
                   <div className="flex min-w-0 flex-col items-end gap-0.5">
-                    <span className="inline-flex min-w-0 max-w-full items-center gap-1 text-xs uppercase tracking-wide text-text-dim" title={t("hunt.col.xph")}>
-                      <StatIcon index={0} size={14} /><span className="truncate">{t("hunt.col.xph")}</span>
+                    <span className="inline-flex w-full min-w-0 items-center justify-end gap-1 text-xs uppercase tracking-wide text-text-dim" title={t("hunt.col.xph")}>
+                      <Xp size={14} /><span className="truncate">{t("hunt.col.xph")}</span>
                     </span>
                     <span className="tabular-nums text-sm text-green">{compact(est.xpH)}</span>
                   </div>
                   <div className="flex min-w-0 flex-col items-end gap-0.5">
-                    <span className="truncate text-xs uppercase tracking-wide text-text-dim" title={t("hunt.col.goldh")}>{t("hunt.col.goldh")}</span>
+                    <span className="w-full truncate text-right text-xs uppercase tracking-wide text-text-dim" title={t("hunt.col.goldh")}>{t("hunt.col.goldh")}</span>
                     <span className="inline-flex items-center gap-1 tabular-nums text-sm text-green"><Coin size={14} />{compact(est.goldH)}</span>
                   </div>
                 </div>
