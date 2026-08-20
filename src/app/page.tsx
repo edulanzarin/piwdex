@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getData } from "@/lib/data";
 import { PokedexIcon } from "@/components/pokedex-icon";
-import { ItemsIcon, HuntIcon, CalcIcon, LabIcon, BreedIcon, BoostIcon } from "@/components/tool-icons";
+import { ItemsIcon, HuntIcon, CalcIcon, LabIcon, BreedIcon, BoostIcon, MetaIcon } from "@/components/tool-icons";
 import { StatTile } from "@/components/stat-tile";
 import { ChevronRight } from "@/components/icons";
 import { T } from "@/components/locale-provider";
@@ -109,6 +109,15 @@ export default async function Home() {
           color="var(--yellow)"
           ctaText="#06131a"
           icon={<HuntIcon size={64} />}
+        />
+        <ToolCard
+          titleKey="home.card8.title"
+          descKey="home.card8.desc"
+          href="/meta"
+          ctaKey="home.card8.cta"
+          color="var(--pink)"
+          ctaText="#2a0a10"
+          icon={<MetaIcon size={64} />}
         />
         <ToolCard
           titleKey="home.card7.title"

@@ -6,7 +6,7 @@ import { useState } from "react";
 import { Pokeball } from "./pokeball";
 import { NavAccount, NavLogout } from "./nav-icons";
 import { PokedexIcon } from "./pokedex-icon";
-import { ItemsIcon, HuntIcon, CalcIcon, LabIcon, BreedIcon, BoostIcon } from "./tool-icons";
+import { ItemsIcon, HuntIcon, CalcIcon, LabIcon, BreedIcon, BoostIcon, MetaIcon } from "./tool-icons";
 import { Robot, Gear } from "./icons";
 import { useT } from "./locale-provider";
 import { LangSwitcher } from "./lang-switcher";
@@ -27,6 +27,7 @@ const TABS: { key: string; href: string; Icon: (p: { size?: number }) => React.R
   { key: "nav.items", href: "/items", Icon: ItemsIcon },
   { key: "nav.hunt", href: "/hunt", Icon: HuntIcon },
   { key: "nav.boost", href: "/boost", Icon: BoostIcon },
+  { key: "nav.meta", href: "/meta", Icon: MetaIcon },
   { key: "nav.calc", href: "/calc", Icon: CalcIcon },
   { key: "nav.eevee", href: "/eevee", Icon: LabIcon },
   { key: "nav.breed", href: "/breed", Icon: BreedIcon },

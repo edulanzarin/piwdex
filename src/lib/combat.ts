@@ -44,6 +44,13 @@ const SAFE_KILLS = 6;     // aguenta 6+ kills por vida = hunt sustentavel (rende
 const RISKY_KILLS = 2;    // abaixo disso e armadilha: fica FORA da rota (so como ultimo recurso)
 const CAP_KILLS = 999;    // teto de killsPerLife/ttd — Infinity nao sobrevive a um JSON.stringify
 
+/** Dano de UM golpe, o modelo unico do site: poder x razao de stats x STAB x efetividade.
+ *  Vale pros dois lados do combate e pros dois motores (hunt e arena) — se a calibracao
+ *  mudar, muda num lugar so. `DMG_K` e constante de escala, nao de balanceamento. */
+export function hitDamage(power: number, off: number, def: number, stab: number, eff: number): number {
+  return Math.max(1, DMG_K * power * (off / Math.max(1, def)) * stab * eff);
+}
+
 /** Amplificacao elemental de hunt: vantagem (m-1)*1.5+1, resistencia m/1.5.
  *  Confere com a doc: x1.5->x1.75, x2->x2.5, x4->x5.5, x0.5->x0.33. */
 export function amplify(m: number): number {
@@ -151,7 +158,7 @@ function bestMoveDps(species: Species, level: number, ivs: number[], quality: nu
     const stab = mv.type === species.t1 || mv.type === species.t2 ? 1.5 : 1;
     const off = mv.category === "SPECIAL" ? spa : atk;
     const def = mv.category === "SPECIAL" ? e.spDef : e.def;
-    const dmg = Math.max(1, DMG_K * mv.power * (off / Math.max(1, def)) * stab * eff);
+    const dmg = hitDamage(mv.power, off, def, stab, eff);
     const dps = dmg / (mv.cooldownMs / 1000);
     if (!best || dps > best.dps) best = { mv, eff, dmg, dps };
   }
@@ -188,7 +195,7 @@ export function threatOf(
     const stab = mv.type === e.t1 || mv.type === e.t2 ? 1.5 : 1;
     const off = mv.category === "SPECIAL" ? e.spAtk : e.atk;
     const d = mv.category === "SPECIAL" ? spDef : def;
-    const dmg = Math.max(1, DMG_K * mv.power * (off / Math.max(1, d)) * stab * eff);
+    const dmg = hitDamage(mv.power, off, d, stab, eff);
     const dps = dmg / (mv.cooldownMs / 1000);
     if (!worst || dps > worst.dps) worst = { mv, eff, dmg, dps };
   }
