@@ -171,6 +171,16 @@ export interface HuntState {
   wsOpen: boolean;             // o socket esta aberto AGORA
   team: ActivePoke[] | null;   // time AO VIVO (frames pokes da sessao segurada)
   teamAt: number | null;
+  /**
+   * Forma CRUA dos frames do jogo, capturada uma vez por processo.
+   *
+   * Existe porque o piwdex le do frame so os campos que ja conhece — e a chance de
+   * captura por especie, que o jogo calcula e nao publica em REST nenhum, so pode estar
+   * num campo que ninguem esta lendo. Guardar a lista de chaves (e uma amostra) e o unico
+   * jeito de DESCOBRIR isso sem tomar a sessao do jogador de volta so pra espiar.
+   * Chaves e valores de um item, nada de dado pessoal.
+   */
+  frameSchema: Record<string, { keys: string[]; sample: string }>;
 }
 // visao "auto-sell" (GET /api/vip/autosell) — a aba Pokemon vendidos: status + o vendido
 // agregado por especie (cards da hunt atual).
@@ -235,7 +245,7 @@ function idleHuntState(): HuntState {
     mode: "manual", leveling: null, plan: null, queue: [],
     desiredOn: false, reconnecting: false, nextRetryAt: null, contested: false, blockedReason: null,
     fighterLevel: null, pokeXpPerHour: null, reviving: false, heroHp: null, heroMaxHp: null,
-    holdOpen: false, wsOpen: false, team: null, teamAt: null,
+    holdOpen: false, wsOpen: false, team: null, teamAt: null, frameSchema: {},
   };
 }
 
@@ -362,6 +372,7 @@ class GameSession {
   private recoverWarned = false;             // ja avisou que a cura esta demorando
   private reviveIds: Set<number> | null = null; // itens de categoria "revive" (do catalogo)
   private reviveIdsVersion: string | null = null; // versao do catalogo que produziu o set acima
+  private frameSchema: Record<string, { keys: string[]; sample: string }> = {};
   private deaths = new Map<number, number>();  // alvo -> desmaios seguidos nele
   private banned = new Map<number, number>();  // alvo banido -> nivel do bicho quando caiu
   private healSentAt = 0;        // ultimo joy-heal enviado (anti-flood)
@@ -386,6 +397,15 @@ class GameSession {
   private debugFrames: { at: number; type: string; raw: string }[] = [];
 
   private jobsActive() { return this.slug != null || this.pokeCfg != null || this.holdOpen; }
+
+  /** Registra a forma de um frame uma unica vez (chaves + amostra truncada). */
+  private noteShape(type: string, item: unknown) {
+    if (this.frameSchema[type] || !item || typeof item !== "object") return;
+    this.frameSchema[type] = {
+      keys: Object.keys(item as Record<string, unknown>).sort(),
+      sample: JSON.stringify(item).slice(0, 400),
+    };
+  }
 
   private emit(topic: "hunt" | "session" | "chat") { try { this.bus.emit("change", topic); } catch { /* listener nao derruba a sessao */ } }
 
@@ -440,7 +460,7 @@ class GameSession {
       heroHp: this.heroMaxHp > 0 ? this.heroHp : null,
       heroMaxHp: this.heroMaxHp > 0 ? this.heroMaxHp : null,
       holdOpen: this.holdOpen, wsOpen: this.ws != null && this.status === "running",
-      team: this.liveTeam, teamAt: this.liveTeamAt,
+      team: this.liveTeam, teamAt: this.liveTeamAt, frameSchema: this.frameSchema,
     };
   }
 
@@ -1069,6 +1089,7 @@ class GameSession {
         this.trackPokeXp(id, m);
       }
     } else if (m.type === "catch-result") {
+      this.noteShape("catch-result", m);
       if (m.success && this.slug) {
         const species = String(m.speciesName ?? "?"), shiny = Boolean(m.shiny), ball = String(m.ballName ?? "");
         this.push({ at: Date.now(), kind: "catch", species, shiny, xp: 0, loot: [], ball });
@@ -1079,6 +1100,10 @@ class GameSession {
       // "Confirme a mutacao pelo estado que ela deixa".
       this.send({ type: "pokes-get" });
     } else if (m.type === "pending" && Array.isArray(m.list)) {
+      // a forma CRUA do corpo na fila: se o jogo manda a chance de captura pra algum
+      // lugar, e aqui (ele ja manda `shinyBase`, que o proprio cliente dele usa pra
+      // pintar a barra de shiny)
+      if ((m.list as unknown[]).length) this.noteShape("pending", (m.list as unknown[])[0]);
       // fila de captura: o jogo reenvia a lista INTEIRA a cada mudanca. `pokeId` no frame
       // e o numero da SPECIES (nao cuid) — vira speciesId aqui pro sprite da UI.
       this.pending = (m.list as Record<string, unknown>[]).map((p) => ({
