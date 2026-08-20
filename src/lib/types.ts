@@ -24,6 +24,12 @@ export interface Attack {
   power: number;
   cooldownMs: number;
   learnLevel: number;
+  // TM: golpe que NAO esta no moveset natural — so entra se o jogador tiver a maquina.
+  // A fonte guarda o TIPO da TM (ex.: "PSYCHIC"); ausente = golpe natural. Isso importa
+  // muito: TODO golpe de poder 600 do jogo e TM, e um TM chega a valer 10x o DPS do
+  // melhor golpe natural. Misturar os dois faz o motor prometer uma velocidade de kill
+  // que o jogador nao tem.
+  tm: PokeType | null;
 }
 
 export interface LootEntry {
@@ -55,6 +61,12 @@ export interface Creature {
   experience: number;
   loot: LootEntry[];
   attacks: Attack[];
+  // Regiao da especie: null = catalogo base, "orre" = Orre (stats proprios, endgame).
+  area: string | null;
+  // pokeId da especie que se captura pra chegar nesta. null = ela mesma se captura.
+  // Variantes de skin (Brave Blastoise, Tribal Feraligatr) apontam pra base e NAO sao
+  // uma linha separada do catalogo; as de Orre apontam pra base mas tem stats proprios.
+  captureBase: number | null;
 }
 
 export interface Item {

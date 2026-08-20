@@ -70,7 +70,19 @@ async function main() {
     sellValue: num(c.sellValue),
     experience: num(c.experience),
     loot: Array.isArray(c.loot) ? c.loot : [],
-    attacks: Array.isArray(c.attacks) ? c.attacks : [],
+    // `tm` (tipo da maquina) some no golpe natural: fixamos null pra o campo existir
+    // sempre. Separar TM de natural e obrigatorio — todo golpe de poder 600 e TM.
+    attacks: (Array.isArray(c.attacks) ? c.attacks : []).map((a) => ({
+      name: a.name,
+      type: a.type,
+      category: a.category,
+      power: num(a.power),
+      cooldownMs: num(a.cooldownMs),
+      learnLevel: num(a.learnLevel),
+      tm: a.tm ?? null,
+    })),
+    area: c.area ?? null,
+    captureBase: c.captureBase ?? null,
   }));
 
   if (!Array.isArray(creatures) || !creatures.length) throw new Error("creatures vazio");

@@ -6,7 +6,7 @@
 // e da API logada (camada 3). Ver [[Poke Idle World - endpoints publicos de dados]].
 
 import snapshot from "@/data/piwdex.json";
-import type { Creature, Hunt, Item, Snapshot } from "./types";
+import type { Attack, Creature, Hunt, Item, Snapshot } from "./types";
 
 const HOST = "https://poke.idleworld.online";
 const UA =
@@ -66,7 +66,27 @@ function normalizeCreatures(src: unknown[]): Creature[] {
       sellValue: asNum(c.sellValue),
       experience: asNum(c.experience),
       loot: Array.isArray(c.loot) ? (c.loot as Creature["loot"]) : [],
-      attacks: Array.isArray(c.attacks) ? (c.attacks as Creature["attacks"]) : [],
+      attacks: normalizeAttacks(c.attacks),
+      area: (c.area as string | null) ?? null,
+      captureBase: (c.captureBase as number | null) ?? null,
+    };
+  });
+}
+
+// `tm` vem da fonte como o TIPO da maquina ("PSYCHIC") e some no golpe natural. Vira
+// campo explicito aqui pra o motor poder separar os dois pools — ver Attack em types.ts.
+function normalizeAttacks(src: unknown): Attack[] {
+  if (!Array.isArray(src)) return [];
+  return src.map((raw) => {
+    const a = raw as Record<string, unknown>;
+    return {
+      name: a.name as string,
+      type: a.type as Attack["type"],
+      category: a.category as Attack["category"],
+      power: asNum(a.power),
+      cooldownMs: asNum(a.cooldownMs),
+      learnLevel: asNum(a.learnLevel),
+      tm: (a.tm as Attack["tm"]) ?? null,
     };
   });
 }
