@@ -24,6 +24,7 @@
 import { gameFetch, type Tokens } from "./game-auth";
 import { getGameLink, updateGameTokens } from "./game-link";
 import { BALLS, ballById } from "./balls";
+import { CATCH_LAW_FALLBACK } from "./catch-law";
 import type { Creature } from "./types";
 
 /** catchRate por id de bola (dado-verdade do jogo, em src/data/balls.json). */
@@ -184,8 +185,6 @@ export function rateFromMeter(s: SpeciesCatch | undefined, globalRate: number, p
 // medidor, mais a lei descreve aquele jogador (bolas, profissao e bonus de pokedex dele
 // entram embutidos). Os valores abaixo sao so o ponto de partida de quem nao tem dado.
 
-export const CATCH_LAW_FALLBACK = { a: 4.738, b: -0.709 };
-
 export interface CatchLaw {
   a: number;
   b: number;
@@ -227,8 +226,4 @@ export function fitCatchLaw(data: CatchData | null, creatureOf: (id: number) => 
   return { a, b, sample: xs.length, spread: Math.exp(errs[Math.floor(errs.length / 2)]) };
 }
 
-/** Chance de captura por ABATE prevista pela lei, com a bola que o jogador usa. */
-export function predictCatchRate(law: CatchLaw, sellValue: number, ballCatchRate: number): number {
-  if (sellValue <= 0) return 0;
-  return Math.min(1, law.a * Math.pow(sellValue, law.b) * Math.max(1, ballCatchRate));
-}
+

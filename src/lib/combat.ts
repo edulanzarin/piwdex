@@ -33,8 +33,16 @@ export const SIM_IV = 21;
 export const WILD_HP_MULT = 5; // HP do wild x5 (doc do jogo)
 const WILD_Q = 1.0; // qualidade base do wild (capturas ~common)
 const WILD_IV = 15;
-const DMG_K = 0.06; // constante de calibracao do dano estimado (vale pros dois lados)
-const OVERHEAD_S = 5; // segundos fixos por kill (spawn/aproximacao/animacao), estimativa
+// Constante de escala do dano, CALIBRADA contra medicao (ago/2026) e nao mais chutada.
+// O valor antigo (0,06) subestimava o dano em mais de 10x, e o estrago nao era uniforme:
+// como o overhead por abate e fixo, dano baixo demais castiga alvo TANQUE e infla lixo de
+// nivel baixo. Foi assim que o planner recomendou uma hunt lvl 10 pra um jogador lvl 216
+// e escondeu o Pinsir (o motor dava 231s por abate onde a hunt real leva ~7s).
+// Referencia: Electrode Lv213 matando Tyrogue (hp 100 reforcado) em 0,75s de combate.
+const DMG_K = 0.28;
+// Segundos por abate FORA do combate (spawn, aproximacao, animacao). Medido resolvendo
+// ttk = HP/DPS + overhead em duas hunts reais (Tyrogue 900 abates/h, Yanma 713): 3,25s.
+const OVERHEAD_S = 3.3;
 
 // Sobrevivencia. `killsPerLife` e a margem CRUA (vida cheia, sem pocao): com margem alta a
 // auto-pocao segura o resto da hora, com margem baixa nem pocao salva.
@@ -144,12 +152,23 @@ export interface HuntEstimate {
   threat: Threat; // o que essa hunt faz com voce
 }
 
-// Golpe de maior DANO-POR-SEGUNDO contra o alvo (poder x razao de stats x STAB x eff,
-// dividido pelo cooldown). E o que decide a velocidade de kill.
-function bestMoveDps(species: Species, level: number, ivs: number[], quality: number, e: EnemyCombat, pool: MovePool) {
+/**
+ * Dano por segundo do moveset INTEIRO contra o alvo.
+ *
+ * O motor media so o melhor golpe, e isso e o jogo errado: aqui cada golpe tem cooldown
+ * proprio e dispara sozinho quando recarrega — voce nao "escolhe um". O melhor golpe
+ * natural do Electrode tem 10s de recarga, e mesmo assim a conta real mata a cada 4s:
+ * o que fecha a conta e a SOMA das recargas. Somar tambem muda a ordem entre pokemons,
+ * porque quem tem quatro golpes medios bate mais que quem tem um bom e nada mais.
+ *
+ * `top` continua sendo o golpe de maior dano — e o que a tela mostra ("com que tipo voce
+ * bate"), e e ele que define a efetividade exibida.
+ */
+function movesetDps(species: Species, level: number, ivs: number[], quality: number, e: EnemyCombat, pool: MovePool) {
   const atk = projectStat(species.bases[1], ivs[1], level, quality, 1);
   const spa = projectStat(species.bases[3], ivs[3], level, quality, 3);
-  let best: { mv: Move; eff: number; dmg: number; dps: number } | null = null;
+  let total = 0;
+  let top: { mv: Move; eff: number; dmg: number; dps: number } | null = null;
   for (const mv of species.moves) {
     if (mv.power <= 0 || mv.learn > level || mv.cooldownMs <= 0) continue;
     if (!inPool(mv, pool)) continue;
@@ -160,9 +179,10 @@ function bestMoveDps(species: Species, level: number, ivs: number[], quality: nu
     const def = mv.category === "SPECIAL" ? e.spDef : e.def;
     const dmg = hitDamage(mv.power, off, def, stab, eff);
     const dps = dmg / (mv.cooldownMs / 1000);
-    if (!best || dps > best.dps) best = { mv, eff, dmg, dps };
+    total += dps;
+    if (!top || dps > top.dps) top = { mv, eff, dmg, dps };
   }
-  return best;
+  return top ? { ...top, total } : null;
 }
 
 const riskOf = (killsPerLife: number): RiskLevel =>
@@ -187,6 +207,7 @@ export function threatOf(
   const spDef = projectStat(species.bases[4], ivs[4], level, quality, 4);
 
   let worst: { mv: Move; eff: number; dmg: number; dps: number } | null = null;
+  let totalDps = 0; // o wild tambem dispara o moveset inteiro, nao so o pior golpe
   for (const mv of enemyMoves) {
     if (mv.power <= 0 || mv.learn > e.huntLevel || mv.cooldownMs <= 0) continue;
     if (mv.tm) continue; // TM e coisa de jogador: o wild bate so com o moveset natural
@@ -197,11 +218,12 @@ export function threatOf(
     const d = mv.category === "SPECIAL" ? spDef : def;
     const dmg = hitDamage(mv.power, off, d, stab, eff);
     const dps = dmg / (mv.cooldownMs / 1000);
+    totalDps += dps;
     if (!worst || dps > worst.dps) worst = { mv, eff, dmg, dps };
   }
-  if (!worst || worst.dps <= 0) return NO_THREAT;
+  if (!worst || totalDps <= 0) return NO_THREAT;
 
-  const ttdS = Math.min(CAP_KILLS, hp / worst.dps);
+  const ttdS = Math.min(CAP_KILLS, hp / totalDps);
   const killsPerLife = Math.min(CAP_KILLS, ttdS / Math.max(0.1, combatS));
   // vida em tempo de relogio ate cair, e o quanto da hora sobra depois da parada da Joy
   const lifeS = killsPerLife * ttkS;
@@ -228,10 +250,10 @@ export function estimateHunt(
   vip: boolean,
   pool: MovePool = "natural",
 ): HuntEstimate | null {
-  const bm = bestMoveDps(species, level, ivs, quality, e, pool);
+  const bm = movesetDps(species, level, ivs, quality, e, pool);
   if (!bm) return null;
   const hits = Math.max(1, Math.ceil(e.hp / bm.dmg));
-  const combatS = e.hp / bm.dps;
+  const combatS = e.hp / bm.total;
   const ttkS = combatS + OVERHEAD_S;
   const threat = threatOf(species, level, ivs, quality, e, enemyMoves, combatS, ttkS);
   const kosH = (3600 / ttkS) * threat.uptime;

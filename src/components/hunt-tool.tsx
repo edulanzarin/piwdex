@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { EconomyTable, type HuntRow } from "./hunt-planner";
+import { BestHunt } from "./best-hunt";
 import { RouteGenerator } from "./route-generator";
 import { Tabs } from "./tabs";
 import { TypeFilter } from "./type-filter";
@@ -12,7 +13,7 @@ import { CHANCE_MAX, TYPE_DAY_BONUS } from "@/lib/boost";
 import type { PokeType } from "@/lib/types";
 import type { Species, EnemyCombat } from "@/lib/combat";
 
-type Mode = "route" | "table";
+type Mode = "best" | "route" | "table";
 
 /** [chance, quantidade media, preco] — o suficiente pra refazer o ouro por abate. */
 export type PackedDrops = Record<number, [number, number, number][]>;
@@ -45,7 +46,8 @@ export function HuntTool({
   dayPct: number | null;
 }) {
   const t = useT();
-  const [mode, setMode] = useState<Mode>("route");
+  // abre na resposta direta: "onde eu farmo mais?" nao precisa de formulario
+  const [mode, setMode] = useState<Mode>("best");
   // comeca no tipo do dia de verdade; o usuario pode trocar pra simular outro
   const [day, setDay] = useState<PokeType | "">(dayType ?? "");
 
@@ -77,6 +79,7 @@ export function HuntTool({
         onChange={(k) => setMode(k as Mode)}
         accent="var(--yellow)"
         tabs={[
+          { key: "best", label: t("hunt.mode.best") },
           { key: "route", label: t("hunt.mode.route") },
           { key: "table", label: t("hunt.mode.table") },
         ]}
@@ -102,7 +105,9 @@ export function HuntTool({
         )}
       </div>
 
-      {mode === "route" ? (
+      {mode === "best" ? (
+        <BestHunt rows={dayRows} areas={areas} />
+      ) : mode === "route" ? (
         <RouteGenerator species={species} enemies={dayEnemies} />
       ) : (
         <EconomyTable rows={dayRows} areas={areas} />
