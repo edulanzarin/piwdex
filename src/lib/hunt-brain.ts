@@ -54,7 +54,7 @@ async function build(): Promise<BrainData> {
     const bases = [c.baseHp, c.baseAtk, c.baseDef, c.baseSpAtk, c.baseSpDef, c.baseSpeed];
     const moves: Move[] = c.attacks.map((a) => ({
       type: a.type as PokeType, power: a.power, learn: a.learnLevel,
-      category: a.category, cooldownMs: a.cooldownMs,
+      category: a.category, cooldownMs: a.cooldownMs, tm: a.tm != null,
     }));
     species.set(c.pokeId, {
       pokeId: c.pokeId, name: c.name, t1: c.type1, t2: c.type2, bases,

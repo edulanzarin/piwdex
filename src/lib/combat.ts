@@ -61,7 +61,16 @@ export interface Move {
   learn: number;
   category: AttackCategory;
   cooldownMs: number;
+  /** Golpe de MAQUINA: so existe pra quem comprou a TM. Fora do pool por padrao. */
+  tm: boolean;
 }
+
+/** Pool de golpes considerado. `natural` = o que a especie aprende sozinha (o que todo
+ *  jogador tem); `tm` = natural + maquinas. Todo golpe de poder 600 do jogo e TM, e a
+ *  troca chega a valer 10x de DPS — por isso o pool e explicito em vez de "todos". */
+export type MovePool = "natural" | "tm";
+
+const inPool = (mv: Move, pool: MovePool): boolean => pool === "tm" || !mv.tm;
 
 export interface Species {
   pokeId: number;
@@ -130,12 +139,13 @@ export interface HuntEstimate {
 
 // Golpe de maior DANO-POR-SEGUNDO contra o alvo (poder x razao de stats x STAB x eff,
 // dividido pelo cooldown). E o que decide a velocidade de kill.
-function bestMoveDps(species: Species, level: number, ivs: number[], quality: number, e: EnemyCombat) {
+function bestMoveDps(species: Species, level: number, ivs: number[], quality: number, e: EnemyCombat, pool: MovePool) {
   const atk = projectStat(species.bases[1], ivs[1], level, quality, 1);
   const spa = projectStat(species.bases[3], ivs[3], level, quality, 3);
   let best: { mv: Move; eff: number; dmg: number; dps: number } | null = null;
   for (const mv of species.moves) {
     if (mv.power <= 0 || mv.learn > level || mv.cooldownMs <= 0) continue;
+    if (!inPool(mv, pool)) continue;
     const eff = huntEffectiveness(mv.type, e.t1, e.t2);
     if (eff <= 0) continue; // imune
     const stab = mv.type === species.t1 || mv.type === species.t2 ? 1.5 : 1;
@@ -172,6 +182,7 @@ export function threatOf(
   let worst: { mv: Move; eff: number; dmg: number; dps: number } | null = null;
   for (const mv of enemyMoves) {
     if (mv.power <= 0 || mv.learn > e.huntLevel || mv.cooldownMs <= 0) continue;
+    if (mv.tm) continue; // TM e coisa de jogador: o wild bate so com o moveset natural
     const eff = huntEffectiveness(mv.type, species.t1, species.t2);
     if (eff <= 0) continue; // voce e imune a esse golpe
     const stab = mv.type === e.t1 || mv.type === e.t2 ? 1.5 : 1;
@@ -208,8 +219,9 @@ export function estimateHunt(
   e: EnemyCombat,
   enemyMoves: Move[],
   vip: boolean,
+  pool: MovePool = "natural",
 ): HuntEstimate | null {
-  const bm = bestMoveDps(species, level, ivs, quality, e);
+  const bm = bestMoveDps(species, level, ivs, quality, e, pool);
   if (!bm) return null;
   const hits = Math.max(1, Math.ceil(e.hp / bm.dmg));
   const combatS = e.hp / bm.dps;
@@ -267,6 +279,7 @@ export function pickHunt(
   mode: RouteMode,
   vip: boolean,
   skip?: (e: EnemyCombat) => boolean,
+  pool: MovePool = "natural",
 ): RoutePick | null {
   const reach = reachOf(level);
   let best: RoutePick | null = null;
@@ -274,7 +287,7 @@ export function pickHunt(
   for (const e of enemies) {
     if (e.huntLevel > reach) continue;
     if (skip?.(e)) continue;
-    const est = estimateHunt(species, level, ivs, quality, e, movesOf(e.pokeId), vip);
+    const est = estimateHunt(species, level, ivs, quality, e, movesOf(e.pokeId), vip, pool);
     if (!est) continue;
     const score = mode === "gold" ? est.goldH : est.xpH;
     const pick: RoutePick = { score, enemy: e, est };
@@ -308,6 +321,7 @@ export function buildRoute(
   ivs: number[],
   mode: RouteMode = "xp",
   vip = false,
+  pool: MovePool = "natural",
 ): RouteStep[] {
   const steps: RouteStep[] = [];
   const s = Math.max(1, Math.floor(start));
@@ -315,12 +329,12 @@ export function buildRoute(
   const SWITCH_MARGIN = 1.08;
 
   for (let lvl = s; lvl <= t; lvl++) {
-    const p = pickHunt(species, lvl, ivs, quality, enemies, movesOf, mode, vip);
+    const p = pickHunt(species, lvl, ivs, quality, enemies, movesOf, mode, vip, undefined, pool);
     if (!p) continue;
     const last = steps[steps.length - 1];
     if (last) {
       // rendimento do alvo ATUAL neste nivel — so troca se o novo ganha por margem.
-      const curEst = estimateHunt(species, lvl, ivs, quality, last.enemy, movesOf(last.enemy.pokeId), vip);
+      const curEst = estimateHunt(species, lvl, ivs, quality, last.enemy, movesOf(last.enemy.pokeId), vip, pool);
       const curScore = curEst ? (mode === "gold" ? curEst.goldH : curEst.xpH) : 0;
       const curSafe = curEst != null && (curEst.threat.risk !== "deadly" || p.est.threat.risk === "deadly");
       if (curEst && curSafe && p.score <= curScore * SWITCH_MARGIN) {

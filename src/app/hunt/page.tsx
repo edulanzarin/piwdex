@@ -27,6 +27,7 @@ export default async function HuntPage() {
       learn: a.learnLevel,
       category: a.category,
       cooldownMs: a.cooldownMs,
+      tm: a.tm != null,
     }));
     species.push({
       pokeId: c.pokeId,
