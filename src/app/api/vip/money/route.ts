@@ -6,6 +6,7 @@ import { normalizeActivePokes, type ActivePoke } from "@/lib/game-account";
 import { sessionFor } from "@/lib/game-hunt-session";
 import { getRobotSales } from "@/lib/robot-sales";
 import { captureRatesBySlug } from "@/lib/robot-events";
+import { fetchCatchData, rateFromMeter } from "@/lib/game-catch";
 import { fetchGameBoosts, lootBonusesOf } from "@/lib/game-boosts";
 import { lootMultiplier, NO_BONUS, STREAK_STEP, type LootBonuses } from "@/lib/boost";
 import { rankMoney, NO_STYLE, type MoneyMode, type PlayStyle } from "@/lib/hunt-brain";
@@ -39,6 +40,11 @@ const numParam = (v: string | null): number | null => {
  *  (chance de ~30%), e mesmo assim fazia o ranking inteiro trocar de recomendacao. */
 const MIN_SAMPLE = 200;
 
+/** Valor medio de venda dos alvos que se caca na pratica. Serve de escala pra comparar o
+ *  ouro de venda REGISTRADO com o que o modelo teria previsto — nao entra em nenhuma
+ *  linha do ranking, so na razao entre previsto e recebido. */
+const MEAN_SELL_VALUE = 9000;
+
 /** Como o jogador joga, medido do historico INTEIRO do robo mais a hunt em andamento.
  *  Somar os dois e o mesmo desenho do totalizador ao vivo (persistido + em curso): a hunt
  *  de agora entra na conta sem PODER sozinha virar a conta. */
@@ -51,12 +57,42 @@ async function measureStyle(userId: string): Promise<PlayStyle> {
   const supply = (t?.supplyGold ?? 0) + (live?.supplyGold ?? 0);
   if (kills < MIN_SAMPLE) return NO_STYLE;
 
+  const globalRate = captures / kills;
+
+  // Dificuldade POR ESPECIE, do medidor de investimento do jogo. E o que impede uma
+  // especie de 75.000 que voce nunca capturou de herdar a taxa de uma de 9.000 que voce
+  // captura toda hora.
+  const catchData = await fetchCatchData(userId).catch(() => null);
+  const bySpecies = new Map<number, number>();
+  if (catchData) {
+    for (const [speciesId, s] of catchData.bySpecies) {
+      const r = rateFromMeter(s, globalRate);
+      if (r != null) bySpecies.set(speciesId, r);
+    }
+  }
+
+  // ANCORA: o modelo projeta renda de captura; o robo REGISTRA quanto de venda de
+  // pokemon realmente entrou. A razao entre os dois corrige de uma vez tudo que separa
+  // "capturei" de "recebi" — o que a config manda guardar, o que o jogo recusou vender,
+  // o que ficou no acervo. Sem ela o ranking prometia +774 por abate onde o jogo pagava
+  // -130. Fora de uma faixa sensata (historico curto demais) o fator volta a 1.
+  let sellShare = 1;
+  if (t && t.kills > 0 && t.pokesGold > 0) {
+    const previsto = globalRate * t.kills * MEAN_SELL_VALUE;
+    if (previsto > 0) {
+      const r = t.pokesGold / previsto;
+      if (Number.isFinite(r) && r > 0.02 && r < 5) sellShare = r;
+    }
+  }
+
   return {
-    capturePerKill: captures / kills,
+    sellShare,
+    capturePerKill: globalRate,
     supplyPerKill: supply / kills,
     from: live?.kills ? "live" : "totals",
     sample: kills,
     bySlug: await captureRatesBySlug(userId),
+    bySpecies,
     speedFactor: 1, // medido depois, contra o alvo em que voce esta agora
   };
 }
@@ -147,6 +183,8 @@ export async function GET(req: Request) {
     sample: measured.sample,
     // taxa informada na mao vale pra TODO alvo — quem digitou quer aquele numero
     bySlug: capture != null ? undefined : measured.bySlug,
+    bySpecies: capture != null ? undefined : measured.bySpecies,
+    sellShare: measured.sellShare,
     speedFactor,
   };
 
@@ -188,7 +226,9 @@ export async function GET(req: Request) {
       from: style.from,
       sample: style.sample,
       speedFactor: style.speedFactor,
+      sellShare: style.sellShare ?? 1,
       spots: style.bySlug?.size ?? 0,
+      species: style.bySpecies?.size ?? 0,
     },
     // frescor do CATALOGO: e ele que decide se o ranking vale
     catalog: { live: db.live, at: db.generatedAt, error: db.error, checkedAt: db.checkedAt },

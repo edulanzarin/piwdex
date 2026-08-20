@@ -330,6 +330,20 @@ export interface PlayStyle {
   sample: number;
   /** taxa medida POR SPOT (slug -> abates/capturas), do historico de hunts */
   bySlug?: Map<string, { kills: number; captures: number }>;
+  /** dificuldade de captura POR ESPECIE, do medidor de investimento do jogo
+   *  (speciesId -> chance por abate). Ver lib/game-catch.ts. */
+  bySpecies?: Map<number, number>;
+  /**
+   * Quanto da renda de captura que o modelo projeta REALMENTE virou ouro na sua conta.
+   *
+   * E a ancora final, e ela existe porque o modelo continuava otimista mesmo com a taxa
+   * por especie: projetava +774 por abate no Tyrogue enquanto a hunt real pagava -130.
+   * Entre "capturei" e "recebi" ha coisa que nenhuma formula ve — pokemon que a config
+   * manda GUARDAR em vez de vender, venda recusada pelo jogo (403), bicho que fica no
+   * acervo. Este fator e a razao entre o ouro de venda de pokemon que o robo REGISTROU e
+   * o que o modelo teria previsto no mesmo periodo. 1 = o modelo acerta.
+   */
+  sellShare?: number;
   /**
    * Correcao da velocidade de abate: abates/h REAIS medidos na hunt em curso divididos
    * pelos que o motor previu pro MESMO alvo. O motor de combate e calibrado "pra comparar
@@ -351,12 +365,22 @@ export interface PlayStyle {
  */
 const RATE_PRIOR = 60;
 
-function captureRatesFor(style: PlayStyle, slug: string): { floor: number; guess: number } {
+function captureRatesFor(style: PlayStyle, slug: string, speciesId: number): { floor: number; guess: number } {
   const geral = style.capturePerKill;
-  const hit = style.bySlug?.get(slug);
-  if (!hit || hit.kills <= 0) return { floor: 0, guess: geral };
-  const guess = (hit.captures + RATE_PRIOR * geral) / (hit.kills + RATE_PRIOR);
-  return { floor: rateFloor(hit.captures, hit.kills), guess };
+  // 1) o mais forte: os SEUS abates e capturas naquele spot, medidos pelo robo.
+  const spot = style.bySlug?.get(slug);
+  if (spot && spot.kills > 0) {
+    return {
+      floor: rateFloor(spot.captures, spot.kills),
+      guess: (spot.captures + RATE_PRIOR * geral) / (spot.kills + RATE_PRIOR),
+    };
+  }
+  // 2) sem historico de hunt, o medidor de investimento do JOGO por especie: ele sabe
+  // quantas bolas voce ja queimou nesta especie desde a ultima captura.
+  const meter = style.bySpecies?.get(speciesId);
+  if (meter != null) return { floor: meter, guess: Math.max(meter, geral) };
+  // 3) nada: nao ha o que defender, e o otimista fica a cargo da taxa geral.
+  return { floor: 0, guess: geral };
 }
 
 export const NO_STYLE: PlayStyle = {
@@ -476,9 +500,10 @@ export async function rankMoney(
     // A venda do capturado, nos dois cenarios. O supply (bola + pocao) NAO e custo fixo
     // do spot: o auto-catch joga bola em cada corpo, entao ele acompanha os abates — e e
     // por isso que spot rapido de bicho barato consegue dar prejuizo.
-    const rates = captureRatesFor(style, t.slug);
-    const capture = rates.floor * t.sellValue;
-    const captureGuess = rates.guess * t.sellValue;
+    const rates = captureRatesFor(style, t.slug, t.pokeId);
+    const share = style.sellShare ?? 1;
+    const capture = rates.floor * t.sellValue * share;
+    const captureGuess = rates.guess * t.sellValue * share;
     const supply = style.supplyPerKill;
     if (loot + captureGuess <= 0) continue; // alvo que nao paga nada nem no otimista
     // Quanto do bonus do dia sobreviveu ao teto: o ganho REAL sobre o ganho que ele teria

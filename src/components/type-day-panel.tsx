@@ -51,7 +51,7 @@ export interface MoneyRow {
 interface Style {
   capturePerKill: number; supplyPerKill: number;
   from: "live" | "totals" | "default"; sample: number;
-  speedFactor: number; spots: number;
+  speedFactor: number; sellShare: number; spots: number; species: number;
 }
 
 interface MoneyRes {
@@ -416,6 +416,12 @@ export function TypeDayPanel({ onHunt, huntOn = false }: { onHunt: (row: MoneyRo
         {styleNote ? ` ${styleNote}` : ""}
         {data && data.style.speedFactor !== 1
           ? ` ${t("robo.day.speed", { v: data.style.speedFactor.toFixed(2) })}`
+          : ""}
+        {data && data.style.species > 0
+          ? ` ${t("robo.day.meter", { n: data.style.species })}`
+          : ""}
+        {data && data.style.sellShare !== 1
+          ? ` ${t("robo.day.share", { v: Math.round(data.style.sellShare * 100) })}`
           : ""}
       </p>
 
