@@ -125,6 +125,61 @@ export async function refreshTokens(t: Tokens): Promise<Tokens | null> {
   }
 }
 
+
+// ---- o jogo dizendo NAO: recusa que nao se resolve tentando de novo ----
+//
+// Token vencido (401) e recusa (403) parecem a mesma coisa no fluxo e pedem o oposto: o
+// primeiro se resolve renovando, o segundo NAO se resolve nunca insistindo. Misturar os
+// dois fazia o robo bater na porta de uma conta banida ate o usuario desistir, sem nada
+// na tela explicando o motivo.
+//
+// A mensagem exata do ban e do JOGO, nao nossa — guardamos o corpo cru (truncado) em vez
+// de tentar adivinhar o texto. Assim a deteccao nao quebra quando o jogo reescreve a
+// frase, e o dono da conta le o que o jogo realmente disse.
+
+export type RefusalKind =
+  | "blocked"      // 403: a conta/origem foi recusada. NAO reconectar.
+  | "expired"      // 401 mesmo depois do refresh: o vinculo morreu, precisa reconectar.
+  | "rate_limited"; // 429: pediu demais. Esperar, nao desistir.
+
+export interface Refusal {
+  kind: RefusalKind;
+  status: number;
+  /** o que o jogo respondeu, truncado — evidencia pro usuario e pro suporte */
+  message: string;
+}
+
+const MAX_REASON = 400;
+
+/** Le a mensagem do corpo sem estourar a resposta pro caller (usa clone). */
+async function bodyMessage(res: Response): Promise<string> {
+  try {
+    const txt = await res.clone().text();
+    if (!txt) return "";
+    try {
+      const j = JSON.parse(txt) as Record<string, unknown>;
+      const m = j.message ?? j.error ?? j.reason ?? j.detail;
+      if (typeof m === "string" && m) return m.slice(0, MAX_REASON);
+    } catch { /* nao era JSON: usa o texto cru */ }
+    return txt.slice(0, MAX_REASON);
+  } catch {
+    return "";
+  }
+}
+
+/**
+ * Classifica a resposta do jogo. null = nao e recusa (sucesso, ou erro passageiro do
+ * servidor, que merece retry normal). So chame DEPOIS do refresh automatico: um 401 que
+ * chega aqui ja e um 401 que o refresh nao resolveu.
+ */
+export async function refusalOf(res: Response): Promise<Refusal | null> {
+  if (res.ok) return null;
+  if (res.status === 403) return { kind: "blocked", status: 403, message: await bodyMessage(res) };
+  if (res.status === 401) return { kind: "expired", status: 401, message: await bodyMessage(res) };
+  if (res.status === 429) return { kind: "rate_limited", status: 429, message: await bodyMessage(res) };
+  return null; // 5xx e afins: problema do servidor, nao recusa da conta
+}
+
 export interface GameResult {
   res: Response;
   tokens: Tokens; // pode ter sido renovado — o caller deve regravar o cookie se mudou

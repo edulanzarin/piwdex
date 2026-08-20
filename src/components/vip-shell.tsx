@@ -10,6 +10,7 @@ import { useEffect, useRef, useState } from "react";
 import { VipLiveProvider, useVipLive } from "./vip-live";
 import { VipHud } from "./vip-hud";
 import { SessionHoldNotice } from "./session-hold-notice";
+import { BlockedNotice } from "./blocked-notice";
 import { VipOverview } from "./vip-overview";
 import { MarketAdvisor, type MarketDex } from "./market-advisor";
 import { WishlistPanel } from "./wishlist-panel";
@@ -105,6 +106,7 @@ function VipShellInner({ creatures, dex, hunts, itemIcons, lootByPoke, marketIte
   return (
     <div className="flex flex-col gap-4">
       <VipHud hunts={hunts} />
+      <BlockedNotice />
       <SessionHoldNotice />
 
       <div className="flex flex-col gap-5 lg:flex-row">

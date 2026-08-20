@@ -16,7 +16,7 @@
 
 import crypto from "node:crypto";
 import { EventEmitter } from "node:events";
-import { refreshTokens, type Tokens } from "./game-auth";
+import { gameFetch, refreshTokens, refusalOf, type Refusal, type Tokens } from "./game-auth";
 import {
   pickBestHunt, reconsiderHunt, buildLevelPlan, stepForLevel, getBrainData, fighterOf,
   type PlanStep, type FighterProfile, type Avoid,
@@ -29,7 +29,7 @@ import { sellItems, sellPokes, fetchShop, buyBall, buyItem, fetchInventory, fetc
 import { readAuto, parseBalls } from "./game-auto";
 import { getData } from "./data";
 import { normalizeActivePokes, type ActivePoke } from "./game-account";
-import { saveTeamSnapshot, getGameLink } from "./game-link";
+import { saveTeamSnapshot, getGameLink, markGameLinkBlocked } from "./game-link";
 import { filterSellable, pokeSellOn, type PokeSellConfig } from "./poke-sell";
 import { logRobotEvent } from "./robot-events";
 import { addRobotSales } from "./robot-sales";
@@ -129,7 +129,9 @@ export interface PendingCatch {
   at: number; row: number; col: number;
 }
 export interface SoldPoke { id: string; name: string; speciesId: number; level: number; shiny: boolean; ivTotal: number; quality: number; sellValue: number; rarity: Rarity }
-export type SessStatus = "idle" | "connecting" | "running" | "kicked" | "error";
+// `blocked` e um estado TERMINAL: o jogo recusou a conta e nenhuma tentativa muda isso.
+// Diferente de `kicked`/`error`, que sao passageiros e pedem reconexao.
+export type SessStatus = "idle" | "connecting" | "running" | "kicked" | "error" | "blocked";
 
 // venda de pokemon agregada POR ESPECIE (o card mostra o bicho: icone+nome+raridade+qtd+valor):
 // mesmo capturando o mesmo varias vezes na hunt, so soma a quantidade e o valor. Reseta ao
@@ -154,6 +156,8 @@ export interface HuntState {
   reconnecting: boolean;       // ha tentativa de reconexao agendada
   nextRetryAt: number | null;  // quando a proxima tentativa dispara
   contested: boolean;          // pausou porque a conta foi tomada (usuario entrou no jogo)
+  // motivo cru da recusa do jogo (status 'blocked'); null nos demais estados
+  blockedReason: string | null;
   fighterLevel: number | null; // nivel AO VIVO do pokemon que caca (frames do WS)
   // XP/h do POKEMON medido nesta sessao — grandeza diferente do XP/h do treinador,
   // que vive no analyzer. null = sem amostra ainda.
@@ -229,7 +233,7 @@ function idleHuntState(): HuntState {
     analyzer: null, recentKills: [], soldItems: [], autoSellCount: 0,
     pending: [], pokeSellOn: false,
     mode: "manual", leveling: null, plan: null, queue: [],
-    desiredOn: false, reconnecting: false, nextRetryAt: null, contested: false,
+    desiredOn: false, reconnecting: false, nextRetryAt: null, contested: false, blockedReason: null,
     fighterLevel: null, pokeXpPerHour: null, reviving: false, heroHp: null, heroMaxHp: null,
     holdOpen: false, wsOpen: false, team: null, teamAt: null,
   };
@@ -339,6 +343,8 @@ class GameSession {
   private nextRetryAt: number | null = null;
   // sessao contestada (ver constantes acima): pausa em vez de brigar pela conexao
   private contested = false;
+  // motivo da recusa do jogo (so com status 'blocked') — e a frase que o jogo respondeu
+  private blockedReason: string | null = null;
   private contestedStrikes = 0;
   private contestedSurvive: ReturnType<typeof setTimeout> | null = null;
   // conexao-primeiro: "ligar o robo" = tomar a sessao da conta e SEGURAR, mesmo sem hunt.
@@ -426,6 +432,7 @@ class GameSession {
       mode: this.mode, leveling: this.leveling, plan: this.plan, queue: this.queue,
       desiredOn: this.desiredOn, reconnecting: this.reconnectTimer != null, nextRetryAt: this.nextRetryAt,
       contested: this.contested,
+      blockedReason: this.blockedReason,
       fighterLevel: this.fighter?.level ?? null,
       pokeXpPerHour: this.pokeXpPerHour(),
       reviving: this.downSince != null || this.owesEnter,
@@ -1860,7 +1867,49 @@ class GameSession {
         if (nt) { this.tokens = nt; await this.onTokens?.(nt); }
       } catch { /* tenta com o token atual mesmo */ }
     }
+    // PERGUNTA antes de martelar. O WebSocket nao sabe dizer "voce esta banido": ele so
+    // fecha, e o motor lia isso como queda de rede e reconectava pra sempre. Uma chamada
+    // REST responde com codigo, e 403 encerra a tentativa em vez de repetir.
+    if (await this.refusedByGame()) return;
     this.connect();
+  }
+
+  /** Uma pergunta ao REST: a conta ainda e aceita? true = recusada (ja tratada). */
+  private async refusedByGame(): Promise<boolean> {
+    if (!this.tokens) return false;
+    try {
+      const r = await gameFetch("/api/characters/me", this.tokens);
+      const refusal = await refusalOf(r.res);
+      if (refusal?.kind === "blocked") { await this.blockByGame(refusal); return true; }
+    } catch {
+      // rede/jogo fora do ar nao e recusa da conta: segue pro socket e ao backoff normal
+    }
+    return false;
+  }
+
+  /**
+   * O jogo recusou a conta. Estado TERMINAL: desliga o desejo de rodar (senao o proximo
+   * boot religa e recomeca), cancela retry, fecha o socket e grava o motivo no banco pra
+   * a tela poder dizer o que houve — em vez de "nao conectou" sem explicacao.
+   */
+  private async blockByGame(refusal: Refusal): Promise<void> {
+    this.desiredOn = false;
+    this.cancelReconnect();
+    this.clearTimers();
+    if (this.ws) { try { this.ws.close(); } catch {} this.ws = null; }
+    this.blockedReason = refusal.message || null;
+    this.setStatus("blocked", refusal.message || undefined);
+    if (this.userId) {
+      await markGameLinkBlocked(this.userId, refusal).catch(() => {});
+      void logRobotEvent(this.userId, {
+        kind: "blocked",
+        title: "O jogo recusou esta conta",
+        body: refusal.message || `O jogo respondeu ${refusal.status} ao conectar.`,
+        data: { status: refusal.status },
+      });
+    }
+    this.emit("session");
+    this.emit("hunt");
   }
 
   private teardown() {

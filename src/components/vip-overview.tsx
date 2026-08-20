@@ -48,7 +48,7 @@ const MASTER_BALL_ID = 5;
 
 const LED: Record<LiveStatus, string> = {
   idle: "var(--text-dim)", connecting: "var(--yellow)", running: "var(--green)",
-  kicked: "var(--yellow)", error: "var(--red)",
+  kicked: "var(--yellow)", error: "var(--red)", blocked: "var(--red)",
 };
 
 const EVENT_ICON: Record<string, React.ReactNode> = {
@@ -56,6 +56,7 @@ const EVENT_ICON: Record<string, React.ReactNode> = {
   "hunt-summary": <Target size={14} className="text-cyan" />,
   "brain": <Brain size={14} className="text-cyan" />,
   "reconnect": <Signal size={14} className="text-green" />,
+  "blocked": <Signal size={14} className="text-red" />,
   "goal": <Flag size={14} className="text-purple" />,
   "item-bought": <Loot size={14} className="text-green" />,
   "error": <Skull size={14} className="text-red" />,

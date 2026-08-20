@@ -29,7 +29,7 @@ export interface LivePending {
   id: number; speciesId: number; name: string; level: number; shiny: boolean;
   at: number; row: number; col: number;
 }
-export type LiveStatus = "idle" | "connecting" | "running" | "kicked" | "error";
+export type LiveStatus = "idle" | "connecting" | "running" | "kicked" | "error" | "blocked";
 export type LiveMode = "manual" | "auto" | "leveling";
 
 export interface LivePlanStep {
@@ -55,6 +55,7 @@ export interface LiveHunt {
   queue: LiveQueuedGoal[];     // proximos planos (comecam sozinhos quando o atual fecha)
   desiredOn: boolean; reconnecting: boolean; nextRetryAt: number | null;
   contested: boolean;          // pausou porque a conta foi tomada (usuario entrou no jogo)
+  blockedReason: string | null; // o jogo recusou a conta: a frase que ELE respondeu
   fighterLevel: number | null;
   pokeXpPerHour: number | null;   // ritmo do POKEMON (o do treinador esta no analyzer)
   reviving: boolean;           // lider desmaiado: o robo esta levantando (Revive/Joy)

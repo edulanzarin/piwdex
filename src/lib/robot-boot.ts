@@ -15,6 +15,10 @@ import { fighterOf, type FighterProfile } from "@/lib/hunt-brain";
 async function resumeOne(userId: string, d: RobotDesired): Promise<void> {
   const link = await getGameLink(userId);
   if (!link || link.status === "expired") return;
+  // Conta recusada pelo jogo: NAO religa. Reconectar nao desfaz ban, e insistir a cada
+  // restart do container era exatamente o comportamento que queremos eliminar. Sai desse
+  // estado quando o usuario vincula de novo e o jogo aceita (saveGameLink limpa a marca).
+  if (link.status === "blocked") return;
 
   // shard: usa o cacheado; sem cache, descobre (e ja aproveita a lista viva pro lider)
   let shard = link.shard ?? 0;

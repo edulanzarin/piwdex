@@ -9,6 +9,7 @@ export type RobotEventKind =
   | "reconnect"  // conexao caiu e o robo religou sozinho
   | "goal"       // meta de leveling atingida
   | "heal"       // passou na enfermeira Joy (time desmaiado nao caca)
+  | "blocked"    // o JOGO recusou a conta (ban/suspensao): o robo para e nao tenta mais
   | "error";     // falha OPERACIONAL (venda/compra que nao rodou) — throttled na origem
 
 export interface RobotEvent {

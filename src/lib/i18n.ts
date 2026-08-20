@@ -943,6 +943,8 @@ const pt: Dict = {
   "account.err.unreachable": "Falha de conexão. Tente de novo.",
   "account.err.expired": "Sessão expirada.",
   "account.err.not_logged": "Entre no piwdex antes de conectar a conta do jogo.",
+  "account.err.account_blocked": "O jogo recusou esta conta — ele respondeu que o acesso está bloqueado. Não é o piwdex barrando: resolva com o suporte do jogo e vincule de novo depois.",
+  "account.err.rate_limited": "O jogo pediu para desacelerar (tentativas demais). Espere alguns minutos.",
   "account.loading": "Carregando sua conta",
   "account.connected.title": "Sua coleção",
   "account.disconnect": "Desconectar",
@@ -1163,6 +1165,10 @@ const pt: Dict = {
   "botpage.disclaimer": "Projeto não oficial, feito por fã. Não é afiliado ao Poke Idle World.",
 
   // ---- Meta Analyzer ----
+  "vip.blocked.title": "O jogo recusou esta conta",
+  "vip.blocked.body": "O robô parou e não vai tentar de novo — reconectar não desfaz uma recusa do jogo. Se você resolver a situação com o suporte do jogo, vincule a conta de novo aqui que o robô volta a funcionar.",
+  "connect.blocked": "O jogo recusou esta conta. Não é problema do piwdex: o próprio jogo respondeu que o acesso está bloqueado.",
+  "connect.rateLimited": "O jogo pediu para desacelerar (muitas tentativas). Espere alguns minutos e tente de novo.",
   "xp.toNext": "XP para o Lv{n}",
   "xp.left": "faltam {n} XP",
   "xp.levelCost": "o nível custa {n} XP",
@@ -2030,6 +2036,8 @@ const en: Dict = {
   "account.err.unreachable": "Connection failed. Try again.",
   "account.err.expired": "Session expired.",
   "account.err.not_logged": "Sign in to piwdex before linking your game account.",
+  "account.err.account_blocked": "The game refused this account — it answered that access is blocked. This is not piwdex blocking you: sort it out with the game's support and link again afterwards.",
+  "account.err.rate_limited": "The game asked to slow down (too many attempts). Wait a few minutes.",
   "account.loading": "Loading your account",
   "account.connected.title": "Your collection",
   "account.disconnect": "Disconnect",
@@ -2250,6 +2258,10 @@ const en: Dict = {
   "botpage.disclaimer": "Unofficial fan project. Not affiliated with Poke Idle World.",
 
   // ---- Meta Analyzer ----
+  "vip.blocked.title": "The game refused this account",
+  "vip.blocked.body": "The robot stopped and will not retry — reconnecting does not undo a refusal from the game. If you sort it out with the game's support, link the account again here and the robot resumes.",
+  "connect.blocked": "The game refused this account. This is not a piwdex problem: the game itself answered that access is blocked.",
+  "connect.rateLimited": "The game asked to slow down (too many attempts). Wait a few minutes and try again.",
   "xp.toNext": "XP to Lv{n}",
   "xp.left": "{n} XP to go",
   "xp.levelCost": "the level costs {n} XP",
@@ -3117,6 +3129,8 @@ const es: Dict = {
   "account.err.unreachable": "Fallo de conexión. Intenta de nuevo.",
   "account.err.expired": "Sesión expirada.",
   "account.err.not_logged": "Entra en piwdex antes de vincular la cuenta del juego.",
+  "account.err.account_blocked": "El juego rechazo esta cuenta — respondio que el acceso esta bloqueado. No es el piwdex bloqueando: resuelvelo con el soporte del juego y vincula de nuevo despues.",
+  "account.err.rate_limited": "El juego pidio desacelerar (demasiados intentos). Espera unos minutos.",
   "account.loading": "Cargando tu cuenta",
   "account.connected.title": "Tu colección",
   "account.disconnect": "Desconectar",
@@ -3337,6 +3351,10 @@ const es: Dict = {
   "botpage.disclaimer": "Proyecto no oficial, hecho por un fan. Sin afiliación con Poke Idle World.",
 
   // ---- Meta Analyzer ----
+  "vip.blocked.title": "El juego rechazo esta cuenta",
+  "vip.blocked.body": "El robot se detuvo y no va a reintentar — reconectar no deshace un rechazo del juego. Si lo resuelves con el soporte del juego, vincula la cuenta de nuevo aqui y el robot vuelve a funcionar.",
+  "connect.blocked": "El juego rechazo esta cuenta. No es problema del piwdex: el propio juego respondio que el acceso esta bloqueado.",
+  "connect.rateLimited": "El juego pidio desacelerar (demasiados intentos). Espera unos minutos e intenta de nuevo.",
   "xp.toNext": "XP para el Lv{n}",
   "xp.left": "faltan {n} XP",
   "xp.levelCost": "el nivel cuesta {n} XP",

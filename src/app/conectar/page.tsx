@@ -30,13 +30,16 @@ export default function ConectarPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ raw }),
         });
-        const j = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string };
+        const j = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string; reason?: string };
         if (res.ok && j.ok) {
           setStatus("ok");
           setTimeout(() => router.replace("/vip#conta"), 700);
         } else {
           setStatus("error");
-          setErr(t(`account.err.${j.error ?? "unauthorized"}`));
+          // a recusa do jogo vem com a frase DELE: mostra as duas — a nossa explica o que
+          // fazer, a dele prova o que aconteceu
+          const base = t(`account.err.${j.error ?? "unauthorized"}`);
+          setErr(j.reason ? `${base}\n\n"${j.reason}"` : base);
         }
       } catch {
         setStatus("error");
@@ -67,7 +70,7 @@ export default function ConectarPage() {
           {status === "error" && (
             <>
               <div className="pixel text-lg text-red">{t("connect.failed")}</div>
-              <p className="text-sm text-text-dim">{err}</p>
+              <p className="whitespace-pre-line text-sm text-text-dim">{err}</p>
               <a href="/bot-app#conta" className="btn btn-cyan mt-2">{t("connect.back")}</a>
             </>
           )}

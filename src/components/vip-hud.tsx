@@ -28,6 +28,7 @@ const LED: Record<LiveStatus, string> = {
   running: "var(--green)",
   kicked: "var(--yellow)",
   error: "var(--red)",
+  blocked: "var(--red)", // o jogo recusou a conta: nao ha reconexao em curso
 };
 
 // contagem regressiva ate a proxima tentativa de reconexao (atualiza a cada 1s)

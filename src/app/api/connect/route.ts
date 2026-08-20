@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { gameFetch, parseTokens } from "@/lib/game-auth";
-import { saveGameLink, saveGameShard, saveTeamSnapshot } from "@/lib/game-link";
+import { gameFetch, parseTokens, refusalOf } from "@/lib/game-auth";
+import { markGameLinkBlocked, saveGameLink, saveGameShard, saveTeamSnapshot } from "@/lib/game-link";
 import { fetchActivePokes } from "@/lib/game-ws";
 import { normalizeActivePokes } from "@/lib/game-account";
 import { resumeRobotSessions } from "@/lib/robot-boot";
@@ -36,7 +36,23 @@ export async function POST(req: Request) {
   } catch {
     return NextResponse.json({ ok: false, error: "game_unreachable" }, { status: 502 });
   }
-  if (!result.res.ok) return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
+  // Antes qualquer falha virava "unauthorized" — ban, rate limit e token vencido no
+  // mesmo balde, e o usuario sem saber qual dos tres era. Agora a recusa e classificada,
+  // e a de BAN e gravada: o robo para de tentar e a tela mostra o que o jogo respondeu.
+  if (!result.res.ok) {
+    const refusal = await refusalOf(result.res);
+    if (refusal?.kind === "blocked") {
+      await markGameLinkBlocked(session.user.id, refusal);
+      return NextResponse.json(
+        { ok: false, error: "account_blocked", reason: refusal.message },
+        { status: 403 },
+      );
+    }
+    if (refusal?.kind === "rate_limited") {
+      return NextResponse.json({ ok: false, error: "rate_limited", reason: refusal.message }, { status: 429 });
+    }
+    return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
+  }
 
   const data = (await result.res.json().catch(() => null)) as
     | { character?: { name?: string }; name?: string }
