@@ -311,7 +311,7 @@ export function HuntAnalyzer({ hunts, creatures, itemIcons, lootByPoke }: { hunt
       {/* TIPO DO DIA: o que paga mais por hora HOJE com os pokemons que voce tem. Fica
           logo abaixo do controle porque e uma decisao de ANTES de ligar a hunt — e o
           botao de cada linha cai no mesmo modal de inicio do modo manual. */}
-      <TypeDayPanel onHunt={huntFromDay} />
+      <TypeDayPanel onHunt={huntFromDay} huntOn={huntOn} />
 
       {/* plano de leveling em andamento: o card existe enquanto o MODO for leveling
           (escolha do usuario); a rota que ainda nao chegou vira skeleton com as

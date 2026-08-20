@@ -97,7 +97,12 @@ function age(iso: string, now: number): string {
 // sobrepor: antes cada linha tinha a propria grade estreita e os rotulos vazavam.
 const COLS = "grid-cols-[2rem_minmax(13rem,1fr)_minmax(8rem,10rem)_7rem_5rem_5rem_5.5rem_5.5rem]";
 
-export function TypeDayPanel({ onHunt }: { onHunt: (row: MoneyRow) => void }) {
+/** Quantas linhas o painel mostra fechado. Doze empurravam o painel da hunt pra fora da
+ *  tela; as tres primeiras ja respondem "pra onde eu vou agora". */
+const TOP_N = 3;
+const OPEN_KEY = "piwdex-bestcamp-open";
+
+export function TypeDayPanel({ onHunt, huntOn = false }: { onHunt: (row: MoneyRow) => void; huntOn?: boolean }) {
   const t = useT();
   const typeLabel = useTypeLabel();
   const [data, setData] = useState<MoneyRes | null>(null);
@@ -105,6 +110,23 @@ export function TypeDayPanel({ onHunt }: { onHunt: (row: MoneyRow) => void }) {
   const [err, setErr] = useState<string | null>(null);
   const [mode, setMode] = useState<"gold" | "xp">("gold");
   const [open, setOpen] = useState(false); // ajustes
+  const [all, setAll] = useState(false);   // mostrar as 12 em vez das 3 primeiras
+
+  // Recolher e uma escolha de CONTEXTO: com a hunt rodando voce esta acompanhando, nao
+  // escolhendo — o painel comeca fechado e o resumo no cabecalho basta. Sem hunt, ele e a
+  // proxima decisao e abre. A escolha manual passa a mandar, e sobrevive a visita.
+  const [panelOpen, setPanelOpen] = useState<boolean | null>(null);
+  useEffect(() => {
+    try {
+      const v = window.localStorage.getItem(OPEN_KEY);
+      if (v === "1" || v === "0") setPanelOpen(v === "1");
+    } catch { /* modo privado: fica no padrao por contexto */ }
+  }, []);
+  const shown = panelOpen ?? !huntOn;
+  const togglePanel = (next: boolean) => {
+    setPanelOpen(next);
+    try { window.localStorage.setItem(OPEN_KEY, next ? "1" : "0"); } catch { /* sem persistir */ }
+  };
 
   // ajustes: string vazia = "usa o que o jogo disse"
   const [sim, setSim] = useState<PokeType | "">("");
@@ -157,6 +179,20 @@ export function TypeDayPanel({ onHunt }: { onHunt: (row: MoneyRow) => void }) {
 
   const reset = () => { setSim(""); setStreak(""); setBoost(null); setEvent(""); setCapture(""); setSupply(""); };
 
+  // Fechado, o cabecalho tem que continuar respondendo a pergunta — senao recolher vira
+  // esconder. O primeiro colocado cabe numa linha.
+  const top = data?.rows[0] ?? null;
+  const summary = top ? (
+    <span className="flex min-w-0 items-center gap-1.5 text-sm font-normal text-text-dim">
+      <span className="text-text-dim">·</span>
+      <Sprite src={spriteUrl(top.targetId)} alt={top.targetName} size={20} />
+      <span className="truncate text-text">{top.targetName}</span>
+      <span className={`pixel tabular-nums ${isXp ? "text-cyan" : "text-green"}`}>
+        {compact(isXp ? top.xpH : top.goldH)}/h
+      </span>
+    </span>
+  ) : null;
+
   const styleNote = (() => {
     const st = data?.style;
     if (!st) return null;
@@ -173,7 +209,15 @@ export function TypeDayPanel({ onHunt }: { onHunt: (row: MoneyRow) => void }) {
     <Panel
       icon={<Coin size={18} />}
       accent="var(--yellow)"
-      title={t("robo.day.title")}
+      collapsible
+      open={shown}
+      onOpenChange={togglePanel}
+      title={
+        <span className="flex min-w-0 items-center gap-2">
+          <span className="shrink-0">{t("robo.day.title")}</span>
+          {!shown && summary}
+        </span>
+      }
       right={
         <div className="flex shrink-0 items-center gap-1.5">
           <ToggleButton active={!isXp} onClick={() => setMode("gold")} accent="yellow"><Coin size={14} /> $$</ToggleButton>
@@ -247,7 +291,7 @@ export function TypeDayPanel({ onHunt }: { onHunt: (row: MoneyRow) => void }) {
             </div>
 
             <div className="flex flex-col gap-1.5">
-              {data.rows.map((r, i) => {
+              {(all ? data.rows : data.rows.slice(0, TOP_N)).map((r, i) => {
                 const value = isXp ? r.xpH : r.goldH;
                 const plain = isXp ? r.plainXpH : r.plainGoldH;
                 const gain = plain > 0 ? value / plain - 1 : 0;
@@ -260,9 +304,12 @@ export function TypeDayPanel({ onHunt }: { onHunt: (row: MoneyRow) => void }) {
                       <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded bg-[var(--surface-2)]">
                         <Sprite src={spriteUrl(r.targetId)} alt={r.targetName} size={34} />
                       </span>
+                      {/* duas linhas, nao tres: os tipos sobem pra linha do nome e a
+                          altura da linha cai ~um terco — com 12 alvos isso e meia tela */}
                       <span className="flex min-w-0 flex-col gap-0.5">
                         <span className="flex min-w-0 items-center gap-1.5">
                           <span className="truncate text-text">{r.targetName}</span>
+                          <TypeBadges t1={r.t1} t2={r.t2} icon={false} />
                           {r.typeDayHits && (
                             <span className="chip shrink-0" style={{ background: "var(--yellow)", color: "#2a2200" }}>
                               +{Math.round((data.mult.day ?? 0) * 100)}%
@@ -272,7 +319,6 @@ export function TypeDayPanel({ onHunt }: { onHunt: (row: MoneyRow) => void }) {
                         <span className="truncate text-xs uppercase tracking-wide text-text-dim">
                           {r.huntName} · {area(r.area)} · lvl {r.huntLevel}
                         </span>
-                        <TypeBadges t1={r.t1} t2={r.t2} />
                       </span>
                     </span>
 
@@ -324,6 +370,16 @@ export function TypeDayPanel({ onHunt }: { onHunt: (row: MoneyRow) => void }) {
                 );
               })}
             </div>
+
+            {data.rows.length > TOP_N && (
+              <button
+                type="button"
+                onClick={() => setAll((v) => !v)}
+                className="btn btn-ghost btn-sm mt-2 w-full justify-center"
+              >
+                {all ? t("robo.day.less") : t("robo.day.more", { n: data.rows.length })}
+              </button>
+            )}
           </div>
         </div>
       )}

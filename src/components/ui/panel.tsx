@@ -19,6 +19,8 @@ export function Panel({
   right,
   collapsible = false,
   defaultOpen = true,
+  open: openProp,
+  onOpenChange,
   className = "",
   bodyClassName = "",
   children,
@@ -36,11 +38,20 @@ export function Panel({
   /** cabecalho clicavel que recolhe/abre o corpo */
   collapsible?: boolean;
   defaultOpen?: boolean;
+  /** modo CONTROLADO: quem chama guarda o aberto/fechado (ex.: pra lembrar a escolha
+   *  entre visitas). Sem isto o estado morre a cada remontagem do painel. */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
   className?: string;
   bodyClassName?: string;
   children: React.ReactNode;
 }) {
-  const [open, setOpen] = useState(defaultOpen);
+  const [innerOpen, setInnerOpen] = useState(defaultOpen);
+  const open = openProp ?? innerOpen;
+  const setOpen = (next: boolean) => {
+    if (openProp == null) setInnerOpen(next);
+    onOpenChange?.(next);
+  };
   const header = (title || icon || right) && (
     <>
       {icon && (
@@ -48,7 +59,11 @@ export function Panel({
       )}
       {title && <h3 className="section-title min-w-0 flex-1 truncate text-left">{title}</h3>}
       {live && <LiveBadge />}
-      {right}
+      {right && (
+        // o clique nos controles do cabecalho e DELES; sem isto ele borbulha pro
+        // cabecalho colapsavel e cada troca de modo fechava o painel
+        <span onClick={(e) => e.stopPropagation()} className="contents">{right}</span>
+      )}
       {collapsible && (
         <span className="inline-flex shrink-0 text-text-dim" style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform .15s" }}>
           {/* 18px: e o chevron do CABECALHO do card — no tamanho antigo (9px) o traco
@@ -69,8 +84,8 @@ export function Panel({
         <div
           role="button"
           tabIndex={0}
-          onClick={() => setOpen((o) => !o)}
-          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setOpen((o) => !o); } }}
+          onClick={() => setOpen(!open)}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setOpen(!open); } }}
           className="flex min-w-0 cursor-pointer select-none items-center gap-2"
           aria-expanded={open}
         >
