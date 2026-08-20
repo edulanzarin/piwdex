@@ -15,6 +15,7 @@ import { Star, Coin, Diamond, Skull, Xp, Check, ArrowDown, Infinity_, ChevronRig
 import { PokeStatsModal } from "./mon-stats";
 import { QualityBadge } from "./badges";
 import { HpBar, HpText, FaintedChip, isFainted } from "./ui/hp";
+import { PokeXpLine } from "./poke-xp";
 import type { MarketDex } from "./market-advisor";
 
 const fmt = (n: number) => n.toLocaleString("pt-BR");
@@ -369,7 +370,10 @@ function TeamMon({ p, onStats }: { p: ActivePoke; onStats?: () => void }) {
           {isFainted(p) && <FaintedChip />}
           <QualityBadge quality={p.quality} />
         </div>
-        <div className="text-sm text-text-dim">Lv.{p.level}</div>
+        <div className="flex flex-wrap items-baseline gap-x-2 text-sm text-text-dim">
+          <span>Lv.{p.level}</span>
+          <PokeXpLine level={p.level} xp={p.xp} className="text-xs" />
+        </div>
         <HpBar hp={p.hp} maxHp={p.maxHp} className="mt-1.5" />
         <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-sm text-text-dim">
           <span>{t("account.col.hp")} <HpText hp={p.hp} maxHp={p.maxHp} className="font-bold" /></span>

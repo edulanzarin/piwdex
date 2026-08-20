@@ -21,6 +21,7 @@ import { SelectMenu } from "./select-menu";
 import { PokeStatsModal } from "./mon-stats";
 import { QualityBadge } from "./badges";
 import { HpBar, HpText, FaintedChip, isFainted } from "./ui/hp";
+import { PokeXpLine } from "./poke-xp";
 import { HealButton } from "./heal-button";
 import type { MarketDex } from "./market-advisor";
 
@@ -172,6 +173,10 @@ export function MyPokemons({ dex }: { dex?: Record<number, MarketDex> }) {
                       <span className="shrink-0 whitespace-nowrap">Q <span className="text-cyan">{p.quality.toFixed(2)}</span></span>
                     </div>
                     <HpBar hp={p.hp} maxHp={p.maxHp} className="mt-1" />
+                    {/* quanto falta pro proximo nivel DELE — a lista so dizia "Lv19" */}
+                    <div className="mt-1 flex h-5 items-center overflow-hidden text-xs text-text-dim">
+                      <PokeXpLine level={p.level} xp={p.xp} className="truncate" />
+                    </div>
                   </div>
                   {/* coluna de acoes com 3 SLOTS fixos: acao que nao se aplica fica invisible
                       (reserva o espaco) — lider e reserva geram cards da MESMA altura */}
@@ -261,6 +266,9 @@ export function MyPokemons({ dex }: { dex?: Record<number, MarketDex> }) {
                         <HpText hp={p.hp} maxHp={p.maxHp} />
                         <span className="shrink-0 whitespace-nowrap">IV <span className={ivColor(p.ivTotal)}>{p.ivTotal}</span></span>
                         <span className="shrink-0 whitespace-nowrap">Q <span className="text-cyan">{p.quality.toFixed(2)}</span></span>
+                      </span>
+                      <span className="flex h-5 items-center overflow-hidden text-xs text-text-dim">
+                        <PokeXpLine level={p.level} xp={p.xp} className="truncate" />
                       </span>
                     </span>
                   </button>

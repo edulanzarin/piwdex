@@ -18,6 +18,7 @@ import { PokeStatsModal } from "./mon-stats";
 import { QualityBadge } from "./badges";
 import { HpBar, HpText, HpMeter, FaintedChip, isFainted } from "./ui/hp";
 import { HealButton } from "./heal-button";
+import { PokeXpBar, PokeXpLine } from "./poke-xp";
 import type { MarketDex } from "./market-advisor";
 
 const fmt = (n: number) => Math.round(n).toLocaleString("pt-BR");
@@ -95,6 +96,14 @@ export function TeamLive({ dex }: { dex?: Record<number, MarketDex> }) {
               <span className="shrink-0 whitespace-nowrap">IV {leader.ivTotal}</span>
               <span className="shrink-0 whitespace-nowrap">Q {leader.quality.toFixed(3)}</span>
             </span>
+            {/* XP do POKEMON: o nivel dele anda com a hunt e ninguem via quanto faltava */}
+            <span className="mt-1.5 block">
+              <PokeXpBar
+                level={hunt?.fighterLevel && hunt.fighterLevel > leader.level ? hunt.fighterLevel : leader.level}
+                xp={leader.xp}
+                xpPerHour={hunt?.analyzer?.xpPerHour}
+              />
+            </span>
           </span>
         </button>
       ) : (
@@ -131,6 +140,9 @@ export function TeamLive({ dex }: { dex?: Record<number, MarketDex> }) {
                   <HpText hp={p.hp} maxHp={p.maxHp} className="text-xs" />
                 </span>
                 <HpBar hp={p.hp} maxHp={p.maxHp} />
+                <span className="mt-0.5 block h-4 truncate text-xs leading-4 text-text-dim">
+                  <PokeXpLine level={p.level} xp={p.xp} />
+                </span>
               </span>
             </button>
           ) : (
@@ -142,6 +154,7 @@ export function TeamLive({ dex }: { dex?: Record<number, MarketDex> }) {
                 <span className="block h-6 truncate text-base leading-6 slot-empty">—</span>
                 <span className="flex h-4 items-center text-xs leading-4 slot-empty">Lv —</span>
                 <HpBar hp={0} maxHp={0} />
+                <span className="mt-0.5 block h-4 text-xs leading-4 slot-empty">—</span>
               </span>
             </div>
           ),

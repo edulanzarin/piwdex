@@ -75,6 +75,7 @@ export interface LiveTeamPoke {
   team: boolean; slot: number; leader: boolean; starter: boolean;
   sellValue: number; ivTotal: number; quality: number; power: number; type1: string;
   hp: number; maxHp: number;
+  xp?: number | null;
   stats: { hp: number; atk: number; def: number; spAtk: number; spDef: number; speed: number };
 }
 // conta do jogo (payload do /api/collection — tipado no que a UI usa; o resto passa junto)

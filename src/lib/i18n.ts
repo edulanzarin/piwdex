@@ -1163,6 +1163,10 @@ const pt: Dict = {
   "botpage.disclaimer": "Projeto não oficial, feito por fã. Não é afiliado ao Poke Idle World.",
 
   // ---- Meta Analyzer ----
+  "xp.toNext": "XP para o Lv{n}",
+  "xp.left": "faltam {n} XP",
+  "xp.levelCost": "o nível custa {n} XP",
+  "xp.hint": "XP do POKÉMON (o nível dele sobe junto com o do treinador, na mesma curva). Quando o jogo não informa o XP acumulado, mostramos quanto o nível inteiro custa — a curva é pública.",
   "meta.cdNote": "O dano/s divide pela recarga BASE do golpe (o que a fonte publica). No jogo o intervalo real é menor — a velocidade do pokémon encurta a recarga, e a fórmula disso não é pública. Serve pra ordenar golpe contra golpe, não como segundos de relógio.",
   "home.card8.title": "Meta Analyzer",
   "home.card8.desc": "Quem carrega o jogo e quem é só coleção. Tier list de S a E por dano por segundo e HP efetivo, com nemesis, presas e arena pra montar time.",
@@ -2246,6 +2250,10 @@ const en: Dict = {
   "botpage.disclaimer": "Unofficial fan project. Not affiliated with Poke Idle World.",
 
   // ---- Meta Analyzer ----
+  "xp.toNext": "XP to Lv{n}",
+  "xp.left": "{n} XP to go",
+  "xp.levelCost": "the level costs {n} XP",
+  "xp.hint": "The POKEMON's XP (its level rises alongside the trainer's, on the same curve). When the game doesn't report accumulated XP, we show what the whole level costs — the curve is public.",
   "meta.cdNote": "Damage/s divides by the move's BASE cooldown (what the source publishes). In game the real interval is shorter — the Pokemon's speed shortens it, and that formula isn't public. Use it to rank move against move, not as clock seconds.",
   "home.card8.title": "Meta Analyzer",
   "home.card8.desc": "Who carries the game and who is just for the collection. S-to-E tier list by damage per second and effective HP, with nemeses, prey and an arena for teams.",
@@ -3329,6 +3337,10 @@ const es: Dict = {
   "botpage.disclaimer": "Proyecto no oficial, hecho por un fan. Sin afiliación con Poke Idle World.",
 
   // ---- Meta Analyzer ----
+  "xp.toNext": "XP para el Lv{n}",
+  "xp.left": "faltan {n} XP",
+  "xp.levelCost": "el nivel cuesta {n} XP",
+  "xp.hint": "XP del POKEMON (su nivel sube junto con el del entrenador, en la misma curva). Cuando el juego no informa el XP acumulado, mostramos cuanto cuesta el nivel entero — la curva es publica.",
   "meta.cdNote": "El dano/s divide por la recarga BASE del golpe (lo que la fuente publica). En el juego el intervalo real es menor — la velocidad del pokemon la acorta, y esa formula no es publica. Sirve para ordenar golpe contra golpe, no como segundos de reloj.",
   "home.card8.title": "Meta Analyzer",
   "home.card8.desc": "Quien carga el juego y quien es solo de coleccion. Tier list de S a E por dano por segundo y HP efectivo, con nemesis, presas y arena para equipos.",

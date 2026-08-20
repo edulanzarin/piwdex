@@ -12,6 +12,7 @@ import type { MarketDex } from "./market-advisor";
 import { TypeBadges, RarityBadge, QualityBadge } from "./badges";
 import { StatBar, StatCompareRow } from "./stat-bar";
 import { StatTile } from "./stat-tile";
+import { PokeXpBar } from "./poke-xp";
 import { Modal } from "./modal";
 import { CloseButton } from "./icon-button";
 import { Sprite } from "./sprite";
@@ -36,6 +37,7 @@ export function MonStatsSection({
   stats: MonStats | null;
   bases?: number[] | null; // 6 stats base na ordem STAT_KEYS (do catalogo da especie)
   level: number;
+  xp?: number | null;
   quality: number | null;
 }) {
   const t = useT();
@@ -76,6 +78,8 @@ export interface OwnedMonView {
   speciesId: number;
   name: string;
   level: number;
+  /** XP acumulado do individuo, quando a fonte manda */
+  xp?: number | null;
   shiny: boolean;
   ivTotal: number;
   quality: number;
@@ -128,6 +132,8 @@ export function PokeStatsModal({
         <StatTile label={t("account.col.iv")} value={<><span className={poke.ivTotal >= 150 ? "text-green" : poke.ivTotal >= 100 ? "text-yellow" : "text-text"}>{poke.ivTotal}</span><span className="text-sm text-text-dim">/192</span></>} />
         <StatTile label={t("account.col.quality")} value={<span className="text-cyan">{poke.quality.toFixed(3)}</span>} />
       </div>
+      {/* XP do proprio pokemon: o modal dizia Power/IV/Q e nada sobre o proximo nivel */}
+      <PokeXpBar level={poke.level} xp={poke.xp} label />
       <MonStatsSection stats={poke.stats} bases={bases} level={poke.level} quality={poke.quality} />
     </Modal>
   );

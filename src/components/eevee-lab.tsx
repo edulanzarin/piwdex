@@ -52,6 +52,7 @@ const at = (c: { col: number; row: number }) => ({ x: (c.col - 0.5) * (100 / 3),
 const POS = CELL.map(at);
 const CENTER = { x: 50, y: 50 };
 const NODE_W = 148;
+const STAR_NODE_W = 196; // card da estrela: mais largo pra caber os stats em 2 colunas
 
 const numF = (s: string) => parseFloat(String(s).replace(",", "."));
 const numI = (s: string) => parseInt(s, 10);
@@ -110,10 +111,10 @@ function CompareRowEmpty({ label, iconIndex }: { label: string; iconIndex: numbe
 // A grade de stats fica SEMPRE em 1 coluna: o card tem 148px fixos na estrela e ~140px
 // na grade de 2 colunas de um celular de 360px — duas colunas de stat nao cabem em
 // nenhum dos dois. Material .well: ele mora dentro do card de vidro do painel.
-function EvoNodeCard({ evo, compact }: { evo: NodeData; compact?: boolean }) {
+function EvoNodeCard({ evo, compact, star }: { evo: NodeData; compact?: boolean; star?: boolean }) {
   const maxIdx = evo.stats ? evo.stats.indexOf(Math.max(...evo.stats)) : -1;
   return (
-    <Link href={`/dex/${evo.pokeId}`} className="well well-hover flex flex-col items-center gap-2 p-3 text-center" style={compact ? undefined : { width: NODE_W }}>
+    <Link href={`/dex/${evo.pokeId}`} className="well well-hover flex flex-col items-center gap-2 p-3 text-center" style={compact ? undefined : { width: star ? STAR_NODE_W : NODE_W }}>
       <Sprite src={spriteUrl(evo.pokeId)} alt={evo.name} size={56} />
       <div>
         <div className="text-xs text-text-dim">#{String(evo.pokeId).padStart(3, "0")}</div>
@@ -129,7 +130,7 @@ function EvoNodeCard({ evo, compact }: { evo: NodeData; compact?: boolean }) {
           {evo.stoneName}
         </span>
       )}
-      <div className="mt-0.5 grid w-full grid-cols-1 gap-y-0.5 border-t border-border/60 pt-2">
+      <div className={`mt-0.5 grid w-full gap-x-3 gap-y-0.5 border-t border-border/60 pt-2 ${star ? "grid-cols-2" : "grid-cols-1"}`}>
         {STAT_LABELS.map((lb, i) => (
           <div key={lb} className="flex items-center justify-between gap-1 text-xs">
             <span className="inline-flex min-w-0 items-center gap-1 text-text-dim"><StatIcon index={i} size={14} />{lb}</span>
@@ -354,7 +355,7 @@ export function EeveeLab({ eevee, evos }: { eevee: { pokeId: number; name: strin
               </g>
             ))}
           </svg>
-          <Link href={`/dex/${eevee.pokeId}`} className="well well-hover relative flex flex-col items-center gap-2 p-3 text-center ring-1 ring-[color:var(--border-strong)]" style={{ gridColumn: 2, gridRow: 2, width: NODE_W }}>
+          <Link href={`/dex/${eevee.pokeId}`} className="well well-hover relative flex flex-col items-center gap-2 p-3 text-center ring-1 ring-[color:var(--border-strong)]" style={{ gridColumn: 2, gridRow: 2, width: STAR_NODE_W }}>
             <Sprite src={spriteUrl(eevee.pokeId)} alt={eevee.name} size={56} />
             <div>
               <div className="text-xs text-text-dim">#{String(eevee.pokeId).padStart(3, "0")}</div>
@@ -363,7 +364,7 @@ export function EeveeLab({ eevee, evos }: { eevee: { pokeId: number; name: strin
             <TypeBadges t1={eevee.t1} t2={eevee.t2} />
             {/* nivel projetado: slot permanente pro card nao mudar de altura */}
             <span className={`text-xs uppercase tracking-wide ${result ? "text-cyan" : "slot-empty"}`}>{result ? t("eevee.atLevel", { n: result.target }) : "—"}</span>
-            <div className="mt-0.5 grid w-full grid-cols-1 gap-y-0.5 border-t border-border/60 pt-2">
+            <div className="mt-0.5 grid w-full grid-cols-2 gap-x-3 gap-y-0.5 border-t border-border/60 pt-2">
               {STAT_LABELS.map((lb, i) => (
                 <div key={lb} className="flex items-center justify-between gap-1 text-xs">
                   <span className="inline-flex min-w-0 items-center gap-1 text-text-dim"><StatIcon index={i} size={14} />{lb}</span>
@@ -374,7 +375,7 @@ export function EeveeLab({ eevee, evos }: { eevee: { pokeId: number; name: strin
           </Link>
           {nodes.slice(0, 5).map((evo, i) => (
             <div key={evo.pokeId} className="relative" style={{ gridColumn: CELL[i].col, gridRow: CELL[i].row }}>
-              <EvoNodeCard evo={evo} />
+              <EvoNodeCard evo={evo} star />
             </div>
           ))}
         </div>

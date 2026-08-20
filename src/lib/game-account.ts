@@ -43,6 +43,9 @@ export interface ActivePoke {
   hp: number;
   maxHp: number;
   stats: MonStats;
+  /** XP ACUMULADO do individuo, se a fonte mandar. Sem ele a UI cai no tamanho do
+   *  nivel (a curva e publica — ver lib/xp.ts). */
+  xp: number | null;
 }
 
 export function normalizeActivePokes(list: unknown): ActivePoke[] {
@@ -67,6 +70,8 @@ export function normalizeActivePokes(list: unknown): ActivePoke[] {
       type1: str(p.type1),
       hp: num(p.hp),
       maxHp: num(p.maxHp),
+      // o frame usa nomes diferentes conforme a tela; aceita os tres e nao inventa zero
+      xp: [p.xp, p.exp, p.experience].map(num).find((v) => v > 0) ?? null,
       stats: {
         hp: num(s.hp), atk: num(s.atk), def: num(s.def),
         spAtk: num(s.spAtk), spDef: num(s.spDef), speed: num(s.speed),
