@@ -9,6 +9,9 @@ import { TypeBadges } from "./badges";
 import { TypeFilter } from "./type-filter";
 import { PokemonCombobox, type ComboCreature } from "./pokemon-combobox";
 import { SelectMenu } from "./select-menu";
+import { ToggleButton } from "./toggle-button";
+import { BALLS } from "@/lib/balls";
+import { CATCH_LAW_FALLBACK, predictCatchRate } from "@/lib/catch-law";
 import { StatBar } from "./stat-bar";
 import { Modal } from "./modal";
 import { StatTile } from "./stat-tile";
@@ -36,6 +39,9 @@ export interface HuntRow {
 }
 
 type Sort = "gold" | "xp" | "lvl" | "name";
+/** O que a coluna POR HORA mostra. Sob insta-kill os abates/h sao iguais em toda hunt,
+ *  entao esta escolha nao muda a ORDEM — ela responde "quanto isso vira por hora". */
+type Metric = "gold" | "goldCatch" | "xp";
 
 const area = (a: string) => a.charAt(0).toUpperCase() + a.slice(1);
 const num = (s: string): number => {
@@ -43,6 +49,14 @@ const num = (s: string): number => {
   return Number.isFinite(v) ? v : NaN;
 };
 const PAGE_SIZE = 25;
+
+/** Numero por hora em notacao compacta — a coluna nao pode esticar com "1.234.567". */
+const perHour = (n: number): string => {
+  if (!Number.isFinite(n)) return "—";
+  if (n >= 1e6) return (n / 1e6).toFixed(n >= 1e7 ? 0 : 1).replace(/\.0$/, "") + "M/h";
+  if (n >= 1e3) return (n / 1e3).toFixed(n >= 1e4 ? 0 : 1).replace(/\.0$/, "") + "k/h";
+  return Math.round(n) + "/h";
+};
 
 // Peek de um alvo de hunt: sprite, tipos, stats base (mesmas barras da dex/mercado)
 // e a economia por kill — sem sair da lista filtrada.
@@ -134,6 +148,9 @@ export function EconomyTable({ rows, areas }: { rows: HuntRow[]; areas: string[]
   const [areaSel, setAreaSel] = useState("");
   const [maxLvl, setMaxLvl] = useState("");
   const [sort, setSort] = useState<Sort>("gold");
+  const [metric, setMetric] = useState<Metric>("gold");
+  const [secs, setSecs] = useState("3.3");
+  const [ballKey, setBallKey] = useState("ultra");
   const [page, setPage] = useState(0);
   const [sel, setSel] = useState<HuntRow | null>(null);
 
@@ -148,6 +165,15 @@ export function EconomyTable({ rows, areas }: { rows: HuntRow[]; areas: string[]
     [rows],
   );
 
+  const perKillS = Math.max(0.3, Number(secs.replace(",", ".")) || 3.3);
+  const kosH = 3600 / perKillS;
+  const ball = BALLS.find((b) => b.key === ballKey) ?? BALLS[0];
+  // valor por abate na metrica escolhida; a captura entra pela lei derivada
+  const valueOf = (r: HuntRow) =>
+    metric === "xp" ? r.xp
+      : metric === "gold" ? r.gold
+        : r.gold + predictCatchRate(CATCH_LAW_FALLBACK, r.sell, ball.catchRate) * r.sell;
+
   const filtered = useMemo(() => {
     const list = rows.filter((r) => {
       if (species && r.pokeId !== species.pokeId) return false;
@@ -157,13 +183,16 @@ export function EconomyTable({ rows, areas }: { rows: HuntRow[]; areas: string[]
       return true;
     });
     const by: Record<Sort, (a: HuntRow, b: HuntRow) => number> = {
-      gold: (a, b) => b.gold - a.gold,
+      // ordenar por "dolares" passa a respeitar a metrica: com captura ligada, o que
+      // manda e o total, nao so o loot
+
+      gold: (a, b) => valueOf(b) - valueOf(a),
       xp: (a, b) => b.xp - a.xp,
       lvl: (a, b) => a.huntLevel - b.huntLevel || b.gold - a.gold,
       name: (a, b) => a.name.localeCompare(b.name),
     };
     return [...list].sort(by[sort]);
-  }, [rows, species, type, areaSel, lvlCap, sort]);
+  }, [rows, species, type, areaSel, lvlCap, sort, metric, ball]);
 
   useEffect(() => { setPage(0); }, [species, type, areaSel, maxLvl, sort]);
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
@@ -217,6 +246,42 @@ export function EconomyTable({ rows, areas }: { rows: HuntRow[]; areas: string[]
         </div>
       </div>
 
+      <div className="card flex flex-col gap-4 p-4">
+        <div className="flex flex-col gap-1">
+          <span className="field-label">{t("hunt.best.metric")}</span>
+          <div className="flex flex-wrap gap-1.5">
+            <ToggleButton active={metric === "gold"} onClick={() => { setMetric("gold"); setSort("gold"); }} accent="yellow">
+              <Coin size={16} /> {t("hunt.best.mGold")}
+            </ToggleButton>
+            <ToggleButton active={metric === "goldCatch"} onClick={() => { setMetric("goldCatch"); setSort("gold"); }} accent="yellow">
+              <Coin size={16} /> {t("hunt.best.mGoldCatch")}
+            </ToggleButton>
+            <ToggleButton active={metric === "xp"} onClick={() => { setMetric("xp"); setSort("xp"); }} accent="green">
+              <Xp size={16} /> {t("hunt.best.mXp")}
+            </ToggleButton>
+          </div>
+        </div>
+        <div className="flex flex-wrap items-end gap-4">
+          <label className="flex flex-col gap-1">
+            <span className="field-label" title={t("hunt.best.secsHint")}>{t("hunt.best.secs")}</span>
+            <input className="input w-28" inputMode="decimal" value={secs} onChange={(e) => setSecs(e.target.value)} />
+          </label>
+          {metric === "goldCatch" && (
+            <label className="flex flex-col gap-1">
+              <span className="field-label">{t("hunt.best.ball")}</span>
+              <SelectMenu
+                value={ballKey}
+                onChange={setBallKey}
+                options={BALLS.filter((b) => b.catchRate < 255).map((b) => ({ value: b.key, label: `${b.name} (x${b.catchRate})` }))}
+              />
+            </label>
+          )}
+          <span className="pb-2 text-sm leading-relaxed text-text-dim">
+            {t("hunt.best.assume", { n: Math.round(kosH).toLocaleString("pt-BR") })}
+          </span>
+        </div>
+      </div>
+
       <div className="text-base uppercase tracking-wide text-text-dim">{t("hunt.count", { n: filtered.length })}</div>
 
       {filtered.length === 0 ? (
@@ -233,6 +298,7 @@ export function EconomyTable({ rows, areas }: { rows: HuntRow[]; areas: string[]
                 <th className="px-4 py-3">{t("hunt.col.where")}</th>
                 <th className="px-4 py-3 text-right">{t("hunt.col.xp")}</th>
                 <th className="px-4 py-3 text-right">{t("hunt.col.gold")}</th>
+                <th className="px-4 py-3 text-right">{metric === "xp" ? t("hunt.col.xph") : t("hunt.col.goldh")}</th>
                 <th className="px-4 py-3">{t("hunt.col.drop")}</th>
                 <th className="px-4 py-3 text-right">{t("hunt.col.sell")}</th>
               </tr>
@@ -278,6 +344,14 @@ export function EconomyTable({ rows, areas }: { rows: HuntRow[]; areas: string[]
                           {t("hunt.day.chip")}
                         </span>
                       )}
+                    </div>
+                  </td>
+                  <td className="px-4 py-2.5 text-right">
+                    {/* sob insta-kill os abates/h sao iguais em toda hunt, entao esta
+                        coluna e a de cima na mesma ordem — ela existe pra dar a grandeza
+                        que a decisao usa ("quanto por hora"), nao pra reordenar */}
+                    <div className={`pixel tabular-nums ${metric === "xp" ? "text-cyan" : "text-green"}`}>
+                      {perHour(valueOf(r) * kosH)}
                     </div>
                   </td>
                   <td className="px-4 py-2.5">
