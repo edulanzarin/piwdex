@@ -16,6 +16,8 @@ import {
 import { Sprite } from "./sprite";
 import { TypeBadges } from "./badges";
 import { SelectMenu } from "./select-menu";
+import { TypeFilter } from "./type-filter";
+import { TypeBadge } from "./badges";
 import { ToggleButton } from "./toggle-button";
 import { Pagination } from "./pagination";
 import { StatTile } from "./stat-tile";
@@ -91,7 +93,7 @@ export function BoostTool({ rows, areas }: { rows: BoostRow[]; areas: string[] }
   const [streakLoot, setStreakLoot] = useState("10");
   const [lootBoost, setLootBoost] = useState(true);
   const [eventPct, setEventPct] = useState("0");
-  const [typeDayPct, setTypeDayPct] = useState("0");
+  const [typeDay, setTypeDay] = useState<PokeType | "">("");
   // Streak
   const [totalKills, setTotalKills] = useState("12000");
   const [spent, setSpent] = useState("12");
@@ -108,15 +110,18 @@ export function BoostTool({ rows, areas }: { rows: BoostRow[]; areas: string[] }
       streakLoot: int(streakLoot),
       lootBoost,
       eventPct: int(eventPct),
-      typeDayPct: int(typeDayPct),
+      typeDay: typeDay || null,
     }),
-    [streakLoot, lootBoost, eventPct, typeDayPct],
+    [streakLoot, lootBoost, eventPct, typeDay],
   );
+  // Dois multiplicadores: o de FUNDO (vale em qualquer alvo) e o do tipo premiado.
+  // Mostrar um numero só escondia que o segundo nao vale no catalogo inteiro.
   const mult = lootMultiplier(bonuses);
+  const multTypeDay = typeDay ? lootMultiplier(bonuses, [typeDay]) : null;
 
   // ROI de cada alvo sob o cenario atual.
   const scored = useMemo(
-    () => rows.map((r) => ({ row: r, roi: boostRoi(r.drops, bonuses) })),
+    () => rows.map((r) => ({ row: r, roi: boostRoi(r.drops, bonuses, [r.type1, r.type2]) })),
     [rows, bonuses],
   );
 
@@ -151,9 +156,10 @@ export function BoostTool({ rows, areas }: { rows: BoostRow[]; areas: string[] }
   const nextCost = nextStreakCost(int(spent));
   const costTo10 = streakCostRange(int(spent), int(spent) + 10);
   // Quanto UM ponto a mais (+0,1%) adiciona no melhor alvo, sobre o cenario atual.
+  const bestTypes = best ? [best.row.type1, best.row.type2] : [];
   const oneMoreDelta = best
-    ? boostRoi(best.row.drops, { ...bonuses, streakLoot: bonuses.streakLoot + 1 }).boosted -
-      boostRoi(best.row.drops, bonuses).boosted
+    ? boostRoi(best.row.drops, { ...bonuses, streakLoot: bonuses.streakLoot + 1 }, bestTypes).boosted -
+      boostRoi(best.row.drops, bonuses, bestTypes).boosted
     : 0;
   const payback = paybackKills(nextCost, oneMoreDelta);
 
@@ -180,7 +186,10 @@ export function BoostTool({ rows, areas }: { rows: BoostRow[]; areas: string[] }
             suffix="pts"
           />
           <Field label={t("boost.event")} value={eventPct} onChange={setEventPct} suffix="%" />
-          <Field label={t("boost.typeDay")} value={typeDayPct} onChange={setTypeDayPct} suffix="%" />
+          <label className="flex flex-col gap-1" title={t("boost.typeDayHint")}>
+            <span className="field-label">{t("boost.typeDay")}</span>
+            <TypeFilter value={typeDay} onChange={setTypeDay} />
+          </label>
           <label className="flex flex-col gap-1">
             <span className="field-label">{t("boost.lootBoost")}</span>
             <ToggleButton active={lootBoost} onClick={() => setLootBoost((v) => !v)} accent="cyan">
@@ -191,7 +200,19 @@ export function BoostTool({ rows, areas }: { rows: BoostRow[]; areas: string[] }
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           <StatTile
             label={t("boost.multiplier")}
-            value={`x${mult.toFixed(3)}`}
+            value={
+              multTypeDay ? (
+                <span className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                  <span>x{mult.toFixed(3)}</span>
+                  <span className="inline-flex items-center gap-1 text-sm text-text-dim">
+                    <TypeBadge type={typeDay as PokeType} icon={false} />
+                    x{multTypeDay.toFixed(3)}
+                  </span>
+                </span>
+              ) : (
+                `x${mult.toFixed(3)}`
+              )
+            }
             accent="var(--cyan)"
             icon={<Chart />}
           />
@@ -214,6 +235,7 @@ export function BoostTool({ rows, areas }: { rows: BoostRow[]; areas: string[] }
           />
         </div>
         <p className="text-sm text-text-dim">{t("boost.capNote")}</p>
+        <p className="text-sm text-text-dim">{t("boost.typeDayNote")}</p>
       </Panel>
 
       <Panel icon={<Coin />} title={t("boost.streakTitle")} accent="var(--yellow)" collapsible defaultOpen={false}>
@@ -281,7 +303,14 @@ export function BoostTool({ rows, areas }: { rows: BoostRow[]; areas: string[] }
                     <div className="flex items-center gap-2">
                       <Sprite src={spriteUrl(row.pokeId)} alt={row.name} size={32} />
                       <div className="min-w-0">
-                        <div className="truncate text-text">{row.name}</div>
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span className="truncate text-text">{row.name}</span>
+                          {roi.typeDayHits && (
+                            <span className="chip" style={{ background: "var(--yellow)", color: "#2a2200" }} title={t("boost.typeDayHint")}>
+                              +50%
+                            </span>
+                          )}
+                        </div>
                         <TypeBadges t1={row.type1} t2={row.type2} />
                       </div>
                     </div>

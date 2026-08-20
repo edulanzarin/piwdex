@@ -8,7 +8,7 @@
 // (ganha 40% inteiros). Por isso a metrica util e o APROVEITAMENTO — que fracao do
 // bonus que voce pagou o alvo consegue de fato converter em ouro.
 
-import type { LootEntry } from "./types";
+import type { LootEntry, PokeType } from "./types";
 
 /** Escala da fonte: 100000 = 100%. Tambem e o teto — chance nao passa disso. */
 export const CHANCE_MAX = 100_000;
@@ -21,6 +21,14 @@ export const LOOT_BOOST = 0.4;
 export const STREAK_POINT_COST = 25_000;
 /** 1 ponto de Streak liberado a cada 1000 abates totais. */
 export const KILLS_PER_POINT = 1000;
+/**
+ * Tipo do Dia: +50% de loot (e de XP) — mas SO nos pokemons daquele tipo. E a
+ * diferenca que muda a conta: os outros bonus valem em qualquer alvo, este e um
+ * bonus CONDICIONAL. Tratar como percentual global inflava o ganho do catalogo
+ * inteiro e mandava caçar no lugar errado nos dias em que o tipo nao batia.
+ * O valor nao esta na pokepedia — vem da observacao do jogo (Eduardo, ago/2026).
+ */
+export const TYPE_DAY_BONUS = 0.5;
 
 export interface LootBonuses {
   /** pontos de Streak na trilha Loot */
@@ -29,29 +37,34 @@ export interface LootBonuses {
   lootBoost: boolean;
   /** evento global em curso, em % */
   eventPct: number;
-  /** Tipo do Dia, em % */
-  typeDayPct: number;
+  /** tipo premiado hoje; null = nenhum. So rende nos alvos DESSE tipo. */
+  typeDay: PokeType | null;
 }
 
 export const NO_BONUS: LootBonuses = {
   streakLoot: 0,
   lootBoost: false,
   eventPct: 0,
-  typeDayPct: 0,
+  typeDay: null,
 };
 
 /**
- * O multiplicador unico que incide sobre a chance de cada drop. As fontes somam
- * entre si (e o mesmo empilhamento que o jogo mostra no breakdown de ganho:
- * base + streak + boost + vip + event + mentor + typeDay) e o total multiplica.
+ * O multiplicador que incide sobre a chance de cada drop. As fontes somam entre si
+ * (o mesmo empilhamento que o jogo mostra no breakdown de ganho: base + streak +
+ * boost + vip + event + mentor + typeDay) e o total multiplica.
+ *
+ * `targetTypes` sao os tipos do ALVO: sem eles o Tipo do Dia nao entra, porque ele
+ * so vale em quem e daquele tipo. Chamar sem o alvo devolve o multiplicador "de
+ * fundo" — o que vale em qualquer lugar.
  */
-export function lootMultiplier(b: LootBonuses): number {
+export function lootMultiplier(b: LootBonuses, targetTypes: (PokeType | null)[] = []): number {
+  const typeDayHits = b.typeDay != null && targetTypes.some((t) => t === b.typeDay);
   return (
     1 +
     b.streakLoot * STREAK_STEP +
     (b.lootBoost ? LOOT_BOOST : 0) +
     b.eventPct / 100 +
-    b.typeDayPct / 100
+    (typeDayHits ? TYPE_DAY_BONUS : 0)
   );
 }
 
@@ -130,11 +143,16 @@ export interface BoostRoi {
   cappedDrops: number;
   /** total de drops com valor de venda */
   pricedDrops: number;
+  /** multiplicador que valeu NESTE alvo (com ou sem o Tipo do Dia) */
+  mult: number;
+  /** o alvo e do tipo premiado hoje */
+  typeDayHits: boolean;
 }
 
-/** Quanto os bonus rendem NESTE alvo — e quanto deles se perde no teto. */
-export function boostRoi(drops: PricedDrop[], b: LootBonuses): BoostRoi {
-  const mult = lootMultiplier(b);
+/** Quanto os bonus rendem NESTE alvo — e quanto deles se perde no teto.
+ *  `targetTypes` decide se o Tipo do Dia entra: ele so vale no tipo premiado. */
+export function boostRoi(drops: PricedDrop[], b: LootBonuses, targetTypes: (PokeType | null)[] = []): BoostRoi {
+  const mult = lootMultiplier(b, targetTypes);
   const base = goldPerKill(drops, 1);
   const boosted = goldPerKill(drops, mult);
   const delta = boosted - base;
@@ -160,6 +178,8 @@ export function boostRoi(drops: PricedDrop[], b: LootBonuses): BoostRoi {
     cappedGold,
     cappedDrops,
     pricedDrops: drops.length,
+    mult,
+    typeDayHits: b.typeDay != null && targetTypes.some((t) => t === b.typeDay),
   };
 }
 

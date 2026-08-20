@@ -111,13 +111,22 @@ export default async function Home() {
           icon={<HuntIcon size={64} />}
         />
         <ToolCard
-          titleKey="home.card8.title"
-          descKey="home.card8.desc"
-          href="/meta"
-          ctaKey="home.card8.cta"
-          color="var(--pink)"
-          ctaText="#2a0a10"
-          icon={<MetaIcon size={64} />}
+          titleKey="home.card3.title"
+          descKey="home.card3.desc"
+          href="/calc"
+          ctaKey="home.card3.cta"
+          color="var(--purple)"
+          ctaText="#1a1030"
+          icon={<CalcIcon size={64} />}
+        />
+        <ToolCard
+          titleKey="home.card6.title"
+          descKey="home.card6.desc"
+          href="/breed"
+          ctaKey="home.card6.cta"
+          color="var(--brown)"
+          ctaText="#2a0a12"
+          icon={<BreedIcon size={64} />}
         />
         <ToolCard
           titleKey="home.card7.title"
@@ -129,15 +138,6 @@ export default async function Home() {
           icon={<BoostIcon size={64} />}
         />
         <ToolCard
-          titleKey="home.card3.title"
-          descKey="home.card3.desc"
-          href="/calc"
-          ctaKey="home.card3.cta"
-          color="var(--purple)"
-          ctaText="#1a1030"
-          icon={<CalcIcon size={64} />}
-        />
-        <ToolCard
           titleKey="home.card5.title"
           descKey="home.card5.desc"
           href="/eevee"
@@ -147,13 +147,13 @@ export default async function Home() {
           icon={<LabIcon size={64} />}
         />
         <ToolCard
-          titleKey="home.card6.title"
-          descKey="home.card6.desc"
-          href="/breed"
-          ctaKey="home.card6.cta"
-          color="var(--brown)"
-          ctaText="#2a0a12"
-          icon={<BreedIcon size={64} />}
+          titleKey="home.card8.title"
+          descKey="home.card8.desc"
+          href="/meta"
+          ctaKey="home.card8.cta"
+          color="var(--pink)"
+          ctaText="#2a0a10"
+          icon={<MetaIcon size={64} />}
         />
       </section>
 

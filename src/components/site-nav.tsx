@@ -26,11 +26,11 @@ const TABS: { key: string; href: string; Icon: (p: { size?: number }) => React.R
   { key: "nav.dex", href: "/dex", Icon: PokedexIcon },
   { key: "nav.items", href: "/items", Icon: ItemsIcon },
   { key: "nav.hunt", href: "/hunt", Icon: HuntIcon },
-  { key: "nav.boost", href: "/boost", Icon: BoostIcon },
-  { key: "nav.meta", href: "/meta", Icon: MetaIcon },
   { key: "nav.calc", href: "/calc", Icon: CalcIcon },
-  { key: "nav.eevee", href: "/eevee", Icon: LabIcon },
   { key: "nav.breed", href: "/breed", Icon: BreedIcon },
+  { key: "nav.boost", href: "/boost", Icon: BoostIcon },
+  { key: "nav.eevee", href: "/eevee", Icon: LabIcon },
+  { key: "nav.meta", href: "/meta", Icon: MetaIcon },
   // Conta saiu do topo: virou aba do /vip (depende da sessao de jogo, que so o BOT
   // abre). Entra pelo botao BOT.
 ];

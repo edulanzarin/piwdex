@@ -27,16 +27,31 @@ type NodeData = EvoNode & { stats?: number[] };
 
 // Posicoes dos 5 pontos da estrela (pentagon, ponta pra cima) em %.
 // Margem folgada nas bordas pra o hover (glow) nao ultrapassar o container.
-const POS = [
-  { x: 50, y: 15 },
-  { x: 85, y: 44 },
-  { x: 76, y: 85 },
-  { x: 24, y: 85 },
-  { x: 15, y: 44 },
+// A estrela e um GRID 3x3, nao coordenadas absolutas. A versao anterior posicionava
+// cada card em % de um container de altura fixa: quando a fonte do site mudou pra
+// Quantico os cards ficaram mais altos, cresceram pra fora da celula imaginaria e
+// passaram a se sobrepor (o Espeon cobria a Eevee). Com grid a celula se estica com o
+// conteudo e a colisao deixa de ser possivel, seja qual for a fonte.
+// Ver [[Trocar a fonte muda a largura, nao so o desenho da letra]].
+//
+//   .        Espeon    .
+//   Umbreon  [Eevee]   Jolteon
+//   Vaporeon .         Flareon
+//
+// A ordem de EVO_ORDER (Espeon, Jolteon, Flareon, Vaporeon, Umbreon) mapeia nas
+// celulas por CELL; o centro de cada celula em % alimenta as linhas do SVG de fundo.
+const CELL = [
+  { col: 2, row: 1 }, // Espeon
+  { col: 3, row: 2 }, // Jolteon
+  { col: 3, row: 3 }, // Flareon
+  { col: 1, row: 3 }, // Vaporeon
+  { col: 1, row: 2 }, // Umbreon
 ];
-const CENTER = { x: 50, y: 52 };
+// centro geometrico de cada celula (grid de 3 colunas/linhas iguais)
+const at = (c: { col: number; row: number }) => ({ x: (c.col - 0.5) * (100 / 3), y: (c.row - 0.5) * (100 / 3) });
+const POS = CELL.map(at);
+const CENTER = { x: 50, y: 50 };
 const NODE_W = 148;
-const STAR = 760; // tamanho FIXO do container (px) — cards altos precisam de espaco
 
 const numF = (s: string) => parseFloat(String(s).replace(",", "."));
 const numI = (s: string) => parseInt(s, 10);
@@ -328,8 +343,8 @@ export function EeveeLab({ eevee, evos }: { eevee: { pokeId: number; name: strin
       /* Aba Estrela — sempre visivel (stats como ??? ate calcular; o card e o skeleton) */
       <div className="card overflow-x-auto p-4 md:p-8">
         {/* Desktop grande: estrela radial (tamanho fixo; abaixo de lg vai pro grid) */}
-        <div className="relative mx-auto hidden lg:block" style={{ width: STAR, height: STAR }}>
-          <svg viewBox="0 0 100 100" className="absolute inset-0 h-full w-full" aria-hidden>
+        <div className="relative mx-auto hidden max-w-[52rem] lg:grid" style={{ gridTemplateColumns: "repeat(3, minmax(0, 1fr))", placeItems: "center", gap: "1.25rem" }}>
+          <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="pointer-events-none absolute inset-0 h-full w-full" aria-hidden>
             {POS.map((p, i) => (
               <g key={i}>
                 <line x1={CENTER.x} y1={CENTER.y} x2={p.x} y2={p.y} stroke="var(--border-strong)" strokeWidth={0.35} />
@@ -339,7 +354,7 @@ export function EeveeLab({ eevee, evos }: { eevee: { pokeId: number; name: strin
               </g>
             ))}
           </svg>
-          <Link href={`/dex/${eevee.pokeId}`} className="well well-hover absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-2 p-3 text-center ring-1 ring-[color:var(--border-strong)]" style={{ left: `${CENTER.x}%`, top: `${CENTER.y}%`, width: NODE_W }}>
+          <Link href={`/dex/${eevee.pokeId}`} className="well well-hover relative flex flex-col items-center gap-2 p-3 text-center ring-1 ring-[color:var(--border-strong)]" style={{ gridColumn: 2, gridRow: 2, width: NODE_W }}>
             <Sprite src={spriteUrl(eevee.pokeId)} alt={eevee.name} size={56} />
             <div>
               <div className="text-xs text-text-dim">#{String(eevee.pokeId).padStart(3, "0")}</div>
@@ -358,7 +373,7 @@ export function EeveeLab({ eevee, evos }: { eevee: { pokeId: number; name: strin
             </div>
           </Link>
           {nodes.slice(0, 5).map((evo, i) => (
-            <div key={evo.pokeId} className="absolute -translate-x-1/2 -translate-y-1/2" style={{ left: `${POS[i].x}%`, top: `${POS[i].y}%` }}>
+            <div key={evo.pokeId} className="relative" style={{ gridColumn: CELL[i].col, gridRow: CELL[i].row }}>
               <EvoNodeCard evo={evo} />
             </div>
           ))}
