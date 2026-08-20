@@ -7,7 +7,7 @@ import { sessionFor } from "@/lib/game-hunt-session";
 import { getRobotSales } from "@/lib/robot-sales";
 import { captureRatesBySlug } from "@/lib/robot-events";
 import { fetchGameBoosts, lootBonusesOf } from "@/lib/game-boosts";
-import { lootMultiplier, STREAK_STEP, type LootBonuses } from "@/lib/boost";
+import { lootMultiplier, NO_BONUS, STREAK_STEP, type LootBonuses } from "@/lib/boost";
 import { rankMoney, NO_STYLE, type MoneyMode, type PlayStyle } from "@/lib/hunt-brain";
 import { getData } from "@/lib/data";
 import { ALL_TYPES } from "@/lib/typing";
@@ -57,7 +57,30 @@ async function measureStyle(userId: string): Promise<PlayStyle> {
     from: live?.kills ? "live" : "totals",
     sample: kills,
     bySlug: await captureRatesBySlug(userId),
+    speedFactor: 1, // medido depois, contra o alvo em que voce esta agora
   };
+}
+
+/**
+ * Quanto o motor erra a velocidade de abate, medido contra a hunt em curso: abates/h
+ * REAIS (analyzer) sobre os previstos pro MESMO alvo. O motor de combate se declara
+ * calibrado "pra comparar hunts, nao como numero exato" — e o erro entra em TUDO que e
+ * por abate (loot, captura, supply). Fora de uma faixa sensata a medida e ruido (hunt
+ * recem-comecada, alvo trocando), e o fator volta a 1.
+ */
+const NO_BONUS_FOR_SPEED = NO_BONUS;
+
+async function measureSpeed(userId: string, pokes: ActivePoke[], vip: boolean): Promise<number> {
+  const st = sessionFor(userId).getState();
+  const a = st.analyzer;
+  if (!a || !st.slug || a.kills < 60 || a.killsPerHour <= 0) return 1;
+  const leader = pokes.find((p) => p.leader) ?? pokes.find((p) => p.team);
+  if (!leader) return 1;
+  const rows = await rankMoney([leader], NO_BONUS_FOR_SPEED, vip, { limit: 400, style: NO_STYLE });
+  const here = rows.find((r) => r.slug === st.slug);
+  if (!here || here.kosH <= 0) return 1;
+  const factor = a.killsPerHour / here.kosH;
+  return Number.isFinite(factor) && factor >= 0.2 && factor <= 8 ? factor : 1;
 }
 
 export async function GET(req: Request) {
@@ -116,6 +139,7 @@ export async function GET(req: Request) {
   const measured = await measureStyle(userId);
   const capture = numParam(q.get("capture"));
   const supply = numParam(q.get("supply"));
+  const speedFactor = await measureSpeed(userId, pokes, true).catch(() => 1);
   const style: PlayStyle = {
     capturePerKill: capture != null ? capture : measured.capturePerKill,
     supplyPerKill: supply != null ? supply : measured.supplyPerKill,
@@ -123,6 +147,7 @@ export async function GET(req: Request) {
     sample: measured.sample,
     // taxa informada na mao vale pra TODO alvo — quem digitou quer aquele numero
     bySlug: capture != null ? undefined : measured.bySlug,
+    speedFactor,
   };
 
   // VIP do JOGO (1,5x XP): assume ligado, como o /api/vip/best-poke, pra nao pagar mais
@@ -155,7 +180,16 @@ export async function GET(req: Request) {
       background,
       withDay,
     },
-    style,
+    // `bySlug` e um Map (nao sobrevive ao JSON) e e detalhe de motor: a tela quer o
+    // resumo. A taxa por spot chega em cada linha, onde ela e usada.
+    style: {
+      capturePerKill: style.capturePerKill,
+      supplyPerKill: style.supplyPerKill,
+      from: style.from,
+      sample: style.sample,
+      speedFactor: style.speedFactor,
+      spots: style.bySlug?.size ?? 0,
+    },
     // frescor do CATALOGO: e ele que decide se o ranking vale
     catalog: { live: db.live, at: db.generatedAt, error: db.error, checkedAt: db.checkedAt },
     rows,

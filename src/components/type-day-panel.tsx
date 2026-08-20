@@ -44,10 +44,15 @@ export interface MoneyRow {
   eff: number; moveType: PokeType;
   risk: RiskLevel; killsPerLife: number;
   typeDayHits: boolean; dayUse: number;
-  captureRate: number; captureSample: number;
+  captureRate: number; captureGuessRate: number; captureSample: number;
+  goldGuessH: number;
 }
 
-interface Style { capturePerKill: number; supplyPerKill: number; from: "live" | "totals" | "default"; sample: number }
+interface Style {
+  capturePerKill: number; supplyPerKill: number;
+  from: "live" | "totals" | "default"; sample: number;
+  speedFactor: number; spots: number;
+}
 
 interface MoneyRes {
   live: boolean;
@@ -340,6 +345,21 @@ export function TypeDayPanel({ onHunt, huntOn = false }: { onHunt: (row: MoneyRo
                       <span className={`pixel inline-flex items-center gap-1 tabular-nums text-base ${isXp ? "text-cyan" : "text-green"}`}>
                         {isXp ? <Xp size={14} /> : <Coin size={14} />}{compact(value)}
                       </span>
+                      {/* O numero grande e o que a SUA evidencia sustenta. Quando o cenario
+                          otimista e bem maior, ele aparece do lado marcado como aposta —
+                          era ele, sozinho, que mandava caçar Tyrogue. */}
+                      {!isXp && r.goldGuessH > r.goldH * 1.15 && (
+                        <span
+                          className="whitespace-nowrap text-[0.68rem] tabular-nums text-yellow"
+                          title={t(r.captureSample > 0 ? "robo.day.upsideSome" : "robo.day.upsideNone", {
+                            v: compact(r.goldGuessH),
+                            rate: (r.captureGuessRate * 100).toFixed(1),
+                            n: r.captureSample.toLocaleString("pt-BR"),
+                          })}
+                        >
+                          {t("robo.day.upside", { v: compact(r.goldGuessH) })}
+                        </span>
+                      )}
                       {!isXp && (
                         <span
                           className="whitespace-nowrap text-[0.68rem] tabular-nums text-text-dim"
@@ -394,6 +414,9 @@ export function TypeDayPanel({ onHunt, huntOn = false }: { onHunt: (row: MoneyRo
       <p className="text-sm leading-relaxed text-text-dim">
         {isXp ? t("robo.day.noteXp") : t("robo.day.note")}
         {styleNote ? ` ${styleNote}` : ""}
+        {data && data.style.speedFactor !== 1
+          ? ` ${t("robo.day.speed", { v: data.style.speedFactor.toFixed(2) })}`
+          : ""}
       </p>
 
       {/* AJUSTES — recolhidos, e no fim: em cima empurravam a resposta pra fora da tela */}

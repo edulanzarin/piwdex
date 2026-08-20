@@ -330,26 +330,56 @@ export interface PlayStyle {
   sample: number;
   /** taxa medida POR SPOT (slug -> abates/capturas), do historico de hunts */
   bySlug?: Map<string, { kills: number; captures: number }>;
+  /**
+   * Correcao da velocidade de abate: abates/h REAIS medidos na hunt em curso divididos
+   * pelos que o motor previu pro MESMO alvo. O motor de combate e calibrado "pra comparar
+   * hunts, nao como numero exato" (ver combat.ts) — e no Tyrogue ele errou por ~3x, o que
+   * arrasta junto o loot/h, a captura/h e o supply/h. 1 = sem medida.
+   */
+  speedFactor: number;
 }
 
 /**
- * Peso da taxa geral quando o spot tem historico proprio. E o numero que impede os dois
- * extremos: 0 capturas em 49 abates virando "aqui nunca se captura", e 1 em 10 virando
- * "aqui se captura 10%". Na pratica o spot so passa a mandar na propria taxa depois de
- * ~60 abates — antes disso ele apenas puxa a taxa geral pro lado que os dados apontam.
+ * Duas taxas de captura por spot, e a diferenca entre elas E a incerteza:
+ *
+ *  - `floor`  — o que os SEUS abates naquele spot sustentam (piso de Wilson). Spot sem
+ *               historico vale ZERO aqui: nao ha evidencia de que voce captura la.
+ *  - `guess`  — o cenario otimista: a sua taxa geral, encolhida pela amostra do spot.
+ *
+ * O ranking ordena pelo piso (o que da pra defender) e a tela mostra o otimista ao lado.
+ * Ordenar pelo otimista foi o que mandou o Eduardo pro Tyrogue.
  */
 const RATE_PRIOR = 60;
 
-/** Taxa de captura a usar NESTE spot: a dele quando ha volume, encolhida na geral quando
- *  nao ha. Uma media so nunca representou os dois casos. */
-function captureRateFor(style: PlayStyle, slug: string): number {
+function captureRatesFor(style: PlayStyle, slug: string): { floor: number; guess: number } {
   const geral = style.capturePerKill;
   const hit = style.bySlug?.get(slug);
-  if (!hit || hit.kills <= 0) return geral;
-  return (hit.captures + RATE_PRIOR * geral) / (hit.kills + RATE_PRIOR);
+  if (!hit || hit.kills <= 0) return { floor: 0, guess: geral };
+  const guess = (hit.captures + RATE_PRIOR * geral) / (hit.kills + RATE_PRIOR);
+  return { floor: rateFloor(hit.captures, hit.kills), guess };
 }
 
-export const NO_STYLE: PlayStyle = { capturePerKill: 0, supplyPerKill: 0, from: "default", sample: 0 };
+export const NO_STYLE: PlayStyle = {
+  capturePerKill: 0, supplyPerKill: 0, from: "default", sample: 0, speedFactor: 1,
+};
+
+/**
+ * Piso do intervalo de confianca de uma proporcao (Wilson, ~90% de um lado).
+ *
+ * E o que separa "nao ha evidencia" de "a evidencia diz zero". Sem isto, um spot NUNCA
+ * cacado herdava a taxa media e o ranking projetava 646k/h de captura no Tyrogue (que
+ * vale 75.000 por bicho) enquanto o jogo pagava MENOS 117k/h. Com o piso, spot sem
+ * historico entra valendo o que da pra defender — o loot, que e exato — e a captura so
+ * pesa depois que os seus proprios abates a sustentarem.
+ */
+export function rateFloor(successes: number, trials: number, z = 1.2816): number {
+  if (trials <= 0) return 0;
+  const p = successes / trials;
+  const denom = 1 + (z * z) / trials;
+  const center = p + (z * z) / (2 * trials);
+  const margin = z * Math.sqrt((p * (1 - p)) / trials + (z * z) / (4 * trials * trials));
+  return Math.max(0, (center - margin) / denom);
+}
 
 export type MoneyMode = "gold" | "xp";
 
@@ -383,9 +413,12 @@ export interface MoneyRow {
   typeDayHits: boolean;
   /** fracao do bonus do dia que este alvo converte: 1 = tudo, 0 = tudo bateu no teto */
   dayUse: number;
-  /** taxa de captura usada NESTE spot, e quantos abates seus a sustentam */
+  /** taxa de captura DEFENSAVEL neste spot (piso), a otimista, e a sua amostra la */
   captureRate: number;
+  captureGuessRate: number;
   captureSample: number;
+  /** renda/h no cenario otimista (taxa geral em vez do piso) */
+  goldGuessH: number;
 }
 
 const moneyPokeOf = (p: ActivePoke): MoneyPoke => ({
@@ -430,8 +463,8 @@ export async function rankMoney(
   // Economia por ALVO: independe de quem caca, entao sai uma vez so.
   const noDay: LootBonuses = { ...bonuses, typeDay: null };
   const econ = new Map<number, {
-    loot: number; lootPlain: number; capture: number; supply: number; hits: boolean; dayUse: number;
-    rate: number; sample: number;
+    loot: number; lootPlain: number; capture: number; captureGuess: number; supply: number;
+    hits: boolean; dayUse: number; rate: number; guessRate: number; sample: number;
   }>();
   for (const t of data.targets) {
     const drops = data.dropsOf(t.pokeId);
@@ -440,18 +473,21 @@ export async function rankMoney(
     const multPlain = lootMultiplier(noDay, types);
     const loot = drops.length ? goldPerKill(drops, multDay) : 0;
     const lootPlain = drops.length ? goldPerKill(drops, multPlain) : 0;
-    // a venda do capturado: quantos voce captura NESTE spot x o que o NPC paga por ele
-    const capture = captureRateFor(style, t.slug) * t.sellValue;
+    // A venda do capturado, nos dois cenarios. O supply (bola + pocao) NAO e custo fixo
+    // do spot: o auto-catch joga bola em cada corpo, entao ele acompanha os abates — e e
+    // por isso que spot rapido de bicho barato consegue dar prejuizo.
+    const rates = captureRatesFor(style, t.slug);
+    const capture = rates.floor * t.sellValue;
+    const captureGuess = rates.guess * t.sellValue;
     const supply = style.supplyPerKill;
-    if (loot + capture <= 0) continue; // alvo que nao paga nada nao e alvo de dinheiro
+    if (loot + captureGuess <= 0) continue; // alvo que nao paga nada nem no otimista
     // Quanto do bonus do dia sobreviveu ao teto: o ganho REAL sobre o ganho que ele teria
     // se nenhuma chance esbarrasse em 100%.
-    const rate = captureRateFor(style, t.slug);
     const sample = style.bySlug?.get(t.slug)?.kills ?? 0;
     const hits = multDay > multPlain;
     const theoretical = hits ? lootPlain * (multDay / multPlain - 1) : 0;
     const dayUse = theoretical > 0 ? Math.max(0, Math.min(1, (loot - lootPlain) / theoretical)) : 0;
-    econ.set(t.pokeId, { loot, lootPlain, capture, supply, hits, dayUse, rate, sample });
+    econ.set(t.pokeId, { loot, lootPlain, capture, captureGuess, supply, hits, dayUse, rate: rates.floor, guessRate: rates.guess, sample });
   }
 
   const best = new Map<number, MoneyRow>();
@@ -468,11 +504,15 @@ export async function rankMoney(
       const est = estimateHunt(sp, f.level, ivs, f.quality, t, data.movesOf(t.pokeId), vip);
       if (!est || est.threat.risk === "deadly") continue; // morrer nao paga
 
-      const lootH = e.loot * est.kosH;
-      const captureH = e.capture * est.kosH;
-      const supplyH = e.supply * est.kosH;
+      // velocidade corrigida pela realidade medida: o motor errou ~3x no Tyrogue, e o
+      // erro contamina loot, captura e supply de uma vez (todos sao por abate).
+      const kosH = est.kosH * style.speedFactor;
+      const lootH = e.loot * kosH;
+      const captureH = e.capture * kosH;
+      const supplyH = e.supply * kosH;
       const goldH = lootH + captureH - supplyH;
-      const xpH = est.xpH * (e.hits ? 1 + dayXp : 1);
+      const goldGuessH = lootH + e.captureGuess * kosH - supplyH;
+      const xpH = est.xpH * style.speedFactor * (e.hits ? 1 + dayXp : 1);
       const score = mode === "xp" ? xpH : goldH;
 
       const cur = best.get(t.pokeId);
@@ -481,12 +521,12 @@ export async function rankMoney(
         poke: moneyPokeOf(p),
         targetId: t.pokeId, targetName: t.name, t1: t.t1, t2: t.t2,
         slug: t.slug, huntName: t.huntName, area: t.area, huntLevel: t.huntLevel,
-        goldH, lootH, captureH, supplyH,
-        plainGoldH: e.lootPlain * est.kosH + captureH - supplyH,
+        goldH, goldGuessH, lootH, captureH, supplyH,
+        plainGoldH: e.lootPlain * kosH + captureH - supplyH,
         goldPerKill: e.loot + e.capture - e.supply,
-        kosH: est.kosH,
+        kosH,
         xpH,
-        plainXpH: est.xpH,
+        plainXpH: est.xpH * style.speedFactor,
         eff: est.eff,
         moveType: est.moveName,
         risk: est.threat.risk,
@@ -494,6 +534,7 @@ export async function rankMoney(
         typeDayHits: e.hits,
         dayUse: e.dayUse,
         captureRate: e.rate,
+        captureGuessRate: e.guessRate,
         captureSample: e.sample,
       });
     }
