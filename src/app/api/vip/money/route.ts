@@ -79,17 +79,26 @@ async function measureStyle(userId: string): Promise<PlayStyle> {
   const law = fitCatchLaw(catchData, (id) => db0.getCreature(id));
   const ballRate = catchData?.ballRate ?? 1;
 
-  // Bola: custo real por arremesso, do que a conta gastou (goldSpent/total). Pocao: a que
-  // o auto-potion usa, com quanto cura e quanto custa — e o que transforma "levo dano" em
-  // "gasto ouro". Sem isso o gasto de cura era media, e alvo que machuca passava batido.
-  let ballCost = 0, ballN = 0;
+  // BOLA: o preco da bola que o auto-catch usa AGORA — nao a media da vida da conta.
+  //
+  // A media era arqueologia: somava `goldSpent/total` de 146.814 abates, boa parte deles
+  // feitos com Poke Ball (5) e Great Ball (20), e entregava 42 de supply por abate. So que
+  // hoje o auto-catch joga Ultra Ball, que custa 130 — e sai UMA bola por abate (kills ==
+  // ballsUsed, confirmado no frame `analyzer` do jogo). O painel cobrava 42 onde o jogo
+  // cobrava 144,7, e com ~565 abates/h isso e ~58k/h de custo que nao aparecia: o Kingdra
+  // saia como 219k/h quando a hunt real paga ~159k/h.
+  //
+  // A media so volta como REDE, pra conta sem auto-helper legivel — subestimar de leve e
+  // melhor do que zerar o custo.
+  let ballAvg = 0, ballN = 0;
   if (catchData) {
-    for (const s2 of catchData.bySpecies.values()) { if (s2.ballCost > 0) { ballCost += s2.ballCost * s2.total; ballN += s2.total; } }
+    for (const s2 of catchData.bySpecies.values()) { if (s2.ballCost > 0) { ballAvg += s2.ballCost * s2.total; ballN += s2.total; } }
   }
-  ballCost = ballN > 0 ? ballCost / ballN : 0;
+  ballAvg = ballN > 0 ? ballAvg / ballN : 0;
+  const ballCost = catchData?.ballPrice && catchData.ballPrice > 0 ? catchData.ballPrice : ballAvg;
   const potionItem = catchData?.potionItemId ? db0.getItem(catchData.potionItemId) : undefined;
   const potion = potionItem?.healAmount && potionItem.healAmount > 0
-    ? { heal: potionItem.healAmount, price: potionItem.priceGold ?? potionItem.npcPrice ?? 0 }
+    ? { heal: potionItem.healAmount, price: potionItem.priceGold ?? potionItem.npcPrice ?? 0, threshold: catchData?.potionThreshold ?? 0 }
     : null;
   const canCatch = catchData ? catchData.autoCatch : true;
   const predictRate = (sellValue: number) =>

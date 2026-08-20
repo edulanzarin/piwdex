@@ -335,7 +335,7 @@ export interface PlayStyle {
    * se a hunt paga. Um alvo que te obriga a potar sem parar pode render MENOS que um que
    * paga menos e nao te toca.
    */
-  potion?: { heal: number; price: number } | null;
+  potion?: { heal: number; price: number; threshold: number } | null;
   /** de onde veio a medida, pra a tela poder dizer */
   from: "live" | "totals" | "default";
   /** abates que sustentam a medida (amostra pequena = numero fraco) */
@@ -588,8 +588,17 @@ export async function rankMoney(
       //   pocao — sai do dano que ESTE alvo te causa. Alvo que te obriga a potar sem
       //           parar come o lucro, e a media escondia isso.
       const dmgPerKill = selfHp / Math.max(0.1, est.threat.killsPerLife);
-      const potionPerKill = potion && potion.heal > 0
-        ? (dmgPerKill / potion.heal) * potion.price
+      // CURA EFETIVA, nao nominal. O auto-potion dispara com a vida abaixo do limiar,
+      // entao o que falta pra encher e no maximo (1 - limiar) x vida cheia — curar alem
+      // disso e ouro no lixo. Com limiar 50% numa vida de 4.536, a Ultimate Potion de
+      // 3.000 aproveita 2.268: 24% do frasco se perde, e o modelo que usa o nominal
+      // subestima o numero de pocoes na mesma proporcao. (Medido: 2.356 de media em 12
+      // usos — o modelo erra 3,9%, o nominal erraria 27%.)
+      const effHeal = potion && potion.heal > 0
+        ? Math.min(potion.heal, Math.max(1, (1 - Math.min(99, potion.threshold) / 100) * selfHp))
+        : 0;
+      const potionPerKill = effHeal > 0
+        ? (dmgPerKill / effHeal) * potion!.price
         : Math.max(0, style.supplyPerKill - ballCost); // sem catalogo de pocao, cai na media
       const supplyPerKill = ballCost + potionPerKill;
 

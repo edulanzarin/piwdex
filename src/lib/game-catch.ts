@@ -58,8 +58,24 @@ export interface CatchData {
   /** catchRate da bola que o auto-catch usa (a chance e linear nele) */
   ballRate: number;
   ballName: string;
-  /** id da pocao que o auto-potion usa — o custo de cura sai dela */
+  /**
+   * Preco em ouro da bola que o auto-catch usa AGORA. E ele que custeia o supply, nao a
+   * media da vida da conta: verificado contra a contabilidade do proprio jogo em
+   * 20/08/2026 — 128 Ultra (130) + 1 Idle (400) + 12 Ultimate Potion (135) = 18.660, que
+   * e exatamente o `supplyGold` que o frame `analyzer` reportou.
+   */
+  ballPrice: number;
+  /** id da pocao que o auto-potion usa — o custo de cura sai dela.
+   *  ATENCAO: a config MENTE. Em 20/08/2026 ela dizia 201 (Great Potion, cura 150) e o
+   *  jogo usou Ultimate Potion (cura 3000) — 20x de diferenca na cura, e o modelo
+   *  projetaria 15x mais pocoes do que a hunt gasta. A fonte confiavel e o frame
+   *  `auto-heal`, que nomeia a pocao REAL; enquanto a sessao nao o escuta, isto aqui e
+   *  so um palpite e o custo de cura tem que ser tratado como tal. */
   potionItemId: number;
+  /** limiar do auto-potion em % (0..100). A pocao dispara com a vida ABAIXO dele, entao
+   *  a cura aproveitada e no maximo (1 - limiar) x vida cheia — o resto vira overheal.
+   *  Conferido: limiar 50% com 4.536 de vida da 2.268 previstos contra 2.356 medidos. */
+  potionThreshold: number;
   at: number;
 }
 
@@ -88,7 +104,7 @@ export async function fetchCatchData(userId: string, force = false): Promise<Cat
   }
 
   // o auto-catch decide se existe captura, e com que bola
-  let autoCatch = false, ballRate = 1, ballName = "", potionItemId = 0;
+  let autoCatch = false, ballRate = 1, ballName = "", ballPrice = 0, potionItemId = 0, potionThreshold = 0;
   try {
     const r = await gameFetch("/api/game/auto-helper", tokens);
     if (r.changed) { tokens = r.tokens; await updateGameTokens(userId, tokens).catch(() => {}); }
@@ -96,8 +112,9 @@ export async function fetchCatchData(userId: string, force = false): Promise<Cat
       const h = (await r.res.json().catch(() => null)) as Record<string, unknown> | null;
       autoCatch = Boolean(h?.autoCatch);
       const ball = ballById(num(h?.autoCatchBallId));
-      if (ball) { ballRate = ball.catchRate; ballName = ball.name; }
+      if (ball) { ballRate = ball.catchRate; ballName = ball.name; ballPrice = ball.priceGold ?? 0; }
       potionItemId = num(h?.autoPotionItemId);
+      potionThreshold = num(h?.autoPotionThreshold);
     }
   } catch { /* sem o auto-helper, assume a bola fraca (subestima, nao inventa) */ }
 
@@ -142,7 +159,7 @@ export async function fetchCatchData(userId: string, force = false): Promise<Cat
     });
   }
 
-  const data: CatchData = { bySpecies, totalBalls, autoCatch, ballRate, ballName, potionItemId, at: now };
+  const data: CatchData = { bySpecies, totalBalls, autoCatch, ballRate, ballName, ballPrice, potionItemId, potionThreshold, at: now };
   cache.set(userId, { data, exp: now + CACHE_MS });
   return data;
 }
