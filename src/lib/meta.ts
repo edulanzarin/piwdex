@@ -11,9 +11,12 @@
 //  3. HP e DEFESA SE MULTIPLICAM. Somar `hp+def` diz que 200 de HP com 20 de Def e igual
 //     a 20 de HP com 200 de Def; na pratica o primeiro aguenta 10x mais. O que se aguenta
 //     e HP EFETIVO = hp x def.
-//  E VELOCIDADE NAO ENTRA: a doc do jogo (pokepedia/systems/power) so usa Speed na soma
-//  do Power exibido — nenhum sistema publico dá a ela efeito em combate. Peso em stat que
-//  nao faz nada e ruido que empurra pokemon rapido e inutil pra cima.
+//  4. VELOCIDADE NAO E UM TERCEIRO EIXO. A doc do jogo so usa Speed na soma do Power
+//     exibido, e nenhum sistema publico dá a ela efeito em combate. O efeito que se
+//     observa jogando e encurtar a recarga do golpe — se for isso, ela MULTIPLICA o eixo
+//     ofensivo, nao se soma a ele. Sem a formula da haste nao da pra quantificar, entao
+//     ela fica fora; somar 10% de velocidade ao score, como o piwtools faz, estaria
+//     errado mesmo se a formula fosse conhecida.
 //
 // O TIER tambem muda de natureza. Cortar por posicao (top 10% = S) faz o tier significar
 // "sua fila", nao "sua forca": se metade do catalogo fosse otima, 40% dela viraria B ou

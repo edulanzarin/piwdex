@@ -145,13 +145,12 @@ function ProfileBody({
           <p className="mt-4 text-sm text-text-dim">{t("meta.noMoves")}</p>
         ) : (
           <div className="mt-4 max-w-full overflow-x-auto">
-            <table className="w-full min-w-[38rem] text-sm">
+            <table className="w-full min-w-[34rem] text-sm">
               <thead className="text-left text-text-dim">
                 <tr>
                   <th className="px-2 py-2">{t("meta.col.move")}</th>
                   <th className="w-28 px-2 py-2">{t("meta.col.type")}</th>
                   <th className="w-20 px-2 py-2 text-right">{t("meta.col.power")}</th>
-                  <th className="w-20 px-2 py-2 text-right">{t("meta.col.cd")}</th>
                   <th className="w-24 px-2 py-2 text-right">{t("meta.col.dps")}</th>
                   <th className="w-20 px-2 py-2 text-right">{t("meta.col.learn")}</th>
                 </tr>
@@ -168,13 +167,13 @@ function ProfileBody({
                     </td>
                     <td className="px-2 py-2"><TypeBadge type={m.attack.type} /></td>
                     <td className="px-2 py-2 text-right tabular-nums text-text-dim">{m.attack.power}</td>
-                    <td className="px-2 py-2 text-right tabular-nums text-text-dim">{(m.attack.cooldownMs / 1000).toFixed(0)}s</td>
                     <td className="px-2 py-2 text-right tabular-nums" style={{ color: ACCENT }}>{fmtDps(m.dps)}</td>
                     <td className="px-2 py-2 text-right tabular-nums text-text-dim">{m.attack.learnLevel}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
+            <p className="mt-3 text-xs leading-relaxed text-text-dim">{t("meta.cdNote")}</p>
           </div>
         )}
       </section>
