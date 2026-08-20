@@ -9,7 +9,7 @@ import { captureRatesBySlug } from "@/lib/robot-events";
 import { fetchCatchData, fitCatchLaw, predictCatchRate, rateFromMeter } from "@/lib/game-catch";
 import { fetchGameBoosts, lootBonusesOf } from "@/lib/game-boosts";
 import { lootMultiplier, NO_BONUS, STREAK_STEP, type LootBonuses } from "@/lib/boost";
-import { rankMoney, NO_STYLE, type MoneyMode, type PlayStyle } from "@/lib/hunt-brain";
+import { rankMoney, getBrainData, NO_STYLE, type MoneyMode, type PlayStyle } from "@/lib/hunt-brain";
 import { getData } from "@/lib/data";
 import { ALL_TYPES } from "@/lib/typing";
 import type { PokeType } from "@/lib/types";
@@ -119,6 +119,43 @@ async function measureStyle(userId: string): Promise<PlayStyle> {
  */
 const NO_BONUS_FOR_SPEED = NO_BONUS;
 
+/**
+ * Ajusta a reta da velocidade: `ttk = perHp * HP_do_wild + overhead`.
+ *
+ * Cada hunt sua vira um ponto (abates e segundos do resumo, mais a hunt em curso), e o HP
+ * do wild vem do catalogo. Dois pontos com HP diferente ja identificam os dois termos —
+ * e sao eles que dizem a verdade que o motor de dano nao sabe: na conta do Eduardo a reta
+ * deu DPS 133 e overhead 3,25s, enquanto o motor assumia 5s fixos e um dano ~13x menor,
+ * o que escondia o Pinsir (16 abates/h previstos contra ~530 reais).
+ */
+async function fitKillSpeed(userId: string, bySlug: Map<string, { kills: number; seconds: number }>) {
+  const data = await getBrainData();
+  const bySlugTarget = new Map(data.targets.map((t) => [t.slug, t]));
+  const pts: { hp: number; ttk: number }[] = [];
+
+  const add = (slug: string, kills: number, seconds: number) => {
+    const t = bySlugTarget.get(slug);
+    if (!t || kills < 30 || seconds < 120) return; // amostra curta nao mede ritmo
+    const ttk = seconds / kills;
+    if (ttk > 0.2 && ttk < 600) pts.push({ hp: t.hp, ttk });
+  };
+  for (const [slug, agg] of bySlug) add(slug, agg.kills, agg.seconds);
+  const st = sessionFor(userId).getState();
+  if (st.slug && st.analyzer) add(st.slug, st.analyzer.kills, st.analyzer.seconds);
+
+  if (pts.length < 2) return null;
+  const mx = pts.reduce((s, p) => s + p.hp, 0) / pts.length;
+  const my = pts.reduce((s, p) => s + p.ttk, 0) / pts.length;
+  let sxy = 0, sxx = 0;
+  for (const p of pts) { sxy += (p.hp - mx) * (p.ttk - my); sxx += (p.hp - mx) ** 2; }
+  if (sxx <= 0) return null;
+  const perHp = sxy / sxx;
+  const overhead = my - perHp * mx;
+  // reta sem sentido fisico (inclinacao negativa, overhead absurdo) = pontos ruins
+  if (!(perHp > 0) || overhead < 0 || overhead > 60) return null;
+  return { perHp, overhead, points: pts.length };
+}
+
 async function measureSpeed(userId: string, pokes: ActivePoke[], vip: boolean): Promise<number> {
   const st = sessionFor(userId).getState();
   const a = st.analyzer;
@@ -189,6 +226,7 @@ export async function GET(req: Request) {
   const capture = numParam(q.get("capture"));
   const supply = numParam(q.get("supply"));
   const speedFactor = await measureSpeed(userId, pokes, true).catch(() => 1);
+  const killSpeed = await fitKillSpeed(userId, measured.bySlug ?? new Map()).catch(() => null);
   const style: PlayStyle = {
     capturePerKill: capture != null ? capture : measured.capturePerKill,
     supplyPerKill: supply != null ? supply : measured.supplyPerKill,
@@ -200,6 +238,7 @@ export async function GET(req: Request) {
     predictRate: capture != null ? undefined : measured.predictRate,
     sellShare: measured.sellShare,
     speedFactor,
+    killSpeed,
   };
 
   // VIP do JOGO (1,5x XP): assume ligado, como o /api/vip/best-poke, pra nao pagar mais
@@ -240,6 +279,9 @@ export async function GET(req: Request) {
       from: style.from,
       sample: style.sample,
       speedFactor: style.speedFactor,
+      killSpeed: style.killSpeed
+        ? { dps: Math.round(1 / style.killSpeed.perHp), overhead: style.killSpeed.overhead, points: style.killSpeed.points }
+        : null,
       sellShare: style.sellShare ?? 1,
       spots: style.bySlug?.size ?? 0,
       species: style.bySpecies?.size ?? 0,

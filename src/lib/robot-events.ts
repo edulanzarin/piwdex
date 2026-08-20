@@ -95,15 +95,16 @@ export async function clearRobotEvents(userId: string): Promise<void> {
 // Sem isso, o ranking projetava a renda de captura do Yanma em cima do Tyrogue e o
 // recomendava a 438k/h enquanto o jogo pagava MENOS 25k/h.
 
-export interface SlugRate { kills: number; captures: number }
+export interface SlugRate { kills: number; captures: number; seconds: number }
 
 export async function captureRatesBySlug(userId: string): Promise<Map<string, SlugRate>> {
   const out = new Map<string, SlugRate>();
   try {
-    const rows = await query<{ slug: string; kills: string; captures: string }>(
+    const rows = await query<{ slug: string; kills: string; captures: string; seconds: string }>(
       `SELECT data->>'slug' AS slug,
               sum((data->>'kills')::numeric)::text    AS kills,
-              sum((data->>'captures')::numeric)::text AS captures
+              sum((data->>'captures')::numeric)::text AS captures,
+              sum(coalesce((data->>'seconds')::numeric, 0))::text AS seconds
          FROM robot_events
         WHERE user_id = $1 AND kind = 'hunt-summary'
           AND data ? 'slug' AND data ? 'kills' AND data ? 'captures'
@@ -115,7 +116,12 @@ export async function captureRatesBySlug(userId: string): Promise<Map<string, Sl
       if (!r.slug) continue;
       const kills = Number(r.kills), captures = Number(r.captures);
       if (!Number.isFinite(kills) || kills <= 0) continue;
-      out.set(r.slug, { kills, captures: Number.isFinite(captures) ? captures : 0 });
+      const seconds = Number(r.seconds);
+      out.set(r.slug, {
+        kills,
+        captures: Number.isFinite(captures) ? captures : 0,
+        seconds: Number.isFinite(seconds) ? seconds : 0,
+      });
     }
   } catch {
     // sem historico o ranking cai na taxa geral — nao e motivo pra falhar a rota

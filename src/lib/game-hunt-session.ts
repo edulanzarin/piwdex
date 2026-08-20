@@ -1819,7 +1819,7 @@ class GameSession {
     this.summaryLogged = true;
     const slug = this.slug ?? "";
     const userId = this.userId;
-    void logRobotEvent(userId, { kind: "hunt-summary", title: `Hunt ${slug} — resumo`, body: `${a.kills} kills · ${a.captures} capturas · +$${Math.round(a.balance)}`, data: { slug, kills: a.kills, captures: a.captures, xp: a.xpGained, balance: a.balance } });
+    void logRobotEvent(userId, { kind: "hunt-summary", title: `Hunt ${slug} — resumo`, body: `${a.kills} kills · ${a.captures} capturas · +$${Math.round(a.balance)}`, data: { slug, kills: a.kills, captures: a.captures, xp: a.xpGained, balance: a.balance, seconds: a.seconds } });
     // totalizador cumulativo (pra sempre) do que a hunt rendeu — alimenta o dashboard de
     // Estatisticas. Itens raros = soma da qtd dos drops marcados `rare` nos dados (resolve
     // pelo nome; cai pro itemId se o nome nao bater).

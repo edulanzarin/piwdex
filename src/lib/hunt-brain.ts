@@ -355,12 +355,24 @@ export interface PlayStyle {
    */
   sellShare?: number;
   /**
-   * Correcao da velocidade de abate: abates/h REAIS medidos na hunt em curso divididos
-   * pelos que o motor previu pro MESMO alvo. O motor de combate e calibrado "pra comparar
-   * hunts, nao como numero exato" (ver combat.ts) — e no Tyrogue ele errou por ~3x, o que
-   * arrasta junto o loot/h, a captura/h e o supply/h. 1 = sem medida.
+   * Correcao simples da velocidade (fator unico). Mantida como rede quando nao ha pontos
+   * suficientes pro ajuste de verdade abaixo. 1 = sem medida.
    */
   speedFactor: number;
+  /**
+   * VELOCIDADE MEDIDA: `ttk = perHp * HP_do_wild + overhead`, ajustado nas SUAS hunts.
+   *
+   * O motor de combate estima o dano com uma constante de calibracao inventada, e o erro
+   * nao e um fator: como o overhead e fixo, subestimar o dano castiga alvo TANQUE e
+   * favorece lixo de nivel baixo. Media na conta do Eduardo: o motor dava 16 abates/h no
+   * Pinsir (231s por abate) quando a hunt real fazia ~530 — e por isso o painel enchia de
+   * bicho nivel 10 e escondia a melhor hunt de Kanto.
+   *
+   * Dois pontos com HP diferente identificam os dois termos (e uma reta), e a conferencia
+   * bateu: Tyrogue 900 abates/h e Yanma 713 dao DPS 133 e overhead 3,25s — contra os 5s
+   * fixos que o motor assumia.
+   */
+  killSpeed?: { perHp: number; overhead: number; points: number } | null;
 }
 
 /**
@@ -543,9 +555,13 @@ export async function rankMoney(
       const est = estimateHunt(sp, f.level, ivs, f.quality, t, data.movesOf(t.pokeId), vip);
       if (!est || est.threat.risk === "deadly") continue; // morrer nao paga
 
-      // velocidade corrigida pela realidade medida: o motor errou ~3x no Tyrogue, e o
-      // erro contamina loot, captura e supply de uma vez (todos sao por abate).
-      const kosH = est.kosH * style.speedFactor;
+      // Velocidade: com ajuste medido, a reta manda (ela ja embute a sua forca real);
+      // sem ele, o motor com o fator unico. O erro de velocidade contamina loot, captura
+      // e supply de uma vez, porque os tres sao por abate.
+      const ks = style.killSpeed;
+      const kosH = ks && ks.points >= 2
+        ? 3600 / Math.max(0.5, ks.perHp * t.hp + ks.overhead)
+        : est.kosH * style.speedFactor;
       const lootH = e.loot * kosH;
       const captureH = e.capture * kosH;
       const supplyH = e.supply * kosH;

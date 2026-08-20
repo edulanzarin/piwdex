@@ -53,6 +53,7 @@ interface Style {
   from: "live" | "totals" | "default"; sample: number;
   speedFactor: number; sellShare: number; spots: number; species: number;
   autoCatch: boolean; ballName: string;
+  killSpeed: { dps: number; overhead: number; points: number } | null;
   law: { sample: number; spread: number } | null;
 }
 
@@ -416,9 +417,15 @@ export function TypeDayPanel({ onHunt, huntOn = false }: { onHunt: (row: MoneyRo
       <p className="text-sm leading-relaxed text-text-dim">
         {isXp ? t("robo.day.noteXp") : t("robo.day.note")}
         {styleNote ? ` ${styleNote}` : ""}
-        {data && data.style.speedFactor !== 1
-          ? ` ${t("robo.day.speed", { v: data.style.speedFactor.toFixed(2) })}`
-          : ""}
+        {data?.style.killSpeed
+          ? ` ${t("robo.day.killSpeed", {
+              dps: data.style.killSpeed.dps.toLocaleString("pt-BR"),
+              oh: data.style.killSpeed.overhead.toFixed(1),
+              n: data.style.killSpeed.points,
+            })}`
+          : data && data.style.speedFactor !== 1
+            ? ` ${t("robo.day.speed", { v: data.style.speedFactor.toFixed(2) })}`
+            : ""}
         {data && data.style.law && data.style.law.sample > 0
           ? ` ${t("robo.day.law", { n: data.style.law.sample, x: data.style.law.spread.toFixed(1), ball: data.style.ballName })}`
           : ""}
