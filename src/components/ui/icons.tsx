@@ -1,292 +1,88 @@
-import type { SVGProps } from "react";
-
 /**
- * Icones em PIXEL ART de verdade — nao glifo de biblioteca reduzido, nao emoji.
+ * Icones da interface.
  *
- * O desenho e a propria fonte: cada icone e um grid de texto onde `#` acende um
- * pixel. Isso mantem o icone editavel a olho nu (mexer no desenho e mexer no
- * texto) e garante que ele case com os sprites do jogo, que sao pixel art na
- * mesma escala.
+ * Sao os do **lucide** — traco fino, canto arredondado, desenho moderno. A
+ * versao anterior era pixel art 8x8 desenhada a mao e o Eduardo reprovou
+ * ("muito feios, quero moderno"). O pixel continua no site, mas onde ele e
+ * verdade: nos sprites do jogo e no wallpaper.
  *
- * Regra de tamanho: pixel art nao escala em fracao. Use multiplos do grid
- * (8, 16, 24) — 14px num grid de 8 borra a linha. `shapeRendering=crispEdges`
- * fecha a porta pro antialias do browser.
+ * **A troca nao e so trocar o componente.** Glifo cheio de 8px e traco de 1,5px
+ * nao vivem na mesma escala: o pixel preenchia a caixa inteira, o traco desenha
+ * so a borda e some no mesmo tamanho. Por isso existe um PISO de tamanho aqui —
+ * abaixo de 14px um icone de linha vira borrao — e a espessura sobe um pouco
+ * nos tamanhos pequenos, pra o traco nao sumir.
  */
+import {
+  ArrowLeftRight,
+  Check,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronUp,
+  Coins,
+  Filter,
+  Info,
+  LayoutGrid,
+  Link2,
+  MapPin,
+  Menu,
+  Minus,
+  Plus,
+  Rows3,
+  Search,
+  Sparkles,
+  Star,
+  ArrowUpDown,
+  X,
+  Zap,
+  type LucideIcon,
+} from "lucide-react";
+import { cn } from "@/lib/cn";
 
-type Art = readonly string[];
-
-function draw(art: Art) {
-  const cells: React.ReactNode[] = [];
-  art.forEach((row, y) => {
-    let x = 0;
-    while (x < row.length) {
-      if (row[x] === "#") {
-        // Junta o corrido horizontal num rect so — menos nos no DOM.
-        let run = 1;
-        while (row[x + run] === "#") run++;
-        cells.push(<rect key={`${x}-${y}`} x={x} y={y} width={run} height={1} />);
-        x += run;
-      } else {
-        x++;
-      }
-    }
-  });
-  return cells;
-}
-
-interface PixIconProps extends Omit<SVGProps<SVGSVGElement>, "children"> {
+export interface IconProps {
   size?: number;
+  className?: string;
 }
 
-function makeIcon(art: Art, grid = 8) {
-  const Icon = ({ size = 16, ...props }: PixIconProps) => (
-    <svg
-      viewBox={`0 0 ${grid} ${grid}`}
-      width={size}
-      height={size}
-      fill="currentColor"
-      shapeRendering="crispEdges"
-      aria-hidden="true"
-      focusable="false"
-      {...props}
-    >
-      {draw(art)}
-    </svg>
-  );
-  return Icon;
+/** Piso de 14px e espessura compensada — ver o comentario do topo. */
+const MIN = 14;
+
+function wrap(Icon: LucideIcon, nome: string) {
+  const C = ({ size = 16, className }: IconProps) => {
+    const s = Math.max(MIN, size);
+    return (
+      <Icon
+        size={s}
+        strokeWidth={s <= 16 ? 2.25 : s <= 22 ? 2 : 1.75}
+        absoluteStrokeWidth={false}
+        className={cn("shrink-0", className)}
+        aria-hidden="true"
+      />
+    );
+  };
+  C.displayName = nome;
+  return C;
 }
 
-export const IconSearch = makeIcon([
-  " ###    ",
-  "#   #   ",
-  "#   #   ",
-  "#   #   ",
-  " ###    ",
-  "    ##  ",
-  "     ## ",
-  "      ##",
-]);
-
-export const IconClose = makeIcon([
-  "##    ##",
-  "###  ###",
-  " ###### ",
-  "  ####  ",
-  "  ####  ",
-  " ###### ",
-  "###  ###",
-  "##    ##",
-]);
-
-export const IconCheck = makeIcon([
-  "        ",
-  "      ##",
-  "     ## ",
-  "    ##  ",
-  "##  ##  ",
-  " ####   ",
-  "  ##    ",
-  "        ",
-]);
-
-export const IconChevronDown = makeIcon([
-  "        ",
-  "        ",
-  "##    ##",
-  " ##  ## ",
-  "  ####  ",
-  "   ##   ",
-  "        ",
-  "        ",
-]);
-
-export const IconChevronUp = makeIcon([
-  "        ",
-  "        ",
-  "   ##   ",
-  "  ####  ",
-  " ##  ## ",
-  "##    ##",
-  "        ",
-  "        ",
-]);
-
-export const IconChevronLeft = makeIcon([
-  "        ",
-  "     ## ",
-  "   ##   ",
-  " ##     ",
-  " ##     ",
-  "   ##   ",
-  "     ## ",
-  "        ",
-]);
-
-export const IconChevronRight = makeIcon([
-  "        ",
-  " ##     ",
-  "   ##   ",
-  "     ## ",
-  "     ## ",
-  "   ##   ",
-  " ##     ",
-  "        ",
-]);
-
-export const IconFilter = makeIcon([
-  "########",
-  " ###### ",
-  "  ####  ",
-  "   ##   ",
-  "   ##   ",
-  "  ####  ",
-  "        ",
-  "        ",
-]);
-
-export const IconGrid = makeIcon([
-  "###  ###",
-  "###  ###",
-  "###  ###",
-  "        ",
-  "###  ###",
-  "###  ###",
-  "###  ###",
-  "        ",
-]);
-
-export const IconRows = makeIcon([
-  "########",
-  "########",
-  "        ",
-  "########",
-  "########",
-  "        ",
-  "########",
-  "########",
-]);
-
-export const IconSort = makeIcon([
-  "   ##   ",
-  "  ####  ",
-  " ###### ",
-  "        ",
-  "        ",
-  " ###### ",
-  "  ####  ",
-  "   ##   ",
-]);
-
-export const IconStar = makeIcon([
-  "   ##   ",
-  "   ##   ",
-  "########",
-  " ###### ",
-  "  ####  ",
-  " ##  ## ",
-  "##    ##",
-  "        ",
-]);
-
-export const IconPlus = makeIcon([
-  "        ",
-  "   ##   ",
-  "   ##   ",
-  "########",
-  "########",
-  "   ##   ",
-  "   ##   ",
-  "        ",
-]);
-
-export const IconMinus = makeIcon([
-  "        ",
-  "        ",
-  "        ",
-  "########",
-  "########",
-  "        ",
-  "        ",
-  "        ",
-]);
-
-export const IconInfo = makeIcon([
-  "  ####  ",
-  " ##  ## ",
-  "##  # ##",
-  "##    ##",
-  "##  # ##",
-  "##  # ##",
-  " ##  ## ",
-  "  ####  ",
-]);
-
-export const IconLink = makeIcon([
-  "   #####",
-  "   #  ##",
-  "      ##",
-  " ##   ##",
-  " ##   ##",
-  " ##     ",
-  " ##   ##",
-  " #######",
-]);
-
-export const IconSwap = makeIcon([
-  "  ##    ",
-  " ####   ",
-  "########",
-  "        ",
-  "        ",
-  "########",
-  "   #### ",
-  "    ##  ",
-]);
-
-/** Poder / ataque — o raio. */
-export const IconBolt = makeIcon([
-  "    ### ",
-  "   ###  ",
-  "  ###   ",
-  " ###### ",
-  "   ###  ",
-  "  ###   ",
-  " ###    ",
-  "###     ",
-]);
-
-/** Moeda de ouro — valor de venda. */
-export const IconCoin = makeIcon([
-  "  ####  ",
-  " ###### ",
-  "## ## ##",
-  "## ## ##",
-  "## ## ##",
-  "## ## ##",
-  " ###### ",
-  "  ####  ",
-]);
-
-/** Ponto de caca no mapa. */
-export const IconPin = makeIcon([
-  "  ####  ",
-  " ###### ",
-  "## ## ##",
-  "## ## ##",
-  " ###### ",
-  "  ####  ",
-  "   ##   ",
-  "   ##   ",
-]);
-
-/** Cadeia evolutiva. */
-export const IconEvolve = makeIcon([
-  "   ##   ",
-  "  ####  ",
-  " ###### ",
-  "   ##   ",
-  "   ##   ",
-  " ###### ",
-  "  ####  ",
-  "   ##   ",
-]);
+export const IconSearch = wrap(Search, "IconSearch");
+export const IconClose = wrap(X, "IconClose");
+export const IconCheck = wrap(Check, "IconCheck");
+export const IconChevronDown = wrap(ChevronDown, "IconChevronDown");
+export const IconChevronUp = wrap(ChevronUp, "IconChevronUp");
+export const IconChevronLeft = wrap(ChevronLeft, "IconChevronLeft");
+export const IconChevronRight = wrap(ChevronRight, "IconChevronRight");
+export const IconFilter = wrap(Filter, "IconFilter");
+export const IconGrid = wrap(LayoutGrid, "IconGrid");
+export const IconRows = wrap(Rows3, "IconRows");
+export const IconMenu = wrap(Menu, "IconMenu");
+export const IconSort = wrap(ArrowUpDown, "IconSort");
+export const IconStar = wrap(Star, "IconStar");
+export const IconPlus = wrap(Plus, "IconPlus");
+export const IconMinus = wrap(Minus, "IconMinus");
+export const IconInfo = wrap(Info, "IconInfo");
+export const IconLink = wrap(Link2, "IconLink");
+export const IconSwap = wrap(ArrowLeftRight, "IconSwap");
+export const IconBolt = wrap(Zap, "IconBolt");
+export const IconCoin = wrap(Coins, "IconCoin");
+export const IconPin = wrap(MapPin, "IconPin");
+export const IconEvolve = wrap(Sparkles, "IconEvolve");

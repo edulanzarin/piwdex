@@ -1,226 +1,66 @@
+/**
+ * Simbolo dos 18 tipos.
+ *
+ * Cada tipo tem um icone do lucide escolhido pela SILHUETA distinta — a 14px o
+ * que se le e a forma, e dois contornos parecidos lado a lado no mesmo badge
+ * viram a mesma mancha. Por isso Terrestre e camada e Pedra e montanha, e nao
+ * as duas montanhas; e por isso Psiquico e olho e Fada e faisca, e nao as duas
+ * estrelas.
+ *
+ * O par COR + FORMA e proposital: quem nao distingue matiz continua separando
+ * os tipos pela forma, coisa que cor sozinha nunca resolve.
+ */
+import {
+  Bug,
+  Circle,
+  Droplet,
+  Eye,
+  Feather,
+  Flame,
+  Gem,
+  Ghost,
+  Layers,
+  Leaf,
+  Moon,
+  Mountain,
+  Bolt as Nut,
+  Skull,
+  Snowflake,
+  Sparkles,
+  Swords,
+  Zap,
+  type LucideIcon,
+} from "lucide-react";
 import type { PokeType } from "@/lib/types";
 import { TYPE_COLOR } from "@/lib/typing";
 import { TYPE_LABEL, multWord } from "@/lib/labels";
 import type { TypeMult } from "@/lib/typing";
 import { cn } from "@/lib/cn";
 
-/**
- * Simbolo de cada um dos 18 tipos, em pixel art 8x8.
- *
- * Num grid de 8x8 nao cabe desenho: cabe SIMBOLO. Por isso cada tipo virou uma
- * silhueta distinta a distancia (gota, chama, crescente, engrenagem) em vez de
- * uma ilustracao encolhida, que a 16px vira mancha. O par cor+forma tambem e
- * proposital — quem nao distingue matiz ainda separa os tipos pela forma, o que
- * cor sozinha nunca resolve.
- *
- * O tipo pode vir `NEUTRAL` num golpe (golpe sem tipo, fora dos 18 canonicos):
- * quem consome isto precisa de fallback — ver `TypeBadge`.
- */
-
-const ART: Record<PokeType, readonly string[]> = {
-  NORMAL: [
-    "  ####  ",
-    " ###### ",
-    "########",
-    "########",
-    "########",
-    "########",
-    " ###### ",
-    "  ####  ",
-  ],
-  FIRE: [
-    "   ##   ",
-    "  ###   ",
-    "  ####  ",
-    " ###### ",
-    " ###### ",
-    "########",
-    " ###### ",
-    "  ####  ",
-  ],
-  WATER: [
-    "   ##   ",
-    "   ##   ",
-    "  ####  ",
-    " ###### ",
-    "########",
-    "########",
-    " ###### ",
-    "  ####  ",
-  ],
-  ELECTRIC: [
-    "    ### ",
-    "   ###  ",
-    "  ###   ",
-    " ###### ",
-    "   ###  ",
-    "  ###   ",
-    " ###    ",
-    "###     ",
-  ],
-  GRASS: [
-    "    ####",
-    "   #####",
-    "  ######",
-    " #######",
-    " ###### ",
-    " #####  ",
-    "###     ",
-    "#       ",
-  ],
-  ICE: [
-    "#  ##  #",
-    "## ## ##",
-    " ###### ",
-    "   ##   ",
-    "   ##   ",
-    " ###### ",
-    "## ## ##",
-    "#  ##  #",
-  ],
-  FIGHTING: [
-    " ###### ",
-    "########",
-    "## ## ##",
-    "########",
-    "########",
-    " ###### ",
-    "  ####  ",
-    "        ",
-  ],
-  POISON: [
-    " ###### ",
-    "########",
-    "## ## ##",
-    "## ## ##",
-    "########",
-    " ###### ",
-    " # ## # ",
-    " ###### ",
-  ],
-  GROUND: [
-    "        ",
-    "   ##   ",
-    "  ####  ",
-    " ###### ",
-    "########",
-    "        ",
-    "########",
-    "########",
-  ],
-  FLYING: [
-    "        ",
-    "##      ",
-    "####    ",
-    "####### ",
-    "########",
-    " ###### ",
-    "   ###  ",
-    "        ",
-  ],
-  PSYCHIC: [
-    " ###### ",
-    " #      ",
-    " # #### ",
-    " # #  # ",
-    " # ## # ",
-    " #    # ",
-    " ###### ",
-    "        ",
-  ],
-  BUG: [
-    "#      #",
-    " #    # ",
-    "  ####  ",
-    " ###### ",
-    "########",
-    " ###### ",
-    "  ####  ",
-    " #    # ",
-  ],
-  ROCK: [
-    "        ",
-    "   ###  ",
-    "  ##### ",
-    " #######",
-    "########",
-    "########",
-    " ###### ",
-    "        ",
-  ],
-  GHOST: [
-    "  ####  ",
-    " ###### ",
-    "## ## ##",
-    "########",
-    "########",
-    "########",
-    "########",
-    "# ## # #",
-  ],
-  DRAGON: [
-    "   ##   ",
-    "  ####  ",
-    " ###### ",
-    "########",
-    "########",
-    " ###### ",
-    "  ####  ",
-    "   ##   ",
-  ],
-  DARK: [
-    "  ####  ",
-    " ###### ",
-    "###   ##",
-    "###     ",
-    "###     ",
-    "###   ##",
-    " ###### ",
-    "  ####  ",
-  ],
-  STEEL: [
-    " # ## # ",
-    " ###### ",
-    "###  ###",
-    "##    ##",
-    "##    ##",
-    "###  ###",
-    " ###### ",
-    " # ## # ",
-  ],
-  FAIRY: [
-    "   ##   ",
-    "   ##   ",
-    "#  ##  #",
-    "########",
-    "########",
-    "#  ##  #",
-    "   ##   ",
-    "   ##   ",
-  ],
+const TYPE_ICON: Record<PokeType, LucideIcon> = {
+  NORMAL: Circle,
+  FIRE: Flame,
+  WATER: Droplet,
+  ELECTRIC: Zap,
+  GRASS: Leaf,
+  ICE: Snowflake,
+  FIGHTING: Swords,
+  POISON: Skull,
+  GROUND: Layers,
+  FLYING: Feather,
+  PSYCHIC: Eye,
+  BUG: Bug,
+  ROCK: Mountain,
+  GHOST: Ghost,
+  DRAGON: Gem,
+  DARK: Moon,
+  STEEL: Nut,
+  FAIRY: Sparkles,
 };
-
-function cells(art: readonly string[]) {
-  const out: React.ReactNode[] = [];
-  art.forEach((row, y) => {
-    let x = 0;
-    while (x < row.length) {
-      if (row[x] === "#") {
-        let run = 1;
-        while (row[x + run] === "#") run++;
-        out.push(<rect key={`${x}-${y}`} x={x} y={y} width={run} height={1} />);
-        x += run;
-      } else {
-        x++;
-      }
-    }
-  });
-  return out;
-}
 
 export function TypeIcon({
   type,
-  size = 10,
+  size = 14,
   className,
   style,
 }: {
@@ -229,22 +69,17 @@ export function TypeIcon({
   className?: string;
   style?: React.CSSProperties;
 }) {
-  const art = ART[type];
-  if (!art) return null;
+  const Icon = TYPE_ICON[type];
+  if (!Icon) return null;
+  const s = Math.max(13, size);
   return (
-    <svg
-      viewBox="0 0 8 8"
-      width={size}
-      height={size}
-      fill="currentColor"
-      shapeRendering="crispEdges"
+    <Icon
+      size={s}
+      strokeWidth={s <= 16 ? 2.25 : 2}
       className={cn("shrink-0", className)}
       style={style}
       aria-hidden="true"
-      focusable="false"
-    >
-      {cells(art)}
-    </svg>
+    />
   );
 }
 
@@ -272,16 +107,17 @@ export function TypeBadge({
 
   return (
     <span
-      style={{ borderColor: `${color}66`, backgroundColor: `${color}1c`, color }}
+      style={{ borderColor: `${color}5c`, backgroundColor: `${color}1f`, color }}
       className={cn(
-        "pix inline-flex items-center gap-1 rounded-pix border whitespace-nowrap",
-        size === "xs" ? "h-4 px-1 text-[11px]" : "h-5 px-1.5 text-[12px]",
-        !showLabel && (size === "xs" ? "w-4 justify-center px-0" : "w-5 justify-center px-0"),
+        "inline-flex items-center gap-1.5 rounded-none border whitespace-nowrap",
+        size === "xs" ? "h-6 px-2 text-[11px]" : "h-7 px-2.5 text-[12px]",
+        "font-medium tracking-wide",
+        !showLabel && (size === "xs" ? "w-6 justify-center px-0" : "w-7 justify-center px-0"),
         className,
       )}
       title={label}
     >
-      {known ? <TypeIcon type={type} size={size === "xs" ? 8 : 10} /> : null}
+      {known ? <TypeIcon type={type} size={size === "xs" ? 13 : 14} /> : null}
       {showLabel ? label : null}
     </span>
   );
@@ -306,16 +142,16 @@ export function TypeMultChip({
   const color = TYPE_COLOR[m.type];
   return (
     <span
-      style={{ borderColor: `${color}66`, backgroundColor: `${color}18` }}
+      style={{ borderColor: `${color}5c`, backgroundColor: `${color}1c` }}
       className={cn(
-        "pix inline-flex h-5 items-center gap-1 rounded-pix border px-1.5 text-[11px]",
+        "inline-flex h-7 items-center gap-1.5 rounded-none border px-2.5 text-[12px] font-medium",
         className,
       )}
       title={`${TYPE_LABEL[m.type]}: ${multWord(m.mult)}`}
     >
-      <TypeIcon type={m.type} size={9} style={{ color }} />
+      <TypeIcon type={m.type} size={16} style={{ color }} />
       <span style={{ color }}>{TYPE_LABEL[m.type]}</span>
-      <span className={tone}>{m.label}</span>
+      <span className={cn("font-bold", tone)}>{m.label}</span>
     </span>
   );
 }
