@@ -15,7 +15,7 @@ nivel 40".
 | Pagina inicial | pronta |
 | Pokedex (17 filtros, grid/tabela, estado na URL) | pronta |
 | Ficha da especie (stats, fraquezas, golpes, drops, evolucao, spots) | pronta |
-| Itens com indice reverso | a fazer |
+| Itens com indice reverso (10 filtros, ficha com quem dropa) | pronto |
 | Calculadora de IV/Quality/Poder | a fazer |
 | Rota de hunt / Breeding / Meta | a fazer |
 | Robo (area logada) | a portar do piwdex |
@@ -67,6 +67,8 @@ src/
     data.ts       derivacoes (indice reverso de drop, spots, evolucao)
     dex.ts        motor da dex: o que se pode perguntar e como ordenar
     dex-url.ts    a pergunta serializada na URL
+    items.ts      motor dos itens: de onde vem, da pra farmar, rende quanto
+    items-url.ts  a mesma serializacao, do lado dos itens
     stats.ts      formula de stat/IV/Poder do jogo (verificada)
     typing.ts     tabela de efetividade e cores de tipo
     rarity.ts     faixas de qualidade (tabela oficial do jogo)

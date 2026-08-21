@@ -44,7 +44,7 @@ const TOOLS = [
     desc: "Catálogo de itens com o índice reverso: quem dropa cada um, e com que chance real.",
     icon: Package,
     cor: "var(--color-t-itens)",
-    ready: false,
+    ready: true,
   },
   {
     href: "/calc",

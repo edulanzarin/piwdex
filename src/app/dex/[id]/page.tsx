@@ -463,8 +463,20 @@ export default async function CreaturePage({ params }: Props) {
                   return (
                     <tr key={l.name} className="border-b border-line last:border-0">
                       <td className="px-3 py-1.5 text-[14px] text-text">
+                        {/* A ponte de volta: daqui se chega em QUEM MAIS dropa o
+                            mesmo item. A ficha da especie so sabe metade do par
+                            — a outra metade e a pagina do item. */}
                         <span className="flex items-center gap-1.5">
-                          {l.name}
+                          {item ? (
+                            <Link
+                              href={`/itens/${item.id}`}
+                              className="transition-colors hover:text-[var(--color-t-itens)]"
+                            >
+                              {l.name}
+                            </Link>
+                          ) : (
+                            l.name
+                          )}
                           {item?.rare ? <Chip size="xs" tone="accent" icon={<IconGem size={14} />}>raro</Chip> : null}
                         </span>
                       </td>
