@@ -1,0 +1,255 @@
+@import "tailwindcss";
+
+/* ============================================================================
+   piwdex — sistema de design
+   ----------------------------------------------------------------------------
+   Dialeto proprio: console pixel/neon escuro. NAO e o dialeto de dashboard
+   (Aurora Glass) do Brain — ferramenta de jogo tem estetica propria, so os
+   PRINCIPIOS se reusam (token semantico, hierarquia por superficie, escala
+   fechada, todo estado tem visual).
+
+   Regra de leitura: cor e espaco SEMPRE saem daqui. Nenhum hex solto, nenhum
+   `17px` no componente. A unica excecao sao as cores de DADO (tipo de pokemon,
+   faixa de raridade), que vivem em lib/typing.ts e lib/rarity.ts porque sao
+   dado do jogo, nao decisao de interface — ver o principio "acento da interface
+   e um token separado da cor de dado".
+   ========================================================================== */
+
+@theme {
+  /* ---- superficies: a hierarquia e por PROFUNDIDADE, nao por borda ---- */
+  --color-bg: #06070d;
+  --color-bg-soft: #090b13;
+  --color-surface: #0d1019;
+  --color-surface-2: #121826;
+  --color-surface-3: #19202f;
+  --color-overlay: #0a0d15;
+
+  /* ---- linhas: fina por padrao, forte so quando a superficie nao resolveu ---- */
+  --color-line: #1c2434;
+  --color-line-strong: #2b3648;
+
+  /* ---- texto: tres degraus, nunca mais ---- */
+  --color-text: #e8edf7;
+  --color-text-dim: #97a3b8;
+  --color-text-mute: #5f6b80;
+
+  /* ---- acento da INTERFACE (nao confundir com cor de dado) ---- */
+  --color-accent: #a06bff;
+  --color-accent-soft: #6d43c4;
+  --color-accent-deep: #2a1a4d;
+  --color-neon: #2ee6d6;
+  --color-neon-deep: #0f3f3d;
+
+  /* ---- semanticas de estado ---- */
+  --color-ok: #46e08a;
+  --color-warn: #ffb454;
+  --color-danger: #ff5c72;
+
+  /* ---- raio: canto duro, e estetica pixel ---- */
+  --radius-pix: 2px;
+  --radius-pix-lg: 4px;
+
+  /* ---- fontes (as familias vem do next/font no layout) ---- */
+  --font-pixel: var(--font-silkscreen), "Courier New", monospace;
+  --font-mono: var(--font-mono-src), ui-monospace, "SF Mono", monospace;
+
+  /* ---- sombra/brilho neon: escada fechada ---- */
+  --shadow-glow-sm: 0 0 0 1px color-mix(in oklab, var(--color-accent) 35%, transparent),
+                    0 0 12px -2px color-mix(in oklab, var(--color-accent) 45%, transparent);
+  --shadow-glow: 0 0 0 1px color-mix(in oklab, var(--color-accent) 55%, transparent),
+                 0 0 22px -4px color-mix(in oklab, var(--color-accent) 60%, transparent);
+  --shadow-panel: 0 1px 0 0 rgba(255, 255, 255, 0.03) inset,
+                  0 12px 32px -18px rgba(0, 0, 0, 0.9);
+  --shadow-pop: 0 18px 48px -22px rgba(0, 0, 0, 0.95),
+                0 0 0 1px var(--color-line-strong);
+}
+
+/* ============================================================================
+   Base
+   ========================================================================== */
+
+@layer base {
+  * {
+    border-color: var(--color-line);
+  }
+
+  html {
+    color-scheme: dark;
+    /* Rolagem estavel: a barra some/aparece entre paginas e a grade inteira
+       pulava 15px pro lado. */
+    scrollbar-gutter: stable;
+  }
+
+  body {
+    background-color: var(--color-bg);
+    color: var(--color-text);
+    font-family: var(--font-mono);
+    font-size: 0.875rem;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    /* A grade de fundo e o unico "cenario": duas linhas de 1px em 44px, mais um
+       halo de acento no topo. Custa zero requisicao e nao concorre com o dado. */
+    background-image:
+      radial-gradient(900px 420px at 50% -10%,
+        color-mix(in oklab, var(--color-accent) 12%, transparent), transparent 70%),
+      linear-gradient(to right, color-mix(in oklab, var(--color-line) 55%, transparent) 1px, transparent 1px),
+      linear-gradient(to bottom, color-mix(in oklab, var(--color-line) 55%, transparent) 1px, transparent 1px);
+    background-size: 100% 100%, 44px 44px, 44px 44px;
+    background-attachment: fixed;
+  }
+
+  /* Foco visivel e NEON — num tema escuro o outline padrao do browser some. */
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+    border-radius: var(--radius-pix);
+  }
+
+  ::selection {
+    background: color-mix(in oklab, var(--color-accent) 40%, transparent);
+    color: var(--color-text);
+  }
+
+  /* Barra de rolagem no tema — a padrao clara rasga o escuro. */
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: var(--color-bg-soft); }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-line-strong);
+    border: 2px solid var(--color-bg-soft);
+  }
+  ::-webkit-scrollbar-thumb:hover { background: var(--color-accent-soft); }
+
+  /* O numero e dado: tabular pra coluna nao dancar entre linhas. */
+  table, .tabular { font-variant-numeric: tabular-nums; }
+
+  /* Sprite do jogo e pixel art: escalar com suavizacao vira borrao. */
+  img[data-pixel="true"] {
+    image-rendering: pixelated;
+  }
+}
+
+/* ============================================================================
+   Componentes — classes de componente vao em @layer components pra vencer a
+   utilitaria sem !important (e a utilitaria do chamador ainda vence via
+   tailwind-merge no cn()).
+   ========================================================================== */
+
+@layer components {
+  /* ---- rotulo pixel: o unico lugar onde a fonte pixel entra ----
+     Fonte pixel em texto corrido mata a densidade. Ela fica so em rotulo curto,
+     caixa alta, com tracking — e o dado fica no mono, que se le. */
+  .pix {
+    font-family: var(--font-pixel);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    line-height: 1;
+  }
+
+  /* ---- superficie base de qualquer bloco ---- */
+  .panel {
+    background-color: color-mix(in oklab, var(--color-surface) 88%, transparent);
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-pix-lg);
+    box-shadow: var(--shadow-panel);
+    backdrop-filter: blur(6px);
+  }
+
+  /* ---- campo (input/select/trigger): UMA aparencia pra tudo que aceita entrada ---- */
+  .field {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    height: 2rem;
+    padding-inline: 0.5rem;
+    background-color: var(--color-bg-soft);
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-pix);
+    color: var(--color-text);
+    font-size: 0.8125rem;
+    transition: border-color 120ms, box-shadow 120ms, background-color 120ms;
+  }
+  .field:hover:not(:disabled):not([aria-disabled="true"]) {
+    border-color: var(--color-line-strong);
+  }
+  .field:focus-within,
+  .field[data-open="true"] {
+    border-color: color-mix(in oklab, var(--color-accent) 70%, transparent);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-accent) 18%, transparent);
+    background-color: var(--color-surface);
+  }
+  .field:disabled,
+  .field[aria-disabled="true"] {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  /* ---- flutuante (popover/menu/modal): superficie MAIS OPACA que a chrome ----
+     Vidro sobre vidro nao se le: o overlay ganha fundo proprio quase solido. */
+  .pop {
+    background-color: var(--color-surface-3);
+    border: 1px solid var(--color-line-strong);
+    border-radius: var(--radius-pix-lg);
+    box-shadow: var(--shadow-pop);
+  }
+
+  /* ---- scanline sutil: o "console" sem custar legibilidade ---- */
+  .scanline::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: repeating-linear-gradient(
+      to bottom,
+      rgba(255, 255, 255, 0.022) 0 1px,
+      transparent 1px 3px
+    );
+    border-radius: inherit;
+  }
+}
+
+/* ============================================================================
+   Animacoes — todas respeitam prefers-reduced-motion no fim do arquivo.
+   ========================================================================== */
+
+@keyframes pix-spin { to { transform: rotate(360deg); } }
+@keyframes pix-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+@keyframes pix-shimmer { 100% { transform: translateX(100%); } }
+@keyframes pix-rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@keyframes pix-pop { from { opacity: 0; transform: translateY(-4px) scale(0.98); } to { opacity: 1; transform: none; } }
+@keyframes pix-fade { from { opacity: 0; } to { opacity: 1; } }
+
+.anim-spin { animation: pix-spin 900ms steps(8, end) infinite; }
+.anim-pulse { animation: pix-pulse 1.4s ease-in-out infinite; }
+.anim-rise { animation: pix-rise 220ms ease-out both; }
+.anim-pop { animation: pix-pop 120ms ease-out both; }
+.anim-fade { animation: pix-fade 160ms ease-out both; }
+
+/* Esqueleto: imita a FORMA do conteudo, com um brilho passando por cima. */
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background-color: var(--color-surface-2);
+  border-radius: var(--radius-pix);
+}
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in oklab, var(--color-accent) 10%, transparent),
+    transparent
+  );
+  animation: pix-shimmer 1.5s infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
