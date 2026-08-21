@@ -80,7 +80,7 @@ function FilterGroup({
           <span className="pix rounded-pix bg-accent/20 px-1 text-[11px] text-accent">{active}</span>
         ) : null}
         <IconChevronDown
-          size={8}
+          size={14}
           className={cn("text-text-mute transition-transform", open && "rotate-180")}
         />
       </button>
@@ -227,7 +227,7 @@ export function DexFilters({
 
       <FilterGroup title="Números" active={numeros}>
         <div>
-          <FieldLabel className="mb-1 flex items-center gap-1.5"><IconLevel size={9} />Nível de caça</FieldLabel>
+          <FieldLabel className="mb-1 flex items-center gap-1.5"><IconLevel size={15} />Nível de caça</FieldLabel>
           <Range
             label="Nível de caça"
             min={bounds.level[0]}
@@ -244,7 +244,7 @@ export function DexFilters({
         </div>
 
         <div>
-          <FieldLabel className="mb-1 flex items-center gap-1.5"><IconGem size={9} />Valor de venda</FieldLabel>
+          <FieldLabel className="mb-1 flex items-center gap-1.5"><IconGem size={15} />Valor de venda</FieldLabel>
           <Range
             label="Valor"
             min={bounds.value[0]}
@@ -263,7 +263,7 @@ export function DexFilters({
         </div>
 
         <div>
-          <FieldLabel className="mb-1 flex items-center gap-1.5"><IconXp size={9} />XP por abate</FieldLabel>
+          <FieldLabel className="mb-1 flex items-center gap-1.5"><IconXp size={15} />XP por abate</FieldLabel>
           <Range
             label="XP"
             min={bounds.xp[0]}
@@ -275,7 +275,7 @@ export function DexFilters({
         </div>
 
         <div>
-          <FieldLabel className="mb-1 flex items-center gap-1.5"><IconScale size={9} />Total de stats base</FieldLabel>
+          <FieldLabel className="mb-1 flex items-center gap-1.5"><IconScale size={15} />Total de stats base</FieldLabel>
           <Range
             label="Total de stats"
             min={bounds.statTotal[0]}
@@ -287,7 +287,7 @@ export function DexFilters({
         </div>
 
         <div>
-          <FieldLabel className="mb-1 flex items-center gap-1.5"><IconTarget size={9} />Poder do melhor golpe</FieldLabel>
+          <FieldLabel className="mb-1 flex items-center gap-1.5"><IconTarget size={15} />Poder do melhor golpe</FieldLabel>
           <Range
             label="Poder do golpe"
             min={bounds.power[0]}
@@ -356,7 +356,7 @@ export function DexFilters({
             A pergunta util e a inversa — "quem dropa Bulb?" — e ela nao existe
             em lugar nenhum, nem no jogo nem no piwtools. */}
         <div>
-          <FieldLabel className="mb-1 flex items-center gap-1.5"><IconBag size={9} />Quem dropa este item</FieldLabel>
+          <FieldLabel className="mb-1 flex items-center gap-1.5"><IconBag size={15} />Quem dropa este item</FieldLabel>
           <Combobox
             value={q.drops}
             onChange={(drops) => onChange({ drops })}

@@ -103,7 +103,7 @@ export function Select<T extends string>({
             {selected ? selected.render ?? selected.label : placeholder}
           </span>
         </span>
-        <IconChevronDown size={8} className={cn("shrink-0 text-text-mute transition-transform", open && "rotate-180")} />
+        <IconChevronDown size={14} className={cn("shrink-0 text-text-mute transition-transform", open && "rotate-180")} />
       </button>
 
       <Popover open={open} onClose={close} anchorRef={anchor} matchWidth>
@@ -129,7 +129,7 @@ export function Select<T extends string>({
                   >
                     <span className="min-w-0 flex-1 truncate">{o.render ?? o.label}</span>
                     {o.hint ? <span className="shrink-0 text-[12px] text-text-mute">{o.hint}</span> : null}
-                    {on ? <IconCheck size={8} className="shrink-0" /> : null}
+                    {on ? <IconCheck size={14} className="shrink-0" /> : null}
                   </button>
                 </li>
               );

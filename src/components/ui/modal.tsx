@@ -110,7 +110,7 @@ export function Modal({
               {title ? <h2 className="truncate text-[17px] font-semibold text-text">{title}</h2> : null}
             </div>
             <IconButton label="Fechar" size="sm" variant="ghost" onClick={onClose}>
-              <IconClose size={10} />
+              <IconClose size={16} />
             </IconButton>
           </header>
         )}

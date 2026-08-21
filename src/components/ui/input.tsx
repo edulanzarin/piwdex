@@ -48,7 +48,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
           aria-label="Limpar"
           className="shrink-0 rounded-pix p-0.5 text-text-mute transition-colors hover:text-danger"
         >
-          <IconClose size={8} />
+          <IconClose size={14} />
         </button>
       ) : null}
     </div>
@@ -57,7 +57,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
 
 /** Busca — o input com a lupa e o limpar ja ligados. */
 export function SearchInput(props: Omit<InputProps, "iconLeft">) {
-  return <Input iconLeft={<IconSearch size={12} />} placeholder="Buscar..." {...props} />;
+  return <Input iconLeft={<IconSearch size={16} />} placeholder="Buscar..." {...props} />;
 }
 
 /** Par de numeros "de / ate". Um controle so, porque MIN e MAX sao uma

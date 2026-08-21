@@ -46,8 +46,8 @@ export function Chip({
           : undefined
       }
       className={cn(
-        "pix inline-flex items-center gap-1 rounded-pix border whitespace-nowrap",
-        size === "xs" ? "h-4 px-1 text-[11px]" : "h-5 px-1.5 text-[12px]",
+        "inline-flex items-center gap-1.5 rounded-none border whitespace-nowrap font-medium tracking-wide",
+        size === "xs" ? "h-6 px-2 text-[11px]" : "h-7 px-2.5 text-[12px]",
         !tint && TONE[tone],
         className,
       )}
@@ -62,7 +62,7 @@ export function Chip({
           aria-label="Remover"
           className="ml-0.5 opacity-60 transition-opacity hover:opacity-100"
         >
-          <IconClose size={6} />
+          <IconClose size={14} />
         </button>
       ) : null}
     </span>

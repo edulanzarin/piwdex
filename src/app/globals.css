@@ -22,26 +22,31 @@
      um terminal, nao uma ferramenta de jogo. O azul-noite tem a MESMA
      profundidade e devolve o ar. A hierarquia continua por profundidade, nao
      por borda. */
-  --color-bg: #0a0e1a;
-  --color-bg-soft: #0f1424;
-  --color-surface: #151b2e;
-  --color-surface-2: #1c2440;
-  --color-surface-3: #232c4d;
-  --color-overlay: #070a12;
+  --color-bg: #0b0d12;
+  --color-bg-soft: #101319;
+  --color-surface: #151920;
+  --color-surface-2: #1c212b;
+  --color-surface-3: #242a36;
+  --color-overlay: #06070a;
 
   /* ---- linhas: fina por padrao, forte so quando a superficie nao resolveu ---- */
-  --color-line: #283253;
-  --color-line-strong: #3a4670;
+  --color-line: #272d38;
+  --color-line-strong: #39414f;
 
   /* ---- texto: tres degraus, nunca mais ---- */
   --color-text: #e8edf7;
   --color-text-dim: #97a3b8;
   --color-text-mute: #5f6b80;
 
-  /* ---- acento da INTERFACE (nao confundir com cor de dado) ---- */
-  --color-accent: #a06bff;
-  --color-accent-soft: #6d43c4;
-  --color-accent-deep: #2a1a4d;
+  /* ---- acento da INTERFACE ----
+     Aco frio, NAO roxo. O violeta anterior tingia tudo — halo do topo, borda de
+     foco, aba ativa, chip, logo — e o site inteiro virava "o site roxo". Este
+     acento e quase neutro de proposito: ele marca ESTADO (foco, ativo, hover) e
+     sai da frente. A cor com significado fica onde ela informa: tipo, raridade
+     e a cor de cada ferramenta. */
+  --color-accent: #a8bfe0;
+  --color-accent-soft: #6f8099;
+  --color-accent-deep: #1a2330;
   --color-neon: #2ee6d6;
   --color-neon-deep: #0f3f3d;
 
@@ -58,18 +63,21 @@
      escada de raridade, que sao cor de DADO. */
   --color-t-dex: #ff5c72;
   --color-t-itens: #46e08a;
-  --color-t-calc: #a06bff;
+  --color-t-calc: #5b9dff;
   --color-t-hunt: #ffb454;
   --color-t-breed: #f472b6;
   --color-t-meta: #2ee6d6;
 
-  /* ---- raio ----
-     Controle segue com canto duro (a identidade pixel mora nos controles). O
-     VIDRO ganha raio proprio, maior: canto de 4px numa superficie translucida
-     de 400px parece corte, nao peca. */
-  --radius-pix: 2px;
-  --radius-pix-lg: 4px;
-  --radius-glass: 12px;
+  /* ---- raio: ZERO ----
+     Canto reto em tudo que e chrome, por escolha do Eduardo. Nao e so gosto —
+     casa com a fonte quadrada e com o pixel dos sprites; canto arredondado
+     puxava a interface pro dialeto de app generico.
+
+     Os tokens continuam existindo (em vez de eu apagar `rounded-*` de 40
+     arquivos) pra a decisao viver num lugar so: mudar de ideia e mexer aqui. */
+  --radius-pix: 0px;
+  --radius-pix-lg: 0px;
+  --radius-glass: 0px;
 
   /* ---- fonte unica: Quantico, do next/font ---- */
   --font-ui-stack: var(--font-ui), "Segoe UI", system-ui, sans-serif;
@@ -164,14 +172,14 @@
     background:
       linear-gradient(
         180deg,
-        color-mix(in srgb, var(--color-bg) 30%, transparent) 0%,
-        color-mix(in srgb, var(--color-bg) 55%, transparent) 45%,
-        color-mix(in srgb, var(--color-bg) 78%, transparent) 100%
+        color-mix(in srgb, var(--color-bg) 46%, transparent) 0%,
+        color-mix(in srgb, var(--color-bg) 68%, transparent) 45%,
+        color-mix(in srgb, var(--color-bg) 86%, transparent) 100%
       ),
       radial-gradient(
-        1100px 520px at 50% 0%,
-        color-mix(in oklab, var(--color-accent) 18%, transparent),
-        transparent 70%
+        1200px 560px at 50% 0%,
+        color-mix(in srgb, #ffffff 5%, transparent),
+        transparent 72%
       );
   }
 
@@ -235,7 +243,7 @@
         impressao de espessura. Sem ela o painel parece um retangulo furado.
      3. Sombra projetada, pra o vidro flutuar em vez de estar colado. */
   .panel {
-    background-color: color-mix(in oklab, var(--color-surface) 86%, transparent);
+    background-color: color-mix(in oklab, var(--color-surface) 62%, transparent);
     border: 1px solid color-mix(in srgb, #ffffff 14%, transparent);
     border-radius: var(--radius-glass);
     backdrop-filter: blur(18px) saturate(130%);
@@ -250,11 +258,11 @@
      blur alto em 60 elementos trava o scroll em maquina media. Compensa com
      mais opacidade, que resolve a legibilidade sem custar composicao. */
   .panel-card {
-    background-color: color-mix(in oklab, var(--color-surface) 93%, transparent);
+    background-color: color-mix(in oklab, var(--color-surface) 72%, transparent);
     border: 1px solid color-mix(in srgb, #ffffff 12%, transparent);
     border-radius: var(--radius-glass);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(14px) saturate(120%);
+    -webkit-backdrop-filter: blur(14px) saturate(120%);
     box-shadow:
       inset 0 1px 0 0 rgb(255 255 255 / 0.06),
       0 12px 30px -20px rgb(0 0 0 / 0.85);
@@ -266,9 +274,9 @@
     align-items: center;
     gap: 0.5rem;
     width: 100%;
-    height: 2.25rem;
-    padding-inline: 0.625rem;
-    background-color: color-mix(in oklab, var(--color-bg-soft) 88%, transparent);
+    height: 2.5rem;
+    padding-inline: 0.75rem;
+    background-color: color-mix(in oklab, var(--color-bg-soft) 66%, transparent);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
     border: 1px solid color-mix(in srgb, #ffffff 10%, transparent);
@@ -328,6 +336,34 @@
    ========================================================================== */
 
 @keyframes pix-spin { to { transform: rotate(360deg); } }
+/* A pokebola nao gira liso: ela BALANCA, como no jogo quando a captura esta em
+   andamento. Movimento com personagem le como "o sistema esta trabalhando";
+   spinner generico le como "travou". */
+@keyframes pix-wiggle {
+  0%, 100% { transform: rotate(0deg); }
+  15% { transform: rotate(-22deg); }
+  30% { transform: rotate(18deg); }
+  45% { transform: rotate(-14deg); }
+  60% { transform: rotate(10deg); }
+  75% { transform: rotate(-5deg); }
+}
+@keyframes pix-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+@keyframes pix-glow {
+  0%, 100% { opacity: 0.35; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.08); }
+}
+@keyframes pix-sweep {
+  0% { transform: translateX(-120%); }
+  100% { transform: translateX(320%); }
+}
+@keyframes pix-bar {
+  0% { width: 8%; }
+  55% { width: 72%; }
+  100% { width: 96%; }
+}
 @keyframes pix-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
 @keyframes pix-shimmer { 100% { transform: translateX(100%); } }
 @keyframes pix-rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
@@ -335,6 +371,10 @@
 @keyframes pix-fade { from { opacity: 0; } to { opacity: 1; } }
 
 .anim-spin { animation: pix-spin 900ms steps(8, end) infinite; }
+.anim-wiggle { animation: pix-wiggle 1.1s ease-in-out infinite; transform-origin: 50% 62%; }
+.anim-float { animation: pix-float 3s ease-in-out infinite; }
+.anim-glow { animation: pix-glow 2.6s ease-in-out infinite; }
+.anim-bar { animation: pix-bar 1.6s ease-out infinite; }
 .anim-pulse { animation: pix-pulse 1.4s ease-in-out infinite; }
 .anim-rise { animation: pix-rise 220ms ease-out both; }
 .anim-pop { animation: pix-pop 120ms ease-out both; }
@@ -367,4 +407,54 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* ============================================================================
+   Entrada em cascata do grid.
+   ----------------------------------------------------------------------------
+   O atraso vem de uma variavel que o React escreve por item (`--i`), e nao de
+   uma regra por indice: com `:nth-child` seria uma regra CSS pra cada posicao,
+   e o grid tem 120. O teto de 16 passos impede que o ultimo card de uma pagina
+   cheia espere um segundo e meio pra aparecer.
+   ========================================================================== */
+@keyframes pix-enter {
+  from { opacity: 0; transform: translateY(10px) scale(0.985); }
+  to { opacity: 1; transform: none; }
+}
+.anim-enter {
+  animation: pix-enter 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(min(var(--i, 0), 16) * 28ms);
+}
+
+/* Brilho que atravessa a superficie no hover — o toque de vidro. */
+.sheen { position: relative; overflow: hidden; }
+.sheen::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 35%;
+  background: linear-gradient(
+    100deg,
+    transparent,
+    rgb(255 255 255 / 0.07),
+    transparent
+  );
+  transform: translateX(-120%);
+  pointer-events: none;
+}
+.sheen:hover::after { animation: pix-sweep 850ms ease-out; }
+
+/* ============================================================================
+   Texto direto sobre o wallpaper.
+   ----------------------------------------------------------------------------
+   Com o heroi sem painel, o texto encosta na imagem. Isso so e aceitavel porque
+   a arte agora e escura (luminancia media 37, pico 67) — na versao clara seria
+   ilegivel. Ainda assim leva sombra: o pico varia pela cena, e a sombra e o que
+   segura a letra na parte mais clara sem precisar escurecer a foto inteira.
+   ========================================================================== */
+.on-art {
+  text-shadow:
+    0 1px 2px rgb(0 0 0 / 0.75),
+    0 3px 14px rgb(0 0 0 / 0.55);
 }

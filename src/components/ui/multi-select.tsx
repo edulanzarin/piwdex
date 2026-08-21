@@ -93,7 +93,7 @@ export function MultiSelect<T extends string>({
             {summary}
           </span>
         </span>
-        <IconChevronDown size={8} className={cn("shrink-0 text-text-mute transition-transform", open && "rotate-180")} />
+        <IconChevronDown size={14} className={cn("shrink-0 text-text-mute transition-transform", open && "rotate-180")} />
       </button>
 
       <Popover open={open} onClose={close} anchorRef={anchor} minWidth={230}>

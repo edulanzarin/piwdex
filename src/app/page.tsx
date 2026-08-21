@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { getDexPayload } from "@/lib/dex-data";
-import { Chip, IconChevronRight, IconPin, Pokeball } from "@/components/ui";
-import { IconBag, IconGem, IconScale, IconTarget, IconTm, IconXp } from "@/components/game-icons";
+import { Chip, IconChevronRight, Pokeball } from "@/components/ui";
+import { Sparkles } from "lucide-react";
+import { BookOpen, Calculator, Egg, Package, Radar, Swords } from "lucide-react";
 
 export const revalidate = 3600;
 
@@ -32,7 +33,7 @@ const TOOLS = [
     desc:
       "Todas as espécies com filtro por tipo, raridade, origem, estágio, fraqueza e " +
       "faixa de nível, valor, XP, stats e poder de golpe.",
-    icon: IconGem,
+    icon: BookOpen,
     cor: "var(--color-t-dex)",
     ready: true,
   },
@@ -40,7 +41,7 @@ const TOOLS = [
     href: "/itens",
     name: "Itens",
     desc: "Catálogo de itens com o índice reverso: quem dropa cada um, e com que chance real.",
-    icon: IconBag,
+    icon: Package,
     cor: "var(--color-t-itens)",
     ready: false,
   },
@@ -48,7 +49,7 @@ const TOOLS = [
     href: "/calc",
     name: "Calculadora",
     desc: "IV, Quality e Poder pela fórmula do jogo. Projeta os stats em qualquer nível.",
-    icon: IconScale,
+    icon: Calculator,
     cor: "var(--color-t-calc)",
     ready: false,
   },
@@ -56,7 +57,7 @@ const TOOLS = [
     href: "/hunt",
     name: "Hunt",
     desc: "Rota de caça por XP, ouro e efetividade — usando o melhor golpe CONTRA o alvo.",
-    icon: IconPin,
+    icon: Radar,
     cor: "var(--color-t-hunt)",
     ready: false,
   },
@@ -64,7 +65,7 @@ const TOOLS = [
     href: "/breed",
     name: "Breeding",
     desc: "Simula o ovo, projeta os stats do filho e planeja quantos breeds até a Quality alvo.",
-    icon: IconTm,
+    icon: Egg,
     cor: "var(--color-t-breed)",
     ready: false,
   },
@@ -72,35 +73,26 @@ const TOOLS = [
     href: "/meta",
     name: "Meta",
     desc: "Quem bate em quem: cobertura de tipo, fraquezas cruzadas e montagem de time.",
-    icon: IconTarget,
+    icon: Swords,
     cor: "var(--color-t-meta)",
     ready: false,
   },
 ];
 
 export default async function HomePage() {
-  const { entries, counts, catalog } = await getDexPayload();
-  const total = entries.length;
-
-  const numeros = [
-    { label: "pokémons", value: total, cor: "var(--color-t-dex)" },
-    { label: "itens", value: counts.items, cor: "var(--color-t-itens)" },
-    { label: "drops mapeados", value: counts.drops, cor: "var(--color-t-breed)" },
-    { label: "locais de caça", value: counts.hunts, cor: "var(--color-t-hunt)" },
-  ];
+  await getDexPayload();
 
   return (
     <div className="flex flex-col gap-10 py-6">
       {/* ================= topo ================= */}
-      {/* O heroi tem vidro proprio. A regra do fundo com foto e simples e nao
-          tem excecao: **texto nunca encosta na imagem** — a arte tem luminancia
-          media 148 e varia de nuvem clara a folhagem escura na mesma linha, e
-          nenhum scrim uniforme resolve isso sem apagar a foto. O vidro resolve
-          os dois: o texto ganha piso constante e a arte continua visivel em
-          volta e ATRAVES dele. */}
-      <section className="panel flex flex-col items-center gap-7 px-6 py-12 text-center sm:px-10">
+      {/* O heroi NAO tem painel: texto direto sobre o wallpaper.
+          Isso so passou a ser possivel depois que a arte foi escurecida
+          (luminancia media 37, pico 67) — com a foto clara original era
+          ilegivel. `.on-art` poe sombra na letra, que e o que segura o texto
+          na parte mais clara da cena sem escurecer a foto inteira. */}
+      <section className="on-art flex flex-col items-center gap-7 px-4 py-14 text-center sm:py-20">
         <div className="flex items-center gap-4">
-          <Pokeball size={56} className="text-accent" />
+          <Pokeball size={64} className="anim-float text-[var(--color-t-dex)]" />
           <div className="text-left">
             <h1 className="pix text-[38px] leading-none text-text sm:text-[48px]">
               piw<span className="text-accent">dex</span>
@@ -134,39 +126,10 @@ export default async function HomePage() {
             }}
           >
             abrir a pokédex
-            <IconChevronRight size={10} />
+            <IconChevronRight size={16} />
           </Link>
-          {/* Frescor do catalogo e ESTADO, nao rodape: num patch de balanceamento
-              a dex ao vivo e a de snapshot dao respostas diferentes. */}
-          <Chip
-            tone={catalog.live ? "ok" : "warn"}
-            className="h-8 px-3 text-[11px]"
-            title={
-              catalog.live
-                ? `Catálogo do jogo, publicado em ${catalog.generatedAt}`
-                : `Fonte indisponível (${catalog.error ?? "motivo desconhecido"})`
-            }
-          >
-            {catalog.live ? "catálogo ao vivo" : "catálogo salvo"}
-          </Chip>
-        </div>
-      </section>
 
-      {/* ================= os numeros do catalogo AGORA ================= */}
-      <section>
-        <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {numeros.map((n) => (
-            <div
-              key={n.label}
-              className="panel flex flex-col items-center gap-2 px-4 py-5 text-center"
-            >
-              <dd className="text-[30px] leading-none font-bold" style={{ color: n.cor }}>
-                {n.value.toLocaleString("pt-BR")}
-              </dd>
-              <dt className="pix text-[11px] text-text-mute">{n.label}</dt>
-            </div>
-          ))}
-        </dl>
+        </div>
       </section>
 
       {/* ================= ferramentas ================= */}
@@ -182,7 +145,7 @@ export default async function HomePage() {
                       home parar de ser seis caixas cinza iguais, e o que depois
                       deixa reconhecer a tela pela cor antes de ler o titulo. */}
                   <span
-                    className="grid h-14 w-14 shrink-0 place-items-center rounded-pix-lg border"
+                    className="grid h-14 w-14 shrink-0 place-items-center rounded-none border"
                     style={{
                       borderColor: `color-mix(in oklab, ${t.cor} ${t.ready ? 55 : 30}%, transparent)`,
                       backgroundColor: `color-mix(in oklab, ${t.cor} ${t.ready ? 16 : 9}%, transparent)`,
@@ -190,7 +153,7 @@ export default async function HomePage() {
                       opacity: t.ready ? 1 : 0.62,
                     }}
                   >
-                    <Icon size={26} />
+                    <Icon size={24} strokeWidth={1.8} />
                   </span>
                   <div className="flex min-w-0 flex-1 flex-col gap-2">
                     <div className="flex items-center gap-2">
@@ -223,7 +186,7 @@ export default async function HomePage() {
                     }}
                   >
                     abrir {t.name.toLowerCase()}
-                    <IconChevronRight size={11} />
+                    <IconChevronRight size={16} />
                   </span>
                 ) : null}
               </>
@@ -258,7 +221,7 @@ export default async function HomePage() {
       {/* ================= de onde vem o dado ================= */}
       <section className="panel flex flex-col gap-3 p-6">
         <h2 className="pix flex items-center gap-2 text-[13px] text-text-dim">
-          <IconXp size={12} />
+          <Sparkles size={16} />
           De onde vem o dado
         </h2>
         <p className="max-w-3xl text-[15px] leading-relaxed text-text-mute">

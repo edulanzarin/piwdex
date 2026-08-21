@@ -67,7 +67,7 @@ export function Button({
       type={type}
       data-active={active || undefined}
       className={cn(
-        "inline-flex select-none items-center justify-center whitespace-nowrap rounded-pix",
+        "inline-flex select-none items-center justify-center whitespace-nowrap rounded-none",
         "border font-medium uppercase tracking-wide transition-colors",
         "disabled:pointer-events-none disabled:opacity-40",
         "data-[active]:bg-accent/25 data-[active]:text-accent data-[active]:border-accent/70",
@@ -91,7 +91,7 @@ export interface IconButtonProps extends Omit<ButtonProps, "iconLeft" | "iconRig
 }
 
 export function IconButton({ label, size = "md", className, children, ...props }: IconButtonProps) {
-  const square = { sm: "w-7", md: "w-8", lg: "w-10" }[size];
+  const square = { sm: "w-8", md: "w-9", lg: "w-11" }[size];
   return (
     <Button
       size={size}

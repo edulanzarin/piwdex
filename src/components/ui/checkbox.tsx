@@ -41,9 +41,9 @@ export function Checkbox({ label, indeterminate, tint, className, ...props }: Ch
         {/* O icone nao e irmao do input, entao `peer-checked:` nao o alcanca —
             quem liga a marca e o `group-has-[:checked]` do rotulo inteiro. */}
         {indeterminate ? (
-          <IconMinus size={8} />
+          <IconMinus size={14} />
         ) : (
-          <IconCheck size={8} className="opacity-0 transition-opacity group-has-[:checked]:opacity-100" />
+          <IconCheck size={14} className="opacity-0 transition-opacity group-has-[:checked]:opacity-100" />
         )}
       </span>
       {label ? <span className="min-w-0 flex-1 truncate group-has-[:checked]:text-text">{label}</span> : null}

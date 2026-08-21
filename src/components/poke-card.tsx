@@ -85,8 +85,11 @@ export function PokeCard({
   e,
   ceiling,
   priority,
+  index = 0,
 }: {
   e: DexEntry;
+  /** posicao no grid — vira o atraso da entrada em cascata */
+  index?: number;
   /** teto das barras — vem do CATALOGO, nao da pagina atual, senao o mesmo
    *  bicho ganha barra de tamanho diferente conforme o filtro */
   ceiling: number;
@@ -101,7 +104,7 @@ export function PokeCard({
   // menos, porque nada se destaca.
   const contexto = [
     e.acquisition === "hunt"
-      ? { label: `${e.spots} ${e.spots > 1 ? "locais" : "local"}`, tone: "ok" as const, icon: <IconPin size={9} /> }
+      ? { label: `${e.spots} ${e.spots > 1 ? "locais" : "local"}`, tone: "ok" as const, icon: <IconPin size={15} /> }
       : { label: ACQ_LABEL[e.acquisition], tone: "warn" as const, icon: undefined },
     roles[0]
       ? { label: ROLE_LABEL[roles[0]] ?? roles[0], tone: "neutral" as const, icon: undefined }
@@ -111,16 +114,18 @@ export function PokeCard({
   return (
     <Link
       href={`/dex/${e.id}`}
+      style={{ ["--i" as string]: index }}
       className={cn(
-        "panel-card group relative flex flex-col gap-3 p-3.5 transition-all",
-        "hover:border-accent/55 hover:shadow-[0_0_30px_-12px_var(--color-accent)]",
+        "panel-card sheen anim-enter group relative flex flex-col gap-3 p-3.5",
+        "transition-[border-color,box-shadow,transform] duration-200",
+        "hover:-translate-y-0.5 hover:border-accent/55 hover:shadow-[0_0_34px_-12px_var(--color-accent)]",
         "focus-visible:border-accent",
       )}
     >
       {/* ---- cabecalho: identidade e raridade ---- */}
       <header className="flex items-center justify-between gap-2">
         <span className="pix text-[12px] text-text-mute">#{String(e.id).padStart(3, "0")}</span>
-        <Chip size="sm" tint={tint} icon={<IconGem size={8} />}>
+        <Chip size="sm" tint={tint} icon={<IconGem size={14} />}>
           {RARITY_LABEL[e.rarity]}
         </Chip>
       </header>
@@ -129,15 +134,15 @@ export function PokeCard({
       <div className="relative grid place-items-center py-1">
         <span
           aria-hidden="true"
-          className="absolute h-24 w-24 rounded-full blur-2xl transition-opacity group-hover:opacity-100"
-          style={{ backgroundColor: tint, opacity: 0.2 }}
+          className="absolute h-24 w-24 rounded-full blur-2xl transition-all duration-300 group-hover:h-28 group-hover:w-28 group-hover:opacity-100"
+          style={{ backgroundColor: tint, opacity: 0.22 }}
         />
         <Sprite
           src={spriteUrl(e.id)}
           alt={e.name}
           size={96}
           priority={priority}
-          className="relative transition-transform duration-200 group-hover:scale-110"
+          className="relative transition-transform duration-300 ease-out group-hover:-translate-y-1 group-hover:scale-115"
         />
       </div>
 
@@ -162,7 +167,7 @@ export function PokeCard({
       <dl className="grid grid-cols-3 gap-2 border-t border-line pt-3 text-center">
         <div className="flex flex-col gap-1">
           <dt className="pix flex items-center justify-center gap-1 text-[11px] text-text-mute">
-            <IconLevel size={9} />
+            <IconLevel size={15} />
             Nível
           </dt>
           <dd className="text-[17px] leading-none font-bold text-text">{e.level || "—"}</dd>
@@ -172,7 +177,7 @@ export function PokeCard({
               abate, "npc" e o preço do cassino. Sao eixos diferentes, e o mesmo
               rotulo pros dois faz o card se contradizer entre especies. */}
           <dt className="pix flex items-center justify-center gap-1 text-[11px] text-text-mute">
-            <IconCoin size={9} />
+            <IconCoin size={15} />
             {e.valueFromNpc ? "NPC" : "Venda"}
           </dt>
           <dd
@@ -186,7 +191,7 @@ export function PokeCard({
         </div>
         <div className="flex flex-col gap-1">
           <dt className="pix flex items-center justify-center gap-1 text-[11px] text-text-mute">
-            <IconXp size={9} />
+            <IconXp size={15} />
             XP
           </dt>
           <dd className="text-[17px] leading-none font-bold text-neon">{e.xp || "—"}</dd>
@@ -219,7 +224,7 @@ export function PokeCard({
             <Tooltip
               content={`Aprende TM: o melhor golpe sobe de ${e.bestNatural} para ${e.bestWithTm} de poder.`}
             >
-              <Chip size="sm" tone="neon" icon={<IconTm size={8} />}>
+              <Chip size="sm" tone="neon" icon={<IconTm size={14} />}>
                 TM
               </Chip>
             </Tooltip>
@@ -230,7 +235,7 @@ export function PokeCard({
             className="pix flex h-6 shrink-0 items-center gap-1 text-[11px] text-text-mute"
             title={`${e.dropCount} ${e.dropCount > 1 ? "itens diferentes" : "item"} no loot`}
           >
-            <IconBag size={10} />
+            <IconBag size={16} />
             {e.dropCount}
           </span>
         ) : null}

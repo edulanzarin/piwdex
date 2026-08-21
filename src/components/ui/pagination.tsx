@@ -42,7 +42,7 @@ export function Pagination({
         disabled={page === 0}
         onClick={() => onChange(page - 1)}
       >
-        <IconChevronLeft size={10} />
+        <IconChevronLeft size={16} />
       </IconButton>
 
       {pageList(page, pageCount).map((p, i) =>
@@ -71,7 +71,7 @@ export function Pagination({
         disabled={page >= pageCount - 1}
         onClick={() => onChange(page + 1)}
       >
-        <IconChevronRight size={10} />
+        <IconChevronRight size={16} />
       </IconButton>
     </nav>
   );

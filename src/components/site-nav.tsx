@@ -57,7 +57,9 @@ export function SiteNav() {
     <header className="sticky top-0 z-40 border-b border-white/10 bg-bg/45 backdrop-blur-2xl backdrop-saturate-150 shadow-[inset_0_-1px_0_0_rgb(255_255_255/0.04)]">
       <div className="mx-auto flex h-14 w-full max-w-[1600px] items-center gap-1 px-3 sm:px-5">
         <Link href="/" className="mr-3 flex shrink-0 items-center gap-2">
-          <Pokeball size={24} className="text-accent" />
+          {/* A bola e VERMELHA — ela e uma pokebola, e essa e a unica cor de marca
+              que sobrou depois que o roxo saiu do tema. */}
+          <Pokeball size={26} className="text-[var(--color-t-dex)]" />
           <span className="pix text-[15px] text-text">
             piw<span className="text-accent">dex</span>
           </span>
@@ -72,7 +74,7 @@ export function SiteNav() {
           aria-expanded={open}
           className="ml-auto rounded-pix border border-line p-1.5 text-text-dim transition-colors hover:text-text md:hidden"
         >
-          {open ? <IconClose size={12} /> : <IconRows size={12} />}
+          {open ? <IconClose size={16} /> : <IconRows size={16} />}
         </button>
       </div>
 

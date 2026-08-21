@@ -90,7 +90,7 @@ export function Combobox<T extends string | number>({
         onClick={() => { if (!disabled) { setOpen(true); input.current?.focus(); } }}
         className={cn("field cursor-text", className)}
       >
-        <IconSearch size={10} className="shrink-0 text-text-mute" />
+        <IconSearch size={16} className="shrink-0 text-text-mute" />
         {/* Fechado mostra a ESCOLHA (com sprite); aberto vira campo de texto. */}
         {open ? (
           <input
@@ -108,7 +108,7 @@ export function Combobox<T extends string | number>({
             {selected ? selected.render ?? selected.label : placeholder}
           </span>
         )}
-        <IconChevronDown size={8} className={cn("shrink-0 text-text-mute transition-transform", open && "rotate-180")} />
+        <IconChevronDown size={14} className={cn("shrink-0 text-text-mute transition-transform", open && "rotate-180")} />
       </div>
 
       <Popover open={open} onClose={close} anchorRef={anchor} matchWidth maxHeight={340}>

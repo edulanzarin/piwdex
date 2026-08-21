@@ -65,8 +65,8 @@ type Col = { key: SortKey | null; label: string; align?: "right"; icon?: React.R
 const COLUMNS: Col[] = [
   { key: "name", label: "Pokémon" },
   { key: null, label: "Tipo" },
-  { key: null, label: "Raridade", icon: <IconGem size={8} /> },
-  { key: "level", label: "Nível", align: "right", icon: <IconLevel size={8} /> },
+  { key: null, label: "Raridade", icon: <IconGem size={14} /> },
+  { key: "level", label: "Nível", align: "right", icon: <IconLevel size={14} /> },
   // as seis colunas de stat vao so com icone: o nome inteiro nao cabe e a
   // abreviacao ("AES") nao diz nada — o `title` guarda o nome por extenso
   ...(["hp", "atk", "def", "spAtk", "spDef", "speed"] as SortKey[]).map((k, i) => ({
@@ -75,10 +75,10 @@ const COLUMNS: Col[] = [
     align: "right" as const,
     icon: React.createElement(STAT_ICONS[i], { size: 8 }),
   })),
-  { key: "statTotal", label: "Total", align: "right", icon: <IconScale size={8} /> },
-  { key: "power", label: "Golpe", align: "right", icon: <IconTarget size={8} /> },
+  { key: "statTotal", label: "Total", align: "right", icon: <IconScale size={14} /> },
+  { key: "power", label: "Golpe", align: "right", icon: <IconTarget size={14} /> },
   { key: "value", label: "Valor", align: "right" },
-  { key: "xp", label: "XP", align: "right", icon: <IconXp size={8} /> },
+  { key: "xp", label: "XP", align: "right", icon: <IconXp size={14} /> },
   { key: "spots", label: "Locais", align: "right" },
 ];
 
@@ -204,7 +204,13 @@ export function DexBrowser({
         ) : state.view === "grid" ? (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
             {shown.map((e, i) => (
-              <PokeCard key={e.id} e={e} ceiling={bounds.statCeiling} priority={i < 10} />
+              <PokeCard
+                key={e.id}
+                e={e}
+                ceiling={bounds.statCeiling}
+                priority={i < 10}
+                index={i}
+              />
             ))}
           </div>
         ) : (
@@ -344,7 +350,7 @@ function DexToolbar({
         size="sm"
         onClick={onOpenFilters}
         active={active > 0}
-        iconLeft={<IconFilter size={10} />}
+        iconLeft={<IconFilter size={16} />}
         className="lg:hidden"
       >
         filtros{active ? ` (${active})` : ""}
@@ -384,7 +390,7 @@ function DexToolbar({
           size="sm"
           variant="outline"
           onClick={onToggleDir}
-          iconLeft={<IconSort size={10} />}
+          iconLeft={<IconSort size={16} />}
           title={state.dir === "asc" ? "Crescente" : "Decrescente"}
         >
           {state.dir === "asc" ? "cresc" : "desc"}
@@ -395,8 +401,8 @@ function DexToolbar({
           value={state.view}
           onChange={onView}
           options={[
-            { value: "grid", label: <IconGrid size={10} />, title: "Grade — reconhecer pela silhueta" },
-            { value: "table", label: <IconRows size={10} />, title: "Tabela — comparar número a número" },
+            { value: "grid", label: <IconGrid size={16} />, title: "Grade — reconhecer pela silhueta" },
+            { value: "table", label: <IconRows size={16} />, title: "Tabela — comparar número a número" },
           ]}
         />
       </div>
@@ -434,7 +440,7 @@ function ActiveChips({
       <Chip
         key={`t${t}`}
         tint={TYPE_COLOR[t]}
-        icon={<TypeIcon type={t} size={7} />}
+        icon={<TypeIcon type={t} size={14} />}
         onRemove={() => onChange({ types: q.types.filter((x) => x !== t) })}
       >
         {TYPE_LABEL[t]}
@@ -446,7 +452,7 @@ function ActiveChips({
       <Chip
         key={`r${r}`}
         tint={RARITY_COLOR[r]}
-        icon={<IconGem size={7} />}
+        icon={<IconGem size={14} />}
         onRemove={() => onChange({ rarities: q.rarities.filter((x) => x !== r) })}
       >
         {RARITY_LABEL[r]}
@@ -486,12 +492,12 @@ function ActiveChips({
 
   if (q.drops)
     chips.push(
-      <Chip key="d" tone="accent" icon={<IconBag size={7} />} onRemove={() => onChange({ drops: null })}>
+      <Chip key="d" tone="accent" icon={<IconBag size={14} />} onRemove={() => onChange({ drops: null })}>
         dropa {q.drops}
       </Chip>,
     );
   if (q.onlyTm)
-    chips.push(<Chip key="tm" tone="neon" icon={<IconTm size={7} />} onRemove={() => onChange({ onlyTm: false })}>com TM</Chip>);
+    chips.push(<Chip key="tm" tone="neon" icon={<IconTm size={14} />} onRemove={() => onChange({ onlyTm: false })}>com TM</Chip>);
   if (q.onlySpots)
     chips.push(<Chip key="sp" tone="ok" onRemove={() => onChange({ onlySpots: false })}>com local de caça</Chip>);
 
