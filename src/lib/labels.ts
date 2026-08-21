@@ -12,6 +12,7 @@
 
 import type { Acquisition, AttackCategory, PokeType, Rarity } from "./types";
 import type { Stage } from "./dex";
+import type { ItemCategory, ItemOrigin } from "./items";
 import type { RarityTier } from "./rarity";
 
 /** Nome do tipo em portugues — os mesmos que o proprio jogo usa no idioma BR
@@ -92,6 +93,33 @@ export const STAGE_LABEL: Record<Stage, string> = {
 export const REGION_LABEL: Record<"base" | "orre", string> = {
   base: "Catálogo base",
   orre: "Orre (endgame)",
+};
+
+/** Categoria do item, como o jogo classifica. "Drop" e a categoria de item de
+ *  caca — nao confundir com a ORIGEM logo abaixo, que responde outra pergunta
+ *  ("cai de alguem?"). Uma Poção tem origem de loja e categoria de cura. */
+export const ITEM_CATEGORY_LABEL: Record<ItemCategory, string> = {
+  loot: "Drop",
+  stone: "Pedra",
+  heal: "Cura",
+  revive: "Reviver",
+  clan: "Clã",
+  tm: "TM",
+  card: "Carta",
+  misc: "Diversos",
+};
+
+/** De onde o item vem — o irmao de ACQ_LABEL das especies. */
+export const ITEM_ORIGIN_LABEL: Record<ItemOrigin, string> = {
+  drop: "Cai de pokémon",
+  shop: "Loja",
+  special: "Exclusivo",
+};
+
+export const ITEM_ORIGIN_HINT: Record<ItemOrigin, string> = {
+  drop: "Cai de pokémon — alguma espécie dropa",
+  shop: "Loja — se compra com ouro",
+  special: "Exclusivo — altar, clã, evento ou shiny",
 };
 
 /** Nome curto de cada stat, na ordem canonica (hp, atk, def, spAtk, spDef, speed). */
