@@ -29,11 +29,9 @@ const BICHOS = [25, 133, 143, 94, 149, 6, 448, 196, 131, 59] as const;
 
 export function Loading({
   label = "Carregando",
-  hint,
   className,
 }: {
   label?: string;
-  hint?: string;
   className?: string;
 }) {
   const [id] = useState(() => BICHOS[Math.floor(Math.random() * BICHOS.length)]);
@@ -43,7 +41,10 @@ export function Loading({
     <div
       role="status"
       aria-live="polite"
-      className={cn("flex flex-col items-center justify-center gap-6 px-6 py-24", className)}
+      className={cn(
+        "flex min-h-[60vh] flex-col items-center justify-center gap-6 px-6 py-16",
+        className,
+      )}
     >
       <span className="relative grid h-28 w-28 place-items-center">
         <span
@@ -66,10 +67,7 @@ export function Loading({
         )}
       </span>
 
-      <span className="flex flex-col items-center gap-2">
-        <span className="pix text-[13px] text-text-dim">{label}</span>
-        {hint ? <span className="text-[13px] text-text-mute">{hint}</span> : null}
-      </span>
+      <span className="pix text-[13px] text-text-dim">{label}</span>
 
       {/* Barra INDETERMINADA de proposito: nao ha progresso real pra reportar, e
           barra que finge porcentagem e a que trava em 99%. */}
