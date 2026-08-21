@@ -734,24 +734,45 @@ function Veredito({
 
   const proporcao = Math.min(1, compat.qualityDiff / QUALITY_DIFF_MAX);
   const tetoNormal = !monA.shiny && !monB.shiny;
+  const folga = round3(Math.max(0, QUALITY_DIFF_MAX - compat.qualityDiff));
+  const identica = compat.qualityDiff < 1e-9;
 
   return (
     <div
       className={cn(
-        "flex flex-col gap-2 border p-3",
+        "flex flex-col gap-2.5 border p-3",
         compat.ok ? "border-ok/45 bg-ok/8" : "border-danger/45 bg-danger/8",
       )}
     >
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+      {/* O medidor mede a REGRA que reprova o par: o quanto da folga de 0.150 as
+          duas Qualities ja gastaram. Ele so se le se disser em cima de QUE
+          grandeza ele fala e ENTRE QUAIS numeros — "diferença 0.000 / 0.150"
+          sozinho e um placar sem jogo, e foi assim que ele nasceu. */}
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <span className={cn("pix text-[12px]", compat.ok ? "text-ok" : "text-danger")}>
           {compat.ok ? "par válido" : "par inválido"}
         </span>
+        <span className="text-[13px] text-text-dim tabular">
+          Quality {q3(monA.quality)} e {q3(monB.quality)}
+        </span>
+      </div>
 
-        <span className="flex min-w-[190px] flex-1 items-center gap-2">
-          <span className="pix text-[11px] text-text-mute">diferença</span>
-          <span className="h-2 flex-1 overflow-hidden border border-line bg-bg-soft">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+        <span className="pix shrink-0 text-[11px] text-text-mute">diferença de Quality</span>
+
+        <span className="flex min-w-[170px] flex-1 items-center gap-2">
+          {/* Diferenca zero deixa a barra vazia, que e a MESMA imagem de "não
+              carregou" — e aqui zero e a melhor notícia possível, não a pior.
+              Por isso o trilho ganha um preenchimento fraco de folga por baixo:
+              o medidor continua dizendo alguma coisa quando não há o que medir. */}
+          <span className="relative h-2 flex-1 overflow-hidden border border-line bg-bg-soft">
             <span
-              className="block h-full transition-all"
+              aria-hidden="true"
+              className="absolute inset-0 bg-ok/15"
+              style={{ display: compat.ok ? undefined : "none" }}
+            />
+            <span
+              className="relative block h-full transition-all"
               style={{
                 width: `${proporcao * 100}%`,
                 backgroundColor: compat.ok ? "var(--color-ok)" : "var(--color-danger)",
@@ -760,25 +781,31 @@ function Veredito({
           </span>
           <span
             className={cn(
-              "shrink-0 text-[14px] font-semibold tabular",
+              "shrink-0 text-[15px] font-semibold tabular",
               compat.ok ? "text-text" : "text-danger",
             )}
           >
             {q3(compat.qualityDiff)}
           </span>
-          <span className="shrink-0 text-[12px] text-text-mute tabular">
-            / {q3(QUALITY_DIFF_MAX)}
-          </span>
+        </span>
+
+        <span className="shrink-0 text-[12px] text-text-mute">
+          de <span className="tabular">{q3(QUALITY_DIFF_MAX)}</span> que o jogo permite
         </span>
       </div>
 
       {!compat.ok ? (
         <span className="text-[13px] text-text-dim">
           {compat.reasons.map((r) => MOTIVO[r] ?? r).join(" ")}
-          {!compat.sameSpecies ? "" : ` Abaixe ${q3(compat.qualityDiff - QUALITY_DIFF_MAX)} de distância entre os dois.`}
+          {!compat.sameSpecies
+            ? ""
+            : ` Falta aproximar ${q3(compat.qualityDiff - QUALITY_DIFF_MAX)} de Quality entre os dois.`}
         </span>
       ) : (
         <span className="text-[13px] text-text-dim">
+          {identica
+            ? "Quality idêntica: a folga está inteira, e em empate quem doa o IV é o slot 1. "
+            : `Ainda cabem ${q3(folga)} de diferença antes do par reprovar. `}
           Os dois serão consumidos e sai um ovo.
           {tetoNormal && Math.max(monA.quality, monB.quality) >= QUALITY_MAX_NORMAL
             ? ` Os dois já estão no teto de ${q3(QUALITY_MAX_NORMAL)} — não há Quality a ganhar aqui.`
