@@ -94,19 +94,19 @@ const TOOLS = [
 
 export default async function HomePage() {
   const t0 = agora();
-  await getDexPayload();
+  const { counts, catalog } = await getDexPayload();
 
   await fecharPiso(t0);
 
   return (
-    <div className="flex flex-col gap-12 pb-10">
+    <div className="flex flex-col gap-8 pb-10">
       {/* ================= topo ================= */}
       {/* O heroi NAO tem painel: texto direto sobre o wallpaper.
           Isso so passou a ser possivel depois que a arte foi escurecida
           (luminancia media 37, pico 67) — com a foto clara original era
           ilegivel. `.on-art` poe sombra na letra, que e o que segura o texto
           na parte mais clara da cena sem escurecer a foto inteira. */}
-      <section className="on-art flex min-h-[62vh] flex-col items-center justify-center gap-8 px-4 py-16 text-center sm:min-h-[68vh] sm:py-24">
+      <section className="on-art flex flex-col items-center justify-center gap-7 px-4 py-14 text-center sm:py-20">
         <div className="flex items-center gap-5">
           <Pokeball size={88} className="anim-float text-[var(--color-t-dex)]" />
           <div className="text-left">
@@ -131,7 +131,43 @@ export default async function HomePage() {
           raridade, estágio, fraqueza e faixa de nível, valor, XP e poder de golpe.
         </p>
 
+        {/* O vao entre o paragrafo e os cards era espaco morto. Aqui ele faz o
+            terceiro trabalho da home — provar que o catalogo esta VIVO. Nao e
+            lista de dado (isso e a Pokedex): e o tamanho do catalogo do momento
+            e de onde ele veio, que e exatamente o que uma dex de fa precisa
+            dizer pra ser levada a serio. */}
+        <div className="flex flex-col items-center gap-4 pt-2">
+          <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-4">
+            {[
+              { n: counts.creatures, label: "espécies", cor: "var(--color-t-dex)" },
+              { n: counts.items, label: "itens", cor: "var(--color-t-itens)" },
+              { n: counts.hunts, label: "locais de caça", cor: "var(--color-t-hunt)" },
+              { n: counts.drops, label: "registros de drop", cor: "var(--color-t-meta)" },
+            ].map((k) => (
+              <span key={k.label} className="flex flex-col items-center gap-1">
+                <span
+                  className="text-[30px] leading-none font-bold tabular sm:text-[34px]"
+                  style={{ color: k.cor }}
+                >
+                  {k.n.toLocaleString("pt-BR")}
+                </span>
+                <span className="pix text-[11px] text-text-mute">{k.label}</span>
+              </span>
+            ))}
+          </div>
 
+          <Chip
+            size="sm"
+            tone={catalog.live ? "ok" : "warn"}
+            title={
+              catalog.live
+                ? `Catálogo do jogo, publicado em ${catalog.generatedAt}`
+                : `Fonte indisponível (${catalog.error ?? "motivo desconhecido"})`
+            }
+          >
+            {catalog.live ? "direto do catálogo do jogo" : "fonte fora do ar — último catálogo salvo"}
+          </Chip>
+        </div>
       </section>
 
       {/* ================= ferramentas ================= */}
