@@ -14,6 +14,19 @@
 import type { Acquisition, Creature, PokeType, Rarity } from "./types";
 import { ALL_TYPES, effectiveness } from "./typing";
 import { qualityTier } from "./rarity";
+import { TYPE_LABEL } from "./labels";
+
+/**
+ * Tira acento pra busca.
+ *
+ * Traduzir os tipos criou um problema que a versao em ingles nao tinha:
+ * "Psíquico" so era encontrado digitando o acento, e ninguem digita acento em
+ * caixa de busca — "psiquico" devolvia ZERO com 49 especies na lista. A
+ * normalizacao roda nos DOIS lados (no indice e no que o usuario digitou),
+ * senao a metade sem acento continua sem casar.
+ */
+const semAcento = (s: string): string =>
+  s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 
 /** Onde a especie fica na propria linha evolutiva. */
 export type Stage = "solo" | "base" | "mid" | "final";
@@ -148,7 +161,13 @@ export function buildEntry(
     lootNames: c.loot.map((l) => l.name.toLowerCase()),
     region: c.area === "orre" ? "orre" : "base",
     variant: !isPlayable(c),
-    haystack: `${c.name} ${c.pokeId} ${c.type1} ${c.type2 ?? ""} ${c.area ?? ""}`.toLowerCase(),
+    // inclui o tipo nos DOIS idiomas (a tela mostra "Fogo", entao "fogo" tem de
+    // achar) e SEM acento, pra "psiquico" casar com "Psíquico"
+    haystack: semAcento(
+      `${c.name} ${c.pokeId} ${c.type1} ${c.type2 ?? ""} ${TYPE_LABEL[c.type1]} ${
+        c.type2 ? TYPE_LABEL[c.type2] : ""
+      } ${c.area ?? ""}`,
+    ),
   };
 }
 
@@ -244,8 +263,8 @@ export function matches(e: DexEntry, q: DexQuery): boolean {
   if (!q.includeVariants && e.variant) return false;
 
   if (q.q.trim()) {
-    const needle = q.q.trim().toLowerCase();
-    if (!e.haystack.includes(needle)) return false;
+    // o que o usuario digitou passa pela MESMA normalizacao do indice
+    if (!e.haystack.includes(semAcento(q.q.trim()))) return false;
   }
 
   if (q.types.length) {
@@ -294,21 +313,21 @@ export type SortKey =
   | "power" | "xpPerLevel" | "spots";
 
 export const SORT_LABEL: Record<SortKey, string> = {
-  dex: "Numero",
+  dex: "Número da dex",
   name: "Nome",
-  level: "Nivel de caca",
-  value: "Valor",
+  level: "Nível de caça",
+  value: "Valor de venda",
   xp: "XP por abate",
+  xpPerLevel: "XP por nível",
   statTotal: "Total de stats",
-  hp: "HP",
+  power: "Melhor golpe",
+  spots: "Locais de caça",
+  hp: "Vida",
   atk: "Ataque",
   def: "Defesa",
-  spAtk: "Sp. Atk",
-  spDef: "Sp. Def",
+  spAtk: "Ataque especial",
+  spDef: "Defesa especial",
   speed: "Velocidade",
-  power: "Melhor golpe",
-  xpPerLevel: "XP por nivel",
-  spots: "Pontos de caca",
 };
 
 function sortValue(e: DexEntry, key: SortKey, pool: DexQuery["movePool"]): number | string {
