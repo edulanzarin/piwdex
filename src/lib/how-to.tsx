@@ -1,5 +1,12 @@
 import type { HowToProps } from "@/components/ui";
 import { IV_MAX } from "@/lib/stats";
+import {
+  QUALITY_DIFF_MAX,
+  QUALITY_MAX_NORMAL,
+  PHEROMONE_NORMAL_COUNT,
+  BASE_STONES,
+  DOUBLE_STONES,
+} from "@/lib/breeding";
 
 /**
  * O texto dos manuais das ferramentas.
@@ -66,6 +73,83 @@ export const COMO_USAR_CALC: Omit<HowToProps, "tint"> = {
     <>
       A projeção assume o IV mais provável da leitura: enquanto a faixa estiver larga, o poder
       projetado também é estimativa.
+    </>,
+  ],
+};
+
+/** Breeding: par, ovo e planejador de Quality. */
+export const COMO_USAR_BREED: Omit<HowToProps, "tint"> = {
+  resumo:
+    "Diz se o par presta, o que sai do ovo e quantos breeds faltam até a Quality que você quer.",
+  passos: [
+    {
+      titulo: "Monte os dois pais",
+      texto: (
+        <>
+          Mesma espécie, e a Quality dos dois a no máximo {QUALITY_DIFF_MAX.toFixed(3)} de
+          distância — essas são as duas regras que o jogo só cobra na hora de confirmar. A
+          barra de diferença mostra o quanto de folga ainda resta.
+        </>
+      ),
+    },
+    {
+      titulo: "Ponha no slot 1 o de melhor IV",
+      texto: (
+        <>
+          O filho herda a distribuição de IV INTEIRA do pai de maior Quality, e os IVs do
+          outro se perdem. Se as duas Qualities empatarem, quem doa é o slot 1 — é a única
+          parte da regra que você controla depois de escolher os pais.
+        </>
+      ),
+    },
+    {
+      titulo: "Salve na estante quem você vai reusar",
+      texto:
+        "Um clique devolve o pokémon pro slot 1 ou 2 sem redigitar Quality e seis IVs. A estante fica só neste navegador; ela não vai junto no link.",
+    },
+    {
+      titulo: "Escolha o modo antes de olhar o ovo",
+      texto: (
+        <>
+          Free só custa dinheiro e {BASE_STONES} Stones, mas sobe pouco. Pheromone sobe de
+          {" "}{PHEROMONE_NORMAL_COUNT} Pheromones por vez e anda quinze vezes mais rápido — e
+          é justamente o que arrisca estourar o teto e deixar o filho sem par.
+        </>
+      ),
+    },
+    {
+      titulo: "Leia o ovo como sorteio, não como resultado",
+      texto: (
+        <>
+          O jogo não entrega uma Quality, entrega quatro possíveis com probabilidade. A
+          manchete é a MÉDIA; a faixa ao lado é o que pode realmente sair. Pokémon normal
+          trava em {QUALITY_MAX_NORMAL.toFixed(3)} e o que passa disso é pago e perdido.
+        </>
+      ),
+    },
+    {
+      titulo: "Use o planejador antes de gastar",
+      texto:
+        "Ele diz quantos breeds faltam até o alvo em três números — melhor caso, típico e azarado — com o dinheiro, as Stones e quantos pokémon da espécie a corrente inteira consome. Orçe pelo azarado: parar no meio da corrente é o pior lugar pra ficar sem dinheiro.",
+    },
+  ],
+  bomSaber: [
+    <>
+      Os dois pais são consumidos em todo breed, e cada breed devolve um só. Uma corrente de
+      N breeds custa N+1 pokémon da espécie, e esse é o custo que ninguém orça.
+    </>,
+    <>
+      Double Stones dobra a conta de Stones ({BASE_STONES} para {DOUBLE_STONES}) por 5% de +1
+      IV num stat abaixo de {IV_MAX}. São 20 breeds por ponto esperado — e zero se os seis
+      stats já estiverem no teto.
+    </>,
+    <>
+      Um pai Shiny faz o filho nascer Shiny e tira o teto de Quality. A chance de Shiny
+      espontâneo entre dois pais normais ainda é regra provisória, e a tela marca isso.
+    </>,
+    <>
+      O planejador supõe que sempre existe um parceiro válido pro próximo breed. Achar esse
+      parceiro é o trabalho que a tabela de sorteio não mostra.
     </>,
   ],
 };

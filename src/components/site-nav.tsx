@@ -18,7 +18,7 @@ const LINKS = [
   { href: "/itens", label: "Itens" },
   { href: "/calc", label: "Calculadora" },
   { href: "/hunt", label: "Hunt", soon: true },
-  { href: "/breed", label: "Breeding", soon: true },
+  { href: "/breed", label: "Breeding" },
   { href: "/meta", label: "Meta", soon: true },
 ];
 

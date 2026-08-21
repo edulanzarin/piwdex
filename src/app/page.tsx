@@ -75,11 +75,13 @@ const TOOLS = [
   {
     href: "/breed",
     name: "Breeding",
-    desc: "Simula o ovo, projeta os stats do filho e planeja quantos breeds até a Quality alvo.",
+    desc:
+      "Valida o par, mostra o sorteio de Quality e o IV que o filho herda — e diz quantos " +
+      "breeds faltam até a Quality alvo, com o melhor caso, o típico e o azarado.",
     icon: Egg,
     arte: "breeding",
     cor: "var(--color-t-breed)",
-    ready: false,
+    ready: true,
   },
   {
     href: "/meta",
