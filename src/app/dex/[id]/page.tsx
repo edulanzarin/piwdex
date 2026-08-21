@@ -219,10 +219,10 @@ export default async function CreaturePage({ params }: Props) {
               );
             })}
           </div>
+          {/* So o DADO. A frase que explicava "IV e Quality sao por individuo,
+              o catalogo so define a base" saiu — quem joga ja sabe, e quem nao
+              sabe nao aprende num rodape de painel. */}
           <Note flush icon={null} className="mt-3">
-            {/* So o DADO. A frase que explicava "IV e Quality sao por individuo,
-                o catalogo so define a base" saiu — quem joga ja sabe, e quem nao
-                sabe nao aprende num rodape de painel. */}
             Nível 100, IV perfeito:{" "}
             <span className="text-text-dim tabular">{perfect.sum}</span> de soma,{" "}
             <span className="text-accent tabular">{perfect.power}</span> de Poder.

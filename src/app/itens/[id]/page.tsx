@@ -423,9 +423,8 @@ export default async function ItemPage({ params }: Props) {
                   isso ele vira um numero de autoridade que ninguem consegue
                   conferir contra o jogo. */}
               <Note flush icon={null}>
-                Ouro por abate é <span className="text-text-dim">chance × quantidade média ×
-                valor de NPC</span> nesta fonte: quanto este item sozinho soma a cada
-                pokémon derrubado. Não conta o que o abate paga por si.
+                Ouro por abate = chance × quantidade média × valor de NPC, nesta fonte. Não
+                conta o que o abate paga por si.
               </Note>
             </div>
           ) : e.sources > 0 ? (

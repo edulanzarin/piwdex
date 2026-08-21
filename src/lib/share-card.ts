@@ -260,15 +260,17 @@ export async function desenharCartao(d: ShareCard): Promise<Blob | null> {
   ctx.lineTo(W - 40, H - 58.5);
   ctx.stroke();
 
-  ctx.fillStyle = COR.mute;
-  ctx.font = `700 15px ${fam}`;
-  pix(ctx, "piwdex", 40, H - 32);
-  ctx.fillStyle = COR.mute;
-  ctx.font = `400 13px ${fam}`;
-  const aviso = d.confiavel
-    ? "IV estimado a partir dos stats — barra mostra a faixa possível"
-    : "leitura inconsistente: confira nível e quality";
-  ctx.fillText(aviso, 130, H - 32);
+  ctx.fillStyle = d.tint;
+  ctx.font = `700 17px ${fam}`;
+  pix(ctx, "piwdex.com.br", 40, H - 30);
+  // Sem rodape explicativo: o cartao vai pro grupo do jogo, onde ninguem le
+  // legenda. Quando a leitura NAO fecha, ai sim vale a linha — e ela e a unica.
+  if (!d.confiavel) {
+    ctx.fillStyle = "#ffb454";
+    ctx.font = `400 14px ${fam}`;
+    const t = "leitura inconsistente: confira nível e quality";
+    ctx.fillText(t, W - 40 - ctx.measureText(t).width, H - 30);
+  }
 
   return new Promise((resolve) => canvas.toBlob((b) => resolve(b), "image/png"));
 }

@@ -254,8 +254,8 @@ export function CalcTool({ especies }: { especies: CalcSpecies[] }) {
             title={especie ? "Digite os stats do pokémon" : "Escolha a espécie"}
             hint={
               especie
-                ? "Copie os seis números da tela do jogo. Nível e quality também saem de lá."
-                : "O IV sai da diferença entre o stat que o jogo mostra e a base da espécie — sem saber qual espécie é, não há de onde tirar."
+                ? "Os seis números saem da tela do pokémon no jogo."
+                : "Sem a espécie não há base pra comparar."
             }
             action={
               <Button variant="primary" onClick={preencherExemplo}>
@@ -347,9 +347,7 @@ export function CalcTool({ especies }: { especies: CalcSpecies[] }) {
           <div className="flex flex-col gap-4 p-5">
             {leitura!.impossivel ? (
               <Note tone="warn">
-                Nenhum IV entre 0 e {IV_MAX} explica algum desses stats. Não é um pokémon fora
-                da curva — é sinal de que o nível ou a quality não são os que estão na tela do
-                jogo.
+                Nenhum IV entre 0 e {IV_MAX} explica esses stats. Confira o nível e a quality.
               </Note>
             ) : null}
 
@@ -414,9 +412,8 @@ export function CalcTool({ especies }: { especies: CalcSpecies[] }) {
 
             {leitura!.largura > 2 ? (
               <Note>
-                Leitura larga: o stat que o jogo arredonda cabe num intervalo de até{" "}
-                {leitura!.largura.toFixed(0)} pontos de IV. Suba o pokémon de nível e volte —
-                quanto maior o nível, mais estreita a faixa.
+                Leitura larga: o arredondamento do jogo cabe em até{" "}
+                {leitura!.largura.toFixed(0)} pontos de IV. Sobe de nível que ela fecha.
               </Note>
             ) : null}
 
@@ -470,8 +467,7 @@ export function CalcTool({ especies }: { especies: CalcSpecies[] }) {
 
           {!projecao ? (
             <Note icon={null}>
-              Com a espécie e os stats preenchidos, aqui aparece como esse pokémon fica em
-              qualquer nível — e quanto ele perde para um de IV perfeito.
+              Preencha a espécie e os stats.
             </Note>
           ) : (
             <>
@@ -533,8 +529,7 @@ export function CalcTool({ especies }: { especies: CalcSpecies[] }) {
               </div>
 
               <Note flush icon={null}>
-                Usa o IV estimado acima, preso entre 0 e {IV_MAX}. Quality não muda com o
-                nível — só com breeding.
+                Quality não muda com o nível, só com breeding.
               </Note>
             </>
           )}
@@ -652,7 +647,7 @@ function Compartilhar({
         </Button>
       </div>
       <Note flush icon={null}>
-        {recado ?? "O cartão é desenhado no seu navegador — nada é enviado pra lugar nenhum."}
+        {recado ?? "Desenhado no seu navegador. Nada é enviado."}
       </Note>
     </div>
   );
