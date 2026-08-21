@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { getDexPayload } from "@/lib/dex-data";
 import { agora, fecharPiso } from "@/lib/pacing";
 import { CalcTool, type CalcSpecies } from "@/components/calc-tool";
-import { Panel, Skeleton } from "@/components/ui";
+import { Panel, SkeletonForm } from "@/components/ui";
 
 export const metadata: Metadata = {
   title: "Calculadora",
@@ -38,12 +38,8 @@ export default async function CalcPage() {
 
       <Suspense
         fallback={
-          <Panel>
-            <div className="flex flex-col gap-2">
-              {Array.from({ length: 8 }, (_, i) => (
-                <Skeleton key={i} className="h-8" />
-              ))}
-            </div>
+          <Panel title={<span className="pix">O pokémon</span>}>
+            <SkeletonForm />
           </Panel>
         }
       >

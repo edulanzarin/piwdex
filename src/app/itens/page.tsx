@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { getItemsPayload } from "@/lib/items-data";
 import { agora, fecharPiso } from "@/lib/pacing";
 import { ItemsBrowser } from "@/components/items-browser";
-import { Panel, SkeletonGrid } from "@/components/ui";
+import { Panel, SkeletonItemGrid } from "@/components/ui";
 
 export const metadata: Metadata = {
   title: "Itens",
@@ -27,9 +27,7 @@ export default async function ItensPage() {
 
       <Suspense
         fallback={
-          <Panel>
-            <SkeletonGrid count={10} />
-          </Panel>
+          <SkeletonItemGrid count={10} />
         }
       >
         <ItemsBrowser
