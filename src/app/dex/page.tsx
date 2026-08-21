@@ -19,10 +19,9 @@ export const revalidate = 3600;
 export default async function DexPage() {
   const { entries, bounds, lootIndex, catalog, counts } = await getDexPayload();
 
-  // O cabecalho conta o conjunto JOGAVEL (o padrao da tela). Contar as 482 do
-  // catalogo cru anunciaria um numero que a lista so alcanca com a chave de
-  // variantes ligada.
-  const playable = entries.filter((e) => !e.variant).length;
+  // A dex mostra o catalogo INTEIRO — a chave de variantes saiu, entao o
+  // cabecalho conta o mesmo numero que a lista entrega.
+  const total = entries.length;
 
   return (
     <div className="flex flex-col gap-4">
@@ -32,7 +31,7 @@ export default async function DexPage() {
           <h1 className="pix text-[22px] text-text">Pokedex</h1>
         </div>
         <p className="text-[13px] text-text-mute">
-          {playable} espécies · {counts.hunts} locais de caça · {counts.drops} registros de drop
+          {total} pokémons · {counts.hunts} locais de caça · {counts.drops} registros de drop
         </p>
       </header>
 

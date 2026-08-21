@@ -66,7 +66,8 @@ export function parseState(sp: URLSearchParams): DexState {
     weakTo: list(sp.get("w")) as PokeType[],
     resistTo: list(sp.get("rs")) as PokeType[],
     drops: sp.get("d"),
-    includeVariants: sp.get("var") === "1",
+    // padrao: mostra tudo. `var=0` fica reservado pra o dia em que o filtro voltar
+    includeVariants: sp.get("var") !== "0",
   };
 
   const page = Number(sp.get("p") ?? "1");
@@ -112,7 +113,7 @@ export function buildSearch(s: DexState): string {
   if (q.weakTo.length) p.set("w", q.weakTo.join(","));
   if (q.resistTo.length) p.set("rs", q.resistTo.join(","));
   if (q.drops) p.set("d", q.drops);
-  if (q.includeVariants) p.set("var", "1");
+  if (!q.includeVariants) p.set("var", "0");
 
   if (s.sort !== "dex") p.set("sort", s.sort);
   if (s.dir !== "asc") p.set("dir", s.dir);

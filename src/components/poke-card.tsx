@@ -205,6 +205,16 @@ export function PokeCard({
               {c.label}
             </Chip>
           ))}
+          {/* A variante nao some mais atras de uma chave — ela aparece na lista
+              e se IDENTIFICA. Esconder metade do catalogo por padrao fazia a
+              busca por "Brave Blastoise" devolver nada, sem explicar por que. */}
+          {e.variant ? (
+            <Tooltip content="Variante de skin: mesma espécie do catálogo, outro visual.">
+              <Chip size="sm" tone="accent">
+                variante
+              </Chip>
+            </Tooltip>
+          ) : null}
           {e.hasTm ? (
             <Tooltip
               content={`Aprende TM: o melhor golpe sobe de ${e.bestNatural} para ${e.bestWithTm} de poder.`}

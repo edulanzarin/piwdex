@@ -154,7 +154,7 @@ export function DexFilters({
   const basicos = (q.q.trim() ? 1 : 0) + (q.types.length ? 1 : 0) + (q.rarities.length ? 1 : 0);
   const origem =
     (q.acquisitions.length ? 1 : 0) + (q.regions.length ? 1 : 0) +
-    (q.stages.length ? 1 : 0) + (q.onlySpots ? 1 : 0) + (q.includeVariants ? 1 : 0);
+    (q.stages.length ? 1 : 0) + (q.onlySpots ? 1 : 0);
   const numeros = has(q.level) + has(q.value) + has(q.xp) + has(q.statTotal) + has(q.power);
   const tatico = (q.weakTo.length ? 1 : 0) + (q.resistTo.length ? 1 : 0) + (q.onlyTm ? 1 : 0);
   const drops = q.drops ? 1 : 0;
@@ -222,12 +222,6 @@ export function DexFilters({
           onChange={(e) => onChange({ onlySpots: e.target.checked })}
           label="Só com ponto de caça"
           hint="esconde quem só vem de evolução ou loja"
-        />
-        <Switch
-          checked={q.includeVariants}
-          onChange={(e) => onChange({ includeVariants: e.target.checked })}
-          label="Incluir variantes de skin"
-          hint="Brave Blastoise e cia — mesma espécie, outro visual"
         />
       </FilterGroup>
 

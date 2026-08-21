@@ -16,17 +16,22 @@
    ========================================================================== */
 
 @theme {
-  /* ---- superficies: a hierarquia e por PROFUNDIDADE, nao por borda ---- */
-  --color-bg: #06070d;
-  --color-bg-soft: #090b13;
-  --color-surface: #0d1019;
-  --color-surface-2: #121826;
-  --color-surface-3: #19202f;
-  --color-overlay: #0a0d15;
+  /* ---- superficies ----
+     Subiram um degrau inteiro. O quase-preto (#06070d) deixava a tela
+     monocromatica: sem luz no fundo, cor de dado sobra sozinha e o site parece
+     um terminal, nao uma ferramenta de jogo. O azul-noite tem a MESMA
+     profundidade e devolve o ar. A hierarquia continua por profundidade, nao
+     por borda. */
+  --color-bg: #0a0e1a;
+  --color-bg-soft: #0f1424;
+  --color-surface: #151b2e;
+  --color-surface-2: #1c2440;
+  --color-surface-3: #232c4d;
+  --color-overlay: #070a12;
 
   /* ---- linhas: fina por padrao, forte so quando a superficie nao resolveu ---- */
-  --color-line: #1c2434;
-  --color-line-strong: #2b3648;
+  --color-line: #283253;
+  --color-line-strong: #3a4670;
 
   /* ---- texto: tres degraus, nunca mais ---- */
   --color-text: #e8edf7;
@@ -44,6 +49,19 @@
   --color-ok: #46e08a;
   --color-warn: #ffb454;
   --color-danger: #ff5c72;
+
+  /* ---- cor por FERRAMENTA ----
+     Cada ferramenta tem a sua, e ela pinta icone, titulo e botao. Nao e
+     enfeite: e o que faz a home parar de ser uma lista cinza de seis caixas
+     iguais, e o que deixa a pessoa reconhecer onde esta antes de ler o titulo.
+     Sao acentos de INTERFACE — nao se misturam com a cor de tipo nem com a
+     escada de raridade, que sao cor de DADO. */
+  --color-t-dex: #ff5c72;
+  --color-t-itens: #46e08a;
+  --color-t-calc: #a06bff;
+  --color-t-hunt: #ffb454;
+  --color-t-breed: #f472b6;
+  --color-t-meta: #2ee6d6;
 
   /* ---- raio: canto duro, e estetica pixel ---- */
   --radius-pix: 2px;
@@ -91,11 +109,13 @@
     /* A grade de fundo e o unico "cenario": duas linhas de 1px em 44px, mais um
        halo de acento no topo. Custa zero requisicao e nao concorre com o dado. */
     background-image:
-      radial-gradient(900px 420px at 50% -10%,
-        color-mix(in oklab, var(--color-accent) 12%, transparent), transparent 70%),
+      radial-gradient(1100px 480px at 50% -12%,
+        color-mix(in oklab, var(--color-accent) 22%, transparent), transparent 72%),
+      radial-gradient(700px 380px at 8% 6%,
+        color-mix(in oklab, var(--color-neon) 10%, transparent), transparent 70%),
       linear-gradient(to right, color-mix(in oklab, var(--color-line) 55%, transparent) 1px, transparent 1px),
       linear-gradient(to bottom, color-mix(in oklab, var(--color-line) 55%, transparent) 1px, transparent 1px);
-    background-size: 100% 100%, 44px 44px, 44px 44px;
+    background-size: 100% 100%, 100% 100%, 44px 44px, 44px 44px;
     background-attachment: fixed;
   }
 

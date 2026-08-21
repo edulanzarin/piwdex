@@ -133,13 +133,10 @@ export function DexBrowser({
   const page = Math.min(state.page, pageCount - 1);
   const shown = sorted.slice(page * pageSize, page * pageSize + pageSize);
 
-  // Contagens de faceta saem do universo VISIVEL (respeitando so a chave de
-  // variantes), nao do resultado ja filtrado — senao marcar "Fogo" zera a
-  // contagem de todos os outros tipos e o menu vira um beco sem saida.
-  const universe = useMemo(
-    () => (state.query.includeVariants ? entries : entries.filter((e) => !e.variant)),
-    [entries, state.query.includeVariants],
-  );
+  // Contagens de faceta saem do universo INTEIRO, nao do resultado ja filtrado
+  // — senao marcar "Fogo" zera a contagem de todos os outros tipos e o menu
+  // vira um beco sem saida.
+  const universe = entries;
   const typeCounts = useMemo(() => countByType(universe), [universe]);
   const rarityCounts = useMemo(() => countBy(universe, (e) => e.rarity), [universe]);
 
@@ -497,8 +494,6 @@ function ActiveChips({
     chips.push(<Chip key="tm" tone="neon" icon={<IconTm size={7} />} onRemove={() => onChange({ onlyTm: false })}>com TM</Chip>);
   if (q.onlySpots)
     chips.push(<Chip key="sp" tone="ok" onRemove={() => onChange({ onlySpots: false })}>com local de caça</Chip>);
-  if (q.includeVariants)
-    chips.push(<Chip key="v" tone="warn" onRemove={() => onChange({ includeVariants: false })}>+ variantes</Chip>);
 
   for (const a of q.acquisitions)
     chips.push(<Chip key={`a${a}`} onRemove={() => onChange({ acquisitions: q.acquisitions.filter((x) => x !== a) })}>{ACQ_LABEL[a]}</Chip>);

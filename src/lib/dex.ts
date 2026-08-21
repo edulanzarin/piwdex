@@ -206,7 +206,11 @@ export interface DexQuery {
   resistTo: PokeType[];
   /** nome exato do item — o indice reverso, "quem dropa isso" */
   drops: string | null;
-  /** inclui as variantes de skin (Brave/Tribal), fora do conjunto jogavel */
+  /** DESLIGADO por decisao de produto — a dex mostra o catalogo inteiro (482),
+   *  variantes de skin incluidas, e cada uma se identifica pelo selo no card em
+   *  vez de sumir atras de uma chave. Esconder metade do catalogo por padrao
+   *  fazia a busca por "Brave Blastoise" devolver nada sem explicar por que.
+   *  O campo fica no tipo pro filtro poder voltar sem migrar URL salva. */
   includeVariants: boolean;
 }
 
@@ -229,7 +233,7 @@ export const EMPTY_QUERY: DexQuery = {
   weakTo: [],
   resistTo: [],
   drops: null,
-  includeVariants: false,
+  includeVariants: true,
 };
 
 /** Quantos filtros estao ligados — o numero que o botao "limpar" mostra. Sem
@@ -252,7 +256,6 @@ export function activeCount(q: DexQuery): number {
   if (q.weakTo.length) n++;
   if (q.resistTo.length) n++;
   if (q.drops) n++;
-  if (q.includeVariants) n++;
   return n;
 }
 
@@ -260,8 +263,6 @@ const inRange = (v: number, [lo, hi]: [number | null, number | null]): boolean =
   (lo == null || v >= lo) && (hi == null || v <= hi);
 
 export function matches(e: DexEntry, q: DexQuery): boolean {
-  if (!q.includeVariants && e.variant) return false;
-
   if (q.q.trim()) {
     // o que o usuario digitou passa pela MESMA normalizacao do indice
     if (!e.haystack.includes(semAcento(q.q.trim()))) return false;
