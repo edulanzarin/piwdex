@@ -257,7 +257,7 @@ export default async function CreaturePage({ params }: Props) {
                     <span className="flex flex-col items-center px-1 text-text-mute">
                       <IconChevronRight size={10} />
                       {s.evolveLevel ? (
-                        <span className="pix text-[7px] text-text-mute">nv {s.evolveLevel}</span>
+                        <span className="pix text-[8px] text-text-mute">nv {s.evolveLevel}</span>
                       ) : null}
                     </span>
                   ) : null}

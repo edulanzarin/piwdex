@@ -96,7 +96,7 @@ function StatSpine({
                 <span className="absolute inset-x-0 top-0 h-[2px] bg-text" />
               ) : null}
             </span>
-            <span className="pix text-[7px] leading-none text-text-mute">{STAT_SHORT[i]}</span>
+            <span className="pix text-[8px] leading-none text-text-mute">{STAT_SHORT[i]}</span>
           </span>
         );
       })}
@@ -168,14 +168,14 @@ export function PokeCard({
       {/* os tres numeros que decidem se vale cacar */}
       <dl className="grid grid-cols-3 gap-1 border-t border-line pt-1.5 text-center">
         <div>
-          <dt className="pix text-[7px] text-text-mute">NIVEL</dt>
+          <dt className="pix text-[8px] text-text-mute">NIVEL</dt>
           <dd className="text-[12px] text-text tabular">{e.level || "—"}</dd>
         </div>
         <div>
           {/* O rotulo muda com a GRANDEZA: "venda" e o que o jogo te paga por
               abate, "npc" e o preco do cassino. Sao eixos diferentes e o mesmo
               rotulo pros dois faz o card se contradizer entre especies. */}
-          <dt className="pix text-[7px] text-text-mute">{e.valueFromNpc ? "PRECO NPC" : "VENDA"}</dt>
+          <dt className="pix text-[8px] text-text-mute">{e.valueFromNpc ? "PRECO NPC" : "VENDA"}</dt>
           <dd
             className={cn(
               "flex items-center justify-center gap-0.5 text-[12px] tabular",
@@ -193,7 +193,7 @@ export function PokeCard({
           </dd>
         </div>
         <div>
-          <dt className="pix text-[7px] text-text-mute">XP</dt>
+          <dt className="pix text-[8px] text-text-mute">XP</dt>
           <dd className="text-[12px] text-neon tabular">{e.xp || "—"}</dd>
         </div>
       </dl>

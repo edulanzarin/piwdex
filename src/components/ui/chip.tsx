@@ -47,7 +47,7 @@ export function Chip({
       }
       className={cn(
         "pix inline-flex items-center gap-1 rounded-pix border whitespace-nowrap",
-        size === "xs" ? "h-4 px-1 text-[8px]" : "h-5 px-1.5 text-[9px]",
+        size === "xs" ? "h-4 px-1 text-[9px]" : "h-5 px-1.5 text-[10px]",
         !tint && TONE[tone],
         className,
       )}

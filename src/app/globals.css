@@ -50,7 +50,7 @@
   --radius-pix-lg: 4px;
 
   /* ---- fontes (as familias vem do next/font no layout) ---- */
-  --font-pixel: var(--font-silkscreen), "Courier New", monospace;
+  --font-pixel: var(--font-pixel-src), "Courier New", monospace;
   --font-mono: var(--font-mono-src), ui-monospace, "SF Mono", monospace;
 
   /* ---- sombra/brilho neon: escada fechada ---- */
@@ -140,9 +140,15 @@
      caixa alta, com tracking — e o dado fica no mono, que se le. */
   .pix {
     font-family: var(--font-pixel);
+    /* A Jersey 10 e condensada: no mesmo corpo ela le menor que uma pixel
+       quadrada. Compensa com 1.5x de tamanho e menos tracking — apertar uma
+       condensada com o tracking de uma quadrada e o que a torna ilegivel. */
+    font-size: 1.5em;
+    letter-spacing: 0.04em;
     text-transform: uppercase;
-    letter-spacing: 0.08em;
     line-height: 1;
+    /* peso unico: ela nao tem bold, e sintetizar borra o pixel */
+    font-weight: 400;
   }
 
   /* ---- superficie base de qualquer bloco ---- */

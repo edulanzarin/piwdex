@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { JetBrains_Mono, Silkscreen } from "next/font/google";
+import { JetBrains_Mono, Jersey_10 } from "next/font/google";
 import { SiteNav } from "@/components/site-nav";
 import { SiteFooter } from "@/components/site-footer";
 import "./globals.css";
@@ -7,15 +7,21 @@ import "./globals.css";
 /**
  * Duas fontes, dois papeis — e a divisao e o que salva a densidade.
  *
- * A pixel (Silkscreen) fica so em ROTULO curto em caixa alta. Foi a licao da
- * versao anterior: Press Start 2P em texto corrido come o dobro da largura e
- * derruba pela metade o que cabe na tela. O dado — nome, numero, stat — vai no
- * mono, que alinha coluna e se le em 11px.
+ * A pixel e a **Jersey 10**, escolhida pelo Eduardo depois de descartar a
+ * Press Start 2P (ilegivel) e a Silkscreen (ainda pouco legivel). Peso unico
+ * 400: ela nao tem bold, e forcar um faz o navegador sintetizar e borrar o
+ * pixel.
+ *
+ * Ela fica so em ROTULO curto em caixa alta (`.pix`). Foi a licao da versao
+ * anterior: fonte pixel em texto corrido come o dobro da largura e derruba pela
+ * metade o que cabe na tela. O dado — nome, numero, stat — vai no mono, que
+ * alinha coluna e se le em 11px. A Jersey ainda e condensada, entao no rotulo
+ * ela vai um degrau maior que o mono ao lado.
  */
-const pixel = Silkscreen({
-  weight: ["400", "700"],
+const pixel = Jersey_10({
+  weight: "400",
   subsets: ["latin"],
-  variable: "--font-silkscreen",
+  variable: "--font-pixel-src",
   display: "swap",
 });
 
