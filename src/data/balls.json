@@ -1,0 +1,67 @@
+{
+  "note": "Dado-verdade das pokebolas do Poke Idle World. catchRate e FIXO (igual pra todo jogador) e verificado contra a API logada /api/game/balls. priceGold so vem da API logada (as bolas reais NAO estao no items.json publico) -> rode `PIW_TOKEN=... npm run ingest` pra preencher precos reais; ate la ficam null.",
+  "source": "synced:/api/game/balls",
+  "syncedAt": "2026-08-16T02:55:06.985Z",
+  "balls": [
+    {
+      "key": "poke",
+      "name": "Poke Ball",
+      "catchRate": 1,
+      "priceGold": 5,
+      "iconUrl": "/assets/markitems/pokeball.png",
+      "buyable": true,
+      "infinite": false,
+      "id": 1
+    },
+    {
+      "key": "great",
+      "name": "Great Ball",
+      "catchRate": 2,
+      "priceGold": 20,
+      "iconUrl": "/assets/markitems/greatball.png",
+      "buyable": true,
+      "infinite": false,
+      "id": 2
+    },
+    {
+      "key": "super",
+      "name": "Super Ball",
+      "catchRate": 3,
+      "priceGold": 50,
+      "iconUrl": "/assets/markitems/superball.png",
+      "buyable": true,
+      "infinite": false,
+      "id": 3
+    },
+    {
+      "key": "ultra",
+      "name": "Ultra Ball",
+      "catchRate": 4,
+      "priceGold": 130,
+      "iconUrl": "/assets/markitems/ultraball.png",
+      "buyable": true,
+      "infinite": false,
+      "id": 4
+    },
+    {
+      "key": "idle",
+      "name": "Idle Ball",
+      "catchRate": 5,
+      "priceGold": 400,
+      "iconUrl": "/assets/markitems/idleball.png",
+      "buyable": false,
+      "infinite": false,
+      "id": 6
+    },
+    {
+      "key": "master",
+      "name": "Master Ball",
+      "catchRate": 255,
+      "priceGold": 0,
+      "iconUrl": null,
+      "buyable": false,
+      "infinite": false,
+      "id": 5
+    }
+  ]
+}
