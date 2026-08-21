@@ -19,22 +19,14 @@ export const revalidate = 3600;
 
 export default async function DexPage() {
   const t0 = agora();
-  const { entries, bounds, lootIndex, catalog, counts } = await getDexPayload();
+  const { entries, bounds, lootIndex, catalog } = await getDexPayload();
 
-  // A dex mostra o catalogo INTEIRO — a chave de variantes saiu, entao o
-  // cabecalho conta o mesmo numero que a lista entrega.
-  const total = entries.length;
 
   await fecharPiso(t0);
 
   return (
     <div className="flex flex-col gap-4">
-      <header className="flex flex-wrap items-end justify-between gap-2">
-        <h1 className="pix text-[22px] text-text">Pokedex</h1>
-        <p className="text-[13px] text-text-mute">
-          {total} pokémons · {counts.hunts} locais de caça · {counts.drops} registros de drop
-        </p>
-      </header>
+      <h1 className="pix text-[22px] text-text">Pokedex</h1>
 
       {/* useSearchParams precisa de fronteira de Suspense pra a pagina poder ser
           pre-renderizada; o esqueleto tem a forma do grid que vai chegar. */}

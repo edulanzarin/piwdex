@@ -34,12 +34,7 @@ export default async function CalcPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <header className="flex flex-wrap items-end justify-between gap-2">
-        <h1 className="pix text-[22px] text-text">Calculadora</h1>
-        <p className="text-[13px] text-text-mute">
-          {especies.length} espécies · fórmula de stat, IV e poder do jogo
-        </p>
-      </header>
+      <h1 className="pix text-[22px] text-text">Calculadora</h1>
 
       <Suspense
         fallback={

@@ -17,20 +17,13 @@ export const revalidate = 3600;
 
 export default async function ItensPage() {
   const t0 = agora();
-  const { entries, bounds, dexIndex, catalog, counts } = await getItemsPayload();
+  const { entries, bounds, dexIndex, catalog } = await getItemsPayload();
 
   await fecharPiso(t0);
 
   return (
     <div className="flex flex-col gap-4">
-      <header className="flex flex-wrap items-end justify-between gap-2">
-        <h1 className="pix text-[22px] text-text">Itens</h1>
-        {/* Os tres numeros contam a mesma historia que a pagina inteira: quanto
-            existe, quanto cai de alguem, e quanto disso da pra de fato caçar. */}
-        <p className="text-[13px] text-text-mute">
-          {counts.items} itens · {counts.dropped} caem de pokémon · {counts.farmable} dá pra farmar
-        </p>
-      </header>
+      <h1 className="pix text-[22px] text-text">Itens</h1>
 
       <Suspense
         fallback={
