@@ -52,9 +52,23 @@ export function spriteUrl(pokeId: number, shiny = false): string | null {
   return `${SPRITE_BASE}/${shiny ? "shiny/" : ""}${id}.png`;
 }
 
-/** Sprite ANIMADO (gif gen5) — existe ate ~id 649. Usado nos loaders. */
-export function animatedSpriteUrl(pokeId: number): string {
-  return `${SPRITE_BASE}/versions/generation-v/black-white/animated/${pokeId}.gif`;
+/**
+ * Sprite ANIMADO (gif gen5).
+ *
+ * A fonte so tem animacao ate o id **649** — pedir 14448 devolve 404, e um 404
+ * numa `<img>` renderizada no servidor pinta o icone de imagem quebrada ANTES
+ * de qualquer JS poder tratar. Por isso a checagem e aqui, na origem: fora da
+ * faixa a resposta e `null` e o chamador nem tenta.
+ *
+ * Variante (10xxx/13xxx) resolve pro id da forma base, que costuma estar na
+ * faixa — o Brave Charizard anima com o gif do Charizard.
+ */
+const ANIMATED_MAX = 649;
+
+export function animatedSpriteUrl(pokeId: number): string | null {
+  const id = VARIANT_SPRITE[pokeId] ?? pokeId;
+  if (id <= 0 || id > ANIMATED_MAX) return null;
+  return `${SPRITE_BASE}/versions/generation-v/black-white/animated/${id}.gif`;
 }
 
 /** Icone de item pelo nome do arquivo. Absoluto (/assets/...) usa a raiz do jogo;
