@@ -162,11 +162,11 @@ export function DexBrowser({
   );
 
   return (
-    <div className="grid gap-3 lg:grid-cols-[268px_minmax(0,1fr)]">
+    <div className="grid gap-4 lg:grid-cols-[290px_minmax(0,1fr)]">
       {/* Trilho fixo no desktop: rola junto ate grudar, e o corpo dele tem
           rolagem propria pra os 15 filtros nunca ultrapassarem a janela. */}
       <aside className="hidden lg:block">
-        <div className="panel sticky top-15 max-h-[calc(100dvh-4.5rem)] overflow-y-auto overscroll-contain">
+        <div className="panel sticky top-[4.5rem] max-h-[calc(100dvh-5.5rem)] overflow-y-auto overscroll-contain">
           {filters}
         </div>
       </aside>
@@ -205,7 +205,7 @@ export function DexBrowser({
             />
           </Panel>
         ) : state.view === "grid" ? (
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
             {shown.map((e, i) => (
               <PokeCard key={e.id} e={e} ceiling={bounds.statCeiling} priority={i < 10} />
             ))}
@@ -223,7 +223,7 @@ export function DexBrowser({
                           key={col.label}
                           scope="col"
                           className={cn(
-                            "px-2 py-1.5 whitespace-nowrap",
+                            "px-3 py-2.5 whitespace-nowrap",
                             col.align === "right" && "text-right",
                           )}
                         >
@@ -234,7 +234,7 @@ export function DexBrowser({
                                 on ? toggleDir() : setSort(col.key as SortKey)
                               }
                               className={cn(
-                                "pix inline-flex items-center gap-1 text-[10px] transition-colors",
+                                "pix inline-flex items-center gap-1 text-[11px] transition-colors",
                                 on ? "text-accent" : "text-text-mute hover:text-text-dim",
                               )}
                             >
@@ -245,7 +245,7 @@ export function DexBrowser({
                               ) : null}
                             </button>
                           ) : (
-                            <span className="pix inline-flex items-center gap-1 text-[10px] text-text-mute">
+                            <span className="pix inline-flex items-center gap-1 text-[11px] text-text-mute">
                               {col.icon}
                               {col.label}
                             </span>
@@ -267,7 +267,7 @@ export function DexBrowser({
 
         {sorted.length > 0 ? (
           <div className="flex flex-col items-center gap-3 pt-1 sm:flex-row sm:justify-between">
-            <span className="text-[12px] text-text-mute tabular">
+            <span className="text-[13px] text-text-mute tabular">
               {page * pageSize + 1}–{Math.min(sorted.length, (page + 1) * pageSize)} de {sorted.length}
             </span>
             <Pagination
@@ -341,7 +341,7 @@ function DexToolbar({
   catalog: { live: boolean; generatedAt: string; error: string | null };
 }) {
   return (
-    <div className="panel flex flex-wrap items-center gap-2 p-2">
+    <div className="panel flex flex-wrap items-center gap-3 p-3">
       <Button
         variant="outline"
         size="sm"
@@ -354,8 +354,8 @@ function DexToolbar({
       </Button>
 
       <span className="flex items-baseline gap-1.5">
-        <span className="text-[16px] font-semibold text-text tabular">{count}</span>
-        <span className="pix text-[10px] text-text-mute">
+        <span className="text-[17px] font-semibold text-text tabular">{count}</span>
+        <span className="pix text-[11px] text-text-mute">
           {count === total ? "espécies" : `de ${total}`}
         </span>
       </span>
@@ -381,7 +381,7 @@ function DexToolbar({
           value={state.sort}
           onChange={onSort}
           options={SORT_OPTIONS}
-          className="w-52"
+          className="w-60"
         />
         <Button
           size="sm"

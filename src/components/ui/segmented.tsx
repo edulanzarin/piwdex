@@ -52,7 +52,7 @@ export function Segmented<T extends string>({
             onClick={() => onChange(o.value)}
             className={cn(
               "pix inline-flex items-center justify-center gap-1.5 rounded-pix transition-colors",
-              size === "sm" ? "h-6 px-1.5 text-[10px]" : "h-7 px-2.5 text-[11px]",
+              size === "sm" ? "h-6 px-1.5 text-[11px]" : "h-7 px-2.5 text-[12px]",
               on
                 ? "bg-accent/25 text-accent shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--color-accent)_55%,transparent)]"
                 : "text-text-mute hover:bg-surface-2 hover:text-text-dim",

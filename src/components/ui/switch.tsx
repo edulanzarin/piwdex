@@ -33,8 +33,8 @@ export function Switch({ label, hint, className, ...props }: SwitchProps) {
       />
       {(label || hint) && (
         <span className="min-w-0">
-          {label ? <span className="block text-[13px] text-text-dim group-has-[:checked]:text-text">{label}</span> : null}
-          {hint ? <span className="block text-[12px] text-text-mute">{hint}</span> : null}
+          {label ? <span className="block text-[14px] text-text-dim group-has-[:checked]:text-text">{label}</span> : null}
+          {hint ? <span className="block text-[13px] text-text-mute">{hint}</span> : null}
         </span>
       )}
     </label>

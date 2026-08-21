@@ -1,34 +1,29 @@
 import type { Metadata, Viewport } from "next";
-import { JetBrains_Mono, Quantico } from "next/font/google";
+import { Quantico } from "next/font/google";
 import { SiteNav } from "@/components/site-nav";
 import { SiteFooter } from "@/components/site-footer";
 import "./globals.css";
 
 /**
- * Duas fontes, dois papeis — e a divisao e o que salva a densidade.
+ * Uma fonte so: **Quantico**, nos pesos 400 e 700.
  *
- * O rotulo e **Quantico**: quadrada e tecno, mas com formas de letra normais —
- * le em 10px sem esforco. Chegou depois de quatro reprovadas: Press Start 2P
- * (ilegivel), Silkscreen (some no corpo pequeno), Jersey 10 (condensada e
- * fina) e Orbitron (legivel, mas larga e fria demais). O padrao das bitmap era
- * sempre o mesmo — so funcionam com traco grosso E corpo grande, e ai a
- * densidade morre.
+ * Chegou depois de quatro reprovadas — Press Start 2P (ilegivel), Silkscreen
+ * (some no corpo pequeno), Jersey 10 (condensada e fina) e Orbitron (legivel,
+ * mas larga e fria). O padrao das bitmap era sempre o mesmo: so funcionam com
+ * traco grosso E corpo grande, e nessa combinacao a densidade morre. A Quantico
+ * e quadrada e tecno com formas de letra normais, entao aguenta o site inteiro.
  *
- * Fica so em texto curto em caixa alta (`.pix`); o dado — nome, numero, stat —
- * vai no mono, que alinha coluna. Peso 700 no rotulo: o 400 afina em 10px.
+ * Ela NAO tem numeral tabular (o "1" e ~15% mais estreito que o "0"), entao
+ * coluna de numero se resolve por ALINHAMENTO A DIREITA, nunca contando com o
+ * `tabular-nums` — que aqui nao tem efeito nenhum.
  */
-const display = Quantico({
+const quantico = Quantico({
   weight: ["400", "700"],
   subsets: ["latin"],
-  variable: "--font-display-src",
+  variable: "--font-ui",
   display: "swap",
 });
 
-const mono = JetBrains_Mono({
-  subsets: ["latin"],
-  variable: "--font-mono-src",
-  display: "swap",
-});
 
 export const metadata: Metadata = {
   title: {
@@ -47,7 +42,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pt-BR" className={`${display.variable} ${mono.variable}`}>
+    <html lang="pt-BR" className={quantico.variable}>
       <body className="min-h-dvh antialiased">
         {/* Pular pro conteudo: quem navega por teclado nao deve atravessar o
             trilho de filtro inteiro pra chegar na lista. */}
@@ -55,7 +50,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           href="#conteudo"
           className="pix sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-200
                      focus:rounded-pix focus:border focus:border-accent focus:bg-surface-3
-                     focus:px-3 focus:py-2 focus:text-[11px] focus:text-accent"
+                     focus:px-3 focus:py-2 focus:text-[12px] focus:text-accent"
         >
           Pular para o conteúdo
         </a>

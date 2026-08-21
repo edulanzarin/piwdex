@@ -29,14 +29,14 @@ export function SiteNav() {
   const item = (l: (typeof LINKS)[number], onNav?: () => void) => {
     const on = path === l.href || path.startsWith(`${l.href}/`);
     const cls = cn(
-      "pix relative flex items-center gap-1.5 px-3 py-2 text-[11px] transition-colors",
+      "pix relative flex items-center gap-1.5 px-3 py-2 text-[12px] transition-colors",
       on ? "text-accent" : "text-text-mute hover:text-text-dim",
       l.soon && "cursor-not-allowed opacity-45 hover:text-text-mute",
     );
     const inner = (
       <>
         {l.label}
-        {l.soon ? <span className="text-[10px] text-text-mute">em breve</span> : null}
+        {l.soon ? <span className="text-[11px] text-text-mute">em breve</span> : null}
         <span
           className={cn(
             "absolute inset-x-2 -bottom-px h-0.5 transition-colors",
@@ -55,10 +55,10 @@ export function SiteNav() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-bg/85 backdrop-blur-md">
-      <div className="mx-auto flex h-12 w-full max-w-[1600px] items-center gap-1 px-3 sm:px-5">
+      <div className="mx-auto flex h-14 w-full max-w-[1600px] items-center gap-1 px-3 sm:px-5">
         <Link href="/" className="mr-3 flex shrink-0 items-center gap-2">
-          <Pokeball size={20} className="text-accent" />
-          <span className="pix text-[14px] text-text">
+          <Pokeball size={24} className="text-accent" />
+          <span className="pix text-[15px] text-text">
             piw<span className="text-accent">dex</span>
           </span>
         </Link>

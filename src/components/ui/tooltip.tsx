@@ -46,7 +46,7 @@ export function Tooltip({
         {children}
       </span>
       <Popover open={open} onClose={hide} anchorRef={anchor} minWidth={0} maxHeight={220}>
-        <div id={id} role="tooltip" className="px-2.5 py-1.5 text-[12px] leading-relaxed text-text-dim">
+        <div id={id} role="tooltip" className="px-2.5 py-1.5 text-[13px] leading-relaxed text-text-dim">
           {content}
         </div>
       </Popover>

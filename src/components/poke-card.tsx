@@ -7,7 +7,7 @@ import { spriteUrl } from "@/lib/sprites";
 import { Chip, IconCoin, IconPin, Sprite, Tooltip } from "@/components/ui";
 import { TypeBadge } from "@/components/type-icon";
 import { IconBag, IconGem, IconLevel, IconScale, IconTm, IconXp, STAT_ICONS } from "@/components/game-icons";
-import { ACQ_LABEL, RARITY_LABEL, STAGE_LABEL, ROLE_LABEL, STAT_LABEL, compact } from "@/lib/labels";
+import { ACQ_LABEL, RARITY_LABEL, ROLE_LABEL, STAT_LABEL, compact } from "@/lib/labels";
 
 /**
  * Card de especie da Pokedex.
@@ -46,17 +46,17 @@ function StatSpine({
   tint: string;
 }) {
   return (
-    <div className="flex items-end gap-[3px]">
+    <div className="flex items-end gap-1">
       {stats.map((v, i) => {
         const ratio = v / ceiling;
         const Icon = STAT_ICONS[i];
         return (
           <span
             key={i}
-            className="flex flex-1 flex-col items-center gap-[3px]"
+            className="flex flex-1 flex-col items-center gap-1.5"
             title={`${STAT_LABEL[i]}: ${v}`}
           >
-            <span className="relative flex h-8 w-full items-end rounded-[1px] bg-surface-2">
+            <span className="relative flex h-10 w-full items-end rounded-[1px] bg-surface-2">
               <span
                 className="w-full rounded-[1px]"
                 style={{
@@ -73,7 +73,7 @@ function StatSpine({
             </span>
             {/* o icone no lugar da abreviacao: "AES" nao diz nada, o escudo com
                 nucleo diz "defesa especial" sem precisar de legenda */}
-            <Icon size={8} className="text-text-mute" />
+            <Icon size={10} className="text-text-mute" />
           </span>
         );
       })}
@@ -95,111 +95,134 @@ export function PokeCard({
   const tint = RARITY_COLOR[e.rarity];
   const roles = rolesOf(e);
 
+  // Os selos de contexto sao MUITOS (origem, estagio, papel, TM, drops) e
+  // empilhados viram parede. Aqui so os dois que decidem se vale caçar; o resto
+  // esta na ficha, a um clique. Card cheio de chip nao informa mais — informa
+  // menos, porque nada se destaca.
+  const contexto = [
+    e.acquisition === "hunt"
+      ? { label: `${e.spots} ${e.spots > 1 ? "locais" : "local"}`, tone: "ok" as const, icon: <IconPin size={9} /> }
+      : { label: ACQ_LABEL[e.acquisition], tone: "warn" as const, icon: undefined },
+    roles[0]
+      ? { label: ROLE_LABEL[roles[0]] ?? roles[0], tone: "neutral" as const, icon: undefined }
+      : null,
+  ].filter(Boolean) as { label: string; tone: "ok" | "warn" | "neutral"; icon?: React.ReactNode }[];
+
   return (
     <Link
       href={`/dex/${e.id}`}
       className={cn(
-        "panel group relative flex flex-col gap-2 p-2 transition-all",
-        "hover:border-accent/55 hover:shadow-[0_0_24px_-10px_var(--color-accent)]",
+        "panel group relative flex flex-col gap-3 p-3.5 transition-all",
+        "hover:border-accent/55 hover:shadow-[0_0_30px_-12px_var(--color-accent)]",
         "focus-visible:border-accent",
       )}
     >
-      <header className="flex items-center justify-between gap-1">
-        <span className="pix text-[10px] text-text-mute">#{String(e.id).padStart(3, "0")}</span>
-        <span className="flex items-center gap-1" title={`Total de stats base: ${e.statTotal}`}>
-          <IconScale size={9} className="text-text-mute" />
-          <span className="text-[12px] text-text-dim tabular">{e.statTotal}</span>
-        </span>
+      {/* ---- cabecalho: identidade e raridade ---- */}
+      <header className="flex items-center justify-between gap-2">
+        <span className="pix text-[12px] text-text-mute">#{String(e.id).padStart(3, "0")}</span>
+        <Chip size="sm" tint={tint} icon={<IconGem size={8} />}>
+          {RARITY_LABEL[e.rarity]}
+        </Chip>
       </header>
 
-      {/* halo da cor da RARIDADE atras do sprite — a raridade se le antes do nome */}
+      {/* ---- sprite: a peca que o olho procura primeiro, entao ganha espaco ---- */}
       <div className="relative grid place-items-center py-1">
         <span
           aria-hidden="true"
-          className="absolute h-16 w-16 rounded-full blur-xl transition-opacity group-hover:opacity-90"
-          style={{ backgroundColor: tint, opacity: 0.18 }}
+          className="absolute h-24 w-24 rounded-full blur-2xl transition-opacity group-hover:opacity-100"
+          style={{ backgroundColor: tint, opacity: 0.2 }}
         />
         <Sprite
           src={spriteUrl(e.id)}
           alt={e.name}
-          size={72}
+          size={96}
           priority={priority}
           className="relative transition-transform duration-200 group-hover:scale-110"
         />
       </div>
 
-      <h3 className="truncate text-[14px] leading-tight font-semibold text-text" title={e.name}>
-        {e.name}
-      </h3>
-
-      <div className="flex flex-wrap items-center gap-1">
-        <TypeBadge type={e.type1} size="xs" />
-        {e.type2 ? <TypeBadge type={e.type2} size="xs" /> : null}
-        <Chip size="xs" tint={tint} icon={<IconGem size={7} />} className="ml-auto">
-          {RARITY_LABEL[e.rarity]}
-        </Chip>
+      {/* ---- nome e tipo ---- */}
+      <div className="flex flex-col gap-2">
+        <h3
+          className="truncate text-[18px] leading-tight font-bold text-text transition-colors group-hover:text-accent"
+          title={e.name}
+        >
+          {e.name}
+        </h3>
+        <div className="flex flex-wrap gap-1.5">
+          <TypeBadge type={e.type1} />
+          {e.type2 ? <TypeBadge type={e.type2} /> : null}
+        </div>
       </div>
 
+      {/* ---- perfil de stats ---- */}
       <StatSpine stats={e.stats} ceiling={ceiling} tint={TYPE_COLOR[e.type1]} />
 
-      {/* os tres numeros que decidem se vale cacar */}
-      <dl className="grid grid-cols-3 gap-1 border-t border-line pt-1.5 text-center">
-        <div>
-          <dt className="pix flex items-center justify-center gap-1 text-[10px] text-text-mute">
-            <IconLevel size={8} />
+      {/* ---- os tres numeros que decidem se vale caçar ---- */}
+      <dl className="grid grid-cols-3 gap-2 border-t border-line pt-3 text-center">
+        <div className="flex flex-col gap-1">
+          <dt className="pix flex items-center justify-center gap-1 text-[11px] text-text-mute">
+            <IconLevel size={9} />
             Nível
           </dt>
-          <dd className="text-[13px] text-text tabular">{e.level || "—"}</dd>
+          <dd className="text-[17px] leading-none font-bold text-text">{e.level || "—"}</dd>
         </div>
-        <div>
-          {/* O rotulo muda com a GRANDEZA: "venda" e o que o jogo te paga por
-              abate, "npc" e o preco do cassino. Sao eixos diferentes e o mesmo
+        <div className="flex flex-col gap-1 border-x border-line">
+          {/* O rotulo muda com a GRANDEZA: "venda" e o que o jogo paga por
+              abate, "npc" e o preço do cassino. Sao eixos diferentes, e o mesmo
               rotulo pros dois faz o card se contradizer entre especies. */}
-          <dt className="pix flex items-center justify-center gap-1 text-[10px] text-text-mute">
-            <IconCoin size={8} />
-            {e.valueFromNpc ? "Preço NPC" : "Venda"}
+          <dt className="pix flex items-center justify-center gap-1 text-[11px] text-text-mute">
+            <IconCoin size={9} />
+            {e.valueFromNpc ? "NPC" : "Venda"}
           </dt>
           <dd
             className={cn(
-              "flex items-center justify-center gap-0.5 text-[13px] tabular",
+              "text-[17px] leading-none font-bold",
               e.valueFromNpc ? "text-text-mute" : "text-warn",
             )}
           >
             {e.value > 0 ? gold(e.value) : "—"}
           </dd>
         </div>
-        <div>
-          <dt className="pix flex items-center justify-center gap-1 text-[10px] text-text-mute">
-            <IconXp size={8} />
+        <div className="flex flex-col gap-1">
+          <dt className="pix flex items-center justify-center gap-1 text-[11px] text-text-mute">
+            <IconXp size={9} />
             XP
           </dt>
-          <dd className="text-[13px] text-neon tabular">{e.xp || "—"}</dd>
+          <dd className="text-[17px] leading-none font-bold text-neon">{e.xp || "—"}</dd>
         </div>
       </dl>
 
-      <div className="flex flex-wrap items-center gap-1">
-        <Chip
-          size="xs"
-          tone={e.acquisition === "hunt" ? "ok" : e.acquisition === "evo" ? "accent" : "warn"}
-          icon={e.acquisition === "hunt" ? <IconPin size={6} /> : undefined}
-        >
-          {e.acquisition === "hunt"
-            ? `${e.spots} ${e.spots > 1 ? "locais" : "local"}`
-            : ACQ_LABEL[e.acquisition]}
-        </Chip>
-        {e.stage !== "solo" ? <Chip size="xs">{STAGE_LABEL[e.stage]}</Chip> : null}
-        {roles[0] ? <Chip size="xs">{ROLE_LABEL[roles[0]] ?? roles[0]}</Chip> : null}
-        {e.hasTm ? (
-          <Tooltip
-            content={`Aprende TM: o melhor golpe sobe de ${e.bestNatural} para ${e.bestWithTm} de poder.`}
-          >
-            <Chip size="xs" tone="neon" icon={<IconTm size={7} />}>TM</Chip>
-          </Tooltip>
-        ) : null}
+      {/* ---- rodape de contexto ----
+          `mt-auto` cola o rodape no fundo: sem ele, um card com um chip a mais
+          empurra o proprio rodape pra baixo e a linha inteira do grid perde o
+          alinhamento. E a contagem de drops fica FORA do container que quebra
+          linha, senao ela cai sozinha numa segunda linha e estica o card. */}
+      <div className="mt-auto flex items-start justify-between gap-2 border-t border-line pt-3">
+        <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+          {contexto.map((c) => (
+            <Chip key={c.label} size="sm" tone={c.tone} icon={c.icon}>
+              {c.label}
+            </Chip>
+          ))}
+          {e.hasTm ? (
+            <Tooltip
+              content={`Aprende TM: o melhor golpe sobe de ${e.bestNatural} para ${e.bestWithTm} de poder.`}
+            >
+              <Chip size="sm" tone="neon" icon={<IconTm size={8} />}>
+                TM
+              </Chip>
+            </Tooltip>
+          ) : null}
+        </div>
         {e.dropCount ? (
-          <Chip size="xs" icon={<IconBag size={7} />} className="ml-auto">
+          <span
+            className="pix flex h-6 shrink-0 items-center gap-1 text-[11px] text-text-mute"
+            title={`${e.dropCount} ${e.dropCount > 1 ? "itens diferentes" : "item"} no loot`}
+          >
+            <IconBag size={10} />
             {e.dropCount}
-          </Chip>
+          </span>
         ) : null}
       </div>
     </Link>
@@ -217,53 +240,53 @@ export function PokeCard({
 export function PokeRow({ e }: { e: DexEntry }) {
   return (
     <tr className="group border-b border-line transition-colors last:border-0 hover:bg-surface-2/70">
-      <td className="px-2 py-1">
+      <td className="px-3 py-2">
         <Link href={`/dex/${e.id}`} className="flex items-center gap-2">
-          <Sprite src={spriteUrl(e.id)} alt={e.name} size={30} />
+          <Sprite src={spriteUrl(e.id)} alt={e.name} size={38} />
           <span className="min-w-0">
-            <span className="block truncate text-[13px] font-medium text-text group-hover:text-accent">
+            <span className="block truncate text-[14px] font-medium text-text group-hover:text-accent">
               {e.name}
             </span>
-            <span className="pix text-[10px] text-text-mute">#{String(e.id).padStart(3, "0")}</span>
+            <span className="pix text-[11px] text-text-mute">#{String(e.id).padStart(3, "0")}</span>
           </span>
         </Link>
       </td>
-      <td className="px-2 py-1">
+      <td className="px-3 py-2">
         <span className="flex gap-1">
           <TypeBadge type={e.type1} size="xs" showLabel={false} />
           {e.type2 ? <TypeBadge type={e.type2} size="xs" showLabel={false} /> : null}
         </span>
       </td>
-      <td className="px-2 py-1">
-        <span className="pix text-[10px]" style={{ color: RARITY_COLOR[e.rarity] }}>
+      <td className="px-3 py-2">
+        <span className="pix text-[11px]" style={{ color: RARITY_COLOR[e.rarity] }}>
           {RARITY_LABEL[e.rarity]}
         </span>
       </td>
-      <td className="px-2 py-1 text-right text-[13px] text-text-dim tabular">{e.level || "—"}</td>
+      <td className="px-3 py-2 text-right text-[14px] text-text-dim tabular">{e.level || "—"}</td>
       {e.stats.map((s, i) => (
-        <td key={i} className="px-1.5 py-1 text-right text-[13px] text-text-dim tabular">
+        <td key={i} className="px-2 py-2 text-right text-[14px] text-text-dim tabular">
           {s}
         </td>
       ))}
-      <td className="px-2 py-1 text-right text-[13px] font-semibold text-text tabular">
+      <td className="px-3 py-2 text-right text-[14px] font-semibold text-text tabular">
         {e.statTotal}
       </td>
-      <td className="px-2 py-1 text-right text-[13px] text-accent tabular">
+      <td className="px-3 py-2 text-right text-[14px] text-accent tabular">
         {e.bestWithTm}
-        {e.hasTm ? <span className="ml-0.5 text-[10px] text-neon">tm</span> : null}
+        {e.hasTm ? <span className="ml-0.5 text-[11px] text-neon">tm</span> : null}
       </td>
       <td
         className={cn(
-          "px-2 py-1 text-right text-[13px] tabular",
+          "px-3 py-2 text-right text-[14px] tabular",
           e.valueFromNpc ? "text-text-mute" : "text-warn",
         )}
         title={e.valueFromNpc ? "Preco de NPC — esta especie nao tem valor de venda" : undefined}
       >
         {e.value > 0 ? gold(e.value) : "—"}
-        {e.valueFromNpc && e.value > 0 ? <span className="ml-0.5 text-[10px]">npc</span> : null}
+        {e.valueFromNpc && e.value > 0 ? <span className="ml-0.5 text-[11px]">npc</span> : null}
       </td>
-      <td className="px-2 py-1 text-right text-[13px] text-neon tabular">{e.xp || "—"}</td>
-      <td className="px-2 py-1 text-right text-[13px] text-text-mute tabular">{e.spots || "—"}</td>
+      <td className="px-3 py-2 text-right text-[14px] text-neon tabular">{e.xp || "—"}</td>
+      <td className="px-3 py-2 text-right text-[14px] text-text-mute tabular">{e.spots || "—"}</td>
     </tr>
   );
 }

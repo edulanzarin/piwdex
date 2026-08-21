@@ -35,7 +35,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
       <input
         ref={ref}
         className={cn(
-          "min-w-0 flex-1 bg-transparent text-[13px] text-text outline-none",
+          "min-w-0 flex-1 bg-transparent text-[14px] text-text outline-none",
           "placeholder:text-text-mute disabled:cursor-not-allowed",
           className,
         )}
@@ -93,7 +93,7 @@ export function NumberRange({
         onChange={(e) => onChange([parse(e.target.value), value[1]])}
         className="text-center"
       />
-      <span className="shrink-0 text-[12px] text-text-mute">—</span>
+      <span className="shrink-0 text-[13px] text-text-mute">—</span>
       <Input
         type="number"
         inputMode="numeric"

@@ -47,7 +47,7 @@ export function Pagination({
 
       {pageList(page, pageCount).map((p, i) =>
         p === "gap" ? (
-          <span key={`gap${i}`} className="px-1 text-[12px] text-text-mute">
+          <span key={`gap${i}`} className="px-1 text-[13px] text-text-mute">
             ...
           </span>
         ) : (

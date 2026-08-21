@@ -49,9 +49,8 @@
   --radius-pix: 2px;
   --radius-pix-lg: 4px;
 
-  /* ---- fontes (as familias vem do next/font no layout) ---- */
-  --font-pixel: var(--font-display-src), ui-monospace, monospace;
-  --font-mono: var(--font-mono-src), ui-monospace, "SF Mono", monospace;
+  /* ---- fonte unica: Quantico, do next/font ---- */
+  --font-ui-stack: var(--font-ui), "Segoe UI", system-ui, sans-serif;
 
   /* ---- sombra/brilho neon: escada fechada ---- */
   --shadow-glow-sm: 0 0 0 1px color-mix(in oklab, var(--color-accent) 35%, transparent),
@@ -83,10 +82,11 @@
   body {
     background-color: var(--color-bg);
     color: var(--color-text);
-    font-family: var(--font-mono);
-    /* 15px: a 14px o dado em 11px ficava no limite do ilegivel */
-    font-size: 0.9375rem;
-    line-height: 1.55;
+    font-family: var(--font-ui-stack);
+    /* 16px. Foram tres subidas ate aqui (14 -> 15 -> 16): a queixa "tudo
+       esmagado e pequeno" nao era de um elemento, era da escala inteira. */
+    font-size: 1rem;
+    line-height: 1.6;
     -webkit-font-smoothing: antialiased;
     /* A grade de fundo e o unico "cenario": duas linhas de 1px em 44px, mais um
        halo de acento no topo. Custa zero requisicao e nao concorre com o dado. */
@@ -120,7 +120,9 @@
   }
   ::-webkit-scrollbar-thumb:hover { background: var(--color-accent-soft); }
 
-  /* O numero e dado: tabular pra coluna nao dancar entre linhas. */
+  /* A Quantico NAO tem numeral tabular — `tabular-nums` aqui nao faz nada. O
+     que mantem a coluna reta e o alinhamento a direita, aplicado em toda
+     celula de numero. A classe fica pro dia em que a fonte mudar. */
   table, .tabular { font-variant-numeric: tabular-nums; }
 
   /* Sprite do jogo e pixel art: escalar com suavizacao vira borrao. */
@@ -140,14 +142,12 @@
      Fonte pixel em texto corrido mata a densidade. Ela fica so em rotulo curto,
      caixa alta, com tracking — e o dado fica no mono, que se le. */
   .pix {
-    font-family: var(--font-pixel);
-    /* A Quantico e um pouco mais baixa que o mono ao lado, entao ganha 1.05x.
-       Tracking de 0.06em porque caixa alta apertada em quadrada vira bloco.
-       Peso 700 — ela so tem 400 e 700, e o 400 afina demais em 10px. */
-    font-size: 1.05em;
-    letter-spacing: 0.06em;
+    /* Com uma familia so, `.pix` deixou de ser "outra fonte" e virou o ESTILO
+       de rotulo: caixa alta, peso 700 e tracking. O tracking nao e enfeite —
+       caixa alta apertada numa quadrada vira bloco ilegivel. */
     text-transform: uppercase;
-    line-height: 1;
+    letter-spacing: 0.07em;
+    line-height: 1.1;
     font-weight: 700;
   }
 
@@ -166,13 +166,13 @@
     align-items: center;
     gap: 0.5rem;
     width: 100%;
-    height: 2rem;
-    padding-inline: 0.5rem;
+    height: 2.25rem;
+    padding-inline: 0.625rem;
     background-color: var(--color-bg-soft);
     border: 1px solid var(--color-line);
     border-radius: var(--radius-pix);
     color: var(--color-text);
-    font-size: 0.8125rem;
+    font-size: 0.875rem;
     transition: border-color 120ms, box-shadow 120ms, background-color 120ms;
   }
   .field:hover:not(:disabled):not([aria-disabled="true"]) {

@@ -98,7 +98,7 @@ export function Select<T extends string>({
         className={cn("field justify-between text-left", className)}
       >
         <span className="flex min-w-0 flex-1 items-center gap-1.5">
-          {prefix ? <span className="pix shrink-0 text-[10px] text-text-mute">{prefix}</span> : null}
+          {prefix ? <span className="pix shrink-0 text-[11px] text-text-mute">{prefix}</span> : null}
           <span className={cn("truncate", !selected && "text-text-mute")}>
             {selected ? selected.render ?? selected.label : placeholder}
           </span>
@@ -121,14 +121,14 @@ export function Select<T extends string>({
                     onMouseEnter={() => setCursor(i)}
                     onClick={() => { onChange(o.value); close(); }}
                     className={cn(
-                      "flex w-full items-center gap-2 rounded-pix px-2 py-1.5 text-left text-[13px] transition-colors",
+                      "flex w-full items-center gap-2 rounded-pix px-2 py-1.5 text-left text-[14px] transition-colors",
                       "disabled:pointer-events-none disabled:opacity-40",
                       i === cursor ? "bg-surface-2 text-text" : "text-text-dim",
                       on && "text-accent",
                     )}
                   >
                     <span className="min-w-0 flex-1 truncate">{o.render ?? o.label}</span>
-                    {o.hint ? <span className="shrink-0 text-[11px] text-text-mute">{o.hint}</span> : null}
+                    {o.hint ? <span className="shrink-0 text-[12px] text-text-mute">{o.hint}</span> : null}
                     {on ? <IconCheck size={8} className="shrink-0" /> : null}
                   </button>
                 </li>

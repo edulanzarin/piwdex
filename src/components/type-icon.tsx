@@ -275,7 +275,7 @@ export function TypeBadge({
       style={{ borderColor: `${color}66`, backgroundColor: `${color}1c`, color }}
       className={cn(
         "pix inline-flex items-center gap-1 rounded-pix border whitespace-nowrap",
-        size === "xs" ? "h-4 px-1 text-[10px]" : "h-5 px-1.5 text-[11px]",
+        size === "xs" ? "h-4 px-1 text-[11px]" : "h-5 px-1.5 text-[12px]",
         !showLabel && (size === "xs" ? "w-4 justify-center px-0" : "w-5 justify-center px-0"),
         className,
       )}
@@ -308,7 +308,7 @@ export function TypeMultChip({
     <span
       style={{ borderColor: `${color}66`, backgroundColor: `${color}18` }}
       className={cn(
-        "pix inline-flex h-5 items-center gap-1 rounded-pix border px-1.5 text-[10px]",
+        "pix inline-flex h-5 items-center gap-1 rounded-pix border px-1.5 text-[11px]",
         className,
       )}
       title={`${TYPE_LABEL[m.type]}: ${multWord(m.mult)}`}

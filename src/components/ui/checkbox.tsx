@@ -22,7 +22,7 @@ export function Checkbox({ label, indeterminate, tint, className, ...props }: Ch
     <label
       className={cn(
         "group flex cursor-pointer select-none items-center gap-2 rounded-pix px-1.5 py-1",
-        "text-[13px] text-text-dim transition-colors hover:bg-surface-2 hover:text-text",
+        "text-[14px] text-text-dim transition-colors hover:bg-surface-2 hover:text-text",
         props.disabled && "pointer-events-none opacity-40",
         className,
       )}
