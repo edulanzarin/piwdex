@@ -3,7 +3,8 @@ import type { Metadata } from "next";
 import { getDexPayload } from "@/lib/dex-data";
 import { agora, fecharPiso } from "@/lib/pacing";
 import { CalcTool, type CalcSpecies } from "@/components/calc-tool";
-import { Panel, SkeletonForm } from "@/components/ui";
+import { HowTo, Panel, SkeletonForm } from "@/components/ui";
+import { COMO_USAR_CALC } from "@/lib/how-to";
 
 export const metadata: Metadata = {
   title: "Calculadora",
@@ -35,6 +36,10 @@ export default async function CalcPage() {
   return (
     <div className="flex flex-col gap-4">
       <h1 className="pix text-[22px] text-text">Calculadora</h1>
+
+      {/* O manual vem ANTES do formulario porque e ele que diz de onde saem os
+          numeros que o formulario pede. Fechado, ele custa uma faixa de 40px. */}
+      <HowTo {...COMO_USAR_CALC} tint="var(--color-t-calc)" />
 
       <Suspense
         fallback={
