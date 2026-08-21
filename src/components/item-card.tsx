@@ -3,9 +3,8 @@ import { cn } from "@/lib/cn";
 import type { ItemEntry } from "@/lib/items";
 import { killsPerUnit } from "@/lib/items";
 import { assetIconUrl, spriteUrl } from "@/lib/sprites";
-import { Chip, IconCoin, Sprite, Tooltip } from "@/components/ui";
+import { Chip, IconCoin, Pokeball, Sprite, Tooltip } from "@/components/ui";
 import {
-  IconChance,
   IconGem,
   IconLevel,
   IconLoot,
@@ -182,9 +181,14 @@ export function ItemCard({
           </dd>
         </div>
         <div className="flex flex-col gap-1 border-l border-line">
+          {/* CONTAGEM de espécies, não porcentagem. O ícone de % que estava aqui
+              fazia o card afirmar outra coisa — "14%" em vez de "14 pokémons
+              dropam" — e o rótulo "fontes" sozinho não desfazia a leitura. O
+              símbolo tem de concordar com a grandeza, senão ele manda mais que
+              o texto. */}
           <dt className="pix flex items-center justify-center gap-1 text-[11px] text-text-mute">
-            <IconChance size={15} />
-            Fontes
+            <Pokeball size={13} className="text-text-mute" />
+            Dropam
           </dt>
           <dd className="text-[17px] leading-none font-bold text-text">
             {e.sources || "—"}
@@ -242,7 +246,10 @@ export function ItemRow({ e }: { e: ItemEntry }) {
       <td className="px-3 py-2 text-right text-[14px] text-neon tabular">
         {e.goldPrice > 0 ? compact(e.goldPrice) : "—"}
       </td>
-      <td className="px-3 py-2 text-right text-[14px] text-text-dim tabular">
+      <td
+        className="px-3 py-2 text-right text-[14px] text-text-dim tabular"
+        title={e.sources ? `${e.sources} espécies dropam este item` : undefined}
+      >
         {e.sources || "—"}
       </td>
       <td className="px-3 py-2 text-right text-[14px] text-ok tabular">

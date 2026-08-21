@@ -26,6 +26,7 @@ import {
   Modal,
   Pagination,
   Panel,
+  Pokeball,
   Segmented,
   Select,
   type SelectOption,
@@ -73,7 +74,13 @@ const COLUMNS: Col[] = [
   { key: "category", label: "Categoria" },
   { key: "price", label: "NPC", align: "right", icon: <IconCoin size={14} /> },
   { key: "gold", label: "Ouro", align: "right" },
-  { key: "sources", label: "Fontes", align: "right", icon: <IconLoot size={14} /> },
+  {
+    key: "sources",
+    label: "Dropam",
+    align: "right",
+    icon: <Pokeball size={13} />,
+    hint: "Quantas espécies dropam este item",
+  },
   { key: "chance", label: "Chance", align: "right", icon: <IconChance size={14} /> },
   { key: null, label: "Melhor fonte" },
   {

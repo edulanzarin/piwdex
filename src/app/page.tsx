@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { getDexPayload } from "@/lib/dex-data";
 import { agora, fecharPiso } from "@/lib/pacing";
-import { Chip, IconChevronRight, Pokeball } from "@/components/ui";
-import { Sparkles } from "lucide-react";
+import { Chip, IconChevronRight, Pokeball, Sprite } from "@/components/ui";
 import { BookOpen, Calculator, Egg, Package, Radar, Swords } from "lucide-react";
 
 export const revalidate = 3600;
@@ -21,11 +20,18 @@ export const revalidate = 3600;
  */
 
 /**
- * Cada ferramenta tem COR propria.
+ * Cada ferramenta tem COR e ARTE propria.
  *
- * Sem isso a home e uma lista de seis caixas cinza iguais, e o olho nao tem
- * onde pousar. Com cor, a pessoa reconhece a ferramenta antes de ler o titulo —
- * e depois passa a associar "o vermelho e a dex" nas telas internas.
+ * A cor sozinha ja tirava a home de "seis caixas cinza iguais". A arte fecha o
+ * argumento: um icone de linha do lucide a 24px e vocabulario de dashboard, e
+ * este site e ferramenta de JOGO — pixel art com contorno e halo neon fala a
+ * mesma lingua dos sprites e do wallpaper.
+ *
+ * Os PNG vivem em `public/images/icons/<arte>.png`, num grid 32x32 com moldura
+ * de 44 (a mesma proporcao do pokedex.png, senao um icone colado na borda
+ * aparece MAIOR que os outros dentro da mesma caixa). O gerador esta em
+ * `scripts/pixel-icons/`. O icone do lucide fica como reserva: arte que nao
+ * carregou nao pode virar caixa vazia.
  */
 const TOOLS = [
   {
@@ -35,6 +41,7 @@ const TOOLS = [
       "Todas as espécies com filtro por tipo, raridade, origem, estágio, fraqueza e " +
       "faixa de nível, valor, XP, stats e poder de golpe.",
     icon: BookOpen,
+    arte: "pokedex",
     cor: "var(--color-t-dex)",
     ready: true,
   },
@@ -43,6 +50,7 @@ const TOOLS = [
     name: "Itens",
     desc: "Catálogo de itens com o índice reverso: quem dropa cada um, e com que chance real.",
     icon: Package,
+    arte: "itens",
     cor: "var(--color-t-itens)",
     ready: true,
   },
@@ -51,6 +59,7 @@ const TOOLS = [
     name: "Calculadora",
     desc: "IV, Quality e Poder pela fórmula do jogo. Projeta os stats em qualquer nível.",
     icon: Calculator,
+    arte: "calculadora",
     cor: "var(--color-t-calc)",
     ready: false,
   },
@@ -59,6 +68,7 @@ const TOOLS = [
     name: "Hunt",
     desc: "Rota de caça por XP, ouro e efetividade — usando o melhor golpe CONTRA o alvo.",
     icon: Radar,
+    arte: "hunt",
     cor: "var(--color-t-hunt)",
     ready: false,
   },
@@ -67,6 +77,7 @@ const TOOLS = [
     name: "Breeding",
     desc: "Simula o ovo, projeta os stats do filho e planeja quantos breeds até a Quality alvo.",
     icon: Egg,
+    arte: "breeding",
     cor: "var(--color-t-breed)",
     ready: false,
   },
@@ -75,6 +86,7 @@ const TOOLS = [
     name: "Meta",
     desc: "Quem bate em quem: cobertura de tipo, fraquezas cruzadas e montagem de time.",
     icon: Swords,
+    arte: "meta",
     cor: "var(--color-t-meta)",
     ready: false,
   },
@@ -125,36 +137,40 @@ export default async function HomePage() {
       {/* ================= ferramentas ================= */}
       <section className="flex flex-col gap-4">
         <h2 className="pix text-[14px] text-text-dim">Ferramentas</h2>
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-4 lg:grid-cols-2">
           {TOOLS.map((t) => {
             const Icon = t.icon;
             const body = (
               <>
-                <div className="flex items-start gap-4">
-                  {/* Icone e titulo carregam a cor da FERRAMENTA. E o que faz a
-                      home parar de ser seis caixas cinza iguais, e o que depois
-                      deixa reconhecer a tela pela cor antes de ler o titulo. */}
+                <div className="flex items-start gap-4 sm:gap-5">
+                  {/* A arte carrega a identidade da ferramenta e e a primeira
+                      coisa que o olho pega — entao ela tem tamanho de figura,
+                      nao de bullet. O `Sprite` ja resolve carga e falha: sem o
+                      PNG, entra o icone de linha no lugar. */}
                   <span
-                    className="grid h-14 w-14 shrink-0 place-items-center rounded-none border"
-                    style={{
-                      borderColor: `color-mix(in oklab, ${t.cor} ${t.ready ? 55 : 30}%, transparent)`,
-                      backgroundColor: `color-mix(in oklab, ${t.cor} ${t.ready ? 16 : 9}%, transparent)`,
-                      color: t.cor,
-                      opacity: t.ready ? 1 : 0.62,
-                    }}
+                    className="shrink-0 transition-transform duration-300 group-hover:scale-105"
+                    style={{ opacity: t.ready ? 1 : 0.55 }}
                   >
-                    <Icon size={24} strokeWidth={1.8} />
+                    <Sprite
+                      src={`/images/icons/${t.arte}.png`}
+                      alt=""
+                      size={104}
+                      priority
+                      fallback={<Icon size={34} strokeWidth={1.8} style={{ color: t.cor }} />}
+                    />
                   </span>
-                  <div className="flex min-w-0 flex-1 flex-col gap-2">
+
+                  <div className="flex min-w-0 flex-1 flex-col gap-2.5">
                     <div className="flex items-center gap-2">
-                      <span
-                        className="pix flex-1 text-[17px]"
+                      <h3
+                        className="pix flex-1 text-[19px] leading-none"
                         style={{ color: t.cor, opacity: t.ready ? 1 : 0.6 }}
                       >
                         {t.name}
-                      </span>
+                      </h3>
                       {t.ready ? null : <Chip size="sm">em breve</Chip>}
                     </div>
+
                     <p
                       className={
                         t.ready
@@ -164,43 +180,47 @@ export default async function HomePage() {
                     >
                       {t.desc}
                     </p>
+
+                    {/* O botao mora na COLUNA DO TEXTO, alinhado com a
+                        descricao. Solto no rodape do card ele se descola da
+                        frase que explica pra onde vai. */}
+                    {t.ready ? (
+                      <span
+                        className="pix mt-1 inline-flex h-10 w-fit items-center gap-2 border px-4 text-[13px] transition-all group-hover:brightness-125"
+                        style={{
+                          borderColor: `color-mix(in oklab, ${t.cor} 60%, transparent)`,
+                          backgroundColor: `color-mix(in oklab, ${t.cor} 18%, transparent)`,
+                          color: t.cor,
+                        }}
+                      >
+                        abrir {t.name.toLowerCase()}
+                        <IconChevronRight size={16} />
+                      </span>
+                    ) : null}
                   </div>
                 </div>
-                {t.ready ? (
-                  <span
-                    className="pix mt-1 inline-flex h-10 w-fit items-center gap-2 rounded-pix border px-4 text-[13px]"
-                    style={{
-                      borderColor: `color-mix(in oklab, ${t.cor} 55%, transparent)`,
-                      backgroundColor: `color-mix(in oklab, ${t.cor} 20%, transparent)`,
-                      color: t.cor,
-                    }}
-                  >
-                    abrir {t.name.toLowerCase()}
-                    <IconChevronRight size={16} />
-                  </span>
-                ) : null}
               </>
             );
+
+            const skin = {
+              borderColor: `color-mix(in oklab, ${t.cor} ${t.ready ? 42 : 22}%, var(--color-line))`,
+              boxShadow: `0 0 52px -26px ${t.cor}`,
+            };
+
             return t.ready ? (
               <Link
                 key={t.href}
                 href={t.href}
-                className="panel group flex flex-col gap-4 p-5 transition-all hover:brightness-115"
-                style={{
-                  borderColor: `color-mix(in oklab, ${t.cor} 30%, var(--color-line))`,
-                  boxShadow: `0 0 44px -24px ${t.cor}`,
-                }}
+                className="panel group flex flex-col p-5 transition-all hover:brightness-110"
+                style={skin}
               >
                 {body}
               </Link>
             ) : (
-              <div
-                key={t.href}
-                /* `opacity` no card inteiro tambem apagava o VIDRO — sobre a
-                   foto, o texto ficava ilegivel. Quem esmaece agora e so o
-                   conteudo, pela cor; a superficie fica de pe. */
-                className="panel flex flex-col gap-4 p-5"
-              >
+              /* `opacity` no card inteiro tambem apagava o VIDRO — sobre a foto,
+                 o texto ficava ilegivel. Quem esmaece e o conteudo, pela cor; a
+                 superficie fica de pe. */
+              <div key={t.href} className="panel flex flex-col p-5" style={skin}>
                 {body}
               </div>
             );
