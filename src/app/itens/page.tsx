@@ -24,10 +24,7 @@ export default async function ItensPage() {
   return (
     <div className="flex flex-col gap-4">
       <header className="flex flex-wrap items-end justify-between gap-2">
-        <div>
-          <p className="pix text-[11px] text-[var(--color-t-itens)]">índice reverso de drop</p>
-          <h1 className="pix text-[22px] text-text">Itens</h1>
-        </div>
+        <h1 className="pix text-[22px] text-text">Itens</h1>
         {/* Os tres numeros contam a mesma historia que a pagina inteira: quanto
             existe, quanto cai de alguem, e quanto disso da pra de fato caçar. */}
         <p className="text-[13px] text-text-mute">

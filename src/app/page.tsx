@@ -61,7 +61,7 @@ const TOOLS = [
     icon: Calculator,
     arte: "calculadora",
     cor: "var(--color-t-calc)",
-    ready: false,
+    ready: true,
   },
   {
     href: "/hunt",

@@ -50,6 +50,33 @@ export function estimateIvs(bases: number[], stats: number[], level: number, qua
   return { ivs, total };
 }
 
+/** Teto de IV do jogo. Estimativa acima disso nao e um bicho melhor — e sinal de
+ *  que o nivel ou a qualidade informados estao errados. */
+export const IV_MAX = 32;
+
+/**
+ * INTERVALO de IV compativel com o stat observado.
+ *
+ * O stat que o jogo mostra e ARREDONDADO, entao um mesmo numero na tela cabe num
+ * intervalo de IV, nao num ponto. Isso nao e preciosismo: o fator
+ * `(nivel/100) * qualidade^exp` cresce com o nivel, e em nivel baixo ele e tao
+ * pequeno que meia unidade de stat vale dezenas de IV — num nivel 5, "HP 12" e
+ * compativel com IV 4 e com IV 30 ao mesmo tempo.
+ *
+ * Devolver so o ponto medio faria a tela afirmar "IV 17,3" quando o dado nao
+ * distingue 4 de 30. Quem mostra estimativa mostra a largura dela.
+ */
+export function ivRange(
+  base: number, stat: number, level: number, quality: number, i: number,
+): [number, number] {
+  const f = factor(level, quality, i);
+  if (f === 0) return [0, IV_MAX];
+  return [
+    ((stat - 0.5) / f - base) / IV_MULT,
+    ((stat + 0.5) / f - base) / IV_MULT,
+  ];
+}
+
 /** Poder a partir de stats ja observados (soma * qualidade). */
 export function powerOf(stats: number[], quality: number): number {
   return Math.round(stats.reduce((a, b) => a + b, 0) * quality);

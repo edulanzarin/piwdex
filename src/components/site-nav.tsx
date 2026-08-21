@@ -16,7 +16,7 @@ import { IconClose, IconRows, Pokeball } from "@/components/ui";
 const LINKS = [
   { href: "/dex", label: "Pokedex" },
   { href: "/itens", label: "Itens" },
-  { href: "/calc", label: "Calculadora", soon: true },
+  { href: "/calc", label: "Calculadora" },
   { href: "/hunt", label: "Hunt", soon: true },
   { href: "/breed", label: "Breeding", soon: true },
   { href: "/meta", label: "Meta", soon: true },

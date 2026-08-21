@@ -30,10 +30,7 @@ export default async function DexPage() {
   return (
     <div className="flex flex-col gap-4">
       <header className="flex flex-wrap items-end justify-between gap-2">
-        <div>
-          <p className="pix text-[11px] text-accent">catálogo completo</p>
-          <h1 className="pix text-[22px] text-text">Pokedex</h1>
-        </div>
+        <h1 className="pix text-[22px] text-text">Pokedex</h1>
         <p className="text-[13px] text-text-mute">
           {total} pokémons · {counts.hunts} locais de caça · {counts.drops} registros de drop
         </p>
