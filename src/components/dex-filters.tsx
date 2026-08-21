@@ -73,9 +73,9 @@ function FilterGroup({
         aria-expanded={open}
         className="flex w-full items-center gap-2 px-3 py-2 text-left transition-colors hover:bg-surface-2/60"
       >
-        <span className="pix flex-1 text-[9px] text-text-dim">{title}</span>
+        <span className="pix flex-1 text-[10px] text-text-dim">{title}</span>
         {active ? (
-          <span className="pix rounded-pix bg-accent/20 px-1 text-[8px] text-accent">{active}</span>
+          <span className="pix rounded-pix bg-accent/20 px-1 text-[10px] text-accent">{active}</span>
         ) : null}
         <IconChevronDown
           size={8}
@@ -166,7 +166,7 @@ export function DexFilters({
   return (
     <div className="flex flex-col">
       <header className="flex items-center justify-between gap-2 border-b border-line px-3 py-2">
-        <span className="pix text-[10px] text-text">Filtros</span>
+        <span className="pix text-[11px] text-text">Filtros</span>
         <Button size="sm" variant="ghost" onClick={onClear} disabled={!activeCount}>
           limpar{activeCount ? ` (${activeCount})` : ""}
         </Button>
@@ -336,7 +336,7 @@ export function DexFilters({
             onChange={(weakTo) => onChange({ weakTo })}
             options={TYPE_OPTIONS(typeCounts)}
           />
-          <p className="mt-1 text-[10px] leading-snug text-text-mute">
+          <p className="mt-1 text-[11px] leading-snug text-text-mute">
             quem APANHA destes tipos — marcando dois, pede os dois ao mesmo tempo
           </p>
         </div>
@@ -349,7 +349,7 @@ export function DexFilters({
             onChange={(resistTo) => onChange({ resistTo })}
             options={TYPE_OPTIONS(typeCounts)}
           />
-          <p className="mt-1 text-[10px] leading-snug text-text-mute">
+          <p className="mt-1 text-[11px] leading-snug text-text-mute">
             quem AGUENTA estes tipos, incluindo imunidade
           </p>
         </div>

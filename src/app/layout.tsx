@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { JetBrains_Mono, Jersey_10 } from "next/font/google";
+import { JetBrains_Mono, Quantico } from "next/font/google";
 import { SiteNav } from "@/components/site-nav";
 import { SiteFooter } from "@/components/site-footer";
 import "./globals.css";
@@ -7,21 +7,20 @@ import "./globals.css";
 /**
  * Duas fontes, dois papeis — e a divisao e o que salva a densidade.
  *
- * A pixel e a **Jersey 10**, escolhida pelo Eduardo depois de descartar a
- * Press Start 2P (ilegivel) e a Silkscreen (ainda pouco legivel). Peso unico
- * 400: ela nao tem bold, e forcar um faz o navegador sintetizar e borrar o
- * pixel.
+ * O rotulo e **Quantico**: quadrada e tecno, mas com formas de letra normais —
+ * le em 10px sem esforco. Chegou depois de quatro reprovadas: Press Start 2P
+ * (ilegivel), Silkscreen (some no corpo pequeno), Jersey 10 (condensada e
+ * fina) e Orbitron (legivel, mas larga e fria demais). O padrao das bitmap era
+ * sempre o mesmo — so funcionam com traco grosso E corpo grande, e ai a
+ * densidade morre.
  *
- * Ela fica so em ROTULO curto em caixa alta (`.pix`). Foi a licao da versao
- * anterior: fonte pixel em texto corrido come o dobro da largura e derruba pela
- * metade o que cabe na tela. O dado — nome, numero, stat — vai no mono, que
- * alinha coluna e se le em 11px. A Jersey ainda e condensada, entao no rotulo
- * ela vai um degrau maior que o mono ao lado.
+ * Fica so em texto curto em caixa alta (`.pix`); o dado — nome, numero, stat —
+ * vai no mono, que alinha coluna. Peso 700 no rotulo: o 400 afina em 10px.
  */
-const pixel = Jersey_10({
-  weight: "400",
+const display = Quantico({
+  weight: ["400", "700"],
   subsets: ["latin"],
-  variable: "--font-pixel-src",
+  variable: "--font-display-src",
   display: "swap",
 });
 
@@ -48,7 +47,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pt-BR" className={`${pixel.variable} ${mono.variable}`}>
+    <html lang="pt-BR" className={`${display.variable} ${mono.variable}`}>
       <body className="min-h-dvh antialiased">
         {/* Pular pro conteudo: quem navega por teclado nao deve atravessar o
             trilho de filtro inteiro pra chegar na lista. */}
@@ -56,7 +55,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           href="#conteudo"
           className="pix sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-200
                      focus:rounded-pix focus:border focus:border-accent focus:bg-surface-3
-                     focus:px-3 focus:py-2 focus:text-[10px] focus:text-accent"
+                     focus:px-3 focus:py-2 focus:text-[11px] focus:text-accent"
         >
           Pular para o conteudo
         </a>

@@ -123,7 +123,7 @@ export function Range({
 
   return (
     <div className={cn("select-none", className)}>
-      <div className="mb-1.5 flex items-center justify-between text-[11px] text-text-dim tabular">
+      <div className="mb-1.5 flex items-center justify-between text-[12px] text-text-dim tabular">
         <span>{format(value[0])}</span>
         <span>{format(value[1])}</span>
       </div>

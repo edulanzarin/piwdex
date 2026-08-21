@@ -29,7 +29,7 @@ export function StatBar({ label, value, max, tint, className, segments = 12 }: S
 
   return (
     <div className={cn("flex items-center gap-2", className)}>
-      <span className="pix w-13 shrink-0 text-[8px] text-text-mute">{label}</span>
+      <span className="pix w-13 shrink-0 text-[10px] text-text-mute">{label}</span>
       <span
         className="flex min-w-0 flex-1 gap-px"
         role="meter"
@@ -49,7 +49,7 @@ export function StatBar({ label, value, max, tint, className, segments = 12 }: S
           />
         ))}
       </span>
-      <span className="w-8 shrink-0 text-right text-[11px] text-text tabular">{value}</span>
+      <span className="w-8 shrink-0 text-right text-[12px] text-text tabular">{value}</span>
     </div>
   );
 }

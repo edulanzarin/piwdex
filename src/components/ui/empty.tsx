@@ -18,8 +18,8 @@ export function Empty({
   return (
     <div className="flex flex-col items-center justify-center gap-3 px-6 py-14 text-center">
       <Pokeball size={40} className="text-line-strong" />
-      <p className="pix text-[11px] text-text-dim">{title}</p>
-      {hint ? <p className="max-w-sm text-[12px] leading-relaxed text-text-mute">{hint}</p> : null}
+      <p className="pix text-[12px] text-text-dim">{title}</p>
+      {hint ? <p className="max-w-sm text-[13px] leading-relaxed text-text-mute">{hint}</p> : null}
       {action}
     </div>
   );

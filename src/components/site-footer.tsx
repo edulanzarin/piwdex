@@ -5,9 +5,9 @@
 export function SiteFooter() {
   return (
     <footer className="border-t border-line bg-bg-soft/60">
-      <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-1 px-3 py-6 text-[11px] text-text-mute sm:px-5">
+      <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-1 px-3 py-6 text-[12px] text-text-mute sm:px-5">
         <p>
-          <span className="pix text-[9px] text-text-dim">piwdex</span> — dex e ferramentas
+          <span className="pix text-[10px] text-text-dim">piwdex</span> — dex e ferramentas
           para Poke Idle World.
         </p>
         <p>

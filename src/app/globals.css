@@ -50,7 +50,7 @@
   --radius-pix-lg: 4px;
 
   /* ---- fontes (as familias vem do next/font no layout) ---- */
-  --font-pixel: var(--font-pixel-src), "Courier New", monospace;
+  --font-pixel: var(--font-display-src), ui-monospace, monospace;
   --font-mono: var(--font-mono-src), ui-monospace, "SF Mono", monospace;
 
   /* ---- sombra/brilho neon: escada fechada ---- */
@@ -84,7 +84,8 @@
     background-color: var(--color-bg);
     color: var(--color-text);
     font-family: var(--font-mono);
-    font-size: 0.875rem;
+    /* 15px: a 14px o dado em 11px ficava no limite do ilegivel */
+    font-size: 0.9375rem;
     line-height: 1.55;
     -webkit-font-smoothing: antialiased;
     /* A grade de fundo e o unico "cenario": duas linhas de 1px em 44px, mais um
@@ -140,15 +141,14 @@
      caixa alta, com tracking — e o dado fica no mono, que se le. */
   .pix {
     font-family: var(--font-pixel);
-    /* A Jersey 10 e condensada: no mesmo corpo ela le menor que uma pixel
-       quadrada. Compensa com 1.5x de tamanho e menos tracking — apertar uma
-       condensada com o tracking de uma quadrada e o que a torna ilegivel. */
-    font-size: 1.5em;
-    letter-spacing: 0.04em;
+    /* A Quantico e um pouco mais baixa que o mono ao lado, entao ganha 1.05x.
+       Tracking de 0.06em porque caixa alta apertada em quadrada vira bloco.
+       Peso 700 — ela so tem 400 e 700, e o 400 afina demais em 10px. */
+    font-size: 1.05em;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
     line-height: 1;
-    /* peso unico: ela nao tem bold, e sintetizar borra o pixel */
-    font-weight: 400;
+    font-weight: 700;
   }
 
   /* ---- superficie base de qualquer bloco ---- */

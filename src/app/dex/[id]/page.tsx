@@ -80,7 +80,7 @@ export default async function CreaturePage({ params }: Props) {
 
   return (
     <div className="flex flex-col gap-4">
-      <nav className="flex items-center gap-1.5 text-[11px] text-text-mute">
+      <nav className="flex items-center gap-1.5 text-[12px] text-text-mute">
         <Link href="/dex" className="transition-colors hover:text-accent">
           Pokedex
         </Link>
@@ -100,7 +100,7 @@ export default async function CreaturePage({ params }: Props) {
         </div>
 
         <div className="flex min-w-0 flex-1 flex-col gap-2">
-          <span className="pix text-[10px] text-text-mute">
+          <span className="pix text-[11px] text-text-mute">
             #{String(c.pokeId).padStart(3, "0")}
             {c.area ? ` · ${c.area}` : ""}
           </span>
@@ -117,7 +117,7 @@ export default async function CreaturePage({ params }: Props) {
           </div>
 
           {c.description ? (
-            <p className="max-w-2xl text-[12px] leading-relaxed text-text-mute">{c.description}</p>
+            <p className="max-w-2xl text-[13px] leading-relaxed text-text-mute">{c.description}</p>
           ) : null}
 
           <dl className="mt-1 grid grid-cols-2 gap-px overflow-hidden rounded-pix border border-line bg-line sm:grid-cols-4">
@@ -141,11 +141,11 @@ export default async function CreaturePage({ params }: Props) {
               },
             ].map((s) => (
               <div key={s.label} className="bg-surface px-3 py-2">
-                <dd className={`flex items-center gap-1 text-[16px] leading-none font-semibold tabular ${s.tone ?? "text-text"}`}>
+                <dd className={`flex items-center gap-1 text-[17px] leading-none font-semibold tabular ${s.tone ?? "text-text"}`}>
                   {s.icon}
                   {s.value}
                 </dd>
-                <dt className="pix mt-1 text-[8px] text-text-mute">{s.label}</dt>
+                <dt className="pix mt-1 text-[10px] text-text-mute">{s.label}</dt>
               </div>
             ))}
           </dl>
@@ -154,7 +154,7 @@ export default async function CreaturePage({ params }: Props) {
 
       <div className="grid gap-3 lg:grid-cols-2">
         {/* ---- stats ---- */}
-        <Panel title="Stats base" actions={<span className="text-[11px] text-text-mute tabular">{e.statTotal}</span>}>
+        <Panel title="Stats base" actions={<span className="text-[12px] text-text-mute tabular">{e.statTotal}</span>}>
           <div className="flex flex-col gap-1.5">
             {e.stats.map((s, i) => (
               <StatBar
@@ -166,7 +166,7 @@ export default async function CreaturePage({ params }: Props) {
               />
             ))}
           </div>
-          <p className="mt-3 border-t border-line pt-2 text-[11px] leading-relaxed text-text-mute">
+          <p className="mt-3 border-t border-line pt-2 text-[12px] leading-relaxed text-text-mute">
             No nivel 100 com IV perfeito e Quality 1.0 isso vira{" "}
             <span className="text-text-dim tabular">{perfect.sum}</span> de soma e{" "}
             <span className="text-accent tabular">{perfect.power}</span> de Poder. IV e Quality
@@ -178,13 +178,13 @@ export default async function CreaturePage({ params }: Props) {
         <Panel title="Como apanha">
           {weak.length ? (
             <div className="mb-3">
-              <p className="pix mb-1.5 text-[8px] text-danger">fraco contra</p>
+              <p className="pix mb-1.5 text-[10px] text-danger">fraco contra</p>
               <div className="flex flex-wrap gap-1">
                 {weak.map((w) => (
                   <span
                     key={w.type}
                     style={{ borderColor: `${TYPE_COLOR[w.type]}70`, backgroundColor: `${TYPE_COLOR[w.type]}1c` }}
-                    className="pix inline-flex h-5 items-center gap-1 rounded-pix border px-1.5 text-[9px]"
+                    className="pix inline-flex h-5 items-center gap-1 rounded-pix border px-1.5 text-[10px]"
                   >
                     <span style={{ color: TYPE_COLOR[w.type] }}>{w.type}</span>
                     <span className="text-danger">{w.label}</span>
@@ -196,13 +196,13 @@ export default async function CreaturePage({ params }: Props) {
 
           {resist.length ? (
             <div className="mb-3">
-              <p className="pix mb-1.5 text-[8px] text-ok">resiste a</p>
+              <p className="pix mb-1.5 text-[10px] text-ok">resiste a</p>
               <div className="flex flex-wrap gap-1">
                 {resist.map((w) => (
                   <span
                     key={w.type}
                     style={{ borderColor: `${TYPE_COLOR[w.type]}55`, backgroundColor: `${TYPE_COLOR[w.type]}14` }}
-                    className="pix inline-flex h-5 items-center gap-1 rounded-pix border px-1.5 text-[9px]"
+                    className="pix inline-flex h-5 items-center gap-1 rounded-pix border px-1.5 text-[10px]"
                   >
                     <span style={{ color: TYPE_COLOR[w.type] }}>{w.type}</span>
                     <span className="text-ok">{w.label}</span>
@@ -214,7 +214,7 @@ export default async function CreaturePage({ params }: Props) {
 
           {immune.length ? (
             <div className="mb-3">
-              <p className="pix mb-1.5 text-[8px] text-text-mute">imune a</p>
+              <p className="pix mb-1.5 text-[10px] text-text-mute">imune a</p>
               <div className="flex flex-wrap gap-1">
                 {immune.map((w) => (
                   <Chip key={w.type} tint={TYPE_COLOR[w.type]}>
@@ -230,13 +230,13 @@ export default async function CreaturePage({ params }: Props) {
               {/* STAB (1.5x por golpe do proprio tipo) e coisa SEPARADA da
                   efetividade (x2/x0.5). Juntar os dois num numero so foi um erro
                   ja pago — aqui a lista e so cobertura de tipo. */}
-              <p className="pix mb-1.5 text-[8px] text-accent">bate forte em</p>
+              <p className="pix mb-1.5 text-[10px] text-accent">bate forte em</p>
               <div className="flex flex-wrap gap-1">
                 {strong.map((w) => (
                   <span
                     key={w.type}
                     style={{ borderColor: `${TYPE_COLOR[w.type]}55`, backgroundColor: `${TYPE_COLOR[w.type]}14` }}
-                    className="pix inline-flex h-5 items-center gap-1 rounded-pix border px-1.5 text-[9px]"
+                    className="pix inline-flex h-5 items-center gap-1 rounded-pix border px-1.5 text-[10px]"
                   >
                     <span style={{ color: TYPE_COLOR[w.type] }}>{w.type}</span>
                     <span className="text-accent">{w.label}</span>
@@ -257,7 +257,7 @@ export default async function CreaturePage({ params }: Props) {
                     <span className="flex flex-col items-center px-1 text-text-mute">
                       <IconChevronRight size={10} />
                       {s.evolveLevel ? (
-                        <span className="pix text-[8px] text-text-mute">nv {s.evolveLevel}</span>
+                        <span className="pix text-[10px] text-text-mute">nv {s.evolveLevel}</span>
                       ) : null}
                     </span>
                   ) : null}
@@ -270,7 +270,7 @@ export default async function CreaturePage({ params }: Props) {
                     }`}
                   >
                     <Sprite src={spriteUrl(s.creature.pokeId)} alt={s.creature.name} size={44} />
-                    <span className="text-[10px] text-text-dim">{s.creature.name}</span>
+                    <span className="text-[11px] text-text-dim">{s.creature.name}</span>
                   </Link>
                 </li>
               ))}
@@ -281,10 +281,10 @@ export default async function CreaturePage({ params }: Props) {
         {/* ---- onde cacar ---- */}
         <Panel
           title="Onde cacar"
-          actions={<span className="text-[11px] text-text-mute tabular">{spots.length}</span>}
+          actions={<span className="text-[12px] text-text-mute tabular">{spots.length}</span>}
         >
           {spots.length === 0 ? (
-            <p className="text-[12px] leading-relaxed text-text-mute">
+            <p className="text-[13px] leading-relaxed text-text-mute">
               {e.acquisition === "evo"
                 ? "Nao aparece no mapa — so se consegue evoluindo."
                 : "Nao aparece no mapa nem por evolucao: vem de loja, cassino, ovo ou evento."}
@@ -298,10 +298,10 @@ export default async function CreaturePage({ params }: Props) {
                 >
                   <IconPin size={10} className="shrink-0 text-ok" />
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[12px] text-text">{h.name}</span>
-                    <span className="text-[10px] text-text-mute">{h.area}</span>
+                    <span className="block truncate text-[13px] text-text">{h.name}</span>
+                    <span className="text-[11px] text-text-mute">{h.area}</span>
                   </span>
-                  <span className="pix shrink-0 text-[9px] text-text-dim tabular">nv {h.level}</span>
+                  <span className="pix shrink-0 text-[10px] text-text-dim tabular">nv {h.level}</span>
                 </li>
               ))}
             </ul>
@@ -313,7 +313,7 @@ export default async function CreaturePage({ params }: Props) {
       <Panel
         title="Golpes"
         actions={
-          <span className="text-[11px] text-text-mute tabular">
+          <span className="text-[12px] text-text-mute tabular">
             {natural.length} natural{machine.length ? ` · ${machine.length} TM` : ""}
           </span>
         }
@@ -327,7 +327,7 @@ export default async function CreaturePage({ params }: Props) {
                   <th
                     key={h}
                     scope="col"
-                    className={`pix px-3 py-2 text-[8px] text-text-mute ${i >= 3 ? "text-right" : ""}`}
+                    className={`pix px-3 py-2 text-[10px] text-text-mute ${i >= 3 ? "text-right" : ""}`}
                   >
                     {h}
                   </th>
@@ -340,7 +340,7 @@ export default async function CreaturePage({ params }: Props) {
                 ...machine.map((a) => ({ a, tm: true })),
               ].map(({ a, tm }) => (
                 <tr key={`${a.name}-${a.learnLevel}`} className="border-b border-line last:border-0">
-                  <td className="px-3 py-1.5 text-[12px] text-text">
+                  <td className="px-3 py-1.5 text-[13px] text-text">
                     <span className="flex items-center gap-1.5">
                       {a.name}
                       {tm ? <Chip size="xs" tone="neon">TM</Chip> : null}
@@ -349,9 +349,9 @@ export default async function CreaturePage({ params }: Props) {
                   <td className="px-3 py-1.5">
                     <TypeBadge type={a.type} size="xs" />
                   </td>
-                  <td className="px-3 py-1.5 text-[11px] text-text-mute">{a.category}</td>
-                  <td className="px-3 py-1.5 text-right text-[12px] text-accent tabular">{a.power}</td>
-                  <td className="px-3 py-1.5 text-right text-[12px] text-text-dim tabular">
+                  <td className="px-3 py-1.5 text-[12px] text-text-mute">{a.category}</td>
+                  <td className="px-3 py-1.5 text-right text-[13px] text-accent tabular">{a.power}</td>
+                  <td className="px-3 py-1.5 text-right text-[13px] text-text-dim tabular">
                     {tm ? "—" : a.learnLevel}
                   </td>
                 </tr>
@@ -362,7 +362,7 @@ export default async function CreaturePage({ params }: Props) {
         {/* O cooldown BASE do catalogo (1,2s a 30s) nao e o intervalo real — a
             velocidade do bicho encurta isso, e a formula do haste nao e publica.
             Mostrar "10s" enganaria, entao a coluna nao existe. */}
-        <p className="border-t border-line px-3 py-2 text-[10px] leading-relaxed text-text-mute">
+        <p className="border-t border-line px-3 py-2 text-[11px] leading-relaxed text-text-mute">
           Sem coluna de cooldown de proposito: o valor do catalogo e o cooldown BASE e a
           velocidade do pokemon o encurta no jogo — exibi-lo cru daria um numero errado.
         </p>
@@ -371,11 +371,11 @@ export default async function CreaturePage({ params }: Props) {
       {/* ---- drops ---- */}
       <Panel
         title="Drops"
-        actions={<span className="text-[11px] text-text-mute tabular">{drops.length}</span>}
+        actions={<span className="text-[12px] text-text-mute tabular">{drops.length}</span>}
         bodyClassName="p-0"
       >
         {drops.length === 0 ? (
-          <p className="p-3 text-[12px] text-text-mute">Nao dropa nada.</p>
+          <p className="p-3 text-[13px] text-text-mute">Nao dropa nada.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[460px] border-collapse text-left">
@@ -385,7 +385,7 @@ export default async function CreaturePage({ params }: Props) {
                     <th
                       key={h}
                       scope="col"
-                      className={`pix px-3 py-2 text-[8px] text-text-mute ${i > 0 ? "text-right" : ""}`}
+                      className={`pix px-3 py-2 text-[10px] text-text-mute ${i > 0 ? "text-right" : ""}`}
                     >
                       {h}
                     </th>
@@ -400,21 +400,21 @@ export default async function CreaturePage({ params }: Props) {
                   const pct = chanceToPct(l.chance);
                   return (
                     <tr key={l.name} className="border-b border-line last:border-0">
-                      <td className="px-3 py-1.5 text-[12px] text-text">
+                      <td className="px-3 py-1.5 text-[13px] text-text">
                         <span className="flex items-center gap-1.5">
                           {l.name}
                           {item?.rare ? <Chip size="xs" tone="accent">raro</Chip> : null}
                         </span>
                       </td>
-                      <td className="px-3 py-1.5 text-right text-[12px] text-ok tabular">
+                      <td className="px-3 py-1.5 text-right text-[13px] text-ok tabular">
                         <Tooltip content={`1 a cada ${Math.round(100 / pct).toLocaleString("pt-BR")} abates, na media`}>
                           <span>{pct < 0.01 ? pct.toFixed(4) : pct.toFixed(3)}%</span>
                         </Tooltip>
                       </td>
-                      <td className="px-3 py-1.5 text-right text-[12px] text-text-dim tabular">
+                      <td className="px-3 py-1.5 text-right text-[13px] text-text-dim tabular">
                         {l.minCount === l.maxCount ? l.minCount : `${l.minCount}–${l.maxCount}`}
                       </td>
-                      <td className="px-3 py-1.5 text-right text-[12px] text-warn tabular">
+                      <td className="px-3 py-1.5 text-right text-[13px] text-warn tabular">
                         {item?.npcPrice ? gold(item.npcPrice) : "—"}
                       </td>
                     </tr>

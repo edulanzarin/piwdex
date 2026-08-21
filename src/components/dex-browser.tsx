@@ -224,7 +224,7 @@ export function DexBrowser({
                                 on ? toggleDir() : setSort(col.key as SortKey)
                               }
                               className={cn(
-                                "pix inline-flex items-center gap-1 text-[8px] transition-colors",
+                                "pix inline-flex items-center gap-1 text-[10px] transition-colors",
                                 on ? "text-accent" : "text-text-mute hover:text-text-dim",
                               )}
                             >
@@ -234,7 +234,7 @@ export function DexBrowser({
                               ) : null}
                             </button>
                           ) : (
-                            <span className="pix text-[8px] text-text-mute">{col.label}</span>
+                            <span className="pix text-[10px] text-text-mute">{col.label}</span>
                           )}
                         </th>
                       );
@@ -253,7 +253,7 @@ export function DexBrowser({
 
         {sorted.length > 0 ? (
           <div className="flex flex-col items-center gap-3 pt-1 sm:flex-row sm:justify-between">
-            <span className="text-[11px] text-text-mute tabular">
+            <span className="text-[12px] text-text-mute tabular">
               {page * pageSize + 1}–{Math.min(sorted.length, (page + 1) * pageSize)} de {sorted.length}
             </span>
             <Pagination
@@ -340,8 +340,8 @@ function DexToolbar({
       </Button>
 
       <span className="flex items-baseline gap-1.5">
-        <span className="text-[15px] font-semibold text-text tabular">{count}</span>
-        <span className="pix text-[9px] text-text-mute">
+        <span className="text-[16px] font-semibold text-text tabular">{count}</span>
+        <span className="pix text-[10px] text-text-mute">
           {count === total ? "especies" : `de ${total}`}
         </span>
       </span>

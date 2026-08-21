@@ -88,14 +88,14 @@ function Highlight({
       actions={
         <Link
           href={href}
-          className="pix flex items-center gap-1 text-[9px] text-accent transition-opacity hover:opacity-80"
+          className="pix flex items-center gap-1 text-[10px] text-accent transition-opacity hover:opacity-80"
         >
           ver tudo
           <IconChevronRight size={8} />
         </Link>
       }
     >
-      <p className="px-1.5 pb-2 text-[11px] leading-snug text-text-mute">{hint}</p>
+      <p className="px-1.5 pb-2 text-[12px] leading-snug text-text-mute">{hint}</p>
       <ul className="flex flex-col">
         {entries.map((e, i) => (
           <li key={e.id}>
@@ -103,21 +103,21 @@ function Highlight({
               href={`/dex/${e.id}`}
               className="group flex items-center gap-2 rounded-pix px-1.5 py-1 transition-colors hover:bg-surface-2"
             >
-              <span className="pix w-4 shrink-0 text-[9px] text-text-mute">{i + 1}</span>
+              <span className="pix w-4 shrink-0 text-[10px] text-text-mute">{i + 1}</span>
               <Sprite src={spriteUrl(e.id)} alt={e.name} size={28} />
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-[12px] text-text group-hover:text-accent">
+                <span className="block truncate text-[13px] text-text group-hover:text-accent">
                   {e.name}
                 </span>
                 <span className="flex gap-1">
                   <TypeBadge type={e.type1} size="xs" showLabel={false} />
                   {e.type2 ? <TypeBadge type={e.type2} size="xs" showLabel={false} /> : null}
-                  <span className="pix text-[8px]" style={{ color: RARITY_COLOR[e.rarity] }}>
+                  <span className="pix text-[10px]" style={{ color: RARITY_COLOR[e.rarity] }}>
                     {e.rarity}
                   </span>
                 </span>
               </span>
-              <span className="shrink-0 text-[12px] tabular">{metric(e)}</span>
+              <span className="shrink-0 text-[13px] tabular">{metric(e)}</span>
             </Link>
           </li>
         ))}
@@ -155,13 +155,13 @@ export default async function HomePage() {
               <h1 className="pix text-[26px] leading-none text-text sm:text-[32px]">
                 piw<span className="text-accent">dex</span>
               </h1>
-              <p className="pix mt-1.5 text-[9px] text-text-mute">
+              <p className="pix mt-1.5 text-[10px] text-text-mute">
                 dex e ferramentas de poke idle world
               </p>
             </div>
           </div>
 
-          <p className="max-w-2xl text-[13px] leading-relaxed text-text-dim">
+          <p className="max-w-2xl text-[14px] leading-relaxed text-text-dim">
             O catalogo inteiro do jogo, lido direto da fonte e pesquisavel de verdade:
             filtre por tipo, raridade, estagio evolutivo, fraqueza, item que dropa e por
             faixa de nivel, valor, XP, stats e poder de golpe — tudo ao mesmo tempo.
@@ -171,7 +171,7 @@ export default async function HomePage() {
             <Link
               href="/dex"
               className="pix inline-flex h-9 items-center gap-2 rounded-pix border border-accent/60
-                         bg-accent/20 px-4 text-[11px] text-accent transition-colors
+                         bg-accent/20 px-4 text-[12px] text-accent transition-colors
                          hover:bg-accent/30 hover:border-accent"
             >
               abrir a pokedex
@@ -193,10 +193,10 @@ export default async function HomePage() {
           <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-pix border border-line bg-line sm:grid-cols-4">
             {stats.map((s) => (
               <div key={s.label} className="bg-surface px-3 py-2.5">
-                <dd className="text-[18px] leading-none font-semibold text-text tabular">
+                <dd className="text-[20px] leading-none font-semibold text-text tabular">
                   {s.value.toLocaleString("pt-BR")}
                 </dd>
-                <dt className="pix mt-1 text-[8px] text-text-mute">{s.label}</dt>
+                <dt className="pix mt-1 text-[10px] text-text-mute">{s.label}</dt>
               </div>
             ))}
           </dl>
@@ -205,7 +205,7 @@ export default async function HomePage() {
 
       {/* ---- destaques do catalogo ---- */}
       <section className="flex flex-col gap-2">
-        <h2 className="pix text-[11px] text-text-dim">Do catalogo, agora</h2>
+        <h2 className="pix text-[12px] text-text-dim">Do catalogo, agora</h2>
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           <Highlight
             title="Paga mais por abate"
@@ -227,7 +227,7 @@ export default async function HomePage() {
             metric={(e) => (
               <span className="text-neon">
                 {(e.level > 0 ? e.xp / e.level : 0).toFixed(1)}
-                <span className="ml-0.5 text-[9px] text-text-mute">/nv</span>
+                <span className="ml-0.5 text-[10px] text-text-mute">/nv</span>
               </span>
             )}
           />
@@ -248,20 +248,20 @@ export default async function HomePage() {
 
       {/* ---- ferramentas ---- */}
       <section className="flex flex-col gap-2">
-        <h2 className="pix text-[11px] text-text-dim">Ferramentas</h2>
+        <h2 className="pix text-[12px] text-text-dim">Ferramentas</h2>
         <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
           {TOOLS.map((t) => {
             const body = (
               <>
                 <div className="flex items-center justify-between gap-2">
-                  <span className="pix text-[12px] text-text">{t.name}</span>
+                  <span className="pix text-[13px] text-text">{t.name}</span>
                   {t.ready ? (
                     <IconChevronRight size={10} className="text-accent" />
                   ) : (
                     <Chip size="xs">em breve</Chip>
                   )}
                 </div>
-                <p className="text-[11px] leading-relaxed text-text-mute">{t.desc}</p>
+                <p className="text-[12px] leading-relaxed text-text-mute">{t.desc}</p>
               </>
             );
             return t.ready ? (
@@ -284,11 +284,11 @@ export default async function HomePage() {
 
       {/* ---- de onde vem o dado ---- */}
       <section className="panel flex flex-col gap-2 p-4">
-        <h2 className="pix flex items-center gap-2 text-[10px] text-text-dim">
+        <h2 className="pix flex items-center gap-2 text-[11px] text-text-dim">
           <IconPin size={10} />
           De onde vem o dado
         </h2>
-        <p className="max-w-3xl text-[12px] leading-relaxed text-text-mute">
+        <p className="max-w-3xl text-[13px] leading-relaxed text-text-mute">
           Direto do catalogo publico do proprio jogo — criaturas, itens e pontos do mapa —
           conferido por ETag a cada visita e recarregado no segundo em que o jogo publica um
           patch. Quando a fonte nao responde, o site continua de pe com o ultimo catalogo

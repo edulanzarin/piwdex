@@ -106,8 +106,8 @@ export function Modal({
         {(title || eyebrow) && (
           <header className="flex shrink-0 items-start justify-between gap-3 border-b border-line px-4 py-3">
             <div className="min-w-0">
-              {eyebrow ? <p className="pix text-[9px] text-accent">{eyebrow}</p> : null}
-              {title ? <h2 className="truncate text-[15px] font-semibold text-text">{title}</h2> : null}
+              {eyebrow ? <p className="pix text-[10px] text-accent">{eyebrow}</p> : null}
+              {title ? <h2 className="truncate text-[16px] font-semibold text-text">{title}</h2> : null}
             </div>
             <IconButton label="Fechar" size="sm" variant="ghost" onClick={onClose}>
               <IconClose size={10} />

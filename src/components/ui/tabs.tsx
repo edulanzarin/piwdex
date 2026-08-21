@@ -36,14 +36,14 @@ export function Tabs<T extends string>({
             disabled={t.disabled}
             onClick={() => onChange(t.value)}
             className={cn(
-              "pix relative flex shrink-0 items-center gap-1.5 px-3 py-2 text-[10px] transition-colors",
+              "pix relative flex shrink-0 items-center gap-1.5 px-3 py-2 text-[11px] transition-colors",
               "disabled:pointer-events-none disabled:opacity-40",
               on ? "text-accent" : "text-text-mute hover:text-text-dim",
             )}
           >
             {t.label}
             {t.count != null ? (
-              <span className={cn("text-[9px] tabular", on ? "text-accent/70" : "text-text-mute")}>
+              <span className={cn("text-[10px] tabular", on ? "text-accent/70" : "text-text-mute")}>
                 {t.count}
               </span>
             ) : null}

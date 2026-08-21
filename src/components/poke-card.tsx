@@ -96,7 +96,7 @@ function StatSpine({
                 <span className="absolute inset-x-0 top-0 h-[2px] bg-text" />
               ) : null}
             </span>
-            <span className="pix text-[8px] leading-none text-text-mute">{STAT_SHORT[i]}</span>
+            <span className="pix text-[10px] leading-none text-text-mute">{STAT_SHORT[i]}</span>
           </span>
         );
       })}
@@ -128,10 +128,10 @@ export function PokeCard({
       )}
     >
       <header className="flex items-center justify-between gap-1">
-        <span className="pix text-[9px] text-text-mute">#{String(e.id).padStart(3, "0")}</span>
+        <span className="pix text-[10px] text-text-mute">#{String(e.id).padStart(3, "0")}</span>
         <span className="flex items-center gap-1" title={`Total de stats base: ${e.statTotal}`}>
           <IconBolt size={8} className="text-text-mute" />
-          <span className="text-[11px] text-text-dim tabular">{e.statTotal}</span>
+          <span className="text-[12px] text-text-dim tabular">{e.statTotal}</span>
         </span>
       </header>
 
@@ -151,7 +151,7 @@ export function PokeCard({
         />
       </div>
 
-      <h3 className="truncate text-[13px] leading-tight font-semibold text-text" title={e.name}>
+      <h3 className="truncate text-[14px] leading-tight font-semibold text-text" title={e.name}>
         {e.name}
       </h3>
 
@@ -168,17 +168,17 @@ export function PokeCard({
       {/* os tres numeros que decidem se vale cacar */}
       <dl className="grid grid-cols-3 gap-1 border-t border-line pt-1.5 text-center">
         <div>
-          <dt className="pix text-[8px] text-text-mute">NIVEL</dt>
-          <dd className="text-[12px] text-text tabular">{e.level || "—"}</dd>
+          <dt className="pix text-[10px] text-text-mute">NIVEL</dt>
+          <dd className="text-[13px] text-text tabular">{e.level || "—"}</dd>
         </div>
         <div>
           {/* O rotulo muda com a GRANDEZA: "venda" e o que o jogo te paga por
               abate, "npc" e o preco do cassino. Sao eixos diferentes e o mesmo
               rotulo pros dois faz o card se contradizer entre especies. */}
-          <dt className="pix text-[8px] text-text-mute">{e.valueFromNpc ? "PRECO NPC" : "VENDA"}</dt>
+          <dt className="pix text-[10px] text-text-mute">{e.valueFromNpc ? "PRECO NPC" : "VENDA"}</dt>
           <dd
             className={cn(
-              "flex items-center justify-center gap-0.5 text-[12px] tabular",
+              "flex items-center justify-center gap-0.5 text-[13px] tabular",
               e.valueFromNpc ? "text-text-mute" : "text-warn",
             )}
           >
@@ -193,8 +193,8 @@ export function PokeCard({
           </dd>
         </div>
         <div>
-          <dt className="pix text-[8px] text-text-mute">XP</dt>
-          <dd className="text-[12px] text-neon tabular">{e.xp || "—"}</dd>
+          <dt className="pix text-[10px] text-text-mute">XP</dt>
+          <dd className="text-[13px] text-neon tabular">{e.xp || "—"}</dd>
         </div>
       </dl>
 
@@ -242,10 +242,10 @@ export function PokeRow({ e }: { e: DexEntry }) {
         <Link href={`/dex/${e.id}`} className="flex items-center gap-2">
           <Sprite src={spriteUrl(e.id)} alt={e.name} size={30} />
           <span className="min-w-0">
-            <span className="block truncate text-[12px] font-medium text-text group-hover:text-accent">
+            <span className="block truncate text-[13px] font-medium text-text group-hover:text-accent">
               {e.name}
             </span>
-            <span className="pix text-[8px] text-text-mute">#{String(e.id).padStart(3, "0")}</span>
+            <span className="pix text-[10px] text-text-mute">#{String(e.id).padStart(3, "0")}</span>
           </span>
         </Link>
       </td>
@@ -256,35 +256,35 @@ export function PokeRow({ e }: { e: DexEntry }) {
         </span>
       </td>
       <td className="px-2 py-1">
-        <span className="pix text-[8px]" style={{ color: RARITY_COLOR[e.rarity] }}>
+        <span className="pix text-[10px]" style={{ color: RARITY_COLOR[e.rarity] }}>
           {e.rarity}
         </span>
       </td>
-      <td className="px-2 py-1 text-right text-[12px] text-text-dim tabular">{e.level || "—"}</td>
+      <td className="px-2 py-1 text-right text-[13px] text-text-dim tabular">{e.level || "—"}</td>
       {e.stats.map((s, i) => (
-        <td key={i} className="px-1.5 py-1 text-right text-[12px] text-text-dim tabular">
+        <td key={i} className="px-1.5 py-1 text-right text-[13px] text-text-dim tabular">
           {s}
         </td>
       ))}
-      <td className="px-2 py-1 text-right text-[12px] font-semibold text-text tabular">
+      <td className="px-2 py-1 text-right text-[13px] font-semibold text-text tabular">
         {e.statTotal}
       </td>
-      <td className="px-2 py-1 text-right text-[12px] text-accent tabular">
+      <td className="px-2 py-1 text-right text-[13px] text-accent tabular">
         {e.bestWithTm}
-        {e.hasTm ? <span className="ml-0.5 text-[9px] text-neon">tm</span> : null}
+        {e.hasTm ? <span className="ml-0.5 text-[10px] text-neon">tm</span> : null}
       </td>
       <td
         className={cn(
-          "px-2 py-1 text-right text-[12px] tabular",
+          "px-2 py-1 text-right text-[13px] tabular",
           e.valueFromNpc ? "text-text-mute" : "text-warn",
         )}
         title={e.valueFromNpc ? "Preco de NPC — esta especie nao tem valor de venda" : undefined}
       >
         {e.value > 0 ? gold(e.value) : "—"}
-        {e.valueFromNpc && e.value > 0 ? <span className="ml-0.5 text-[9px]">npc</span> : null}
+        {e.valueFromNpc && e.value > 0 ? <span className="ml-0.5 text-[10px]">npc</span> : null}
       </td>
-      <td className="px-2 py-1 text-right text-[12px] text-neon tabular">{e.xp || "—"}</td>
-      <td className="px-2 py-1 text-right text-[12px] text-text-mute tabular">{e.spots || "—"}</td>
+      <td className="px-2 py-1 text-right text-[13px] text-neon tabular">{e.xp || "—"}</td>
+      <td className="px-2 py-1 text-right text-[13px] text-text-mute tabular">{e.spots || "—"}</td>
     </tr>
   );
 }

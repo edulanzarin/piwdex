@@ -88,8 +88,8 @@ export function MultiSelect<T extends string>({
         )}
       >
         <span className="flex min-w-0 flex-1 items-baseline gap-1.5">
-          <span className="pix shrink-0 text-[9px] text-text-mute">{label}</span>
-          <span className={cn("truncate text-[12px]", value.length ? "text-accent" : "text-text-mute")}>
+          <span className="pix shrink-0 text-[10px] text-text-mute">{label}</span>
+          <span className={cn("truncate text-[13px]", value.length ? "text-accent" : "text-text-mute")}>
             {summary}
           </span>
         </span>
@@ -98,7 +98,7 @@ export function MultiSelect<T extends string>({
 
       <Popover open={open} onClose={close} anchorRef={anchor} minWidth={230}>
         <div className="flex items-center justify-between gap-2 border-b border-line px-2 py-1.5">
-          <span className="pix text-[9px] text-text-mute">{label}</span>
+          <span className="pix text-[10px] text-text-mute">{label}</span>
           <div className="flex items-center gap-1">
             {mode && onModeChange ? (
               <div className="mr-1 flex overflow-hidden rounded-pix border border-line">
@@ -109,7 +109,7 @@ export function MultiSelect<T extends string>({
                     onClick={() => onModeChange(m)}
                     title={m === "any" ? "Qualquer um dos marcados" : "Todos os marcados ao mesmo tempo"}
                     className={cn(
-                      "pix h-5 px-1.5 text-[8px] transition-colors",
+                      "pix h-5 px-1.5 text-[10px] transition-colors",
                       mode === m ? "bg-accent/25 text-accent" : "text-text-mute hover:text-text-dim",
                     )}
                   >
@@ -132,7 +132,7 @@ export function MultiSelect<T extends string>({
 
         <PopoverScroll>
           {shown.length === 0 ? (
-            <p className="px-2 py-3 text-center text-[11px] text-text-mute">nada bate com &quot;{q}&quot;</p>
+            <p className="px-2 py-3 text-center text-[12px] text-text-mute">nada bate com &quot;{q}&quot;</p>
           ) : (
             shown.map((o) => (
               <Checkbox
@@ -144,7 +144,7 @@ export function MultiSelect<T extends string>({
                   <span className="flex items-center justify-between gap-2">
                     <span className="truncate">{o.render ?? o.label}</span>
                     {o.count != null ? (
-                      <span className="shrink-0 text-[10px] text-text-mute tabular">{o.count}</span>
+                      <span className="shrink-0 text-[11px] text-text-mute tabular">{o.count}</span>
                     ) : null}
                   </span>
                 }
