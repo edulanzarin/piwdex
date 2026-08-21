@@ -7,9 +7,10 @@ import { cn } from "@/lib/cn";
 import type { PokeType, Rarity } from "@/lib/types";
 import { IV_MAX, estimateIvs, ivRange, projectAll } from "@/lib/stats";
 import { TIER_COLOR, qualityTier } from "@/lib/rarity";
-import { TYPE_COLOR } from "@/lib/typing";
-import { spriteUrl } from "@/lib/sprites";
+import { RARITY_COLOR, TYPE_COLOR } from "@/lib/typing";
+import { animatedSpriteUrl, spriteUrl } from "@/lib/sprites";
 import { buildCalcSearch, parseCalcState, EMPTY_CALC, type CalcState } from "@/lib/calc-url";
+import { baixarImagem, copiarImagem, desenharCartao } from "@/lib/share-card";
 import {
   Button,
   Chip,
@@ -17,14 +18,24 @@ import {
   Empty,
   FieldLabel,
   IconChevronRight,
+  IconLink,
+  IconCheck,
+  Note,
   NumberField,
   Panel,
   Sprite,
+  StatTile,
   Tooltip,
 } from "@/components/ui";
 import { TypeBadge } from "@/components/type-icon";
-import { IconGem, IconLevel, IconScale, IconTarget, STAT_ICONS } from "@/components/game-icons";
-import { STAT_LABEL, STAT_SHORT, TIER_LABEL, compact } from "@/lib/labels";
+import {
+  IconGem,
+  IconLevel,
+  IconScale,
+  IconTarget,
+  STAT_ICONS,
+} from "@/components/game-icons";
+import { STAT_LABEL, STAT_SHORT, TIER_LABEL, TYPE_LABEL, compact } from "@/lib/labels";
 
 /**
  * Calculadora de IV, Quality e Poder.
@@ -36,15 +47,19 @@ import { STAT_LABEL, STAT_SHORT, TIER_LABEL, compact } from "@/lib/labels";
  * A formula (verificada, em `stats.ts`) inverte:
  *   stat = round((base + 2*IV) * (nivel/100) * quality^exp)
  *
- * O `round` da formula e o que obriga esta tela a mostrar FAIXA e nao ponto: o
- * stat na tela do jogo ja veio arredondado, e em nivel baixo meia unidade de
- * stat vale dezenas de IV.
+ * O `round` obriga esta tela a mostrar FAIXA e nao ponto: o stat na tela do
+ * jogo ja veio arredondado, e em nivel baixo meia unidade vale dezenas de IV.
  *
- * A FORMA da tela (larga, campo grande, resultado em cartao) veio de uma
- * revisao: a primeira versao era um trilho estreito com seis barrinhas de 4px,
- * e o Eduardo reprovou. Formulario de consulta nao e barra lateral de filtro —
- * aqui o campo E o conteudo, entao ele ocupa a largura e o resultado responde
- * embaixo, em cartao que se le de longe.
+ * A FORMA levou duas revisoes, e as duas viraram regra:
+ *
+ * 1. **O formulario e a tarefa, entao ocupa a largura.** A primeira versao
+ *    punha a entrada num trilho de 360px, como o de filtros da dex — mas
+ *    trilho serve input que ACOMPANHA um conteudo, e aqui o campo e o
+ *    conteudo.
+ * 2. **O resultado e um PERFIL, nao um relatorio.** Numero em tabela e o
+ *    formato de quem ja sabe o que procura; quem abre a calculadora quer ver o
+ *    pokemon dele. Por isso sprite grande, nome, tipo e as tres manchetes
+ *    antes de qualquer stat — e por isso o cartao de compartilhar existe.
  */
 
 export interface CalcSpecies {
@@ -58,8 +73,8 @@ export interface CalcSpecies {
 
 const TOTAL_MAX = IV_MAX * 6;
 
-/** Um exemplo plausivel, gerado pela propria formula — nao numero chutado.
- *  Existe porque tela de calculo vazia nao ensina o que ela faz. */
+/** Exemplo gerado pela propria formula — nao numero chutado. Existe porque
+ *  tela de calculo vazia nao ensina o que ela faz. */
 const EXEMPLO = { id: 6, level: 100, quality: 1.5, ivs: [24, 18, 20, 28, 15, 26] };
 
 export function CalcTool({ especies }: { especies: CalcSpecies[] }) {
@@ -85,13 +100,7 @@ export function CalcTool({ especies }: { especies: CalcSpecies[] }) {
     const alvo = especies.find((e) => e.id === EXEMPLO.id) ?? especies[0];
     if (!alvo) return;
     const { stats } = projectAll(alvo.bases, EXEMPLO.ivs, EXEMPLO.level, EXEMPLO.quality);
-    setS({
-      id: alvo.id,
-      level: EXEMPLO.level,
-      quality: EXEMPLO.quality,
-      stats,
-      target: 100,
-    });
+    setS({ id: alvo.id, level: EXEMPLO.level, quality: EXEMPLO.quality, stats, target: 100 });
   };
 
   const leitura = useMemo(() => {
@@ -129,9 +138,17 @@ export function CalcTool({ especies }: { especies: CalcSpecies[] }) {
   const tier = qualityTier(s.quality);
   const tint = especie ? TYPE_COLOR[especie.type1] : "var(--color-t-calc)";
 
+  /** Texto do IV de um stat: faixa quando ela e larga, ponto quando e estreita. */
+  const textoIv = (i: number): string => {
+    const [lo, hi] = leitura!.faixas[i];
+    return hi - lo > 1
+      ? `${Math.max(0, lo).toFixed(0)}–${Math.min(IV_MAX, hi).toFixed(0)}`
+      : leitura!.ivs[i].toFixed(1);
+  };
+
   return (
     <div className="flex flex-col gap-4">
-      {/* ------------------------------ entrada ------------------------------
+      {/* ============================ entrada ============================
           Larga e horizontal: o campo E o conteudo desta tela. Espremido numa
           coluna de 360px, digitar seis stats virava rolagem. */}
       <Panel
@@ -173,9 +190,6 @@ export function CalcTool({ especies }: { especies: CalcSpecies[] }) {
                 placeholder="nome do pokémon..."
                 emptyText="nenhuma espécie com esse nome"
               />
-              <p className="mt-1 text-[12px] leading-snug text-text-mute">
-                a base dela é metade da conta
-              </p>
             </div>
 
             <div>
@@ -189,9 +203,6 @@ export function CalcTool({ especies }: { especies: CalcSpecies[] }) {
                 onChange={(level) => patch({ level })}
                 className="text-center text-[15px]"
               />
-              <p className="mt-1 text-[12px] leading-snug text-text-mute">
-                o nível em que os stats abaixo foram vistos
-              </p>
             </div>
 
             <div>
@@ -206,59 +217,8 @@ export function CalcTool({ especies }: { especies: CalcSpecies[] }) {
                 onChange={(quality) => patch({ quality })}
                 className="text-center text-[15px]"
               />
-              <p className="mt-1 flex items-center gap-1.5 text-[12px] leading-snug text-text-mute">
-                <Chip size="xs" tint={TIER_COLOR[tier]}>{TIER_LABEL[tier]}</Chip>
-                selvagem vai até 1,8
-              </p>
             </div>
           </div>
-
-          {/* A base da espécie aparece assim que ela é escolhida. Sem isso, quem
-              está digitando os stats não tem contra o que comparar — e a base é
-              justamente a metade da conta que o jogo já publica. */}
-          {especie ? (
-            <div className="flex flex-wrap items-center gap-2 border-y border-line py-3">
-              <Link
-                href={`/dex/${especie.id}`}
-                className="flex shrink-0 items-center gap-2 pr-2 transition-colors hover:text-accent"
-              >
-                <Sprite src={spriteUrl(especie.id)} alt={especie.name} size={40} />
-                <span>
-                  <span className="block text-[14px] text-text">{especie.name}</span>
-                  <span className="flex items-center gap-1 pt-0.5">
-                    <TypeBadge type={especie.type1} size="xs" showLabel={false} />
-                    {especie.type2 ? (
-                      <TypeBadge type={especie.type2} size="xs" showLabel={false} />
-                    ) : null}
-                  </span>
-                </span>
-                <IconChevronRight size={14} className="text-text-mute" />
-              </Link>
-              <span className="pix shrink-0 text-[11px] text-text-mute">stats base</span>
-              <div className="flex flex-wrap gap-1.5">
-                {especie.bases.map((b, i) => {
-                  const Icon = STAT_ICONS[i];
-                  return (
-                    <span
-                      key={i}
-                      title={STAT_LABEL[i]}
-                      className="flex items-center gap-1.5 border border-line bg-bg-soft px-2 py-1"
-                    >
-                      <Icon size={14} className="text-text-mute" />
-                      <span className="pix text-[11px] text-text-mute">{STAT_SHORT[i]}</span>
-                      <span className="text-[14px] font-semibold text-text-dim tabular">{b}</span>
-                    </span>
-                  );
-                })}
-                <span className="flex items-center gap-1.5 border border-line-strong bg-surface-2 px-2 py-1">
-                  <span className="pix text-[11px] text-text-mute">total</span>
-                  <span className="text-[14px] font-semibold text-accent tabular">
-                    {especie.bases.reduce((a, b) => a + b, 0)}
-                  </span>
-                </span>
-              </div>
-            </div>
-          ) : null}
 
           <div>
             <FieldLabel className="mb-2">Stats atuais, como o jogo mostra</FieldLabel>
@@ -287,97 +247,139 @@ export function CalcTool({ especies }: { especies: CalcSpecies[] }) {
         </div>
       </Panel>
 
-      {/* ------------------------------ resultado ------------------------------ */}
-      <Panel
-        title={<span className="flex items-center gap-2"><IconTarget size={16} />IV estimado</span>}
-        actions={
-          leitura && !leitura.impossivel ? (
-            <span className="text-[13px] text-text-mute tabular">
-              {Math.round(leitura.somaIv)} de {TOTAL_MAX}
-            </span>
-          ) : null
-        }
-      >
-        {!especie ? (
+      {/* ============================ o perfil ============================ */}
+      {!especie || !temStats ? (
+        <Panel>
           <Empty
-            title="Escolha a espécie"
-            hint="O IV sai da diferença entre o stat que o jogo mostra e a base da espécie — sem saber qual espécie é, não há de onde tirar."
+            title={especie ? "Digite os stats do pokémon" : "Escolha a espécie"}
+            hint={
+              especie
+                ? "Copie os seis números da tela do jogo. Nível e quality também saem de lá."
+                : "O IV sai da diferença entre o stat que o jogo mostra e a base da espécie — sem saber qual espécie é, não há de onde tirar."
+            }
             action={
               <Button variant="primary" onClick={preencherExemplo}>
                 preencher exemplo
               </Button>
             }
           />
-        ) : !temStats ? (
-          <Empty
-            title="Digite os stats do pokémon"
-            hint="Copie os seis números da tela do jogo. Nível e quality também saem de lá."
-            action={
-              <Button variant="primary" onClick={preencherExemplo}>
-                preencher exemplo
-              </Button>
-            }
-          />
-        ) : (
-          <div className="flex flex-col gap-4">
+        </Panel>
+      ) : (
+        <section className="panel scanline relative flex flex-col">
+          {/* ---- cabecalho de perfil ----
+              Sprite grande, nome, tipo e as tres manchetes ANTES de qualquer
+              stat. Quem abre a calculadora quer ver o pokemon dele; tabela e o
+              formato de quem ja sabe o que procura. */}
+          <header className="flex flex-col gap-5 border-b border-line p-5 sm:flex-row sm:items-center sm:gap-7">
+            <div className="relative grid shrink-0 place-items-center self-center">
+              <span
+                aria-hidden="true"
+                className="anim-glow absolute h-40 w-40 rounded-full blur-3xl"
+                style={{ backgroundColor: RARITY_COLOR[especie.rarity] }}
+              />
+              <Sprite
+                src={spriteUrl(especie.id)}
+                animatedSrc={animatedSpriteUrl(especie.id)}
+                alt={especie.name}
+                size={168}
+                priority
+                className="anim-float relative"
+              />
+            </div>
+
+            <div className="flex min-w-0 flex-1 flex-col gap-3">
+              <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                <h2 className="text-[30px] leading-none font-bold text-text">{especie.name}</h2>
+                <span className="pix text-[13px]" style={{ color: tint }}>
+                  nível {s.level}
+                </span>
+                <Link
+                  href={`/dex/${especie.id}`}
+                  className="pix ml-auto flex items-center gap-1 text-[11px] text-text-mute transition-colors hover:text-accent"
+                >
+                  ver na dex
+                  <IconChevronRight size={14} />
+                </Link>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-1.5">
+                <TypeBadge type={especie.type1} />
+                {especie.type2 ? <TypeBadge type={especie.type2} /> : null}
+                <Chip tint={TIER_COLOR[tier]} icon={<IconGem size={14} />}>
+                  {TIER_LABEL[tier]} · {s.quality}
+                </Chip>
+              </div>
+
+              {/* As tres manchetes. O percentual so aparece quando a leitura
+                  fecha — nota derivada de entrada impossivel e pior que nota
+                  nenhuma. */}
+              <dl className="grid grid-cols-3 gap-px overflow-hidden border border-line bg-line">
+                {[
+                  {
+                    label: "do IV máximo",
+                    value: leitura!.impossivel
+                      ? "—"
+                      : `${Math.round((leitura!.somaIv / TOTAL_MAX) * 100)}%`,
+                    tone: leitura!.impossivel ? "text-text-mute" : "text-neon",
+                    grande: true,
+                  },
+                  { label: "poder agora", value: compact(leitura!.poder), tone: "text-accent" },
+                  { label: "soma dos stats", value: leitura!.soma, tone: "text-text" },
+                ].map((k) => (
+                  <div key={k.label} className="bg-surface px-3 py-2.5">
+                    <dd
+                      className={cn(
+                        "leading-none font-bold tabular",
+                        k.grande ? "text-[26px]" : "text-[22px]",
+                        k.tone,
+                      )}
+                    >
+                      {k.value}
+                    </dd>
+                    <dt className="pix mt-1.5 text-[11px] text-text-mute">{k.label}</dt>
+                  </div>
+                ))}
+              </dl>
+            </div>
+          </header>
+
+          {/* ---- a leitura, stat a stat ---- */}
+          <div className="flex flex-col gap-4 p-5">
             {leitura!.impossivel ? (
-              <p className="border border-warn/45 bg-warn/12 px-3 py-2 text-[13px] leading-relaxed text-warn">
+              <Note tone="warn">
                 Nenhum IV entre 0 e {IV_MAX} explica algum desses stats. Não é um pokémon fora
-                da curva — é sinal de que o <strong>nível</strong> ou a{" "}
-                <strong>quality</strong> não são os que estão na tela do jogo.
-              </p>
+                da curva — é sinal de que o nível ou a quality não são os que estão na tela do
+                jogo.
+              </Note>
             ) : null}
 
-            {/* Cartao por stat, nao linha de 4px: a barra e o numero precisam de
-                altura pra a comparacao entre os seis acontecer de relance. */}
+            <div className="flex items-baseline justify-between gap-2">
+              <FieldLabel>IV estimado, stat a stat</FieldLabel>
+              <span className="text-[13px] text-text-mute tabular">
+                {leitura!.impossivel ? "—" : `${Math.round(leitura!.somaIv)} de ${TOTAL_MAX}`}
+              </span>
+            </div>
+
             <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-              {leitura!.ivs.map((iv, i) => {
+              {especie.bases.map((base, i) => {
                 const [lo, hi] = leitura!.faixas[i];
                 const Icon = STAT_ICONS[i];
-                const largo = hi - lo > 1;
-                const pctLo = Math.max(0, Math.min(100, (lo / IV_MAX) * 100));
-                const pctHi = Math.max(0, Math.min(100, (hi / IV_MAX) * 100));
                 return (
-                  <div key={i} className="border border-line bg-bg-soft p-2.5">
-                    <div className="mb-2 flex items-baseline gap-2">
-                      <span className="pix flex flex-1 items-center gap-1.5 text-[11px] text-text-mute">
-                        <Icon size={14} />
-                        {STAT_LABEL[i]}
-                      </span>
-                      <span className="text-[17px] leading-none font-bold text-text tabular">
-                        {largo
-                          ? `${Math.max(0, lo).toFixed(0)}–${Math.min(IV_MAX, hi).toFixed(0)}`
-                          : iv.toFixed(1)}
-                      </span>
-                      <span className="pix text-[11px] text-text-mute">/{IV_MAX}</span>
-                    </div>
-                    {/* Barra em duas partes: o preenchimento de 0 ate o PISO da
-                        faixa (o que e certo), e a faixa em si por cima (o que
-                        ainda esta em aberto). Desenhar so a faixa fazia uma
-                        leitura boa virar um quadradinho solto no meio do
-                        trilho, que le como marcador de grafico e nao como
-                        medidor. */}
-                    <span className="relative block h-3 w-full bg-surface-2">
-                      <span
-                        className="absolute inset-y-0 left-0"
-                        style={{ width: `${pctLo}%`, backgroundColor: tint, opacity: 0.4 }}
-                      />
-                      <span
-                        className="absolute inset-y-0"
-                        style={{
-                          left: `${pctLo}%`,
-                          width: `${Math.max(1.5, pctHi - pctLo)}%`,
-                          backgroundColor: tint,
-                        }}
-                      />
-                    </span>
-                  </div>
+                  <StatTile
+                    key={i}
+                    label={STAT_LABEL[i]}
+                    icon={<Icon size={14} />}
+                    value={textoIv(i)}
+                    suffix={`/${IV_MAX}`}
+                    ratio={leitura!.ivs[i] / IV_MAX}
+                    range={[lo / IV_MAX, hi / IV_MAX]}
+                    tint={tint}
+                    footLeft={`base ${base}`}
+                  />
                 );
               })}
             </div>
 
-            {/* Minimo / mais provavel / maximo — o mesmo intervalo das barras,
-                somado. E a resposta honesta pra "no fim das contas, quanto?" */}
             <div>
               <FieldLabel className="mb-1.5">Faixa do IV total</FieldLabel>
               <dl className="grid grid-cols-3 gap-px overflow-hidden border border-line bg-line">
@@ -411,49 +413,30 @@ export function CalcTool({ especies }: { especies: CalcSpecies[] }) {
             </div>
 
             {leitura!.largura > 2 ? (
-              <p className="border border-line bg-bg-soft px-3 py-2 text-[13px] leading-relaxed text-text-mute">
-                A leitura está <strong className="text-text-dim">larga</strong>: no nível{" "}
-                {s.level} o stat que o jogo arredonda cabe num intervalo de até{" "}
-                {leitura!.largura.toFixed(0)} pontos de IV. Suba o pokémon de nível e volte
-                aqui — quanto maior o nível, mais estreita a faixa.
-              </p>
+              <Note>
+                Leitura larga: o stat que o jogo arredonda cabe num intervalo de até{" "}
+                {leitura!.largura.toFixed(0)} pontos de IV. Suba o pokémon de nível e volte —
+                quanto maior o nível, mais estreita a faixa.
+              </Note>
             ) : null}
 
-            <dl className="grid grid-cols-3 gap-px overflow-hidden border border-line bg-line">
-              {[
-                { label: "soma dos stats", value: leitura!.soma, tone: "text-text" },
-                { label: "poder agora", value: compact(leitura!.poder), tone: "text-accent" },
-                {
-                  // Nota derivada de leitura impossivel e pior que nota nenhuma:
-                  // presa no teto, ela anuncia "100%, pokemon perfeito" logo
-                  // abaixo do aviso de que os numeros nao fecham.
-                  label: "do IV máximo",
-                  value: leitura!.impossivel
-                    ? "—"
-                    : `${Math.round((leitura!.somaIv / TOTAL_MAX) * 100)}%`,
-                  tone: leitura!.impossivel ? "text-text-mute" : "text-neon",
-                },
-              ].map((k) => (
-                <div key={k.label} className="bg-surface px-3 py-2">
-                  <dd className={`text-[18px] leading-none font-semibold tabular ${k.tone}`}>
-                    {k.value}
-                  </dd>
-                  <dt className="pix mt-1 text-[11px] text-text-mute">{k.label}</dt>
-                </div>
-              ))}
-            </dl>
+            <Compartilhar
+              especie={especie}
+              state={s}
+              tier={tier}
+              tint={tint}
+              leitura={leitura!}
+              textoIv={textoIv}
+            />
           </div>
-        )}
-      </Panel>
+        </section>
+      )}
 
-      {/* ------------------------------ projeção ------------------------------ */}
-      <Panel
-        title={<span className="flex items-center gap-2"><IconLevel size={16} />Projeção</span>}
-      >
+      {/* ============================ projeção ============================ */}
+      <Panel title={<span className="flex items-center gap-2"><IconLevel size={16} />Projeção</span>}>
         <div className="flex flex-col gap-4">
           {/* O nivel desejado e a PERGUNTA deste painel, entao ele e campo com
-              rotulo aqui dentro — nao um input miudo no canto do cabecalho, que
-              e onde ele estava e onde ninguem achou. */}
+              rotulo aqui dentro — nao um input miudo no canto do cabecalho. */}
           <div className="flex flex-wrap items-end gap-3 border-b border-line pb-3">
             <div>
               <FieldLabel className="mb-1 flex items-center gap-1.5">
@@ -482,59 +465,36 @@ export function CalcTool({ especies }: { especies: CalcSpecies[] }) {
                   {n}
                 </Button>
               ))}
-              <span className="pix ml-1 text-[11px] text-text-mute">
-                está no {s.level}
-              </span>
             </div>
           </div>
 
           {!projecao ? (
-            <p className="text-[14px] leading-relaxed text-text-mute">
+            <Note icon={null}>
               Com a espécie e os stats preenchidos, aqui aparece como esse pokémon fica em
               qualquer nível — e quanto ele perde para um de IV perfeito.
-            </p>
+            </Note>
           ) : (
             <>
-              {/* Cartao por stat, e nao tabela: a pergunta aqui nao e "leia a
-                  linha do Ataque", e "onde esse pokemon esta longe do teto" —
-                  e isso se ve pela barra, de relance, sem varrer coluna. */}
               <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                 {projecao.dele.stats.map((v, i) => {
                   const teto = projecao.perfeito.stats[i];
                   const falta = teto - v;
                   const Icon = STAT_ICONS[i];
                   return (
-                    <div key={i} className="border border-line bg-bg-soft p-2.5">
-                      <div className="mb-2 flex items-baseline gap-2">
-                        <span className="pix flex flex-1 items-center gap-1.5 text-[11px] text-text-mute">
-                          <Icon size={14} />
-                          {STAT_LABEL[i]}
-                        </span>
-                        <span className="text-[19px] leading-none font-bold text-text tabular">
-                          {v}
-                        </span>
-                      </div>
-                      <span className="relative block h-3 w-full bg-surface-2">
-                        <span
-                          className="absolute inset-y-0 left-0"
-                          style={{
-                            width: `${teto > 0 ? Math.min(100, (v / teto) * 100) : 0}%`,
-                            backgroundColor: tint,
-                          }}
-                        />
-                      </span>
-                      <div className="mt-1.5 flex items-baseline justify-between">
-                        <span className="pix text-[11px] text-text-mute">teto {teto}</span>
-                        <span
-                          className={cn(
-                            "text-[13px] tabular",
-                            falta > 0 ? "text-warn" : "text-ok",
-                          )}
-                        >
+                    <StatTile
+                      key={i}
+                      label={STAT_LABEL[i]}
+                      icon={<Icon size={14} />}
+                      value={v}
+                      ratio={teto > 0 ? v / teto : 0}
+                      tint={tint}
+                      footLeft={`teto ${teto}`}
+                      footRight={
+                        <span className={falta > 0 ? "text-warn" : "text-ok"}>
                           {falta > 0 ? `−${falta}` : "no teto"}
                         </span>
-                      </div>
-                    </div>
+                      }
+                    />
                   );
                 })}
               </div>
@@ -544,9 +504,7 @@ export function CalcTool({ especies }: { especies: CalcSpecies[] }) {
               <div className="flex flex-wrap items-center gap-x-6 gap-y-3 border border-line-strong bg-surface-2/60 p-3">
                 <span className="flex items-center gap-2">
                   <IconTarget size={18} className="text-accent" />
-                  <span className="pix text-[12px] text-text-dim">
-                    Poder no nível {s.target}
-                  </span>
+                  <span className="pix text-[12px] text-text-dim">Poder no nível {s.target}</span>
                 </span>
                 <Tooltip content="Soma dos stats projetados multiplicada pela quality.">
                   <span className="text-[26px] leading-none font-bold text-accent tabular">
@@ -574,15 +532,128 @@ export function CalcTool({ especies }: { especies: CalcSpecies[] }) {
                 </span>
               </div>
 
-              <p className="border-t border-line pt-2 text-[13px] leading-relaxed text-text-mute">
-                A projeção usa o IV estimado acima, preso entre 0 e {IV_MAX}, e mantém a
-                quality de <span className="text-text-dim tabular">{s.quality}</span> —
-                quality não muda com o nível, só com breeding.
-              </p>
+              <Note flush icon={null}>
+                Usa o IV estimado acima, preso entre 0 e {IV_MAX}. Quality não muda com o
+                nível — só com breeding.
+              </Note>
             </>
           )}
         </div>
       </Panel>
+    </div>
+  );
+}
+
+/**
+ * Compartilhar: o link e o cartao.
+ *
+ * O link e de graca — o estado inteiro ja mora na URL, entao "olha esse
+ * Charizard" e um copiar. O cartao existe porque o que circula no grupo do jogo
+ * e imagem, nao link, e porque ele e desenhado NO NAVEGADOR: nada do pokemon do
+ * jogador sai da maquina dele pra virar um print.
+ */
+function Compartilhar({
+  especie,
+  state,
+  tier,
+  tint,
+  leitura,
+  textoIv,
+}: {
+  especie: CalcSpecies;
+  state: CalcState;
+  tier: ReturnType<typeof qualityTier>;
+  tint: string;
+  leitura: {
+    ivs: number[];
+    faixas: [number, number][];
+    somaIv: number;
+    poder: number;
+    impossivel: boolean;
+  };
+  textoIv: (i: number) => string;
+}) {
+  const [copiado, setCopiado] = useState<"link" | "imagem" | null>(null);
+  const [gerando, setGerando] = useState(false);
+  const [recado, setRecado] = useState<string | null>(null);
+
+  const avisar = (qual: "link" | "imagem") => {
+    setCopiado(qual);
+    setTimeout(() => setCopiado(null), 2200);
+  };
+
+  const copiarLink = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      avisar("link");
+    } catch {
+      setRecado("O navegador não deixou copiar. O link da barra de endereço já é o certo.");
+    }
+  };
+
+  const gerarImagem = async () => {
+    setGerando(true);
+    setRecado(null);
+    try {
+      const blob = await desenharCartao({
+        nome: especie.name,
+        level: state.level,
+        quality: state.quality,
+        tierLabel: TIER_LABEL[tier],
+        tierColor: TIER_COLOR[tier],
+        tipos: [especie.type1, especie.type2]
+          .filter((t): t is PokeType => t != null)
+          .map((t) => ({ nome: TYPE_LABEL[t], cor: TYPE_COLOR[t] })),
+        spriteUrl: spriteUrl(especie.id),
+        stats: STAT_LABEL.map((label, i) => ({
+          label,
+          texto: textoIv(i),
+          ratio: leitura.ivs[i] / IV_MAX,
+          range: [leitura.faixas[i][0] / IV_MAX, leitura.faixas[i][1] / IV_MAX] as [number, number],
+        })),
+        ivTotal: `${Math.round(leitura.somaIv)}/${TOTAL_MAX}`,
+        ivPct: leitura.impossivel
+          ? "—"
+          : `${Math.round((leitura.somaIv / TOTAL_MAX) * 100)}%`,
+        poder: compact(leitura.poder),
+        confiavel: !leitura.impossivel,
+        tint,
+      });
+      if (!blob) {
+        setRecado("Não deu pra desenhar o cartão neste navegador.");
+        return;
+      }
+      if (await copiarImagem(blob)) {
+        avisar("imagem");
+      } else {
+        // Firefox ainda nao escreve imagem na area de transferencia — em vez de
+        // falhar calado, o arquivo desce.
+        baixarImagem(blob, `${especie.name.toLowerCase()}-iv.png`);
+        setRecado("Seu navegador não copia imagem, então o arquivo foi baixado.");
+      }
+    } finally {
+      setGerando(false);
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-2 border-t border-line pt-4">
+      <FieldLabel>Compartilhar</FieldLabel>
+      <div className="flex flex-wrap items-center gap-2">
+        <Button
+          variant="outline"
+          onClick={copiarLink}
+          iconLeft={copiado === "link" ? <IconCheck size={16} /> : <IconLink size={16} />}
+        >
+          {copiado === "link" ? "link copiado" : "copiar link"}
+        </Button>
+        <Button variant="primary" onClick={gerarImagem} disabled={gerando}>
+          {gerando ? "desenhando..." : copiado === "imagem" ? "imagem copiada" : "gerar imagem"}
+        </Button>
+      </div>
+      <Note flush icon={null}>
+        {recado ?? "O cartão é desenhado no seu navegador — nada é enviado pra lugar nenhum."}
+      </Note>
     </div>
   );
 }

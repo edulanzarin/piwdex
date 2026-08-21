@@ -19,6 +19,7 @@ import {
   IconChevronRight,
   IconCoin,
   IconPin,
+  Note,
   Panel,
   Sprite,
   Tooltip,
@@ -421,11 +422,11 @@ export default async function ItemPage({ params }: Props) {
               {/* O numero acima e derivado, entao a ficha diz COMO ele sai — sem
                   isso ele vira um numero de autoridade que ninguem consegue
                   conferir contra o jogo. */}
-              <p className="border-t border-line pt-2 text-[13px] leading-relaxed text-text-mute">
+              <Note flush icon={null}>
                 Ouro por abate é <span className="text-text-dim">chance × quantidade média ×
                 valor de NPC</span> nesta fonte: quanto este item sozinho soma a cada
                 pokémon derrubado. Não conta o que o abate paga por si.
-              </p>
+              </Note>
             </div>
           ) : e.sources > 0 ? (
             <p className="text-[14px] leading-relaxed text-text-mute">
