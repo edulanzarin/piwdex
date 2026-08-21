@@ -351,14 +351,22 @@ export function CalcTool({ especies }: { especies: CalcSpecies[] }) {
                       </span>
                       <span className="pix text-[11px] text-text-mute">/{IV_MAX}</span>
                     </div>
-                    {/* A barra desenha a FAIXA. Quando a leitura e boa ela vira
-                        quase um traco; quando e ruim, ela mostra o quanto e. */}
-                    <span className="relative block h-2.5 w-full bg-surface-2">
+                    {/* Barra em duas partes: o preenchimento de 0 ate o PISO da
+                        faixa (o que e certo), e a faixa em si por cima (o que
+                        ainda esta em aberto). Desenhar so a faixa fazia uma
+                        leitura boa virar um quadradinho solto no meio do
+                        trilho, que le como marcador de grafico e nao como
+                        medidor. */}
+                    <span className="relative block h-3 w-full bg-surface-2">
+                      <span
+                        className="absolute inset-y-0 left-0"
+                        style={{ width: `${pctLo}%`, backgroundColor: tint, opacity: 0.4 }}
+                      />
                       <span
                         className="absolute inset-y-0"
                         style={{
                           left: `${pctLo}%`,
-                          width: `${Math.max(2, pctHi - pctLo)}%`,
+                          width: `${Math.max(1.5, pctHi - pctLo)}%`,
                           backgroundColor: tint,
                         }}
                       />
@@ -441,102 +449,139 @@ export function CalcTool({ especies }: { especies: CalcSpecies[] }) {
       {/* ------------------------------ projeção ------------------------------ */}
       <Panel
         title={<span className="flex items-center gap-2"><IconLevel size={16} />Projeção</span>}
-        actions={
-          <span className="flex items-center gap-1.5">
-            <FieldLabel>nível</FieldLabel>
-            <NumberField
-              min={1}
-              fallback={100}
-              aria-label="Nível da projeção"
-              value={s.target}
-              onChange={(target) => patch({ target })}
-              wrapClassName="h-7 w-20"
-              className="text-center text-[13px]"
-            />
-          </span>
-        }
-        bodyClassName={projecao ? "p-0" : undefined}
       >
-        {!projecao ? (
-          <p className="text-[14px] leading-relaxed text-text-mute">
-            Com a espécie e os stats preenchidos, aqui aparece como esse pokémon fica em
-            qualquer nível — e quanto ele perde para um de IV perfeito.
-          </p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[460px] border-collapse text-left">
-              <thead>
-                <tr className="border-b border-line-strong">
-                  {["Stat", `No nível ${s.target}`, `Com IV ${IV_MAX}`, "Falta"].map((h, i) => (
-                    <th
-                      key={h}
-                      scope="col"
-                      className={`pix px-3 py-2 text-[11px] text-text-mute ${i > 0 ? "text-right" : ""}`}
-                    >
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
+        <div className="flex flex-col gap-4">
+          {/* O nivel desejado e a PERGUNTA deste painel, entao ele e campo com
+              rotulo aqui dentro — nao um input miudo no canto do cabecalho, que
+              e onde ele estava e onde ninguem achou. */}
+          <div className="flex flex-wrap items-end gap-3 border-b border-line pb-3">
+            <div>
+              <FieldLabel className="mb-1 flex items-center gap-1.5">
+                <IconLevel size={15} />
+                Nível desejado
+              </FieldLabel>
+              <NumberField
+                min={1}
+                fallback={100}
+                aria-label="Nível desejado"
+                value={s.target}
+                onChange={(target) => patch({ target })}
+                wrapClassName="w-32"
+                className="text-center text-[16px]"
+              />
+            </div>
+            <div className="flex flex-wrap items-center gap-1.5 pb-1">
+              {[50, 100, 200, 500, 1000].map((n) => (
+                <Button
+                  key={n}
+                  size="sm"
+                  variant="ghost"
+                  active={s.target === n}
+                  onClick={() => patch({ target: n })}
+                >
+                  {n}
+                </Button>
+              ))}
+              <span className="pix ml-1 text-[11px] text-text-mute">
+                está no {s.level}
+              </span>
+            </div>
+          </div>
+
+          {!projecao ? (
+            <p className="text-[14px] leading-relaxed text-text-mute">
+              Com a espécie e os stats preenchidos, aqui aparece como esse pokémon fica em
+              qualquer nível — e quanto ele perde para um de IV perfeito.
+            </p>
+          ) : (
+            <>
+              {/* Cartao por stat, e nao tabela: a pergunta aqui nao e "leia a
+                  linha do Ataque", e "onde esse pokemon esta longe do teto" —
+                  e isso se ve pela barra, de relance, sem varrer coluna. */}
+              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                 {projecao.dele.stats.map((v, i) => {
                   const teto = projecao.perfeito.stats[i];
+                  const falta = teto - v;
                   const Icon = STAT_ICONS[i];
                   return (
-                    <tr key={i} className="border-b border-line last:border-0">
-                      <td className="px-3 py-1.5 text-[14px] text-text">
-                        <span className="flex items-center gap-1.5">
-                          <Icon size={14} className="text-text-mute" />
+                    <div key={i} className="border border-line bg-bg-soft p-2.5">
+                      <div className="mb-2 flex items-baseline gap-2">
+                        <span className="pix flex flex-1 items-center gap-1.5 text-[11px] text-text-mute">
+                          <Icon size={14} />
                           {STAT_LABEL[i]}
                         </span>
-                      </td>
-                      <td className="px-3 py-1.5 text-right text-[14px] font-semibold text-text tabular">
-                        {v}
-                      </td>
-                      <td className="px-3 py-1.5 text-right text-[14px] text-text-mute tabular">
-                        {teto}
-                      </td>
-                      <td
-                        className={cn(
-                          "px-3 py-1.5 text-right text-[14px] tabular",
-                          teto - v > 0 ? "text-warn" : "text-ok",
-                        )}
-                      >
-                        {teto - v > 0 ? `−${teto - v}` : "no teto"}
-                      </td>
-                    </tr>
+                        <span className="text-[19px] leading-none font-bold text-text tabular">
+                          {v}
+                        </span>
+                      </div>
+                      <span className="relative block h-3 w-full bg-surface-2">
+                        <span
+                          className="absolute inset-y-0 left-0"
+                          style={{
+                            width: `${teto > 0 ? Math.min(100, (v / teto) * 100) : 0}%`,
+                            backgroundColor: tint,
+                          }}
+                        />
+                      </span>
+                      <div className="mt-1.5 flex items-baseline justify-between">
+                        <span className="pix text-[11px] text-text-mute">teto {teto}</span>
+                        <span
+                          className={cn(
+                            "text-[13px] tabular",
+                            falta > 0 ? "text-warn" : "text-ok",
+                          )}
+                        >
+                          {falta > 0 ? `−${falta}` : "no teto"}
+                        </span>
+                      </div>
+                    </div>
                   );
                 })}
-                <tr className="border-t border-line-strong bg-surface-2/50">
-                  <td className="px-3 py-2 text-[14px] text-text-dim">
-                    <span className="flex items-center gap-1.5">
-                      <IconTarget size={14} />
-                      Poder
-                    </span>
-                  </td>
-                  <td className="px-3 py-2 text-right text-[15px] font-semibold text-accent tabular">
-                    <Tooltip content="Soma dos stats projetados multiplicada pela quality.">
-                      <span>{compact(projecao.dele.power)}</span>
-                    </Tooltip>
-                  </td>
-                  <td className="px-3 py-2 text-right text-[14px] text-text-mute tabular">
+              </div>
+
+              {/* O poder e a conclusao, entao ele nao e mais um cartao igual aos
+                  seis: e a faixa que fecha o painel. */}
+              <div className="flex flex-wrap items-center gap-x-6 gap-y-3 border border-line-strong bg-surface-2/60 p-3">
+                <span className="flex items-center gap-2">
+                  <IconTarget size={18} className="text-accent" />
+                  <span className="pix text-[12px] text-text-dim">
+                    Poder no nível {s.target}
+                  </span>
+                </span>
+                <Tooltip content="Soma dos stats projetados multiplicada pela quality.">
+                  <span className="text-[26px] leading-none font-bold text-accent tabular">
+                    {compact(projecao.dele.power)}
+                  </span>
+                </Tooltip>
+                <span className="flex items-baseline gap-1.5">
+                  <span className="pix text-[11px] text-text-mute">com IV {IV_MAX}</span>
+                  <span className="text-[17px] leading-none font-semibold text-text-mute tabular">
                     {compact(projecao.perfeito.power)}
-                  </td>
-                  <td className="px-3 py-2 text-right text-[14px] text-warn tabular">
+                  </span>
+                </span>
+                <span className="ml-auto flex items-baseline gap-1.5">
+                  <span className="pix text-[11px] text-text-mute">falta</span>
+                  <span
+                    className={cn(
+                      "text-[17px] leading-none font-semibold tabular",
+                      projecao.perfeito.power - projecao.dele.power > 0 ? "text-warn" : "text-ok",
+                    )}
+                  >
                     {projecao.perfeito.power - projecao.dele.power > 0
                       ? `−${compact(projecao.perfeito.power - projecao.dele.power)}`
                       : "no teto"}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-            <p className="border-t border-line p-3 text-[13px] leading-relaxed text-text-mute">
-              A projeção usa o IV estimado acima, preso entre 0 e {IV_MAX}, e mantém a
-              quality de <span className="text-text-dim tabular">{s.quality}</span> — quality
-              não muda com o nível, só com breeding.
-            </p>
-          </div>
-        )}
+                  </span>
+                </span>
+              </div>
+
+              <p className="border-t border-line pt-2 text-[13px] leading-relaxed text-text-mute">
+                A projeção usa o IV estimado acima, preso entre 0 e {IV_MAX}, e mantém a
+                quality de <span className="text-text-dim tabular">{s.quality}</span> —
+                quality não muda com o nível, só com breeding.
+              </p>
+            </>
+          )}
+        </div>
       </Panel>
     </div>
   );
