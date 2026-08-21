@@ -1,0 +1,31 @@
+import type { Metadata } from "next";
+import { redirect } from "next/navigation";
+import { auth } from "@/lib/auth";
+import { getAdminOverview } from "@/lib/admin-data";
+import { AdminDashboard } from "@/components/admin-dashboard";
+
+export const metadata: Metadata = { title: "Admin", robots: { index: false, follow: false } };
+// Moedas ao vivo por request: nunca cachear.
+export const dynamic = "force-dynamic";
+
+const ACCENT = "#e5484d";
+
+// Portal interno: visao de TODAS as contas do piwdex. Gate duro no servidor — quem nao e
+// admin nem ve a rota (redirect). A conta admin cai aqui em vez da area VIP/Conta.
+export default async function AdminPage() {
+  const session = await auth();
+  if (!session?.user?.admin) redirect("/");
+
+  const users = await getAdminOverview();
+
+  return (
+    <div className="container-vip">
+      <div className="flex flex-col gap-5">
+        <div>
+          <h1 className="pixel text-3xl break-words" style={{ color: ACCENT }}>Contas do PIWdex</h1>
+        </div>
+        <AdminDashboard users={users} />
+      </div>
+    </div>
+  );
+}
