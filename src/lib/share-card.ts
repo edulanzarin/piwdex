@@ -30,6 +30,9 @@ export interface ShareCard {
   ivTotal: string;
   ivPct: string;
   poder: string;
+  /** o nivel desejado da projecao, quando ele difere do nivel atual — o cartao
+   *  que so mostra o agora esconde metade do motivo de o jogador estar aqui */
+  projecao: { level: number; poder: string } | null;
   /** null quando a leitura nao fecha — o cartao nao pode anunciar nota inventada */
   confiavel: boolean;
   tint: string;
@@ -190,10 +193,19 @@ export async function desenharCartao(d: ShareCard): Promise<Blob | null> {
 
   ctx.fillStyle = COR.mute;
   ctx.font = `700 13px ${fam}`;
-  pix(ctx, "poder", CX, 404);
+  pix(ctx, "poder", CX, 402);
   ctx.fillStyle = COR.texto;
-  ctx.font = `700 40px ${fam}`;
-  ctx.fillText(d.poder, CX, 446);
+  ctx.font = `700 38px ${fam}`;
+  ctx.fillText(d.poder, CX, 442);
+
+  if (d.projecao) {
+    ctx.fillStyle = COR.mute;
+    ctx.font = `700 12px ${fam}`;
+    pix(ctx, `no nível ${d.projecao.level}`, CX + 128, 420);
+    ctx.fillStyle = d.tint;
+    ctx.font = `700 24px ${fam}`;
+    ctx.fillText(d.projecao.poder, CX + 128, 446);
+  }
 
   // ---- divisor ----
   ctx.strokeStyle = COR.linhaForte;

@@ -424,6 +424,7 @@ export function CalcTool({ especies }: { especies: CalcSpecies[] }) {
               tint={tint}
               leitura={leitura!}
               textoIv={textoIv}
+              projecao={projecao}
             />
           </div>
         </section>
@@ -554,11 +555,13 @@ function Compartilhar({
   tint,
   leitura,
   textoIv,
+  projecao,
 }: {
   especie: CalcSpecies;
   state: CalcState;
   tier: ReturnType<typeof qualityTier>;
   tint: string;
+  projecao: { dele: { power: number } } | null;
   leitura: {
     ivs: number[];
     faixas: [number, number][];
@@ -611,6 +614,12 @@ function Compartilhar({
           ? "—"
           : `${Math.round((leitura.somaIv / TOTAL_MAX) * 100)}%`,
         poder: compact(leitura.poder),
+        // So quando o nivel desejado difere do atual: repetir o mesmo poder
+        // duas vezes no cartao nao acrescenta nada.
+        projecao:
+          projecao && state.target !== state.level
+            ? { level: state.target, poder: compact(projecao.dele.power) }
+            : null,
         confiavel: !leitura.impossivel,
         tint,
       });
@@ -646,9 +655,7 @@ function Compartilhar({
           {gerando ? "desenhando..." : copiado === "imagem" ? "imagem copiada" : "gerar imagem"}
         </Button>
       </div>
-      <Note flush icon={null}>
-        {recado ?? "Desenhado no seu navegador. Nada é enviado."}
-      </Note>
+      {recado ? <Note flush icon={null}>{recado}</Note> : null}
     </div>
   );
 }
