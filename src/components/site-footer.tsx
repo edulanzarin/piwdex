@@ -11,8 +11,8 @@ export function SiteFooter() {
           para Poke Idle World.
         </p>
         <p>
-          Dado lido direto do catalogo publico do jogo (creatures, items e map-markers).
-          Projeto de fa, sem vinculo com os autores do jogo.
+          Dado lido direto do catálogo público do jogo (creatures, items e map-markers).
+          Projeto de fã, sem vínculo com os autores do jogo.
         </p>
       </div>
     </footer>

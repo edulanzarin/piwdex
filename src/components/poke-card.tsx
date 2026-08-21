@@ -4,8 +4,10 @@ import type { DexEntry } from "@/lib/dex";
 import { rolesOf } from "@/lib/dex";
 import { RARITY_COLOR, TYPE_COLOR } from "@/lib/typing";
 import { spriteUrl } from "@/lib/sprites";
-import { Chip, IconBolt, IconCoin, IconPin, Sprite, Tooltip } from "@/components/ui";
+import { Chip, IconCoin, IconPin, Sprite, Tooltip } from "@/components/ui";
 import { TypeBadge } from "@/components/type-icon";
+import { IconBag, IconGem, IconLevel, IconScale, IconTm, IconXp, STAT_ICONS } from "@/components/game-icons";
+import { ACQ_LABEL, RARITY_LABEL, STAGE_LABEL, ROLE_LABEL, STAT_LABEL, compact } from "@/lib/labels";
 
 /**
  * Card de especie da Pokedex.
@@ -21,38 +23,7 @@ import { TypeBadge } from "@/components/type-icon";
  * um Electrode e visivelmente uma flecha — e o perfil e o que faz escolher.
  */
 
-const STAT_SHORT = ["HP", "AT", "DF", "SA", "SD", "VL"] as const;
-
-const ACQ_LABEL: Record<DexEntry["acquisition"], string> = {
-  hunt: "Cacavel",
-  evo: "Evolucao",
-  special: "Especial",
-};
-
-const STAGE_LABEL: Record<DexEntry["stage"], string> = {
-  solo: "Sem evolucao",
-  base: "Estagio 1",
-  mid: "Estagio 2",
-  final: "Final",
-};
-
-/**
- * Numero compacto do jogo. Precisa das faixas altas: o preco do Aerodactyl e
- * 6.500.000.000, e sem degrau de bilhao a versao anterior imprimia "6500000k",
- * que nao se le nem se compara.
- */
-export function gold(n: number): string {
-  const abs = Math.abs(n);
-  const cut = (div: number, suf: string) => {
-    const v = n / div;
-    // uma casa so ate 100, nenhuma acima — "6.5B" e legivel, "6.50B" e ruido
-    return `${v.toFixed(Math.abs(v) < 100 ? 1 : 0).replace(/\.0$/, "")}${suf}`;
-  };
-  if (abs >= 1e9) return cut(1e9, "B");
-  if (abs >= 1e6) return cut(1e6, "M");
-  if (abs >= 1000) return cut(1000, "k");
-  return String(n);
-}
+export const gold = compact;
 
 /**
  * Espinha de stats: seis colunas contra um teto FIXO do catalogo.
@@ -75,12 +46,16 @@ function StatSpine({
   tint: string;
 }) {
   return (
-    <div className="flex items-end gap-[3px]" aria-hidden="true">
-      {stats.map((s, i) => {
-        const ratio = s / ceiling;
-        const over = ratio > 1;
+    <div className="flex items-end gap-[3px]">
+      {stats.map((v, i) => {
+        const ratio = v / ceiling;
+        const Icon = STAT_ICONS[i];
         return (
-          <span key={i} className="flex flex-1 flex-col items-center gap-[3px]">
+          <span
+            key={i}
+            className="flex flex-1 flex-col items-center gap-[3px]"
+            title={`${STAT_LABEL[i]}: ${v}`}
+          >
             <span className="relative flex h-8 w-full items-end rounded-[1px] bg-surface-2">
               <span
                 className="w-full rounded-[1px]"
@@ -92,11 +67,13 @@ function StatSpine({
                   opacity: 0.6 + Math.min(1, ratio) * 0.4,
                 }}
               />
-              {over ? (
-                <span className="absolute inset-x-0 top-0 h-[2px] bg-text" />
-              ) : null}
+              {/* tampa: quem passa do teto satura MARCADO, senao 140 e 255
+                  desenham a mesma barra cheia e o card diz que sao iguais */}
+              {ratio > 1 ? <span className="absolute inset-x-0 top-0 h-[2px] bg-text" /> : null}
             </span>
-            <span className="pix text-[10px] leading-none text-text-mute">{STAT_SHORT[i]}</span>
+            {/* o icone no lugar da abreviacao: "AES" nao diz nada, o escudo com
+                nucleo diz "defesa especial" sem precisar de legenda */}
+            <Icon size={8} className="text-text-mute" />
           </span>
         );
       })}
@@ -130,7 +107,7 @@ export function PokeCard({
       <header className="flex items-center justify-between gap-1">
         <span className="pix text-[10px] text-text-mute">#{String(e.id).padStart(3, "0")}</span>
         <span className="flex items-center gap-1" title={`Total de stats base: ${e.statTotal}`}>
-          <IconBolt size={8} className="text-text-mute" />
+          <IconScale size={9} className="text-text-mute" />
           <span className="text-[12px] text-text-dim tabular">{e.statTotal}</span>
         </span>
       </header>
@@ -158,8 +135,8 @@ export function PokeCard({
       <div className="flex flex-wrap items-center gap-1">
         <TypeBadge type={e.type1} size="xs" />
         {e.type2 ? <TypeBadge type={e.type2} size="xs" /> : null}
-        <Chip size="xs" tint={tint} className="ml-auto">
-          {e.rarity}
+        <Chip size="xs" tint={tint} icon={<IconGem size={7} />} className="ml-auto">
+          {RARITY_LABEL[e.rarity]}
         </Chip>
       </div>
 
@@ -168,32 +145,34 @@ export function PokeCard({
       {/* os tres numeros que decidem se vale cacar */}
       <dl className="grid grid-cols-3 gap-1 border-t border-line pt-1.5 text-center">
         <div>
-          <dt className="pix text-[10px] text-text-mute">NIVEL</dt>
+          <dt className="pix flex items-center justify-center gap-1 text-[10px] text-text-mute">
+            <IconLevel size={8} />
+            Nível
+          </dt>
           <dd className="text-[13px] text-text tabular">{e.level || "—"}</dd>
         </div>
         <div>
           {/* O rotulo muda com a GRANDEZA: "venda" e o que o jogo te paga por
               abate, "npc" e o preco do cassino. Sao eixos diferentes e o mesmo
               rotulo pros dois faz o card se contradizer entre especies. */}
-          <dt className="pix text-[10px] text-text-mute">{e.valueFromNpc ? "PRECO NPC" : "VENDA"}</dt>
+          <dt className="pix flex items-center justify-center gap-1 text-[10px] text-text-mute">
+            <IconCoin size={8} />
+            {e.valueFromNpc ? "Preço NPC" : "Venda"}
+          </dt>
           <dd
             className={cn(
               "flex items-center justify-center gap-0.5 text-[13px] tabular",
               e.valueFromNpc ? "text-text-mute" : "text-warn",
             )}
           >
-            {e.value > 0 ? (
-              <>
-                <IconCoin size={8} />
-                {gold(e.value)}
-              </>
-            ) : (
-              "—"
-            )}
+            {e.value > 0 ? gold(e.value) : "—"}
           </dd>
         </div>
         <div>
-          <dt className="pix text-[10px] text-text-mute">XP</dt>
+          <dt className="pix flex items-center justify-center gap-1 text-[10px] text-text-mute">
+            <IconXp size={8} />
+            XP
+          </dt>
           <dd className="text-[13px] text-neon tabular">{e.xp || "—"}</dd>
         </div>
       </dl>
@@ -205,21 +184,21 @@ export function PokeCard({
           icon={e.acquisition === "hunt" ? <IconPin size={6} /> : undefined}
         >
           {e.acquisition === "hunt"
-            ? `${e.spots} SPOT${e.spots > 1 ? "S" : ""}`
+            ? `${e.spots} ${e.spots > 1 ? "locais" : "local"}`
             : ACQ_LABEL[e.acquisition]}
         </Chip>
         {e.stage !== "solo" ? <Chip size="xs">{STAGE_LABEL[e.stage]}</Chip> : null}
-        {roles[0] ? <Chip size="xs">{roles[0]}</Chip> : null}
+        {roles[0] ? <Chip size="xs">{ROLE_LABEL[roles[0]] ?? roles[0]}</Chip> : null}
         {e.hasTm ? (
           <Tooltip
             content={`Aprende TM: o melhor golpe sobe de ${e.bestNatural} para ${e.bestWithTm} de poder.`}
           >
-            <Chip size="xs" tone="neon">TM</Chip>
+            <Chip size="xs" tone="neon" icon={<IconTm size={7} />}>TM</Chip>
           </Tooltip>
         ) : null}
         {e.dropCount ? (
-          <Chip size="xs" className="ml-auto">
-            {e.dropCount} DROP{e.dropCount > 1 ? "S" : ""}
+          <Chip size="xs" icon={<IconBag size={7} />} className="ml-auto">
+            {e.dropCount}
           </Chip>
         ) : null}
       </div>
@@ -257,7 +236,7 @@ export function PokeRow({ e }: { e: DexEntry }) {
       </td>
       <td className="px-2 py-1">
         <span className="pix text-[10px]" style={{ color: RARITY_COLOR[e.rarity] }}>
-          {e.rarity}
+          {RARITY_LABEL[e.rarity]}
         </span>
       </td>
       <td className="px-2 py-1 text-right text-[13px] text-text-dim tabular">{e.level || "—"}</td>

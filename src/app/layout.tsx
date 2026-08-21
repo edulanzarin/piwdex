@@ -36,8 +36,8 @@ export const metadata: Metadata = {
     template: "%s · piwdex",
   },
   description:
-    "Pokedex completa do Poke Idle World: filtro por tipo, raridade, fraqueza, " +
-    "drop e faixa de nivel, com stats, golpes, locais de caca e indice reverso de itens.",
+    "Pokédex completa do Poke Idle World: filtro por tipo, raridade, fraqueza, " +
+    "drop e faixa de nível, com stats, golpes, locais de caça e índice reverso de itens.",
 };
 
 export const viewport: Viewport = {
@@ -57,7 +57,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                      focus:rounded-pix focus:border focus:border-accent focus:bg-surface-3
                      focus:px-3 focus:py-2 focus:text-[11px] focus:text-accent"
         >
-          Pular para o conteudo
+          Pular para o conteúdo
         </a>
         <SiteNav />
         <main id="conteudo" className="mx-auto w-full max-w-[1600px] px-3 pb-16 pt-4 sm:px-5">

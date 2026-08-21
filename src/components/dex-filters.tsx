@@ -19,6 +19,8 @@ import {
   type MultiOption,
 } from "@/components/ui";
 import { TypeBadge } from "@/components/type-icon";
+import { IconBag, IconGem, IconLevel, IconScale, IconTarget, IconTm, IconWeak, IconXp } from "@/components/game-icons";
+import { ACQ_HINT, RARITY_LABEL, REGION_LABEL, STAGE_LABEL, TYPE_LABEL } from "@/lib/labels";
 
 /**
  * O trilho de filtros da Pokedex.
@@ -90,29 +92,23 @@ function FilterGroup({
 const TYPE_OPTIONS = (counts: Record<string, number>): MultiOption<PokeType>[] =>
   ALL_TYPES.map((t) => ({
     value: t,
-    label: t,
+    label: TYPE_LABEL[t],
     tint: TYPE_COLOR[t],
     count: counts[t],
     render: <TypeBadge type={t} size="xs" />,
   }));
 
-const ACQ_OPTIONS: MultiOption<Acquisition>[] = [
-  { value: "hunt", label: "Cacavel — tem ponto no mapa" },
-  { value: "evo", label: "Evolucao — so evoluindo" },
-  { value: "special", label: "Especial — loja, cassino, ovo" },
-];
+const ACQ_OPTIONS: MultiOption<Acquisition>[] = (["hunt", "evo", "special"] as const).map(
+  (v) => ({ value: v, label: ACQ_HINT[v] }),
+);
 
-const STAGE_OPTIONS: MultiOption<Stage>[] = [
-  { value: "solo", label: "Nao evolui" },
-  { value: "base", label: "Estagio 1 (base)" },
-  { value: "mid", label: "Estagio 2 (meio)" },
-  { value: "final", label: "Estagio final" },
-];
+const STAGE_OPTIONS: MultiOption<Stage>[] = (["solo", "base", "mid", "final"] as const).map(
+  (v) => ({ value: v, label: STAGE_LABEL[v] }),
+);
 
-const REGION_OPTIONS: MultiOption<"base" | "orre">[] = [
-  { value: "base", label: "Catalogo base" },
-  { value: "orre", label: "Orre (endgame)" },
-];
+const REGION_OPTIONS: MultiOption<"base" | "orre">[] = (["base", "orre"] as const).map(
+  (v) => ({ value: v, label: REGION_LABEL[v] }),
+);
 
 const has = (r: [number | null, number | null]) => (r[0] != null || r[1] != null ? 1 : 0);
 
@@ -128,7 +124,7 @@ export function DexFilters({
 }: Props) {
   const rarityOptions: MultiOption<Rarity>[] = RARITY_ORDER.map((r) => ({
     value: r,
-    label: r,
+    label: RARITY_LABEL[r],
     tint: RARITY_COLOR[r],
     count: rarityCounts[r],
   }));
@@ -172,13 +168,13 @@ export function DexFilters({
         </Button>
       </header>
 
-      <FilterGroup title="Basico" active={basicos} defaultOpen>
+      <FilterGroup title="Básico" active={basicos} defaultOpen>
         <SearchInput
           value={q.q}
           onChange={(e) => onChange({ q: e.target.value })}
           onClear={() => onChange({ q: "" })}
-          placeholder="nome ou numero..."
-          aria-label="Buscar pokemon"
+          placeholder="nome ou número..."
+          aria-label="Buscar pokémon"
         />
         <MultiSelect
           label="tipo"
@@ -208,15 +204,15 @@ export function DexFilters({
           options={ACQ_OPTIONS}
         />
         <MultiSelect
-          label="estagio"
-          unit="estagios"
+          label="estágio"
+          unit="estágios"
           value={q.stages}
           onChange={(stages) => onChange({ stages })}
           options={STAGE_OPTIONS}
         />
         <MultiSelect
-          label="regiao"
-          unit="regioes"
+          label="região"
+          unit="regiões"
           value={q.regions}
           onChange={(regions) => onChange({ regions })}
           options={REGION_OPTIONS}
@@ -224,22 +220,22 @@ export function DexFilters({
         <Switch
           checked={q.onlySpots}
           onChange={(e) => onChange({ onlySpots: e.target.checked })}
-          label="So com ponto de caca"
-          hint="esconde quem so vem de evolucao ou loja"
+          label="Só com ponto de caça"
+          hint="esconde quem só vem de evolução ou loja"
         />
         <Switch
           checked={q.includeVariants}
           onChange={(e) => onChange({ includeVariants: e.target.checked })}
           label="Incluir variantes de skin"
-          hint="Brave Blastoise e cia — mesma especie, outro visual"
+          hint="Brave Blastoise e cia — mesma espécie, outro visual"
         />
       </FilterGroup>
 
-      <FilterGroup title="Numeros" active={numeros}>
+      <FilterGroup title="Números" active={numeros}>
         <div>
-          <FieldLabel className="mb-1">Nivel de caca</FieldLabel>
+          <FieldLabel className="mb-1 flex items-center gap-1.5"><IconLevel size={9} />Nível de caça</FieldLabel>
           <Range
-            label="Nivel de caca"
+            label="Nível de caça"
             min={bounds.level[0]}
             max={bounds.level[1]}
             value={span("level")}
@@ -254,7 +250,7 @@ export function DexFilters({
         </div>
 
         <div>
-          <FieldLabel className="mb-1">Valor de venda</FieldLabel>
+          <FieldLabel className="mb-1 flex items-center gap-1.5"><IconGem size={9} />Valor de venda</FieldLabel>
           <Range
             label="Valor"
             min={bounds.value[0]}
@@ -273,7 +269,7 @@ export function DexFilters({
         </div>
 
         <div>
-          <FieldLabel className="mb-1">XP por abate</FieldLabel>
+          <FieldLabel className="mb-1 flex items-center gap-1.5"><IconXp size={9} />XP por abate</FieldLabel>
           <Range
             label="XP"
             min={bounds.xp[0]}
@@ -285,7 +281,7 @@ export function DexFilters({
         </div>
 
         <div>
-          <FieldLabel className="mb-1">Total de stats base</FieldLabel>
+          <FieldLabel className="mb-1 flex items-center gap-1.5"><IconScale size={9} />Total de stats base</FieldLabel>
           <Range
             label="Total de stats"
             min={bounds.statTotal[0]}
@@ -297,7 +293,7 @@ export function DexFilters({
         </div>
 
         <div>
-          <FieldLabel className="mb-1">Poder do melhor golpe</FieldLabel>
+          <FieldLabel className="mb-1 flex items-center gap-1.5"><IconTarget size={9} />Poder do melhor golpe</FieldLabel>
           <Range
             label="Poder do golpe"
             min={bounds.power[0]}
@@ -326,7 +322,7 @@ export function DexFilters({
         </div>
       </FilterGroup>
 
-      <FilterGroup title="Tatico" active={tatico}>
+      <FilterGroup title="Tático" active={tatico}>
         <div>
           <MultiSelect
             label="fraco contra"
@@ -356,8 +352,8 @@ export function DexFilters({
         <Switch
           checked={q.onlyTm}
           onChange={(e) => onChange({ onlyTm: e.target.checked })}
-          label="So quem aprende TM"
-          hint="os golpes de poder 600 sao todos de maquina"
+          label="Só quem aprende TM"
+          hint="os golpes de poder 600 são todos de máquina"
         />
       </FilterGroup>
 
@@ -366,7 +362,7 @@ export function DexFilters({
             A pergunta util e a inversa — "quem dropa Bulb?" — e ela nao existe
             em lugar nenhum, nem no jogo nem no piwtools. */}
         <div>
-          <FieldLabel className="mb-1">Quem dropa este item</FieldLabel>
+          <FieldLabel className="mb-1 flex items-center gap-1.5"><IconBag size={9} />Quem dropa este item</FieldLabel>
           <Combobox
             value={q.drops}
             onChange={(drops) => onChange({ drops })}

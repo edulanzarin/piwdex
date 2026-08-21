@@ -5,7 +5,6 @@ import { spriteUrl } from "@/lib/sprites";
 import { RARITY_COLOR } from "@/lib/typing";
 import {
   Chip,
-  IconBolt,
   IconChevronRight,
   IconCoin,
   IconPin,
@@ -14,7 +13,8 @@ import {
   Sprite,
 } from "@/components/ui";
 import { TypeBadge } from "@/components/type-icon";
-import { gold } from "@/components/poke-card";
+import { IconGem, IconScale, IconXp } from "@/components/game-icons";
+import { RARITY_LABEL, compact as gold } from "@/lib/labels";
 
 export const revalidate = 3600;
 
@@ -32,25 +32,25 @@ const TOOLS = [
   {
     href: "/dex",
     name: "Pokedex",
-    desc: "Todas as especies com filtro por tipo, raridade, fraqueza, drop e faixa de nivel, valor, XP e stats.",
+    desc: "Todas as espécies com filtro por tipo, raridade, fraqueza, drop e faixa de nível, valor, XP e stats.",
     ready: true,
   },
   {
     href: "/itens",
     name: "Itens",
-    desc: "Catalogo de itens com o indice reverso: quem dropa cada um e com que chance real.",
+    desc: "Catálogo de itens com o índice reverso: quem dropa cada um e com que chance real.",
     ready: false,
   },
   {
     href: "/calc",
     name: "Calculadora",
-    desc: "IV, qualidade e Poder pela formula do jogo. Projeta stats em qualquer nivel.",
+    desc: "IV, qualidade e Poder pela fórmula do jogo. Projeta stats em qualquer nível.",
     ready: false,
   },
   {
     href: "/hunt",
     name: "Hunt",
-    desc: "Rota de caca por XP, ouro e efetividade — usando o melhor golpe CONTRA o alvo.",
+    desc: "Rota de caça por XP, ouro e efetividade — usando o melhor golpe CONTRA o alvo.",
     ready: false,
   },
   {
@@ -112,8 +112,12 @@ function Highlight({
                 <span className="flex gap-1">
                   <TypeBadge type={e.type1} size="xs" showLabel={false} />
                   {e.type2 ? <TypeBadge type={e.type2} size="xs" showLabel={false} /> : null}
-                  <span className="pix text-[10px]" style={{ color: RARITY_COLOR[e.rarity] }}>
-                    {e.rarity}
+                  <span
+                    className="pix inline-flex items-center gap-1 text-[10px]"
+                    style={{ color: RARITY_COLOR[e.rarity] }}
+                  >
+                    <IconGem size={8} />
+                    {RARITY_LABEL[e.rarity]}
                   </span>
                 </span>
               </span>
@@ -138,9 +142,9 @@ export default async function HomePage() {
   const strongest = sortEntries(playable, "statTotal", "desc").slice(0, 5);
 
   const stats = [
-    { label: "especies", value: playable.length },
+    { label: "espécies", value: playable.length },
     { label: "itens", value: counts.items },
-    { label: "pontos de caca", value: counts.hunts },
+    { label: "locais de caça", value: counts.hunts },
     { label: "registros de drop", value: counts.drops },
   ];
 
@@ -162,9 +166,9 @@ export default async function HomePage() {
           </div>
 
           <p className="max-w-2xl text-[14px] leading-relaxed text-text-dim">
-            O catalogo inteiro do jogo, lido direto da fonte e pesquisavel de verdade:
-            filtre por tipo, raridade, estagio evolutivo, fraqueza, item que dropa e por
-            faixa de nivel, valor, XP, stats e poder de golpe — tudo ao mesmo tempo.
+            O catálogo inteiro do jogo, lido direto da fonte e pesquisável de verdade:
+            filtre por tipo, raridade, estágio evolutivo, fraqueza, item que dropa e por
+            faixa de nível, valor, XP, stats e poder de golpe — tudo ao mesmo tempo.
           </p>
 
           <div className="flex flex-wrap items-center gap-2">
@@ -174,18 +178,18 @@ export default async function HomePage() {
                          bg-accent/20 px-4 text-[12px] text-accent transition-colors
                          hover:bg-accent/30 hover:border-accent"
             >
-              abrir a pokedex
+              abrir a pokédex
               <IconChevronRight size={8} />
             </Link>
             <Chip
               tone={catalog.live ? "ok" : "warn"}
               title={
                 catalog.live
-                  ? `Catalogo do jogo, publicado em ${catalog.generatedAt}`
-                  : `Fonte indisponivel (${catalog.error ?? "motivo desconhecido"})`
+                  ? `Catálogo do jogo, publicado em ${catalog.generatedAt}`
+                  : `Fonte indisponível (${catalog.error ?? "motivo desconhecido"})`
               }
             >
-              {catalog.live ? "catalogo ao vivo" : "catalogo salvo"}
+              {catalog.live ? "catálogo ao vivo" : "catálogo salvo"}
             </Chip>
           </div>
 
@@ -205,11 +209,11 @@ export default async function HomePage() {
 
       {/* ---- destaques do catalogo ---- */}
       <section className="flex flex-col gap-2">
-        <h2 className="pix text-[12px] text-text-dim">Do catalogo, agora</h2>
+        <h2 className="pix text-[12px] text-text-dim">Do catálogo, agora</h2>
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           <Highlight
             title="Paga mais por abate"
-            hint="Maior sellValue — o que o jogo paga por abate. Exclusivos sem valor de venda ficam de fora: o preco de NPC deles e outra grandeza."
+            hint="Maior valor de venda — o que o jogo paga por abate. Exclusivos sem valor de venda ficam de fora: o preço de NPC deles é outra grandeza."
             entries={richest}
             href="/dex?sort=value&dir=desc"
             metric={(e) => (
@@ -220,25 +224,25 @@ export default async function HomePage() {
             )}
           />
           <Highlight
-            title="Melhor XP por nivel"
-            hint="XP dividido pelo nivel da caca: rendimento, nao volume bruto. O XP cru premia bicho de nivel alto que voce ainda nao encara."
+            title="Melhor XP por nível"
+            hint="XP dividido pelo nível da caça: rendimento, não volume bruto. O XP cru premia bicho de nível alto que você ainda não encara."
             entries={xpKings}
             href="/dex?sort=xpPerLevel&dir=desc"
             metric={(e) => (
               <span className="text-neon">
                 {(e.level > 0 ? e.xp / e.level : 0).toFixed(1)}
-                <span className="ml-0.5 text-[10px] text-text-mute">/nv</span>
+                <span className="ml-0.5 text-[10px] text-text-mute">/nível</span>
               </span>
             )}
           />
           <Highlight
             title="Maior total de stats"
-            hint="Soma dos seis stats base — a regua grossa de forca da especie, antes de IV e Quality."
+            hint="Soma dos seis stats base — a régua grossa de força da espécie, antes de IV e Quality."
             entries={strongest}
             href="/dex?sort=statTotal&dir=desc"
             metric={(e) => (
               <span className="flex items-center gap-1 text-accent">
-                <IconBolt size={8} />
+                <IconScale size={8} />
                 {e.statTotal}
               </span>
             )}
@@ -289,9 +293,9 @@ export default async function HomePage() {
           De onde vem o dado
         </h2>
         <p className="max-w-3xl text-[13px] leading-relaxed text-text-mute">
-          Direto do catalogo publico do proprio jogo — criaturas, itens e pontos do mapa —
+          Direto do catálogo público do próprio jogo — criaturas, itens e pontos do mapa —
           conferido por ETag a cada visita e recarregado no segundo em que o jogo publica um
-          patch. Quando a fonte nao responde, o site continua de pe com o ultimo catalogo
+          patch. Quando a fonte não responde, o site continua de pé com o último catálogo
           salvo e diz isso na tela, em vez de servir dado velho fingindo estar ao vivo.
         </p>
       </section>

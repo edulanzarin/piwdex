@@ -9,7 +9,6 @@ import { RARITY_COLOR, TYPE_COLOR, defensiveDetailed, offensiveDetailed } from "
 import { projectAll } from "@/lib/stats";
 import {
   Chip,
-  IconBolt,
   IconChevronRight,
   IconCoin,
   IconEvolve,
@@ -19,12 +18,31 @@ import {
   StatBar,
   Tooltip,
 } from "@/components/ui";
-import { TypeBadge } from "@/components/type-icon";
-import { gold } from "@/components/poke-card";
+import { TypeBadge, TypeMultChip } from "@/components/type-icon";
+import {
+  CategoryIcon,
+  IconAtk,
+  IconBag,
+  IconGem,
+  IconLevel,
+  IconScale,
+  IconTarget,
+  IconTm,
+  IconDef as IconDefShield,
+  IconWeak,
+  IconXp,
+  STAT_ICONS,
+} from "@/components/game-icons";
+import {
+  CATEGORY_LABEL,
+  RARITY_LABEL,
+  ROLE_LABEL,
+  STAT_LABEL,
+  compact as gold,
+  multWord,
+} from "@/lib/labels";
 
 export const revalidate = 3600;
-
-const STAT_LABELS = ["HP", "ATAQUE", "DEFESA", "SP.ATK", "SP.DEF", "VELOC"] as const;
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -34,12 +52,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   const db = await getData();
   const c = db.getCreature(Number(id));
-  if (!c) return { title: "Pokemon nao encontrado" };
+  if (!c) return { title: "Pokémon não encontrado" };
   return {
     title: c.name,
     description:
-      `${c.name} no Poke Idle World: stats base, fraquezas, golpes, evolucao, ` +
-      `pontos de caca e drops com a chance real de cada item.`,
+      `${c.name} no Poke Idle World: stats base, fraquezas, golpes, evolução, ` +
+      `locais de caça e drops com a chance real de cada item.`,
   };
 }
 
@@ -109,11 +127,17 @@ export default async function CreaturePage({ params }: Props) {
           <div className="flex flex-wrap items-center gap-1.5">
             <TypeBadge type={c.type1} />
             {c.type2 ? <TypeBadge type={c.type2} /> : null}
-            <Chip tint={RARITY_COLOR[c.rarity]}>{c.rarity}</Chip>
+            <Chip tint={RARITY_COLOR[c.rarity]} icon={<IconGem size={8} />}>
+              {RARITY_LABEL[c.rarity]}
+            </Chip>
             {roles.map((r) => (
-              <Chip key={r}>{r}</Chip>
+              <Chip key={r}>{ROLE_LABEL[r] ?? r}</Chip>
             ))}
-            {e.hasTm ? <Chip tone="neon">aprende TM</Chip> : null}
+            {e.hasTm ? (
+              <Chip tone="neon" icon={<IconTm size={8} />}>
+                aprende TM
+              </Chip>
+            ) : null}
           </div>
 
           {c.description ? (
@@ -122,21 +146,21 @@ export default async function CreaturePage({ params }: Props) {
 
           <dl className="mt-1 grid grid-cols-2 gap-px overflow-hidden rounded-pix border border-line bg-line sm:grid-cols-4">
             {[
-              { label: "nivel de caca", value: c.huntLevel || "—" },
+              { label: "nível de caça", value: c.huntLevel || "—", icon: <IconLevel size={9} /> },
               {
                 // Declara qual grandeza esta na tela: `sellValue` (o que o jogo
                 // paga por abate) e `priceNpc` (preco do cassino) nao se
                 // comparam, e o rotulo unico faz a ficha se contradizer.
-                label: e.valueFromNpc ? "preco de npc" : "venda por abate",
+                label: e.valueFromNpc ? "preço de npc" : "venda por abate",
                 value: e.value > 0 ? gold(e.value) : "—",
                 icon: <IconCoin size={9} />,
                 tone: e.valueFromNpc ? "text-text-dim" : "text-warn",
               },
-              { label: "xp por abate", value: c.experience || "—", tone: "text-neon" },
+              { label: "xp por abate", value: c.experience || "—", tone: "text-neon", icon: <IconXp size={9} /> },
               {
                 label: "total de stats",
                 value: e.statTotal,
-                icon: <IconBolt size={9} />,
+                icon: <IconScale size={9} />,
                 tone: "text-accent",
               },
             ].map((s) => (
@@ -154,41 +178,46 @@ export default async function CreaturePage({ params }: Props) {
 
       <div className="grid gap-3 lg:grid-cols-2">
         {/* ---- stats ---- */}
-        <Panel title="Stats base" actions={<span className="text-[12px] text-text-mute tabular">{e.statTotal}</span>}>
+        <Panel
+          title={
+            <span className="flex items-center gap-1.5">
+              <IconScale size={10} />
+              Stats base
+            </span>
+          }
+          actions={<span className="text-[12px] text-text-mute tabular">{e.statTotal}</span>}
+        >
           <div className="flex flex-col gap-1.5">
-            {e.stats.map((s, i) => (
-              <StatBar
-                key={i}
-                label={STAT_LABELS[i]}
-                value={s}
-                max={bounds.statCeiling}
-                tint={TYPE_COLOR[c.type1]}
-              />
-            ))}
+            {e.stats.map((v, i) => {
+              const Icon = STAT_ICONS[i];
+              return (
+                <StatBar
+                  key={i}
+                  label={STAT_LABEL[i]}
+                  icon={<Icon size={9} />}
+                  value={v}
+                  max={bounds.statCeiling}
+                  tint={TYPE_COLOR[c.type1]}
+                />
+              );
+            })}
           </div>
           <p className="mt-3 border-t border-line pt-2 text-[12px] leading-relaxed text-text-mute">
-            No nivel 100 com IV perfeito e Quality 1.0 isso vira{" "}
+            No nível 100 com IV perfeito e Quality 1.0 isso vira{" "}
             <span className="text-text-dim tabular">{perfect.sum}</span> de soma e{" "}
             <span className="text-accent tabular">{perfect.power}</span> de Poder. IV e Quality
-            sao por INDIVIDUO — o catalogo so define a base.
+            são por INDIVÍDUO — o catálogo só define a base.
           </p>
         </Panel>
 
         {/* ---- defesa ---- */}
-        <Panel title="Como apanha">
+        <Panel title={<span className="flex items-center gap-1.5"><IconWeak size={10} />Como apanha</span>}>
           {weak.length ? (
             <div className="mb-3">
-              <p className="pix mb-1.5 text-[10px] text-danger">fraco contra</p>
+              <p className="pix mb-1.5 flex items-center gap-1.5 text-[10px] text-danger"><IconWeak size={9} />fraco contra</p>
               <div className="flex flex-wrap gap-1">
                 {weak.map((w) => (
-                  <span
-                    key={w.type}
-                    style={{ borderColor: `${TYPE_COLOR[w.type]}70`, backgroundColor: `${TYPE_COLOR[w.type]}1c` }}
-                    className="pix inline-flex h-5 items-center gap-1 rounded-pix border px-1.5 text-[10px]"
-                  >
-                    <span style={{ color: TYPE_COLOR[w.type] }}>{w.type}</span>
-                    <span className="text-danger">{w.label}</span>
-                  </span>
+                  <TypeMultChip key={w.type} m={w} tone="text-danger" />
                 ))}
               </div>
             </div>
@@ -196,17 +225,10 @@ export default async function CreaturePage({ params }: Props) {
 
           {resist.length ? (
             <div className="mb-3">
-              <p className="pix mb-1.5 text-[10px] text-ok">resiste a</p>
+              <p className="pix mb-1.5 flex items-center gap-1.5 text-[10px] text-ok"><IconDefShield size={9} />resiste a</p>
               <div className="flex flex-wrap gap-1">
                 {resist.map((w) => (
-                  <span
-                    key={w.type}
-                    style={{ borderColor: `${TYPE_COLOR[w.type]}55`, backgroundColor: `${TYPE_COLOR[w.type]}14` }}
-                    className="pix inline-flex h-5 items-center gap-1 rounded-pix border px-1.5 text-[10px]"
-                  >
-                    <span style={{ color: TYPE_COLOR[w.type] }}>{w.type}</span>
-                    <span className="text-ok">{w.label}</span>
-                  </span>
+                  <TypeMultChip key={w.type} m={w} tone="text-ok" />
                 ))}
               </div>
             </div>
@@ -217,9 +239,7 @@ export default async function CreaturePage({ params }: Props) {
               <p className="pix mb-1.5 text-[10px] text-text-mute">imune a</p>
               <div className="flex flex-wrap gap-1">
                 {immune.map((w) => (
-                  <Chip key={w.type} tint={TYPE_COLOR[w.type]}>
-                    {w.type} 0
-                  </Chip>
+                  <TypeMultChip key={w.type} m={w} tone="text-text-mute" />
                 ))}
               </div>
             </div>
@@ -230,17 +250,10 @@ export default async function CreaturePage({ params }: Props) {
               {/* STAB (1.5x por golpe do proprio tipo) e coisa SEPARADA da
                   efetividade (x2/x0.5). Juntar os dois num numero so foi um erro
                   ja pago — aqui a lista e so cobertura de tipo. */}
-              <p className="pix mb-1.5 text-[10px] text-accent">bate forte em</p>
+              <p className="pix mb-1.5 flex items-center gap-1.5 text-[10px] text-accent"><IconTarget size={9} />bate forte em</p>
               <div className="flex flex-wrap gap-1">
                 {strong.map((w) => (
-                  <span
-                    key={w.type}
-                    style={{ borderColor: `${TYPE_COLOR[w.type]}55`, backgroundColor: `${TYPE_COLOR[w.type]}14` }}
-                    className="pix inline-flex h-5 items-center gap-1 rounded-pix border px-1.5 text-[10px]"
-                  >
-                    <span style={{ color: TYPE_COLOR[w.type] }}>{w.type}</span>
-                    <span className="text-accent">{w.label}</span>
-                  </span>
+                  <TypeMultChip key={w.type} m={w} tone="text-accent" />
                 ))}
               </div>
             </div>
@@ -249,7 +262,7 @@ export default async function CreaturePage({ params }: Props) {
 
         {/* ---- evolucao ---- */}
         {chain.length > 1 ? (
-          <Panel title="Linha evolutiva" actions={<IconEvolve size={10} className="text-text-mute" />}>
+          <Panel title={<span className="flex items-center gap-1.5"><IconEvolve size={10} />Linha evolutiva</span>}>
             <ol className="flex flex-wrap items-center gap-1">
               {chain.map((s, i) => (
                 <li key={s.creature.pokeId} className="flex items-center gap-1">
@@ -280,14 +293,14 @@ export default async function CreaturePage({ params }: Props) {
 
         {/* ---- onde cacar ---- */}
         <Panel
-          title="Onde cacar"
+          title={<span className="flex items-center gap-1.5"><IconPin size={10} />Onde caçar</span>}
           actions={<span className="text-[12px] text-text-mute tabular">{spots.length}</span>}
         >
           {spots.length === 0 ? (
             <p className="text-[13px] leading-relaxed text-text-mute">
               {e.acquisition === "evo"
-                ? "Nao aparece no mapa — so se consegue evoluindo."
-                : "Nao aparece no mapa nem por evolucao: vem de loja, cassino, ovo ou evento."}
+                ? "Não aparece no mapa — só se consegue evoluindo."
+                : "Não aparece no mapa nem por evolução: vem de loja, cassino, ovo ou evento."}
             </p>
           ) : (
             <ul className="flex flex-col gap-1">
@@ -311,10 +324,10 @@ export default async function CreaturePage({ params }: Props) {
 
       {/* ---- golpes ---- */}
       <Panel
-        title="Golpes"
+        title={<span className="flex items-center gap-1.5"><IconAtk size={10} />Golpes</span>}
         actions={
           <span className="text-[12px] text-text-mute tabular">
-            {natural.length} natural{machine.length ? ` · ${machine.length} TM` : ""}
+            {natural.length} naturais{machine.length ? ` · ${machine.length} TM` : ""}
           </span>
         }
         bodyClassName="p-0"
@@ -343,13 +356,18 @@ export default async function CreaturePage({ params }: Props) {
                   <td className="px-3 py-1.5 text-[13px] text-text">
                     <span className="flex items-center gap-1.5">
                       {a.name}
-                      {tm ? <Chip size="xs" tone="neon">TM</Chip> : null}
+                      {tm ? <Chip size="xs" tone="neon" icon={<IconTm size={7} />}>TM</Chip> : null}
                     </span>
                   </td>
                   <td className="px-3 py-1.5">
                     <TypeBadge type={a.type} size="xs" />
                   </td>
-                  <td className="px-3 py-1.5 text-[12px] text-text-mute">{a.category}</td>
+                  <td className="px-3 py-1.5 text-[12px] text-text-mute">
+                    <span className="flex items-center gap-1.5" title={CATEGORY_LABEL[a.category]}>
+                      <CategoryIcon category={a.category} size={9} />
+                      {CATEGORY_LABEL[a.category]}
+                    </span>
+                  </td>
                   <td className="px-3 py-1.5 text-right text-[13px] text-accent tabular">{a.power}</td>
                   <td className="px-3 py-1.5 text-right text-[13px] text-text-dim tabular">
                     {tm ? "—" : a.learnLevel}
@@ -359,23 +377,19 @@ export default async function CreaturePage({ params }: Props) {
             </tbody>
           </table>
         </div>
-        {/* O cooldown BASE do catalogo (1,2s a 30s) nao e o intervalo real — a
-            velocidade do bicho encurta isso, e a formula do haste nao e publica.
-            Mostrar "10s" enganaria, entao a coluna nao existe. */}
-        <p className="border-t border-line px-3 py-2 text-[11px] leading-relaxed text-text-mute">
-          Sem coluna de cooldown de proposito: o valor do catalogo e o cooldown BASE e a
-          velocidade do pokemon o encurta no jogo — exibi-lo cru daria um numero errado.
-        </p>
+        {/* Sem coluna de cooldown: o valor do catalogo e o cooldown BASE e a
+            velocidade do bicho o encurta no jogo, entao exibi-lo cru daria um
+            numero errado. Fica so o comentario — o aviso na tela era ruido. */}
       </Panel>
 
       {/* ---- drops ---- */}
       <Panel
-        title="Drops"
+        title={<span className="flex items-center gap-1.5"><IconBag size={10} />Drops</span>}
         actions={<span className="text-[12px] text-text-mute tabular">{drops.length}</span>}
         bodyClassName="p-0"
       >
         {drops.length === 0 ? (
-          <p className="p-3 text-[13px] text-text-mute">Nao dropa nada.</p>
+          <p className="p-3 text-[13px] text-text-mute">Não dropa nada.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[460px] border-collapse text-left">
@@ -403,11 +417,11 @@ export default async function CreaturePage({ params }: Props) {
                       <td className="px-3 py-1.5 text-[13px] text-text">
                         <span className="flex items-center gap-1.5">
                           {l.name}
-                          {item?.rare ? <Chip size="xs" tone="accent">raro</Chip> : null}
+                          {item?.rare ? <Chip size="xs" tone="accent" icon={<IconGem size={7} />}>raro</Chip> : null}
                         </span>
                       </td>
                       <td className="px-3 py-1.5 text-right text-[13px] text-ok tabular">
-                        <Tooltip content={`1 a cada ${Math.round(100 / pct).toLocaleString("pt-BR")} abates, na media`}>
+                        <Tooltip content={`1 a cada ${Math.round(100 / pct).toLocaleString("pt-BR")} abates, na média`}>
                           <span>{pct < 0.01 ? pct.toFixed(4) : pct.toFixed(3)}%</span>
                         </Tooltip>
                       </td>

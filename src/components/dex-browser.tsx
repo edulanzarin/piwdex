@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/cn";
 import type { DexBounds, DexEntry, DexQuery, SortKey } from "@/lib/dex";
@@ -32,6 +32,9 @@ import {
 } from "@/components/ui";
 import { DexFilters } from "@/components/dex-filters";
 import { PokeCard, PokeRow } from "@/components/poke-card";
+import { IconGem, IconScale, IconTarget, IconTm, IconXp, IconBag, IconLevel, STAT_ICONS } from "@/components/game-icons";
+import { ACQ_LABEL, RARITY_LABEL, REGION_LABEL, STAGE_LABEL, TYPE_LABEL } from "@/lib/labels";
+import { TypeIcon } from "@/components/type-icon";
 
 /**
  * A Pokedex.
@@ -45,6 +48,9 @@ import { PokeCard, PokeRow } from "@/components/poke-card";
 
 const PAGE_SIZES = [24, 60, 120] as const;
 
+/** Cabecalho curto das seis colunas de stat. */
+const STAT_SHORT_COL = ["Vida", "Atq", "Def", "AtqE", "DefE", "Vel"] as const;
+
 const SORT_OPTIONS: SelectOption<SortKey>[] = (
   [
     "dex", "name", "level", "value", "xp", "xpPerLevel",
@@ -54,22 +60,26 @@ const SORT_OPTIONS: SelectOption<SortKey>[] = (
 ).map((k) => ({ value: k, label: SORT_LABEL[k] }));
 
 /** Colunas da tabela, com a chave de ordenacao de cada uma. */
-const COLUMNS: { key: SortKey | null; label: string; align?: "right" }[] = [
-  { key: "name", label: "Pokemon" },
+type Col = { key: SortKey | null; label: string; align?: "right"; icon?: React.ReactNode };
+
+const COLUMNS: Col[] = [
+  { key: "name", label: "Pokémon" },
   { key: null, label: "Tipo" },
-  { key: null, label: "Raridade" },
-  { key: "level", label: "Nv", align: "right" },
-  { key: "hp", label: "HP", align: "right" },
-  { key: "atk", label: "ATK", align: "right" },
-  { key: "def", label: "DEF", align: "right" },
-  { key: "spAtk", label: "SPA", align: "right" },
-  { key: "spDef", label: "SPD", align: "right" },
-  { key: "speed", label: "VEL", align: "right" },
-  { key: "statTotal", label: "Total", align: "right" },
-  { key: "power", label: "Golpe", align: "right" },
+  { key: null, label: "Raridade", icon: <IconGem size={8} /> },
+  { key: "level", label: "Nível", align: "right", icon: <IconLevel size={8} /> },
+  // as seis colunas de stat vao so com icone: o nome inteiro nao cabe e a
+  // abreviacao ("AES") nao diz nada — o `title` guarda o nome por extenso
+  ...(["hp", "atk", "def", "spAtk", "spDef", "speed"] as SortKey[]).map((k, i) => ({
+    key: k,
+    label: STAT_SHORT_COL[i],
+    align: "right" as const,
+    icon: React.createElement(STAT_ICONS[i], { size: 8 }),
+  })),
+  { key: "statTotal", label: "Total", align: "right", icon: <IconScale size={8} /> },
+  { key: "power", label: "Golpe", align: "right", icon: <IconTarget size={8} /> },
   { key: "value", label: "Valor", align: "right" },
-  { key: "xp", label: "XP", align: "right" },
-  { key: "spots", label: "Spots", align: "right" },
+  { key: "xp", label: "XP", align: "right", icon: <IconXp size={8} /> },
+  { key: "spots", label: "Locais", align: "right" },
 ];
 
 export function DexBrowser({
@@ -179,11 +189,11 @@ export function DexBrowser({
         {sorted.length === 0 ? (
           <Panel>
             <Empty
-              title="Nenhum pokemon bate com esses filtros"
+              title="Nenhum pokémon bate com esses filtros"
               hint={
                 active
                   ? `${active} filtro${active > 1 ? "s" : ""} ligado${active > 1 ? "s" : ""}. Solte um deles pra a lista voltar.`
-                  : "O catalogo veio vazio — a fonte do jogo pode estar fora do ar."
+                  : "O catálogo veio vazio — a fonte do jogo pode estar fora do ar."
               }
               action={
                 active ? (
@@ -228,13 +238,17 @@ export function DexBrowser({
                                 on ? "text-accent" : "text-text-mute hover:text-text-dim",
                               )}
                             >
+                              {col.icon}
                               {col.label}
                               {on ? (
                                 <span className="text-[7px]">{state.dir === "asc" ? "▲" : "▼"}</span>
                               ) : null}
                             </button>
                           ) : (
-                            <span className="pix text-[10px] text-text-mute">{col.label}</span>
+                            <span className="pix inline-flex items-center gap-1 text-[10px] text-text-mute">
+                              {col.icon}
+                              {col.label}
+                            </span>
                           )}
                         </th>
                       );
@@ -265,7 +279,7 @@ export function DexBrowser({
               }}
             />
             <Segmented
-              aria-label="Itens por pagina"
+              aria-label="Itens por página"
               size="sm"
               value={String(pageSize)}
               onChange={(v) => {
@@ -342,7 +356,7 @@ function DexToolbar({
       <span className="flex items-baseline gap-1.5">
         <span className="text-[16px] font-semibold text-text tabular">{count}</span>
         <span className="pix text-[10px] text-text-mute">
-          {count === total ? "especies" : `de ${total}`}
+          {count === total ? "espécies" : `de ${total}`}
         </span>
       </span>
 
@@ -353,8 +367,8 @@ function DexToolbar({
         tone={catalog.live ? "ok" : "warn"}
         title={
           catalog.live
-            ? `Catalogo do jogo, publicado em ${catalog.generatedAt}`
-            : `Fonte indisponivel (${catalog.error ?? "motivo desconhecido"}) — mostrando o ultimo catalogo salvo`
+            ? `Catálogo do jogo, publicado em ${catalog.generatedAt}`
+            : `Fonte indisponível (${catalog.error ?? "motivo desconhecido"}) — mostrando o último catálogo salvo`
         }
       >
         {catalog.live ? "AO VIVO" : "SNAPSHOT"}
@@ -379,13 +393,13 @@ function DexToolbar({
           {state.dir === "asc" ? "cresc" : "desc"}
         </Button>
         <Segmented
-          aria-label="Modo de visualizacao"
+          aria-label="Modo de visualização"
           size="sm"
           value={state.view}
           onChange={onView}
           options={[
             { value: "grid", label: <IconGrid size={10} />, title: "Grade — reconhecer pela silhueta" },
-            { value: "table", label: <IconRows size={10} />, title: "Tabela — comparar numero a numero" },
+            { value: "table", label: <IconRows size={10} />, title: "Tabela — comparar número a número" },
           ]}
         />
       </div>
@@ -420,38 +434,48 @@ function ActiveChips({
 
   for (const t of q.types)
     chips.push(
-      <Chip key={`t${t}`} tint={TYPE_COLOR[t]} onRemove={() => onChange({ types: q.types.filter((x) => x !== t) })}>
-        {t}
+      <Chip
+        key={`t${t}`}
+        tint={TYPE_COLOR[t]}
+        icon={<TypeIcon type={t} size={7} />}
+        onRemove={() => onChange({ types: q.types.filter((x) => x !== t) })}
+      >
+        {TYPE_LABEL[t]}
       </Chip>,
     );
 
   for (const r of q.rarities)
     chips.push(
-      <Chip key={`r${r}`} tint={RARITY_COLOR[r]} onRemove={() => onChange({ rarities: q.rarities.filter((x) => x !== r) })}>
-        {r}
+      <Chip
+        key={`r${r}`}
+        tint={RARITY_COLOR[r]}
+        icon={<IconGem size={7} />}
+        onRemove={() => onChange({ rarities: q.rarities.filter((x) => x !== r) })}
+      >
+        {RARITY_LABEL[r]}
       </Chip>,
     );
 
   for (const t of q.weakTo)
     chips.push(
       <Chip key={`w${t}`} tone="danger" onRemove={() => onChange({ weakTo: q.weakTo.filter((x) => x !== t) })}>
-        fraco a {t}
+        fraco a {TYPE_LABEL[t]}
       </Chip>,
     );
 
   for (const t of q.resistTo)
     chips.push(
       <Chip key={`rs${t}`} tone="ok" onRemove={() => onChange({ resistTo: q.resistTo.filter((x) => x !== t) })}>
-        resiste {t}
+        resiste a {TYPE_LABEL[t]}
       </Chip>,
     );
 
   const ranges: [string, keyof DexQuery, string][] = [
-    ["nivel", "level", "nv"],
-    ["valor", "value", "$"],
+    ["nivel", "level", "nível"],
+    ["valor", "value", "valor"],
     ["xp", "xp", "xp"],
-    ["stats", "statTotal", "st"],
-    ["golpe", "power", "gp"],
+    ["stats", "statTotal", "stats"],
+    ["golpe", "power", "golpe"],
   ];
   for (const [, key, short] of ranges) {
     const r = q[key] as [number | null, number | null];
@@ -465,23 +489,23 @@ function ActiveChips({
 
   if (q.drops)
     chips.push(
-      <Chip key="d" tone="accent" onRemove={() => onChange({ drops: null })}>
+      <Chip key="d" tone="accent" icon={<IconBag size={7} />} onRemove={() => onChange({ drops: null })}>
         dropa {q.drops}
       </Chip>,
     );
   if (q.onlyTm)
-    chips.push(<Chip key="tm" tone="neon" onRemove={() => onChange({ onlyTm: false })}>com TM</Chip>);
+    chips.push(<Chip key="tm" tone="neon" icon={<IconTm size={7} />} onRemove={() => onChange({ onlyTm: false })}>com TM</Chip>);
   if (q.onlySpots)
-    chips.push(<Chip key="sp" tone="ok" onRemove={() => onChange({ onlySpots: false })}>com spot</Chip>);
+    chips.push(<Chip key="sp" tone="ok" onRemove={() => onChange({ onlySpots: false })}>com local de caça</Chip>);
   if (q.includeVariants)
     chips.push(<Chip key="v" tone="warn" onRemove={() => onChange({ includeVariants: false })}>+ variantes</Chip>);
 
   for (const a of q.acquisitions)
-    chips.push(<Chip key={`a${a}`} onRemove={() => onChange({ acquisitions: q.acquisitions.filter((x) => x !== a) })}>{a}</Chip>);
+    chips.push(<Chip key={`a${a}`} onRemove={() => onChange({ acquisitions: q.acquisitions.filter((x) => x !== a) })}>{ACQ_LABEL[a]}</Chip>);
   for (const s of q.stages)
-    chips.push(<Chip key={`s${s}`} onRemove={() => onChange({ stages: q.stages.filter((x) => x !== s) })}>{s}</Chip>);
+    chips.push(<Chip key={`s${s}`} onRemove={() => onChange({ stages: q.stages.filter((x) => x !== s) })}>{STAGE_LABEL[s]}</Chip>);
   for (const g of q.regions)
-    chips.push(<Chip key={`g${g}`} onRemove={() => onChange({ regions: q.regions.filter((x) => x !== g) })}>{g}</Chip>);
+    chips.push(<Chip key={`g${g}`} onRemove={() => onChange({ regions: q.regions.filter((x) => x !== g) })}>{REGION_LABEL[g]}</Chip>);
 
   if (!chips.length) return null;
 

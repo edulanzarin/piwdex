@@ -7,8 +7,8 @@ import { Panel, SkeletonGrid } from "@/components/ui";
 export const metadata: Metadata = {
   title: "Pokedex",
   description:
-    "Todas as especies do Poke Idle World com filtro por tipo, raridade, origem, " +
-    "estagio, fraqueza, drop e faixa de nivel, valor, XP, stats e poder de golpe.",
+    "Todas as espécies do Poke Idle World com filtro por tipo, raridade, origem, " +
+    "estágio, fraqueza, drop e faixa de nível, valor, XP, stats e poder de golpe.",
 };
 
 // Revalida de hora em hora: o catalogo se atualiza sozinho quando o jogo publica
@@ -28,11 +28,11 @@ export default async function DexPage() {
     <div className="flex flex-col gap-4">
       <header className="flex flex-wrap items-end justify-between gap-2">
         <div>
-          <p className="pix text-[10px] text-accent">catalogo completo</p>
+          <p className="pix text-[10px] text-accent">catálogo completo</p>
           <h1 className="pix text-[20px] text-text">Pokedex</h1>
         </div>
         <p className="text-[12px] text-text-mute">
-          {playable} especies · {counts.hunts} pontos de caca · {counts.drops} registros de drop
+          {playable} espécies · {counts.hunts} locais de caça · {counts.drops} registros de drop
         </p>
       </header>
 
