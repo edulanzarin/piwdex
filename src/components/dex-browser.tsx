@@ -163,7 +163,7 @@ export function DexBrowser({
       {/* Trilho fixo no desktop: rola junto ate grudar, e o corpo dele tem
           rolagem propria pra os 15 filtros nunca ultrapassarem a janela. */}
       <aside className="hidden lg:block">
-        <div className="panel sticky top-[4.5rem] max-h-[calc(100dvh-5.5rem)] overflow-y-auto overscroll-contain">
+        <div className="panel sticky top-[4.75rem] max-h-[calc(100dvh-6rem)] overflow-y-auto overscroll-contain">
           {filters}
         </div>
       </aside>
@@ -211,7 +211,7 @@ export function DexBrowser({
           <Panel bodyClassName="p-0">
             <div className="max-h-[calc(100dvh-11rem)] overflow-auto">
               <table className="w-full min-w-[900px] border-collapse text-left">
-                <thead className="sticky top-0 z-10 bg-surface-2/95 backdrop-blur">
+                <thead className="sticky top-0 z-10 bg-surface-2/92 backdrop-blur-xl">
                   <tr className="border-b border-line-strong">
                     {COLUMNS.map((col) => {
                       const on = col.key && state.sort === col.key;

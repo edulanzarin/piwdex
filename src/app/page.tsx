@@ -92,7 +92,13 @@ export default async function HomePage() {
   return (
     <div className="flex flex-col gap-10 py-6">
       {/* ================= topo ================= */}
-      <section className="flex flex-col items-center gap-7 text-center">
+      {/* O heroi tem vidro proprio. A regra do fundo com foto e simples e nao
+          tem excecao: **texto nunca encosta na imagem** — a arte tem luminancia
+          media 148 e varia de nuvem clara a folhagem escura na mesma linha, e
+          nenhum scrim uniforme resolve isso sem apagar a foto. O vidro resolve
+          os dois: o texto ganha piso constante e a arte continua visivel em
+          volta e ATRAVES dele. */}
+      <section className="panel flex flex-col items-center gap-7 px-6 py-12 text-center sm:px-10">
         <div className="flex items-center gap-4">
           <Pokeball size={56} className="text-accent" />
           <div className="text-left">
@@ -178,21 +184,33 @@ export default async function HomePage() {
                   <span
                     className="grid h-14 w-14 shrink-0 place-items-center rounded-pix-lg border"
                     style={{
-                      borderColor: `color-mix(in oklab, ${t.cor} 45%, transparent)`,
-                      backgroundColor: `color-mix(in oklab, ${t.cor} 14%, transparent)`,
+                      borderColor: `color-mix(in oklab, ${t.cor} ${t.ready ? 55 : 30}%, transparent)`,
+                      backgroundColor: `color-mix(in oklab, ${t.cor} ${t.ready ? 16 : 9}%, transparent)`,
                       color: t.cor,
+                      opacity: t.ready ? 1 : 0.62,
                     }}
                   >
                     <Icon size={26} />
                   </span>
                   <div className="flex min-w-0 flex-1 flex-col gap-2">
                     <div className="flex items-center gap-2">
-                      <span className="pix flex-1 text-[17px]" style={{ color: t.cor }}>
+                      <span
+                        className="pix flex-1 text-[17px]"
+                        style={{ color: t.cor, opacity: t.ready ? 1 : 0.6 }}
+                      >
                         {t.name}
                       </span>
                       {t.ready ? null : <Chip size="sm">em breve</Chip>}
                     </div>
-                    <p className="text-[15px] leading-relaxed text-text-mute">{t.desc}</p>
+                    <p
+                      className={
+                        t.ready
+                          ? "text-[15px] leading-relaxed text-text-dim"
+                          : "text-[15px] leading-relaxed text-text-mute/70"
+                      }
+                    >
+                      {t.desc}
+                    </p>
                   </div>
                 </div>
                 {t.ready ? (
@@ -223,7 +241,13 @@ export default async function HomePage() {
                 {body}
               </Link>
             ) : (
-              <div key={t.href} className="panel flex flex-col gap-4 p-5 opacity-55">
+              <div
+                key={t.href}
+                /* `opacity` no card inteiro tambem apagava o VIDRO — sobre a
+                   foto, o texto ficava ilegivel. Quem esmaece agora e so o
+                   conteudo, pela cor; a superficie fica de pe. */
+                className="panel flex flex-col gap-4 p-5"
+              >
                 {body}
               </div>
             );

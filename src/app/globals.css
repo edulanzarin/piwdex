@@ -63,9 +63,13 @@
   --color-t-breed: #f472b6;
   --color-t-meta: #2ee6d6;
 
-  /* ---- raio: canto duro, e estetica pixel ---- */
+  /* ---- raio ----
+     Controle segue com canto duro (a identidade pixel mora nos controles). O
+     VIDRO ganha raio proprio, maior: canto de 4px numa superficie translucida
+     de 400px parece corte, nao peca. */
   --radius-pix: 2px;
   --radius-pix-lg: 4px;
+  --radius-glass: 12px;
 
   /* ---- fonte unica: Quantico, do next/font ---- */
   --font-ui-stack: var(--font-ui), "Segoe UI", system-ui, sans-serif;
@@ -98,6 +102,8 @@
   }
 
   body {
+    /* O `bg` opaco embaixo de tudo: se o wallpaper falhar (rede, 404), a tela
+       continua legivel em vez de virar texto claro sobre branco. */
     background-color: var(--color-bg);
     color: var(--color-text);
     font-family: var(--font-ui-stack);
@@ -106,17 +112,67 @@
     font-size: 1rem;
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
-    /* A grade de fundo e o unico "cenario": duas linhas de 1px em 44px, mais um
-       halo de acento no topo. Custa zero requisicao e nao concorre com o dado. */
-    background-image:
-      radial-gradient(1100px 480px at 50% -12%,
-        color-mix(in oklab, var(--color-accent) 22%, transparent), transparent 72%),
-      radial-gradient(700px 380px at 8% 6%,
-        color-mix(in oklab, var(--color-neon) 10%, transparent), transparent 70%),
-      linear-gradient(to right, color-mix(in oklab, var(--color-line) 55%, transparent) 1px, transparent 1px),
-      linear-gradient(to bottom, color-mix(in oklab, var(--color-line) 55%, transparent) 1px, transparent 1px);
-    background-size: 100% 100%, 100% 100%, 44px 44px, 44px 44px;
-    background-attachment: fixed;
+    position: relative;
+    min-height: 100dvh;
+    isolation: isolate;
+  }
+
+  /* ---- camada do wallpaper ----
+     Em pseudo-elemento FIXO, e nao em `background-attachment: fixed` no body:
+     o `fixed` do background quebra em Safari iOS e cria um repaint caro no
+     scroll. Um `position: fixed` com `z-index: -2` custa uma composicao so.
+
+     A imagem NAO leva blur aqui de proposito — quem borra e o vidro dos
+     paineis. Borrar na origem apagaria o efeito, que e justamente ver a foto
+     nitida se desmanchar atras da superficie. */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -2;
+    background-image: url("/images/wallpaper-sm.webp");
+    background-size: cover;
+    background-position: center 18%;
+    background-repeat: no-repeat;
+    /* A arte JA vem pixelizada, escurecida e puxada pro azul-noite no arquivo
+       (luminancia media 148 -> 42, pico 229 -> 67). Fazer isso no arquivo e nao
+       em `filter` tem duas razoes: `filter` numa camada de tela cheia custa
+       composicao a cada scroll, e — o que importa mais — escurecer no CSS e
+       uniforme, enquanto o problema era o PICO (nuvem clara ao lado de
+       folhagem escura na mesma linha). Rebaixar por pixel trata os dois.
+       De brinde, pixelizar derrubou o arquivo de 272 KB pra 30 KB. */
+    image-rendering: pixelated;
+  }
+
+  @media (min-width: 900px) {
+    body::before {
+      background-image: url("/images/wallpaper.webp");
+    }
+  }
+
+  /* ---- scrim ----
+     A arte tem luminancia media 148 (medida, nao chutada) — clara demais pra
+     UI escura por cima. O gradiente e mais leve no TOPO, onde mora o heroi e a
+     arte tem de respirar, e fecha embaixo, onde o conteudo e denso. Como a
+     camada e fixa, isso vale pra qualquer posicao de scroll. */
+  body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background:
+      linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--color-bg) 30%, transparent) 0%,
+        color-mix(in srgb, var(--color-bg) 55%, transparent) 45%,
+        color-mix(in srgb, var(--color-bg) 78%, transparent) 100%
+      ),
+      radial-gradient(
+        1100px 520px at 50% 0%,
+        color-mix(in oklab, var(--color-accent) 18%, transparent),
+        transparent 70%
+      );
   }
 
   /* Foco visivel e NEON — num tema escuro o outline padrao do browser some. */
@@ -171,13 +227,37 @@
     font-weight: 700;
   }
 
-  /* ---- superficie base de qualquer bloco ---- */
+  /* ---- superficie base de qualquer bloco: VIDRO ----
+     Tres coisas fazem o vidro parecer vidro, e nenhuma sozinha basta:
+     1. `backdrop-filter` com blur E saturate — so o blur deixa a superficie
+        cinzenta; o saturate devolve a cor da foto que passa por baixo.
+     2. Uma **aresta de luz** no topo (`inset 0 1px 0`), que e o que da a
+        impressao de espessura. Sem ela o painel parece um retangulo furado.
+     3. Sombra projetada, pra o vidro flutuar em vez de estar colado. */
   .panel {
-    background-color: color-mix(in oklab, var(--color-surface) 88%, transparent);
-    border: 1px solid var(--color-line);
-    border-radius: var(--radius-pix-lg);
-    box-shadow: var(--shadow-panel);
-    backdrop-filter: blur(6px);
+    background-color: color-mix(in oklab, var(--color-surface) 86%, transparent);
+    border: 1px solid color-mix(in srgb, #ffffff 14%, transparent);
+    border-radius: var(--radius-glass);
+    backdrop-filter: blur(18px) saturate(130%);
+    -webkit-backdrop-filter: blur(18px) saturate(130%);
+    box-shadow:
+      inset 0 1px 0 0 rgb(255 255 255 / 0.08),
+      0 18px 44px -24px rgb(0 0 0 / 0.9);
+  }
+
+  /* Painel de LISTA (card do grid). Mesma linguagem, vidro mais barato:
+     `backdrop-filter` e caro e o grid tem 60 deles na tela ao mesmo tempo —
+     blur alto em 60 elementos trava o scroll em maquina media. Compensa com
+     mais opacidade, que resolve a legibilidade sem custar composicao. */
+  .panel-card {
+    background-color: color-mix(in oklab, var(--color-surface) 93%, transparent);
+    border: 1px solid color-mix(in srgb, #ffffff 12%, transparent);
+    border-radius: var(--radius-glass);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    box-shadow:
+      inset 0 1px 0 0 rgb(255 255 255 / 0.06),
+      0 12px 30px -20px rgb(0 0 0 / 0.85);
   }
 
   /* ---- campo (input/select/trigger): UMA aparencia pra tudo que aceita entrada ---- */
@@ -188,8 +268,10 @@
     width: 100%;
     height: 2.25rem;
     padding-inline: 0.625rem;
-    background-color: var(--color-bg-soft);
-    border: 1px solid var(--color-line);
+    background-color: color-mix(in oklab, var(--color-bg-soft) 88%, transparent);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid color-mix(in srgb, #ffffff 10%, transparent);
     border-radius: var(--radius-pix);
     color: var(--color-text);
     font-size: 0.875rem;
@@ -213,10 +295,17 @@
   /* ---- flutuante (popover/menu/modal): superficie MAIS OPACA que a chrome ----
      Vidro sobre vidro nao se le: o overlay ganha fundo proprio quase solido. */
   .pop {
-    background-color: var(--color-surface-3);
-    border: 1px solid var(--color-line-strong);
-    border-radius: var(--radius-pix-lg);
-    box-shadow: var(--shadow-pop);
+    /* O flutuante e MAIS OPACO que a chrome, sempre. Vidro sobre vidro sobre
+       foto nao se le — e o menu de filtro cai justamente em cima do conteudo
+       mais denso da tela. */
+    background-color: color-mix(in oklab, var(--color-surface-3) 94%, transparent);
+    border: 1px solid color-mix(in srgb, #ffffff 14%, transparent);
+    border-radius: var(--radius-glass);
+    backdrop-filter: blur(30px) saturate(150%);
+    -webkit-backdrop-filter: blur(30px) saturate(150%);
+    box-shadow:
+      inset 0 1px 0 0 rgb(255 255 255 / 0.1),
+      var(--shadow-pop);
   }
 
   /* ---- scanline sutil: o "console" sem custar legibilidade ---- */

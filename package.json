@@ -11,7 +11,8 @@
     "typecheck": "tsc --noEmit",
     "lint": "next lint",
     "ingest": "node scripts/ingest.mjs",
-    "bake:sprites": "node scripts/bake-sprites.mjs"
+    "bake:sprites": "node scripts/bake-sprites.mjs",
+    "bake:wallpaper": "python3 scripts/bake-wallpaper.py"
   },
   "dependencies": {
     "clsx": "^2.1.1",

@@ -54,7 +54,7 @@ export function SiteNav() {
   };
 
   return (
-    <header className="sticky top-0 z-40 border-b border-line bg-bg/85 backdrop-blur-md">
+    <header className="sticky top-0 z-40 border-b border-white/10 bg-bg/45 backdrop-blur-2xl backdrop-saturate-150 shadow-[inset_0_-1px_0_0_rgb(255_255_255/0.04)]">
       <div className="mx-auto flex h-14 w-full max-w-[1600px] items-center gap-1 px-3 sm:px-5">
         <Link href="/" className="mr-3 flex shrink-0 items-center gap-2">
           <Pokeball size={24} className="text-accent" />
@@ -77,7 +77,7 @@ export function SiteNav() {
       </div>
 
       {open ? (
-        <nav className="anim-rise flex flex-col border-t border-line bg-surface px-3 py-1 md:hidden">
+        <nav className="anim-rise flex flex-col border-t border-white/10 bg-surface/90 px-3 py-1 backdrop-blur-2xl md:hidden">
           {LINKS.map((l) => item(l, () => setOpen(false)))}
         </nav>
       ) : null}

@@ -4,7 +4,7 @@
  */
 export function SiteFooter() {
   return (
-    <footer className="border-t border-line bg-bg-soft/60">
+    <footer className="mt-8 border-t border-white/10 bg-bg/40 backdrop-blur-xl">
       <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-1 px-3 py-6 text-[13px] text-text-mute sm:px-5">
         <p>
           <span className="pix text-[11px] text-text-dim">piwdex</span> — dex e ferramentas

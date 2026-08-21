@@ -112,7 +112,7 @@ export function PokeCard({
     <Link
       href={`/dex/${e.id}`}
       className={cn(
-        "panel group relative flex flex-col gap-3 p-3.5 transition-all",
+        "panel-card group relative flex flex-col gap-3 p-3.5 transition-all",
         "hover:border-accent/55 hover:shadow-[0_0_30px_-12px_var(--color-accent)]",
         "focus-visible:border-accent",
       )}
