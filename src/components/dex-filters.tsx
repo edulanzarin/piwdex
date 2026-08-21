@@ -30,7 +30,7 @@ import { ACQ_HINT, RARITY_LABEL, REGION_LABEL, STAGE_LABEL, TYPE_LABEL } from "@
  * 1. **Trilho fixo, nao gaveta.** Filtro escondido atras de um botao e filtro
  *    que ninguem usa — e a versao anterior tinha 3 filtros justamente porque
  *    nao havia onde por mais. Com 15 filtros a vista, a dex responde perguntas
- *    ("quem apanha de Fogo e dropa Bulb?") em vez de so listar bicho.
+ *    ("quem apanha de Fogo e dropa Bulb?") em vez de so listar pokemon.
  * 2. **Grupos colapsaveis, os dois primeiros abertos.** Quinze controles
  *    empilhados viram parede. Os grupos abrem sozinhos quando ha filtro ligado
  *    dentro — filtro ativo NUNCA fica escondido.

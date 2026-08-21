@@ -95,7 +95,7 @@ export default async function CreaturePage({ params }: Props) {
   const drops = [...c.loot].sort((a, b) => b.chance - a.chance);
 
   // Projecao com IV perfeito (32) e Quality 1.0 — a referencia de teto que a
-  // calculadora depois compara contra o bicho real do jogador.
+  // calculadora depois compara contra o pokemon real do jogador.
   const perfect = projectAll(e.stats, [32, 32, 32, 32, 32, 32], 100, 1);
 
 
@@ -120,8 +120,8 @@ export default async function CreaturePage({ params }: Props) {
             style={{ backgroundColor: RARITY_COLOR[c.rarity] }}
           />
           {/* O gif animado do gen5 so existe ate ~id 649; acima disso o
-              `Sprite` cai sozinho no estatico. Vale a tentativa: bicho parado
-              numa ficha e catalogo, bicho que respira e jogo. */}
+              `Sprite` cai sozinho no estatico. Vale a tentativa: pokemon parado
+              numa ficha e catalogo, pokemon que respira e jogo. */}
           <Sprite
             src={spriteUrl(c.pokeId)}
             animatedSrc={animatedSpriteUrl(c.pokeId)}
@@ -426,7 +426,7 @@ export default async function CreaturePage({ params }: Props) {
           </table>
         </div>
         {/* Sem coluna de cooldown: o valor do catalogo e o cooldown BASE e a
-            velocidade do bicho o encurta no jogo, entao exibi-lo cru daria um
+            velocidade do pokemon o encurta no jogo, entao exibi-lo cru daria um
             numero errado. Fica so o comentario — o aviso na tela era ruido. */}
       </Panel>
 

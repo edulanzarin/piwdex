@@ -69,7 +69,7 @@ src/
     dex-url.ts    a pergunta serializada na URL
     items.ts      motor dos itens: de onde vem, da pra farmar, rende quanto
     items-url.ts  a mesma serializacao, do lado dos itens
-    calc-url.ts   o bicho da calculadora, serializado no link
+    calc-url.ts   o pokemon da calculadora, serializado no link
     stats.ts      formula de stat/IV/Poder do jogo (verificada)
     typing.ts     tabela de efetividade e cores de tipo
     rarity.ts     faixas de qualidade (tabela oficial do jogo)

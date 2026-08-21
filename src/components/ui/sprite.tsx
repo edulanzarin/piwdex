@@ -11,7 +11,7 @@ import { Pokeball } from "./pokeball";
  *
  * 1. **A imagem nao pode depender do JS pra aparecer.** Uma versao nascia
  *    `opacity-0` ate o `onLoad` e a pagina renderizada no servidor mostrava 60
- *    pokebolas e nenhum bicho ate a hidratacao. A imagem nasce visivel; o
+ *    pokebolas e nenhum pokemon ate a hidratacao. A imagem nasce visivel; o
  *    marcador fica ATRAS dela.
  * 2. **`onLoad` pode nunca chegar**, porque a imagem costuma terminar de
  *    carregar antes do React ligar o listener. O mount confere `img.complete`,
@@ -36,7 +36,7 @@ export interface SpriteProps {
   /**
    * O que desenhar quando a imagem NAO vem (404, host fora do ar).
    *
-   * O padrao e a pokebola, que e a marca certa pra um bicho que faltou. Icone
+   * O padrao e a pokebola, que e a marca certa pra um pokemon que faltou. Icone
    * de ITEM entra por aqui: uma pokebola no lugar de uma Pedra da Água diz a
    * coisa errada — que o que faltou era um pokemon.
    */

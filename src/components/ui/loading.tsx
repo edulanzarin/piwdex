@@ -18,14 +18,14 @@ import { Pokeball } from "./pokeball";
  * pokebola parada, e o gif so entrava depois da hidratacao, que e depois de a
  * espera ter acabado. Ou seja: a animacao nunca era vista.
  *
- * Sortear no render faz servidor e cliente escolherem bichos diferentes, e e por
+ * Sortear no render faz servidor e cliente escolherem pokemons diferentes, e e por
  * isso que o `<img>` leva `suppressHydrationWarning`: a diferenca e
- * INTENCIONAL, e o atributo existe exatamente pra esse caso. Trocar de bicho na
+ * INTENCIONAL, e o atributo existe exatamente pra esse caso. Trocar de pokemon na
  * hidratacao nao custa nada aqui — a tela e transitoria e o slot tem tamanho
  * fixo, entao nada salta.
  */
 
-const BICHOS = [25, 133, 143, 94, 149, 6, 448, 196, 131, 59] as const;
+const POKEMONS = [25, 133, 143, 94, 149, 6, 448, 196, 131, 59] as const;
 
 export function Loading({
   label = "Carregando",
@@ -34,7 +34,7 @@ export function Loading({
   label?: string;
   className?: string;
 }) {
-  const [id] = useState(() => BICHOS[Math.floor(Math.random() * BICHOS.length)]);
+  const [id] = useState(() => POKEMONS[Math.floor(Math.random() * POKEMONS.length)]);
   const [caiu, setCaiu] = useState(false);
 
   return (

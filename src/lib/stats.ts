@@ -50,7 +50,7 @@ export function estimateIvs(bases: number[], stats: number[], level: number, qua
   return { ivs, total };
 }
 
-/** Teto de IV do jogo. Estimativa acima disso nao e um bicho melhor — e sinal de
+/** Teto de IV do jogo. Estimativa acima disso nao e um pokemon melhor — e sinal de
  *  que o nivel ou a qualidade informados estao errados. */
 export const IV_MAX = 32;
 

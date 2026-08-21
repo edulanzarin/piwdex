@@ -1,7 +1,7 @@
 // A pergunta da Calculadora na URL.
 //
 // Mesmo contrato da dex e dos itens, e aqui o argumento e ainda mais direto: o
-// que se digita na calculadora e UM bicho especifico — espécie, nível, quality
+// que se digita na calculadora e UM pokemon especifico — espécie, nível, quality
 // e os seis stats. Sem isso na URL, "olha esse Abra que eu peguei" vira print;
 // com isso, vira link que o outro abre e continua mexendo.
 

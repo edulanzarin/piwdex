@@ -59,7 +59,7 @@ export interface DexEntry {
   /** O `value` veio do FALLBACK, e nao do que a especie paga por abate.
    *
    *  Os dois numeros NAO sao a mesma grandeza e nao se comparam: `sellValue` e
-   *  o que o jogo te paga pelo bicho; `priceNpc` e o preco do cassino. Sem esta
+   *  o que o jogo te paga pelo pokemon; `priceNpc` e o preco do cassino. Sem esta
    *  bandeira, um ranking de "paga mais por abate" coroa o Aerodactyl com 6,5
    *  bilhoes — que e o que ele CUSTA, e ele nem se caca (sellValue 0). Quem
    *  mostra o numero declara qual eixo esta mostrando. */
@@ -347,7 +347,7 @@ function sortValue(e: DexEntry, key: SortKey, pool: DexQuery["movePool"]): numbe
     case "speed": return e.stats[5];
     case "power": return pool === "tm" ? e.bestWithTm : e.bestNatural;
     case "spots": return e.spots;
-    // Rendimento, nao volume bruto: um bicho de 300 XP no nivel 10 rende mais
+    // Rendimento, nao volume bruto: um pokemon de 300 XP no nivel 10 rende mais
     // que um de 900 no nivel 90 — ordenar pelo XP cru esconde exatamente isso.
     case "xpPerLevel": return e.level > 0 ? e.xp / e.level : 0;
   }
@@ -393,7 +393,7 @@ export interface DexBounds {
    * terco da altura e a "espinha" do card vira uma faixa chapada que nao
    * distingue um muro de uma flecha, que era o unico motivo dela existir.
    *
-   * O teto e do CATALOGO (nao da pagina filtrada) pra o mesmo bicho ter a mesma
+   * O teto e do CATALOGO (nao da pagina filtrada) pra o mesmo pokemon ter a mesma
    * barra em qualquer tela. Quem passa do teto satura em 100% e precisa ser
    * MARCADO pela UI — barra cheia sem marca faz 140 e 255 parecerem iguais.
    */

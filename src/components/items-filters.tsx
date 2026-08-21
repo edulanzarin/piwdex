@@ -274,7 +274,7 @@ export function ItemsFilters({
       <FilterGroup title="Quem dropa" active={quem}>
         {/* O indice reverso ao contrario. A dex responde "quem dropa Bulb?";
             aqui a pergunta e "o que sai do Bulbasaur?" — util pra decidir se
-            vale caçar um bicho pelo loot, e igualmente ausente do jogo. */}
+            vale caçar um pokemon pelo loot, e igualmente ausente do jogo. */}
         <div>
           <FieldLabel className="mb-1">Itens que esta espécie dropa</FieldLabel>
           <Combobox

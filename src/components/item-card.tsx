@@ -258,7 +258,7 @@ export function ItemRow({ e }: { e: ItemEntry }) {
       <td className="px-3 py-2">
         {e.bestFarm ? (
           /* O nivel vai JUNTO do nome, e nao so na coluna de nivel minimo: as
-             duas colunas falam de bichos diferentes (a melhor fonte de Wool
+             duas colunas falam de pokemons diferentes (a melhor fonte de Wool
              Ball e um Zangoose de 470; o nivel minimo, um Meowth de 20) e lidas
              lado a lado afirmam um "Zangoose nivel 20" que nao existe. */
           <Link

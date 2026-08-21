@@ -17,7 +17,7 @@ import {
   Empty,
   FieldLabel,
   IconChevronRight,
-  Input,
+  NumberField,
   Panel,
   Sprite,
   Tooltip,
@@ -29,7 +29,7 @@ import { STAT_LABEL, STAT_SHORT, TIER_LABEL, compact } from "@/lib/labels";
 /**
  * Calculadora de IV, Quality e Poder.
  *
- * A pergunta que ela responde e a unica que o jogo nao responde: **esse bicho
+ * A pergunta que ela responde e a unica que o jogo nao responde: **esse pokemon
  * que eu peguei presta?** O jogo mostra os stats finais e a quality; o que ele
  * esconde e o IV — o que separa dois Abras identicos na tela.
  *
@@ -38,7 +38,7 @@ import { STAT_LABEL, STAT_SHORT, TIER_LABEL, compact } from "@/lib/labels";
  *
  * O `round` da formula e o que obriga esta tela a mostrar FAIXA e nao ponto: o
  * stat na tela do jogo ja veio arredondado, e em nivel baixo meia unidade de
- * stat vale dezenas de IV. Uma calculadora que cospe "IV 17,3" num bicho nivel
+ * stat vale dezenas de IV. Uma calculadora que cospe "IV 17,3" num pokemon nivel
  * 5 esta inventando duas casas decimais que o dado nao tem.
  */
 
@@ -51,7 +51,7 @@ export interface CalcSpecies {
   rarity: Rarity;
 }
 
-/** Quanto do IV maximo o bicho entregou — a unica nota honesta, porque e uma
+/** Quanto do IV maximo o pokemon entregou — a unica nota honesta, porque e uma
  *  fracao do teto do proprio jogo e nao um conceito inventado aqui. */
 const TOTAL_MAX = IV_MAX * 6;
 
@@ -163,12 +163,11 @@ export function CalcTool({ especies }: { especies: CalcSpecies[] }) {
               <FieldLabel className="mb-1 flex items-center gap-1.5">
                 <IconLevel size={15} />Nível
               </FieldLabel>
-              <Input
-                type="number"
-                inputMode="numeric"
+              <NumberField
                 min={1}
-                value={s.level || ""}
-                onChange={(e) => patch({ level: Math.max(1, Number(e.target.value) || 1) })}
+                fallback={1}
+                value={s.level}
+                onChange={(level) => patch({ level })}
                 className="text-center"
               />
             </div>
@@ -176,20 +175,19 @@ export function CalcTool({ especies }: { especies: CalcSpecies[] }) {
               <FieldLabel className="mb-1 flex items-center gap-1.5">
                 <IconGem size={15} />Quality
               </FieldLabel>
-              <Input
-                type="number"
-                inputMode="decimal"
+              <NumberField
                 min={0}
                 step={0.01}
-                value={s.quality || ""}
-                onChange={(e) => patch({ quality: Math.max(0, Number(e.target.value) || 0) })}
+                fallback={1}
+                value={s.quality}
+                onChange={(quality) => patch({ quality })}
                 className="text-center"
               />
             </div>
           </div>
 
           {/* A quality tem faixa com NOME no jogo, e o nome e como o jogador fala
-              do bicho. Mostrar so "1.8" obriga ele a traduzir de cabeça. */}
+              do pokemon. Mostrar so "1.8" obriga ele a traduzir de cabeça. */}
           <div className="flex items-center gap-2">
             <Chip size="xs" tint={TIER_COLOR[tier]}>{TIER_LABEL[tier]}</Chip>
             <span className="text-[12px] leading-snug text-text-mute">
@@ -208,16 +206,14 @@ export function CalcTool({ especies }: { especies: CalcSpecies[] }) {
                       <Icon size={14} />
                       {STAT_SHORT[i]}
                     </FieldLabel>
-                    <Input
-                      type="number"
-                      inputMode="numeric"
+                    <NumberField
                       min={0}
+                      fallback={0}
                       aria-label={label}
-                      value={s.stats[i] || ""}
-                      onChange={(e) => {
-                        const v = Math.max(0, Number(e.target.value) || 0);
-                        patch({ stats: s.stats.map((x, j) => (j === i ? v : x)) });
-                      }}
+                      value={s.stats[i]}
+                      onChange={(v) =>
+                        patch({ stats: s.stats.map((x, j) => (j === i ? v : x)) })
+                      }
                       className="text-center"
                     />
                   </div>
@@ -267,14 +263,14 @@ export function CalcTool({ especies }: { especies: CalcSpecies[] }) {
             />
           ) : !temStats ? (
             <Empty
-              title="Digite os stats do bicho"
+              title="Digite os stats do pokémon"
               hint="Copie os seis números da tela do jogo. Nível e quality também saem de lá."
             />
           ) : (
             <div className="flex flex-col gap-3">
               {leitura!.impossivel ? (
                 <p className="border border-warn/45 bg-warn/12 px-3 py-2 text-[13px] leading-relaxed text-warn">
-                  Nenhum IV entre 0 e {IV_MAX} explica algum desses stats. Não é um bicho
+                  Nenhum IV entre 0 e {IV_MAX} explica algum desses stats. Não é um pokémon
                   fora da curva — é sinal de que o <strong>nível</strong> ou a{" "}
                   <strong>quality</strong> não são os que estão na tela do jogo.
                 </p>
@@ -318,7 +314,7 @@ export function CalcTool({ especies }: { especies: CalcSpecies[] }) {
                 <p className="border-t border-line pt-2 text-[13px] leading-relaxed text-text-mute">
                   A leitura está <strong className="text-text-dim">larga</strong>: no nível{" "}
                   {s.level} o stat que o jogo arredonda cabe num intervalo de até{" "}
-                  {leitura!.largura.toFixed(0)} pontos de IV. Suba o bicho de nível e volte
+                  {leitura!.largura.toFixed(0)} pontos de IV. Suba o pokémon de nível e volte
                   aqui — quanto maior o nível, mais estreita a faixa.
                 </p>
               ) : null}
@@ -329,7 +325,7 @@ export function CalcTool({ especies }: { especies: CalcSpecies[] }) {
                   { label: "poder agora", value: compact(leitura!.poder), tone: "text-accent" },
                   {
                     // Nota derivada de leitura impossivel e pior que nota
-                    // nenhuma: presa no teto, ela anuncia "100%, bicho
+                    // nenhuma: presa no teto, ela anuncia "100%, pokemon
                     // perfeito" logo abaixo do aviso de que os numeros nao
                     // fecham.
                     label: "do IV máximo",
@@ -356,13 +352,12 @@ export function CalcTool({ especies }: { especies: CalcSpecies[] }) {
           actions={
             <span className="flex items-center gap-1.5">
               <FieldLabel>nível</FieldLabel>
-              <Input
-                type="number"
-                inputMode="numeric"
+              <NumberField
                 min={1}
+                fallback={100}
                 aria-label="Nível da projeção"
-                value={s.target || ""}
-                onChange={(e) => patch({ target: Math.max(1, Number(e.target.value) || 1) })}
+                value={s.target}
+                onChange={(target) => patch({ target })}
                 wrapClassName="h-7 w-20"
                 className="text-center text-[13px]"
               />
@@ -372,7 +367,7 @@ export function CalcTool({ especies }: { especies: CalcSpecies[] }) {
         >
           {!projecao ? (
             <p className="text-[14px] leading-relaxed text-text-mute">
-              Com a espécie e os stats preenchidos, aqui aparece como esse bicho fica em
+              Com a espécie e os stats preenchidos, aqui aparece como esse pokémon fica em
               qualquer nível — e quanto ele perde para um de IV perfeito.
             </p>
           ) : (

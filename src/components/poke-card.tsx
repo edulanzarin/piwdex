@@ -91,7 +91,7 @@ export function PokeCard({
   /** posicao no grid — vira o atraso da entrada em cascata */
   index?: number;
   /** teto das barras — vem do CATALOGO, nao da pagina atual, senao o mesmo
-   *  bicho ganha barra de tamanho diferente conforme o filtro */
+   *  pokemon ganha barra de tamanho diferente conforme o filtro */
   ceiling: number;
   priority?: boolean;
 }) {
