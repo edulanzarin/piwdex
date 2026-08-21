@@ -407,6 +407,18 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+
+  /* EXCECAO: quem indica progresso continua se mexendo, so que sem
+     deslocamento. Congelar o indicador junto com o resto deixa a tela com cara
+     de travada — e "travou" e uma informacao pior que o movimento que a pessoa
+     pediu pra evitar. Pulso de opacidade cumpre o papel sem mover nada. */
+  .anim-wiggle,
+  .anim-bar,
+  .anim-float,
+  .anim-glow {
+    animation: pix-pulse 1.6s ease-in-out infinite !important;
+    transform: none !important;
+  }
 }
 
 /* ============================================================================

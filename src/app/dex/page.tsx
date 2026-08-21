@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import { getDexPayload } from "@/lib/dex-data";
+import { agora, fecharPiso } from "@/lib/pacing";
 import { DexBrowser } from "@/components/dex-browser";
 import { Panel, SkeletonGrid } from "@/components/ui";
 
@@ -17,11 +18,14 @@ export const metadata: Metadata = {
 export const revalidate = 3600;
 
 export default async function DexPage() {
+  const t0 = agora();
   const { entries, bounds, lootIndex, catalog, counts } = await getDexPayload();
 
   // A dex mostra o catalogo INTEIRO — a chave de variantes saiu, entao o
   // cabecalho conta o mesmo numero que a lista entrega.
   const total = entries.length;
+
+  await fecharPiso(t0);
 
   return (
     <div className="flex flex-col gap-4">

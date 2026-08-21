@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Quantico } from "next/font/google";
 import { SiteNav } from "@/components/site-nav";
-import { SiteFooter } from "@/components/site-footer";
 import "./globals.css";
 
 /**
@@ -58,7 +57,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <main id="conteudo" className="mx-auto w-full max-w-[1600px] px-3 pb-16 pt-4 sm:px-5">
           {children}
         </main>
-        <SiteFooter />
       </body>
     </html>
   );

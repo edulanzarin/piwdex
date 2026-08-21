@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { cn } from "@/lib/cn";
 import { chanceToPct, getData } from "@/lib/data";
 import { getDexPayload } from "@/lib/dex-data";
+import { agora, fecharPiso } from "@/lib/pacing";
 import { buildEntry, rolesOf } from "@/lib/dex";
 import { animatedSpriteUrl, spriteUrl } from "@/lib/sprites";
 import { RARITY_COLOR, TYPE_COLOR, defensiveDetailed, offensiveDetailed } from "@/lib/typing";
@@ -63,6 +64,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function CreaturePage({ params }: Props) {
+  const t0 = agora();
   const { id } = await params;
   const db = await getData();
   const c = db.getCreature(Number(id));
@@ -96,6 +98,8 @@ export default async function CreaturePage({ params }: Props) {
   // calculadora depois compara contra o bicho real do jogador.
   const perfect = projectAll(e.stats, [32, 32, 32, 32, 32, 32], 100, 1);
 
+
+  await fecharPiso(t0);
 
   return (
     <div className="flex flex-col gap-4">
@@ -215,10 +219,12 @@ export default async function CreaturePage({ params }: Props) {
             })}
           </div>
           <p className="mt-3 border-t border-line pt-2 text-[13px] leading-relaxed text-text-mute">
-            No nível 100 com IV perfeito e Quality 1.0 isso vira{" "}
-            <span className="text-text-dim tabular">{perfect.sum}</span> de soma e{" "}
-            <span className="text-accent tabular">{perfect.power}</span> de Poder. IV e Quality
-            são por INDIVÍDUO — o catálogo só define a base.
+            {/* So o DADO. A frase que explicava "IV e Quality sao por individuo,
+                o catalogo so define a base" saiu — quem joga ja sabe, e quem nao
+                sabe nao aprende num rodape de painel. */}
+            Nível 100, IV perfeito:{" "}
+            <span className="text-text-dim tabular">{perfect.sum}</span> de soma,{" "}
+            <span className="text-accent tabular">{perfect.power}</span> de Poder.
           </p>
         </Panel>
 

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getDexPayload } from "@/lib/dex-data";
+import { agora, fecharPiso } from "@/lib/pacing";
 import { Chip, IconChevronRight, Pokeball } from "@/components/ui";
 import { Sparkles } from "lucide-react";
 import { BookOpen, Calculator, Egg, Package, Radar, Swords } from "lucide-react";
@@ -80,56 +81,45 @@ const TOOLS = [
 ];
 
 export default async function HomePage() {
+  const t0 = agora();
   await getDexPayload();
 
+  await fecharPiso(t0);
+
   return (
-    <div className="flex flex-col gap-10 py-6">
+    <div className="flex flex-col gap-12 pb-10">
       {/* ================= topo ================= */}
       {/* O heroi NAO tem painel: texto direto sobre o wallpaper.
           Isso so passou a ser possivel depois que a arte foi escurecida
           (luminancia media 37, pico 67) — com a foto clara original era
           ilegivel. `.on-art` poe sombra na letra, que e o que segura o texto
           na parte mais clara da cena sem escurecer a foto inteira. */}
-      <section className="on-art flex flex-col items-center gap-7 px-4 py-14 text-center sm:py-20">
-        <div className="flex items-center gap-4">
-          <Pokeball size={64} className="anim-float text-[var(--color-t-dex)]" />
+      <section className="on-art flex min-h-[62vh] flex-col items-center justify-center gap-8 px-4 py-16 text-center sm:min-h-[68vh] sm:py-24">
+        <div className="flex items-center gap-5">
+          <Pokeball size={88} className="anim-float text-[var(--color-t-dex)]" />
           <div className="text-left">
-            <h1 className="pix text-[38px] leading-none text-text sm:text-[48px]">
+            <h1 className="pix text-[52px] leading-none text-text sm:text-[68px]">
               piw<span className="text-accent">dex</span>
             </h1>
-            <p className="pix mt-2 text-[12px] text-text-mute">
+            <p className="pix mt-3 text-[13px] text-text-mute">
               dex e ferramentas de poke idle world
             </p>
           </div>
         </div>
 
-        <h2 className="max-w-3xl text-[30px] leading-tight font-bold text-text sm:text-[36px]">
+        <h2 className="max-w-4xl text-[36px] leading-tight font-bold text-text sm:text-[48px]">
           A dex <span style={{ color: "var(--color-t-dex)" }}>completa</span> do{" "}
           <span style={{ color: "var(--color-t-meta)" }}>Poke Idle World</span>.
         </h2>
 
-        <p className="max-w-2xl text-[17px] leading-relaxed text-text-dim">
+        <p className="max-w-2xl text-[18px] leading-relaxed text-text-dim">
           Stats, movesets, evoluções, a chance{" "}
           <span style={{ color: "var(--color-t-hunt)" }}>real</span> de cada drop, onde
           farmar cada item e em que área cada pokémon aparece — com filtro por tipo,
           raridade, estágio, fraqueza e faixa de nível, valor, XP e poder de golpe.
         </p>
 
-        <div className="flex flex-wrap items-center justify-center gap-3">
-          <Link
-            href="/dex"
-            className="pix inline-flex h-12 items-center gap-3 rounded-pix border px-7 text-[14px] transition-opacity hover:opacity-85"
-            style={{
-              borderColor: "color-mix(in oklab, var(--color-t-dex) 60%, transparent)",
-              backgroundColor: "color-mix(in oklab, var(--color-t-dex) 22%, transparent)",
-              color: "var(--color-t-dex)",
-            }}
-          >
-            abrir a pokédex
-            <IconChevronRight size={16} />
-          </Link>
 
-        </div>
       </section>
 
       {/* ================= ferramentas ================= */}
@@ -218,19 +208,6 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ================= de onde vem o dado ================= */}
-      <section className="panel flex flex-col gap-3 p-6">
-        <h2 className="pix flex items-center gap-2 text-[13px] text-text-dim">
-          <Sparkles size={16} />
-          De onde vem o dado
-        </h2>
-        <p className="max-w-3xl text-[15px] leading-relaxed text-text-mute">
-          Direto do catálogo público do próprio jogo — criaturas, itens e pontos do mapa —
-          conferido por ETag a cada visita e recarregado no segundo em que o jogo publica um
-          patch. Quando a fonte não responde, o site continua de pé com o último catálogo
-          salvo e diz isso na tela, em vez de servir dado velho fingindo estar ao vivo.
-        </p>
-      </section>
     </div>
   );
 }
