@@ -11,6 +11,7 @@ import {
   type BreedMode,
 } from "@/lib/breeding";
 import { DOUBLE_STONE_EXTRA, doubleStoneMath } from "@/lib/breed-plan";
+import { textoIv, textoIvTotal, type IvReading } from "@/lib/iv-reading";
 import { projectAll } from "@/lib/stats";
 import { RARITY_COLOR, TYPE_COLOR } from "@/lib/typing";
 import { animatedSpriteUrl, spriteUrl } from "@/lib/sprites";
@@ -53,6 +54,7 @@ export function BreedEgg({
   egg,
   a,
   b,
+  leitura,
   especie,
   mode,
   double,
@@ -63,6 +65,8 @@ export function BreedEgg({
   egg: EggProjection | null;
   a: BreedMon | null;
   b: BreedMon | null;
+  /** a leitura do pai que DOA o IV; null quando ele veio de IV digitado direto */
+  leitura: IvReading | null;
   especie: BreedSpecies | null;
   mode: BreedMode;
   double: boolean;
@@ -97,6 +101,16 @@ export function BreedEgg({
 
   const stats = projectAll(especie.bases, egg.ivs, level, egg.expectedQuality);
   const ds = doubleStoneMath(egg.ivs, DOUBLE_STONE_IV_CHANCE);
+
+  // O filho herda o IV inteiro do pai que doa — entao herda a DUVIDA daquele pai
+  // junto. Se a leitura do doador nao fechou num inteiro, o IV do ovo tambem nao
+  // fecha, e a tela nao pode imprimir "32" onde o que se sabe e "30 a 32".
+  const incerto = leitura != null && !leitura.cravado && !leitura.impossivel;
+  // Leitura impossivel nao e "incerta", e ERRADA: nenhum IV valido explica os
+  // stats informados. O motor trava o IV em 0..32 e devolve um ovo de aparencia
+  // normal — se a tela nao disser nada, ela publica um numero que nasceu de uma
+  // entrada que ela mesma sabe estar furada.
+  const furado = leitura?.impossivel ?? false;
 
   return (
     <section className="panel scanline relative flex flex-col">
@@ -143,7 +157,12 @@ export function BreedEgg({
             {[
               { label: "quality média", value: q3(egg.expectedQuality), tone: "text-neon", grande: true },
               { label: "faixa possível", value: `${q3(egg.minQuality)}–${q3(egg.maxQuality)}`, tone: "text-text" },
-              { label: "IV herdado", value: `${egg.ivTotal}`, sufixo: `/${IV_MAX_TOTAL}`, tone: "text-accent" },
+              {
+                label: furado ? "IV não confere" : incerto ? "IV herdado, estimado" : "IV herdado",
+                value: furado ? "—" : incerto ? textoIvTotal(leitura!) : `${egg.ivTotal}`,
+                sufixo: furado ? undefined : `/${IV_MAX_TOTAL}`,
+                tone: furado ? "text-danger" : "text-accent",
+              },
             ].map((k) => (
               <div key={k.label} className="bg-surface px-3 py-2.5">
                 <dd className={cn("leading-none font-bold tabular", k.grande ? "text-[26px]" : "text-[20px]", k.tone)}>
@@ -182,7 +201,7 @@ export function BreedEgg({
               IV herdado inteiro do slot {egg.fromParent === "a" ? "1" : "2"} · {doador.name}
             </FieldLabel>
             <span className="text-[13px] text-text-mute tabular">
-              {egg.ivTotal} de {IV_MAX_TOTAL}
+              {furado ? "—" : incerto ? textoIvTotal(leitura!) : egg.ivTotal} de {IV_MAX_TOTAL}
             </span>
           </div>
 
@@ -190,6 +209,7 @@ export function BreedEgg({
             {egg.ivs.map((v, i) => {
               const Icon = STAT_ICONS[i];
               const alvo = egg.doubleStoneEligible.includes(i);
+              const largo = incerto && leitura!.faixas[i][1] - leitura!.faixas[i][0] > 1;
               return (
                 <div
                   key={i}
@@ -205,16 +225,32 @@ export function BreedEgg({
                   </span>
                   <span
                     className={cn(
-                      "text-[18px] leading-none font-semibold tabular",
-                      v >= IV_MAX ? "text-ok" : v >= 24 ? "text-text" : "text-text-dim",
+                      "leading-none font-semibold tabular",
+                      largo ? "text-[15px] text-warn" : "text-[18px]",
+                      largo ? "" : v >= IV_MAX ? "text-ok" : v >= 24 ? "text-text" : "text-text-dim",
                     )}
                   >
-                    {v}
+                    {largo ? textoIv(leitura!, i) : v}
                   </span>
                 </div>
               );
             })}
           </div>
+
+          {furado ? (
+            <Note tone="danger" className="mt-3">
+              O IV abaixo não vale: nenhum valor entre 0 e {IV_MAX} explica os stats de{" "}
+              {doador.name} no nível e na quality informados. Confira os dois no slot antes
+              de olhar o resto desta tela.
+            </Note>
+          ) : incerto ? (
+            <Note tone="warn" className="mt-3">
+              Esse IV é LEITURA, não número do jogo: o stat da tela já veio arredondado, e no
+              nível de {doador.name} ele cabe numa faixa de até {leitura!.largura.toFixed(0)}{" "}
+              pontos. O ovo herda o que o pai realmente tem — suba esse pai de nível antes de
+              queimar o par e a faixa fecha.
+            </Note>
+          ) : null}
 
           {/* O aviso que muda a decisao: o IV vem INTEIRO de um pai so, entao o
               outro esta sendo jogado fora. Se o descartado for o melhor, isso
@@ -301,7 +337,9 @@ export function BreedEgg({
               </span>
             </Tooltip>
             <Note flush icon={null} className="ml-auto border-none pt-0 text-[12px]">
-              a Quality real sai do sorteio; este é o caso médio
+              {incerto
+                ? "a Quality sai do sorteio e o IV é estimado: dois motivos pra ler isto como ordem de grandeza"
+                : "a Quality real sai do sorteio; este é o caso médio"}
             </Note>
           </div>
         </div>

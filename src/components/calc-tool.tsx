@@ -5,7 +5,8 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/cn";
 import type { PokeType, Rarity } from "@/lib/types";
-import { IV_MAX, estimateIvs, ivRange, projectAll } from "@/lib/stats";
+import { IV_MAX, projectAll } from "@/lib/stats";
+import { lerIvs, textoIv as textoIvDe } from "@/lib/iv-reading";
 import { TIER_COLOR, qualityTier } from "@/lib/rarity";
 import { RARITY_COLOR, TYPE_COLOR } from "@/lib/typing";
 import { animatedSpriteUrl, spriteUrl } from "@/lib/sprites";
@@ -103,27 +104,12 @@ export function CalcTool({ especies }: { especies: CalcSpecies[] }) {
     setS({ id: alvo.id, level: EXEMPLO.level, quality: EXEMPLO.quality, stats, target: 100 });
   };
 
+  // A inversao da formula mora em `iv-reading.ts`: o breeding faz a MESMA
+  // pergunta sobre o mesmo pokemon, e duas leituras separadas podiam divergir.
   const leitura = useMemo(() => {
     if (!especie || !temStats) return null;
-    const { ivs } = estimateIvs(especie.bases, s.stats, s.level, s.quality);
-    const faixas = especie.bases.map((b, i) => ivRange(b, s.stats[i], s.level, s.quality, i));
-    const soma = s.stats.reduce((a, b) => a + b, 0);
-    const trava = (v: number) => Math.min(IV_MAX, Math.max(0, v));
-    return {
-      ivs,
-      faixas,
-      soma,
-      poder: Math.round(soma * s.quality),
-      somaIv: ivs.reduce((a, v) => a + trava(v), 0),
-      // O trio minimo / mais provavel / maximo sai do MESMO intervalo de
-      // arredondamento das barras — nao e margem de erro chutada.
-      totalMin: faixas.reduce((a, [lo]) => a + trava(lo), 0),
-      totalMax: faixas.reduce((a, [, hi]) => a + trava(hi), 0),
-      /** Impossivel e quando NENHUM IV valido cabe na leitura — testar o ponto
-       *  dava alarme falso em todo pokemon de nivel baixo. */
-      impossivel: faixas.some(([lo, hi]) => lo > IV_MAX || hi < 0),
-      largura: Math.max(...faixas.map(([lo, hi]) => hi - lo)),
-    };
+    const r = lerIvs(especie.bases, s.stats, s.level, s.quality);
+    return { ...r, poder: Math.round(r.soma * s.quality) };
   }, [especie, s.stats, s.level, s.quality, temStats]);
 
   const projecao = useMemo(() => {
@@ -138,13 +124,7 @@ export function CalcTool({ especies }: { especies: CalcSpecies[] }) {
   const tier = qualityTier(s.quality);
   const tint = especie ? TYPE_COLOR[especie.type1] : "var(--color-t-calc)";
 
-  /** Texto do IV de um stat: faixa quando ela e larga, ponto quando e estreita. */
-  const textoIv = (i: number): string => {
-    const [lo, hi] = leitura!.faixas[i];
-    return hi - lo > 1
-      ? `${Math.max(0, lo).toFixed(0)}–${Math.min(IV_MAX, hi).toFixed(0)}`
-      : leitura!.ivs[i].toFixed(1);
-  };
+  const textoIv = (i: number): string => textoIvDe(leitura!, i);
 
   return (
     <div className="flex flex-col gap-4">

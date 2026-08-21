@@ -13,10 +13,24 @@ import type { BreedMon } from "./breeding";
 import { IV_MAX, round3 } from "./breeding";
 import type { PokeType } from "./types";
 
+/**
+ * O que a estante guarda.
+ *
+ * E um `BreedMon` MAIS a origem da leitura. Guardar so o IV resolvido congelaria
+ * um chute: quando o IV foi lido dos stats de um pokemon de nivel baixo, o ponto
+ * "17" pode estar representando uma faixa de 4 a 30. Salvando nivel e stats, o
+ * pai volta pro slot com a MESMA duvida que tinha — em vez de voltar com uma
+ * certeza que nunca existiu.
+ */
+export interface EstanteMon extends BreedMon {
+  level?: number;
+  stats?: number[];
+}
+
 const CHAVE = "piwdex.breed.v1";
 const LIMITE = 60;
 
-function saneia(x: unknown): BreedMon | null {
+function saneia(x: unknown): EstanteMon | null {
   if (!x || typeof x !== "object") return null;
   const m = x as Record<string, unknown>;
   const pokeId = Number(m.pokeId);
@@ -37,6 +51,10 @@ function saneia(x: unknown): BreedMon | null {
     ivs: ivs.map((v) => Math.min(IV_MAX, Math.max(0, Math.round(v)))),
     shiny: m.shiny === true,
     createdAt: Number.isFinite(Number(m.createdAt)) ? Number(m.createdAt) : 0,
+    level: Number.isFinite(Number(m.level)) && Number(m.level) > 0 ? Number(m.level) : undefined,
+    stats: Array.isArray(m.stats) && m.stats.length === 6 && m.stats.every((v) => Number.isFinite(Number(v)))
+      ? m.stats.map((v) => Math.max(0, Number(v)))
+      : undefined,
   };
 }
 
@@ -45,20 +63,20 @@ export function uid(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
-export function lerEstante(): BreedMon[] {
+export function lerEstante(): EstanteMon[] {
   if (typeof window === "undefined") return [];
   try {
     const cru = window.localStorage.getItem(CHAVE);
     if (!cru) return [];
     const arr: unknown = JSON.parse(cru);
     if (!Array.isArray(arr)) return [];
-    return arr.map(saneia).filter((m): m is BreedMon => m != null).slice(0, LIMITE);
+    return arr.map(saneia).filter((m): m is EstanteMon => m != null).slice(0, LIMITE);
   } catch {
     return [];
   }
 }
 
-export function gravarEstante(mons: BreedMon[]): void {
+export function gravarEstante(mons: EstanteMon[]): void {
   if (typeof window === "undefined") return;
   try {
     window.localStorage.setItem(CHAVE, JSON.stringify(mons.slice(0, LIMITE)));

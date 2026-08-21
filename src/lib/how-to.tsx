@@ -93,6 +93,18 @@ export const COMO_USAR_BREED: Omit<HowToProps, "tint"> = {
       ),
     },
     {
+      titulo: "Digite os stats, não o IV",
+      texto: (
+        <>
+          O jogo não mostra IV em lugar nenhum: ele mostra nível, quality e os seis stats.
+          Copie esses números e a ferramenta inverte a fórmula pra achar o IV — a mesma
+          conta da Calculadora. O resultado sai como FAIXA, porque o stat da tela já veio
+          arredondado; em nível alto ela fecha num inteiro e dá pra cravar. Se você já
+          calculou o IV noutro lugar, o botão "IV direto" aceita o número pronto.
+        </>
+      ),
+    },
+    {
       titulo: "Ponha no slot 1 o de melhor IV",
       texto: (
         <>
@@ -105,7 +117,7 @@ export const COMO_USAR_BREED: Omit<HowToProps, "tint"> = {
     {
       titulo: "Salve na estante quem você vai reusar",
       texto:
-        "Um clique devolve o pokémon pro slot 1 ou 2 sem redigitar Quality e seis IVs. A estante fica só neste navegador; ela não vai junto no link.",
+        "Um clique devolve o pokémon pro slot 1 ou 2 sem redigitar nível, quality e seis stats. A estante guarda os stats junto, então o pai volta com a mesma faixa de IV que tinha — e ela fica só neste navegador, não viaja no link.",
     },
     {
       titulo: "Escolha o modo antes de olhar o ovo",
@@ -150,6 +162,11 @@ export const COMO_USAR_BREED: Omit<HowToProps, "tint"> = {
     <>
       O planejador supõe que sempre existe um parceiro válido pro próximo breed. Achar esse
       parceiro é o trabalho que a tabela de sorteio não mostra.
+    </>,
+    <>
+      Leitura de IV larga não é defeito da ferramenta, é falta de informação no stat da
+      tela: em nível baixo, meia unidade de stat vale dezenas de IV. Subir o pai de nível
+      antes de decidir é o que fecha a faixa.
     </>,
   ],
 };

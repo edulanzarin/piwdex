@@ -13,8 +13,20 @@ import type { BreedMode } from "./breeding";
 export interface ParentState {
   /** pokeId da espécie; null = slot vazio */
   id: number | null;
+  /**
+   * De onde sai o IV deste pai.
+   *
+   * O padrão é `stats` porque é o que o JOGO mostra: a tela do pokémon dá stat,
+   * nível e quality, e o IV é justamente o que ela esconde. `iv` existe pra quem
+   * já rodou a conta e quer digitar o número direto.
+   */
+  entrada: "stats" | "iv";
+  /** nível do pokémon — sem ele não há como inverter a fórmula */
+  level: number;
   quality: number;
-  /** os seis IVs, ordem canônica */
+  /** os seis stats como o jogo mostra (modo `stats`) */
+  stats: number[];
+  /** os seis IVs, ordem canônica (modo `iv`) */
   ivs: number[];
   shiny: boolean;
 }
@@ -33,7 +45,10 @@ export interface BreedState {
 
 export const EMPTY_PARENT: ParentState = {
   id: null,
+  entrada: "stats",
+  level: 100,
   quality: 1,
+  stats: [0, 0, 0, 0, 0, 0],
   ivs: [0, 0, 0, 0, 0, 0],
   shiny: false,
 };
@@ -58,9 +73,13 @@ const trava = (v: number, min: number, max: number) => Math.min(max, Math.max(mi
 function parseParent(sp: URLSearchParams, lado: "a" | "b"): ParentState {
   const id = Number(sp.get(lado));
   const ivs = (sp.get(`${lado}v`) ?? "").split("-");
+  const stats = (sp.get(`${lado}t`) ?? "").split("-");
   return {
     id: Number.isFinite(id) && id > 0 ? id : null,
+    entrada: sp.get(`${lado}e`) === "iv" ? "iv" : "stats",
+    level: Math.max(1, Math.round(num(sp.get(`${lado}l`), EMPTY_PARENT.level))),
     quality: trava(num(sp.get(`${lado}q`), EMPTY_PARENT.quality), 0, 999),
+    stats: Array.from({ length: 6 }, (_, i) => Math.max(0, num(stats[i] ?? null, 0))),
     ivs: Array.from({ length: 6 }, (_, i) => Math.round(trava(num(ivs[i] ?? null, 0), 0, 32))),
     shiny: sp.get(`${lado}s`) === "1",
   };
@@ -83,7 +102,13 @@ function writeParent(p: URLSearchParams, s: ParentState, lado: "a" | "b"): void 
   if (s.id == null) return;
   p.set(lado, String(s.id));
   p.set(`${lado}q`, s.quality.toFixed(3));
-  if (s.ivs.some((v) => v > 0)) p.set(`${lado}v`, s.ivs.join("-"));
+  if (s.entrada === "iv") {
+    p.set(`${lado}e`, "iv");
+    if (s.ivs.some((v) => v > 0)) p.set(`${lado}v`, s.ivs.join("-"));
+  } else {
+    if (s.level !== EMPTY_PARENT.level) p.set(`${lado}l`, String(s.level));
+    if (s.stats.some((v) => v > 0)) p.set(`${lado}t`, s.stats.join("-"));
+  }
   if (s.shiny) p.set(`${lado}s`, "1");
 }
 
