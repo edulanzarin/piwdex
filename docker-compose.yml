@@ -1,0 +1,44 @@
+# Chassi do piwdex2. Slug `piwdex2` governa o nome de tudo; par de portas
+# reservado 4071 (app) / 5071 (banco) — registrado em [[Uma faixa de portas por
+# projeto]] no Brain.
+#
+# O banco AINDA NAO SOBE: a camada publica (dex, itens, calculadoras) nao tem
+# estado. O servico fica comentado com a porta ja reservada pra quando o robo
+# for portado — reservar a porta e barato, subir um Postgres ocioso nao e.
+
+services:
+  app:
+    build: .
+    container_name: piwdex2-app
+    restart: unless-stopped
+    # Porta interna constante (3000), externa por variavel.
+    ports: ["${APP_PORT:-4071}:3000"]
+    environment:
+      NODE_ENV: production
+    networks: [piwdex2-net]
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  # db:
+  #   image: postgres:17-alpine
+  #   container_name: piwdex2-db
+  #   restart: unless-stopped
+  #   ports: ["${DB_PORT:-5071}:5432"]
+  #   environment:
+  #     POSTGRES_USER: ${POSTGRES_USER:-piwdex2}
+  #     POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina no .env}
+  #     POSTGRES_DB: ${POSTGRES_DB:-piwdex2}
+  #   volumes: [piwdex2-db-data:/var/lib/postgresql/data]
+  #   networks: [piwdex2-net]
+
+networks:
+  piwdex2-net:
+    name: piwdex2-net
+
+# volumes:
+#   piwdex2-db-data:
+#     name: piwdex2-db-data
