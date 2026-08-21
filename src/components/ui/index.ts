@@ -10,7 +10,7 @@ export { Checkbox } from "./checkbox";
 export { Chip } from "./chip";
 export { Combobox, type ComboOption } from "./combobox";
 export { Empty } from "./empty";
-export { Input, NumberRange, SearchInput } from "./input";
+export { Input, NumberField, NumberRange, SearchInput } from "./input";
 export { Loading } from "./loading";
 export { Modal } from "./modal";
 export { MultiSelect, type MultiOption } from "./multi-select";

@@ -1,6 +1,6 @@
 "use client";
 
-import { forwardRef, type InputHTMLAttributes, type ReactNode } from "react";
+import { forwardRef, useState, type InputHTMLAttributes, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import { IconClose, IconSearch } from "./icons";
 
@@ -58,6 +58,79 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
 /** Busca — o input com a lupa e o limpar ja ligados. */
 export function SearchInput(props: Omit<InputProps, "iconLeft">) {
   return <Input iconLeft={<IconSearch size={16} />} placeholder="Buscar..." {...props} />;
+}
+
+/**
+ * Campo de numero com limite — o limite so aperta quando o campo PERDE O FOCO.
+ *
+ * Campo controlado que normaliza a cada tecla e um moedor de digitacao. Com
+ * `min={1}` e `onChange={v => setLevel(Math.max(1, v))}`, apagar o conteudo pra
+ * trocar 100 por 500 devolve `1` na hora, e os tres digitos entram DEPOIS dele:
+ * o usuario digita 500 e ve 1500. O mesmo vale pra decimal — comecar a digitar
+ * "0.5" reescreve o zero inicial antes do ponto chegar.
+ *
+ * A saida e separar o que se DIGITA do que vale: enquanto o campo esta em uso,
+ * manda o texto cru; ao sair, ai sim converte, aplica minimo e maximo e volta a
+ * espelhar o valor canonico. O intermediario invalido existe por alguns
+ * segundos, e tudo bem — quem le o valor ja lida com numero fora de faixa.
+ */
+export interface NumberFieldProps extends Omit<InputProps, "value" | "onChange" | "type"> {
+  value: number;
+  onChange: (v: number) => void;
+  min?: number;
+  max?: number;
+  step?: number;
+  /** valor assumido quando o campo fica vazio e perde o foco */
+  fallback?: number;
+}
+
+export function NumberField({
+  value,
+  onChange,
+  min,
+  max,
+  step,
+  fallback,
+  ...props
+}: NumberFieldProps) {
+  // null = espelhando o valor de fora; string = o usuario esta digitando
+  const [rascunho, setRascunho] = useState<string | null>(null);
+
+  // Interface em portugues, entao "1,8" tem de valer tanto quanto "1.8" — o
+  // separador decimal daqui e a virgula, e o teclado do celular manda a virgula.
+  const ler = (t: string): number => Number(t.replace(",", "."));
+
+  const fechar = () => {
+    const n = ler(rascunho ?? "");
+    const vazio = rascunho == null || rascunho.trim() === "" || !Number.isFinite(n);
+    let final = vazio ? (fallback ?? min ?? 0) : n;
+    if (min != null) final = Math.max(min, final);
+    if (max != null) final = Math.min(max, final);
+    setRascunho(null);
+    if (final !== value) onChange(final);
+  };
+
+  return (
+    <Input
+      type="number"
+      inputMode={step != null && step < 1 ? "decimal" : "numeric"}
+      min={min}
+      max={max}
+      step={step}
+      value={rascunho ?? String(value)}
+      onChange={(e) => {
+        setRascunho(e.target.value);
+        const n = ler(e.target.value);
+        // propaga so o que ja e numero — sem apertar limite, que e o trabalho do blur
+        if (e.target.value.trim() !== "" && Number.isFinite(n)) onChange(n);
+      }}
+      onBlur={fechar}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+      }}
+      {...props}
+    />
+  );
 }
 
 /** Par de numeros "de / ate". Um controle so, porque MIN e MAX sao uma
