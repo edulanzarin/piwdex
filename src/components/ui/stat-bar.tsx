@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
 
 /**
@@ -13,6 +14,8 @@ import { cn } from "@/lib/cn";
  */
 export interface StatBarProps {
   label: string;
+  /** marcador da grandeza — o icone diz "defesa especial" sem gastar largura */
+  icon?: ReactNode;
   value: number;
   max: number;
   /** cor de dado (tipo/faixa); default = acento da interface */
@@ -22,14 +25,17 @@ export interface StatBarProps {
   segments?: number;
 }
 
-export function StatBar({ label, value, max, tint, className, segments = 12 }: StatBarProps) {
+export function StatBar({ label, icon, value, max, tint, className, segments = 12 }: StatBarProps) {
   const ratio = max > 0 ? Math.max(0, Math.min(1, value / max)) : 0;
   const lit = Math.round(ratio * segments);
   const color = tint ?? "var(--color-accent)";
 
   return (
     <div className={cn("flex items-center gap-2", className)}>
-      <span className="pix w-13 shrink-0 text-[10px] text-text-mute">{label}</span>
+      <span className="pix flex w-24 shrink-0 items-center gap-1.5 text-[10px] text-text-mute">
+        {icon}
+        {label}
+      </span>
       <span
         className="flex min-w-0 flex-1 gap-px"
         role="meter"

@@ -1,5 +1,7 @@
 import type { PokeType } from "@/lib/types";
 import { TYPE_COLOR } from "@/lib/typing";
+import { TYPE_LABEL, multWord } from "@/lib/labels";
+import type { TypeMult } from "@/lib/typing";
 import { cn } from "@/lib/cn";
 
 /**
@@ -220,10 +222,12 @@ export function TypeIcon({
   type,
   size = 10,
   className,
+  style,
 }: {
   type: PokeType;
   size?: number;
   className?: string;
+  style?: React.CSSProperties;
 }) {
   const art = ART[type];
   if (!art) return null;
@@ -235,6 +239,7 @@ export function TypeIcon({
       fill="currentColor"
       shapeRendering="crispEdges"
       className={cn("shrink-0", className)}
+      style={style}
       aria-hidden="true"
       focusable="false"
     >
@@ -263,6 +268,7 @@ export function TypeBadge({
   // Golpe sem tipo existe no jogo (`NEUTRAL`) e nao esta nos 18 — cai no neutro.
   const known = type !== "NEUTRAL";
   const color = known ? TYPE_COLOR[type] : "var(--color-text-mute)";
+  const label = known ? TYPE_LABEL[type] : "Sem tipo";
 
   return (
     <span
@@ -273,10 +279,43 @@ export function TypeBadge({
         !showLabel && (size === "xs" ? "w-4 justify-center px-0" : "w-5 justify-center px-0"),
         className,
       )}
-      title={known ? type : "Sem tipo"}
+      title={label}
     >
       {known ? <TypeIcon type={type} size={size === "xs" ? 8 : 10} /> : null}
-      {showLabel ? type : null}
+      {showLabel ? label : null}
+    </span>
+  );
+}
+
+/**
+ * Tipo + multiplicador de efetividade, na cor do tipo.
+ *
+ * O `title` traz a leitura por EXTENSO ("dano dobrado") porque "x2" e "1/4" sao
+ * dialeto de quem ja joga — e a ficha tambem serve quem esta chegando.
+ */
+export function TypeMultChip({
+  m,
+  tone,
+  className,
+}: {
+  m: TypeMult;
+  /** classe de cor do multiplicador: perigo, ok, acento ou neutro */
+  tone: string;
+  className?: string;
+}) {
+  const color = TYPE_COLOR[m.type];
+  return (
+    <span
+      style={{ borderColor: `${color}66`, backgroundColor: `${color}18` }}
+      className={cn(
+        "pix inline-flex h-5 items-center gap-1 rounded-pix border px-1.5 text-[10px]",
+        className,
+      )}
+      title={`${TYPE_LABEL[m.type]}: ${multWord(m.mult)}`}
+    >
+      <TypeIcon type={m.type} size={9} style={{ color }} />
+      <span style={{ color }}>{TYPE_LABEL[m.type]}</span>
+      <span className={tone}>{m.label}</span>
     </span>
   );
 }
