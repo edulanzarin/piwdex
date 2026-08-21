@@ -11,11 +11,18 @@
  */
 import {
   Award,
+  CreditCard,
+  Diamond,
   Disc3,
   Gauge,
   Gem,
   Heart,
+  HeartPulse,
   Package,
+  Percent,
+  Pill,
+  Shapes,
+  Store,
   Scale,
   ShieldAlert,
   ShieldHalf,
@@ -27,9 +34,11 @@ import {
   Swords,
   Target,
   TrendingUp,
+  Users,
   type LucideIcon,
 } from "lucide-react";
 import type { AttackCategory } from "@/lib/types";
+import type { ItemCategory } from "@/lib/items";
 import { cn } from "@/lib/cn";
 
 export interface GameIconProps {
@@ -99,3 +108,42 @@ export const IconWeak = wrap(ShieldAlert, "IconWeak");
 export const IconTarget = wrap(Target, "IconTarget");
 export const IconScale = wrap(Scale, "IconScale");
 export const IconAward = wrap(Award, "IconAward");
+
+// ---- categoria do item ----
+// Um contorno por categoria, escolhido pra NAO colidir com os de cima: a pedra
+// e losango (o `Gem` ja e raridade), a cura e comprimido e o reviver e
+// batimento (o `Heart` ja e vida), o cla e gente. Duas manchas iguais no mesmo
+// card e o mesmo que nao ter icone.
+export const IconLoot = wrap(Package, "IconLoot");
+export const IconStone = wrap(Diamond, "IconStone");
+export const IconHeal = wrap(Pill, "IconHeal");
+export const IconRevive = wrap(HeartPulse, "IconRevive");
+export const IconClan = wrap(Users, "IconClan");
+export const IconCard = wrap(CreditCard, "IconCard");
+export const IconMisc = wrap(Shapes, "IconMisc");
+export const IconShop = wrap(Store, "IconShop");
+export const IconChance = wrap(Percent, "IconChance");
+
+const ITEM_CATEGORY_ICON: Record<ItemCategory, ReturnType<typeof wrap>> = {
+  loot: IconLoot,
+  stone: IconStone,
+  heal: IconHeal,
+  revive: IconRevive,
+  clan: IconClan,
+  tm: IconTm,
+  card: IconCard,
+  misc: IconMisc,
+};
+
+export function ItemCategoryIcon({
+  category,
+  size = 16,
+  className,
+}: {
+  category: ItemCategory;
+  size?: number;
+  className?: string;
+}) {
+  const Icon = ITEM_CATEGORY_ICON[category] ?? IconMisc;
+  return <Icon size={size} className={className} />;
+}

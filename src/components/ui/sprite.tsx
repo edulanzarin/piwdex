@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import { Pokeball } from "./pokeball";
 
@@ -33,6 +33,14 @@ export interface SpriteProps {
   /** sprite do jogo e pixel art: escala sem suavizacao */
   pixel?: boolean;
   priority?: boolean;
+  /**
+   * O que desenhar quando a imagem NAO vem (404, host fora do ar).
+   *
+   * O padrao e a pokebola, que e a marca certa pra um bicho que faltou. Icone
+   * de ITEM entra por aqui: uma pokebola no lugar de uma Pedra da Água diz a
+   * coisa errada — que o que faltou era um pokemon.
+   */
+  fallback?: ReactNode;
 }
 
 export function Sprite({
@@ -43,6 +51,7 @@ export function Sprite({
   className,
   pixel = true,
   priority,
+  fallback,
 }: SpriteProps) {
   const ref = useRef<HTMLImageElement>(null);
   const [state, setState] = useState<"load" | "ok" | "fail">(src ? "load" : "fail");
@@ -80,7 +89,9 @@ export function Sprite({
       className={cn("relative grid shrink-0 place-items-center", className)}
       style={{ width: size, height: size }}
     >
-      {state !== "ok" ? (
+      {state === "fail" && fallback ? (
+        <span className="absolute text-line-strong">{fallback}</span>
+      ) : state !== "ok" ? (
         <Pokeball
           size={Math.round(size * 0.45)}
           spinning={state === "load"}
