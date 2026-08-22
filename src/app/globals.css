@@ -176,10 +176,15 @@
   }
 
   /* ---- scrim ----
-     A arte tem luminancia media 148 (medida, nao chutada) — clara demais pra
-     UI escura por cima. O gradiente e mais leve no TOPO, onde mora o heroi e a
-     arte tem de respirar, e fecha embaixo, onde o conteudo e denso. Como a
-     camada e fixa, isso vale pra qualquer posicao de scroll. */
+     O wallpaper e AMBIENTE, nao conteudo. Enquanto o scrim abria em 46% no
+     topo, a foto competia com a interface: o neon da cidade passava por dentro
+     do painel e a tela inteira lia como transparente. O gradiente agora fecha
+     bem mais cedo (70% ja no topo), e a arte volta ao papel dela — dar cor e
+     profundidade atras do vidro, sem disputar a leitura com o dado.
+
+     O degrau continua existindo: o topo e o trecho mais aberto, porque e onde
+     mora o heroi e a arte tem de aparecer. So que aberto agora quer dizer "da
+     pra ver a cidade", nao "da pra ler a placa da cidade". */
   body::after {
     content: "";
     position: fixed;
@@ -189,13 +194,13 @@
     background:
       linear-gradient(
         180deg,
-        color-mix(in srgb, var(--color-bg) 46%, transparent) 0%,
-        color-mix(in srgb, var(--color-bg) 68%, transparent) 45%,
-        color-mix(in srgb, var(--color-bg) 86%, transparent) 100%
+        color-mix(in srgb, var(--color-bg) 70%, transparent) 0%,
+        color-mix(in srgb, var(--color-bg) 86%, transparent) 45%,
+        color-mix(in srgb, var(--color-bg) 95%, transparent) 100%
       ),
       radial-gradient(
         1200px 560px at 50% 0%,
-        color-mix(in srgb, #ffffff 5%, transparent),
+        color-mix(in srgb, #ffffff 4%, transparent),
         transparent 72%
       );
   }
@@ -260,13 +265,19 @@
         impressao de espessura. Sem ela o painel parece um retangulo furado.
      3. Sombra projetada, pra o vidro flutuar em vez de estar colado. */
   .panel {
-    background-color: color-mix(in oklab, var(--color-surface) 62%, transparent);
-    border: 1px solid color-mix(in srgb, #ffffff 14%, transparent);
+    /* 62% era vidro de vitrine: o neon do wallpaper atravessava o painel e caia
+       ATRAS do numero. Vidro que deixa passar a cena inteira nao e superficie,
+       e furo. 90% mantem as tres marcas do vidro (blur na borda, aresta de luz,
+       sombra projetada) e devolve o contraste que o dado precisa. */
+    background-color: color-mix(in oklab, var(--color-surface) 90%, transparent);
+    border: 1px solid color-mix(in srgb, #ffffff 12%, transparent);
     border-radius: var(--radius-glass);
-    backdrop-filter: blur(18px) saturate(130%);
-    -webkit-backdrop-filter: blur(18px) saturate(130%);
+    /* O blur caiu junto: com 90% de fundo, borrar 18px e trabalho de composicao
+       que ninguem ve. */
+    backdrop-filter: blur(12px) saturate(125%);
+    -webkit-backdrop-filter: blur(12px) saturate(125%);
     box-shadow:
-      inset 0 1px 0 0 rgb(255 255 255 / 0.08),
+      inset 0 1px 0 0 rgb(255 255 255 / 0.07),
       0 18px 44px -24px rgb(0 0 0 / 0.9);
   }
 
@@ -275,11 +286,13 @@
      blur alto em 60 elementos trava o scroll em maquina media. Compensa com
      mais opacidade, que resolve a legibilidade sem custar composicao. */
   .panel-card {
-    background-color: color-mix(in oklab, var(--color-surface) 72%, transparent);
-    border: 1px solid color-mix(in srgb, #ffffff 12%, transparent);
+    background-color: color-mix(in oklab, var(--color-surface) 93%, transparent);
+    border: 1px solid color-mix(in srgb, #ffffff 10%, transparent);
     border-radius: var(--radius-glass);
-    backdrop-filter: blur(14px) saturate(120%);
-    -webkit-backdrop-filter: blur(14px) saturate(120%);
+    /* Aqui o blur quase saiu: sao 60 cards na tela e, com 93% de fundo, o que
+       ele borra e uma nesga. Fica em 8px so pela borda. */
+    backdrop-filter: blur(8px) saturate(115%);
+    -webkit-backdrop-filter: blur(8px) saturate(115%);
     box-shadow:
       inset 0 1px 0 0 rgb(255 255 255 / 0.06),
       0 12px 30px -20px rgb(0 0 0 / 0.85);
@@ -293,9 +306,12 @@
     width: 100%;
     height: 2.5rem;
     padding-inline: 0.75rem;
-    background-color: color-mix(in oklab, var(--color-bg-soft) 66%, transparent);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
+    /* O campo e o lugar onde a transparencia doia mais: numero digitado sobre
+       foto em movimento. Ele agora e quase solido, e mais ESCURO que o painel
+       que o cerca — poco, nao janela. */
+    background-color: color-mix(in oklab, var(--color-bg-soft) 92%, transparent);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
     border: 1px solid color-mix(in srgb, #ffffff 10%, transparent);
     border-radius: var(--radius-pix);
     color: var(--color-text);
@@ -343,7 +359,7 @@
     /* O flutuante e MAIS OPACO que a chrome, sempre. Vidro sobre vidro sobre
        foto nao se le — e o menu de filtro cai justamente em cima do conteudo
        mais denso da tela. */
-    background-color: color-mix(in oklab, var(--color-surface-3) 94%, transparent);
+    background-color: color-mix(in oklab, var(--color-surface-3) 99%, transparent);
     border: 1px solid color-mix(in srgb, #ffffff 14%, transparent);
     border-radius: var(--radius-glass);
     backdrop-filter: blur(30px) saturate(150%);
@@ -575,4 +591,177 @@
   text-shadow:
     0 1px 2px rgb(0 0 0 / 0.75),
     0 3px 14px rgb(0 0 0 / 0.55);
+}
+
+/* ============================================================================
+   Heroi de ferramenta.
+   ----------------------------------------------------------------------------
+   A faixa de topo das seis telas era arte de 44px + a palavra, numa linha solta
+   sobre o fundo. Funcionava como rotulo e falhava como CHEGADA: abrir a Hunt e
+   abrir a Meta produziam a mesma imagem, trocando uma palavra e uma cor de
+   texto. Uma ferramenta que faz conta pesada nao pode abrir parecendo um
+   cabecalho de documento.
+
+   O que a faixa passa a fazer, em ordem de leitura:
+
+   1. **Cor.** Tudo aqui sai de `--tint`, a cor da ferramenta, escrita uma vez
+      pelo componente. Wash, grade, moldura, halo, titulo e fio de baixo saem da
+      mesma variavel — e por isso a tela inteira muda de identidade trocando um
+      token, sem hex solto em lugar nenhum.
+   2. **Profundidade.** Wash radial no canto de entrada, grade pixel que anda
+      devagar e um facho que atravessa. Sao tres camadas de fundo, todas atras do
+      conteudo (`z-index: -1` com `isolation` no pai), entao nenhuma delas
+      disputa clique nem contraste com o texto.
+   3. **Vida.** A arte flutua e o halo pulsa. Movimento lento e de amplitude
+      curta: a faixa fica viva sem virar banner piscante, e o
+      `prefers-reduced-motion` la em cima congela tudo isso de uma vez.
+   ========================================================================== */
+
+.hero {
+  position: relative;
+  overflow: hidden;
+  /* Sem isto, o `z-index: -1` das camadas de fundo escaparia pro contexto do
+     pai e elas sumiriam ATRAS da pagina em vez de ficarem atras do conteudo. */
+  isolation: isolate;
+}
+
+/* Camada 1: o wash da cor da ferramenta, entrando pelo canto onde a leitura
+   comeca. Ele e o que faz a faixa parecer pintada pela ferramenta, e nao
+   apenas conter um titulo colorido. */
+.hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(
+      720px 280px at 4% 0%,
+      color-mix(in oklab, var(--tint) 30%, transparent),
+      transparent 72%
+    ),
+    linear-gradient(
+      92deg,
+      color-mix(in oklab, var(--tint) 12%, transparent),
+      transparent 52%
+    );
+}
+
+/* Camada 2: a grade de console. Ela ANDA — um quadro de 26px por ciclo, que e
+   deslocamento suficiente pra o olho registrar movimento e pequeno demais pra
+   incomodar quem esta lendo. A mascara apaga a grade antes da metade da faixa,
+   senao ela passa por baixo do texto e vira ruido de fundo. */
+.hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.5;
+  background-image:
+    linear-gradient(to right, color-mix(in oklab, var(--tint) 20%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in oklab, var(--tint) 20%, transparent) 1px, transparent 1px);
+  background-size: 26px 26px;
+  -webkit-mask-image: linear-gradient(104deg, #000 0%, transparent 58%);
+  mask-image: linear-gradient(104deg, #000 0%, transparent 58%);
+  animation: pix-drift 9s linear infinite;
+}
+
+@keyframes pix-drift {
+  to { background-position: 26px 0, 0 26px; }
+}
+
+/* Camada 3: o facho que atravessa. E o mesmo gesto do `.sheen` do hover, so que
+   aqui ele roda sozinho e devagar: e o sinal de "console ligado". */
+.hero-facho {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 22%;
+  z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(
+    104deg,
+    transparent,
+    color-mix(in oklab, var(--tint) 16%, transparent),
+    transparent
+  );
+  animation: pix-sweep 6.5s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+
+/* Moldura de canto: quatro cantoneiras na cor da ferramenta, o vocabulario de
+   mira de console. Sao SPANS e nao borda do painel porque canto marcado e
+   borda inteira dizem coisas diferentes — a cantoneira emoldura, a borda
+   fecha. */
+.pix-canto {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  pointer-events: none;
+  border-color: color-mix(in oklab, var(--tint) 70%, transparent);
+}
+
+/* O halo da arte: um disco de cor que respira atras do sprite. Ele resolve um
+   problema real, alem do enfeite — o PNG de 32x32 tem o fundo vazado, e sem
+   nada atras a arte flutuava sem peso no meio da faixa. */
+.hero-halo {
+  position: relative;
+}
+.hero-halo::before {
+  content: "";
+  position: absolute;
+  inset: -22%;
+  z-index: -1;
+  border-radius: 999px;
+  background: radial-gradient(
+    circle,
+    color-mix(in oklab, var(--tint) 46%, transparent),
+    transparent 68%
+  );
+  animation: pix-glow 3.4s ease-in-out infinite;
+}
+
+/* O titulo acende. `text-shadow` e nao `filter`, que criaria camada nova numa
+   faixa que ja tem tres. */
+.tint-glow {
+  text-shadow:
+    0 0 24px color-mix(in oklab, var(--tint) 55%, transparent),
+    0 2px 6px rgb(0 0 0 / 0.6);
+}
+
+/* O LED de "ligado" ao lado do rotulo. `steps(1)` de proposito: LED nao
+   esmaece, ele liga e desliga. */
+@keyframes pix-led {
+  0%, 55% { opacity: 1; }
+  60%, 100% { opacity: 0.2; }
+}
+.anim-led { animation: pix-led 2.2s steps(1, end) infinite; }
+
+/* ============================================================================
+   Entrada com atraso proprio.
+   ----------------------------------------------------------------------------
+   O `.anim-rise` sobe tudo junto, no mesmo quadro. Pra uma faixa de heroi isso
+   e o efeito errado: a arte, o titulo e a frase chegam de uma vez e o conjunto
+   le como um bloco piscando. Com o atraso vindo de `--d`, os tres entram na
+   ORDEM em que se leem, e a faixa se monta em vez de aparecer.
+   ========================================================================== */
+.anim-in {
+  animation: pix-rise 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: var(--d, 0ms);
+}
+
+/* ============================================================================
+   Abertura de <details>.
+   ----------------------------------------------------------------------------
+   O corpo de um `<details>` aparece SECO: o navegador troca o `display` e o
+   bloco surge inteiro no quadro seguinte. Num manual de sete passos isso e um
+   salto de meia tela sem transicao nenhuma, e o olho perde onde estava.
+
+   A animacao mora no seletor `[open]` de proposito. Numa classe solta ela
+   rodaria uma vez na carga da pagina, com o painel fechado — ou seja, nunca
+   seria vista. Presa ao atributo, ela roda toda vez que o painel abre, que e
+   exatamente quando ha algo pra mostrar.
+   ========================================================================== */
+details[open] > .anim-abre {
+  animation: pix-rise 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }

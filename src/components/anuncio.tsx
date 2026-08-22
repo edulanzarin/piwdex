@@ -127,7 +127,7 @@ function Reservado({ lugar }: { lugar: LugarDeAnuncio }) {
   return (
     <div
       aria-hidden="true"
-      className="grid h-full min-h-inherit w-full place-items-center border border-dashed border-line-strong bg-bg-soft/40 p-4"
+      className="grid h-full min-h-inherit w-full place-items-center border border-dashed border-line-strong bg-bg-soft/90 p-4"
     >
       <span className="pix text-[11px] text-text-mute">espaço de anúncio · {lugar}</span>
     </div>
@@ -152,7 +152,7 @@ export function CardAnuncio({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        "flex flex-col overflow-hidden border border-line-strong bg-bg-soft/70",
+        "flex flex-col overflow-hidden border border-line-strong bg-bg-soft/95",
         className,
       )}
     >

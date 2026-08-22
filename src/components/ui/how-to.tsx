@@ -1,6 +1,7 @@
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import { IconChevronDown } from "./icons";
+import { BookOpen } from "lucide-react";
 
 /**
  * "Como usar" — o manual curto de uma FERRAMENTA.
@@ -13,18 +14,19 @@ import { IconChevronDown } from "./icons";
  *
  * Tres decisoes seguram a forma:
  *
- * 1. **O resumo fica SEMPRE visivel, o passo a passo nao.** Uma frase dizendo a
- *    pergunta que a ferramenta responde e o que o visitante de primeira viagem
- *    precisa; os seis passos sao referencia, e quem ja usou nao quer rolar por
- *    cima deles toda vez. Manual aberto por padrao empurra a ferramenta pra
- *    fora da primeira tela — que e o unico lugar onde ela funciona.
+ * 1. **A barra fechada anuncia o TAMANHO do manual, nao o conteudo dele.**
+ *    Antes ela carregava uma frase inteira dizendo o que a ferramenta faz, e
+ *    essa frase passou a viver na faixa de topo, dois blocos acima — ler a mesma
+ *    coisa duas vezes em meia tela nao ensina nada e ainda faz a segunda parecer
+ *    enfeite. Aqui fica o que a faixa nao diz: quantos passos existem. E o que
+ *    decide se vale abrir agora.
  * 2. **`<details>` e nao estado de React.** Abrir e fechar aqui e chrome, nao
  *    dado: nao vai pra URL, nao precisa de efeito, nao precisa de JS. Assim o
  *    bloco continua sendo componente de SERVIDOR e o manual ja nasce no HTML —
  *    inclusive pro buscador, que e quem traz gente nova.
- * 3. **O tint e da ferramenta.** Mesma cor que identifica a ferramenta na home e
- *    na navegacao, pra o manual ser lido como parte dela e nao como aviso do
- *    site.
+ * 3. **O tint e da ferramenta.** Mesma cor que identifica a ferramenta na home,
+ *    na navegacao e na faixa de topo, pra o manual ser lido como parte dela e
+ *    nao como aviso do site.
  */
 export interface HowToStep {
   /** o verbo do passo — curto, cabe numa linha */
@@ -34,7 +36,7 @@ export interface HowToStep {
 }
 
 export interface HowToProps {
-  /** a pergunta que a ferramenta responde, em uma frase. Sempre visivel. */
+  /** a pergunta que a ferramenta responde, em uma frase. Abre o manual. */
   resumo: ReactNode;
   passos: HowToStep[];
   /** o que a ferramenta NAO faz, e onde ela erra. */
@@ -50,19 +52,48 @@ export function HowTo({ resumo, passos, bomSaber, tint, className }: HowToProps)
   return (
     <details
       className={cn("panel group", className)}
-      style={{
-        borderColor: `color-mix(in oklab, ${cor} 34%, var(--color-line))`,
-      }}
+      style={
+        {
+          "--tint": cor,
+          borderColor: `color-mix(in oklab, ${cor} 30%, var(--color-line))`,
+        } as CSSProperties
+      }
     >
-      {/* O `summary` inteiro e o alvo do clique — faixa de 40px de altura em vez
+      {/* O `summary` inteiro e o alvo do clique — faixa de 44px de altura em vez
           de um chevron de 16. E o marcador nativo sai: ele e um triangulo de
           sistema no meio de uma interface que desenha os proprios icones. */}
-      <summary className="flex cursor-pointer list-none items-center gap-3 px-3 py-2.5 [&::-webkit-details-marker]:hidden">
+      <summary className="flex min-h-11 cursor-pointer list-none items-center gap-3 px-3 py-2.5 transition-colors hover:bg-white/[0.03] [&::-webkit-details-marker]:hidden">
+        {/* O glifo num quadrado da cor: e o mesmo vocabulario do numero de cada
+            passo la dentro, entao a barra ja parece a tampa da lista que ela
+            abre. */}
+        <span
+          aria-hidden="true"
+          className="grid h-7 w-7 shrink-0 place-items-center transition-transform duration-200 group-open:scale-110"
+          style={{
+            color: cor,
+            backgroundColor: `color-mix(in oklab, ${cor} 15%, transparent)`,
+            border: `1px solid color-mix(in oklab, ${cor} 42%, transparent)`,
+          }}
+        >
+          <BookOpen size={15} strokeWidth={2.25} />
+        </span>
+
         <span className="pix shrink-0 text-[12px]" style={{ color: cor }}>
           Como usar
         </span>
-        <span className="min-w-0 flex-1 truncate text-[13px] text-text-dim group-open:whitespace-normal">
-          {resumo}
+
+        <span className="min-w-0 flex-1 truncate text-[13px] text-text-mute">
+          {passos.length} passos
+          {bomSaber?.length
+            ? `, e ${bomSaber.length} ${bomSaber.length === 1 ? "ressalva" : "ressalvas"}`
+            : null}
+        </span>
+
+        {/* O rotulo troca junto com o estado: chevron sozinho e um sinal que a
+            pessoa tem de saber ler; a palavra nao precisa de treino. */}
+        <span className="pix hidden shrink-0 text-[11px] text-text-mute sm:inline">
+          <span className="group-open:hidden">abrir</span>
+          <span className="hidden group-open:inline">fechar</span>
         </span>
         <IconChevronDown
           size={16}
@@ -70,14 +101,19 @@ export function HowTo({ resumo, passos, bomSaber, tint, className }: HowToProps)
         />
       </summary>
 
-      <div className="flex flex-col gap-4 border-t border-line p-4">
+      <div className="anim-abre flex flex-col gap-4 border-t border-line p-4">
+        {/* A frase de abertura: o que a ferramenta responde, antes dos passos.
+            Ela mora AQUI dentro e nao na barra — quem abriu quer o manual, e o
+            manual comeca dizendo pra que ele serve. */}
+        <p className="text-[14px] leading-relaxed text-text-dim">{resumo}</p>
+
         {/* Passo numerado, e o numero e PIXEL num quadrado da cor da ferramenta:
             a ordem tem que se ler de relance, sem contar linha. */}
         <ol className="flex flex-col gap-3">
           {passos.map((p, i) => (
-            <li key={p.titulo} className="flex gap-3">
+            <li key={p.titulo} className="group/passo flex gap-3">
               <span
-                className="pix mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-pix text-[12px] tabular"
+                className="pix mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-pix text-[12px] tabular transition-transform duration-150 group-hover/passo:scale-110"
                 style={{
                   color: cor,
                   backgroundColor: `color-mix(in oklab, ${cor} 16%, transparent)`,

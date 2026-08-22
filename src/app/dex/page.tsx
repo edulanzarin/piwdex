@@ -4,8 +4,7 @@ import { getDexPayload } from "@/lib/dex-data";
 import { agora, fecharPiso } from "@/lib/pacing";
 import { DexBrowser } from "@/components/dex-browser";
 import { Panel, SkeletonGrid } from "@/components/ui";
-import { BookOpen } from "lucide-react";
-import { TituloFerramenta } from "@/components/titulo-ferramenta";
+import { HeroFerramenta, HeroMarca } from "@/components/hero-ferramenta";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/dex" },
@@ -30,13 +29,14 @@ export default async function DexPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <TituloFerramenta
-        arte="pokedex"
-        cor="var(--color-t-dex)"
-        reserva={<BookOpen size={26} strokeWidth={1.8} style={{ color: "var(--color-t-dex)" }} />}
-      >
-        Pokedex
-      </TituloFerramenta>
+      <HeroFerramenta
+        href="/dex"
+        marcas={
+          <HeroMarca n={entries.length} cor="var(--color-t-dex)">
+            espécies
+          </HeroMarca>
+        }
+      />
 
       {/* useSearchParams precisa de fronteira de Suspense pra a pagina poder ser
           pre-renderizada; o esqueleto tem a forma do grid que vai chegar. */}

@@ -5,8 +5,7 @@ import { agora, fecharPiso } from "@/lib/pacing";
 import { CalcTool, type CalcSpecies } from "@/components/calc-tool";
 import { HowTo, Panel, SkeletonForm } from "@/components/ui";
 import { COMO_USAR_CALC } from "@/lib/how-to";
-import { Calculator } from "lucide-react";
-import { TituloFerramenta } from "@/components/titulo-ferramenta";
+import { HeroFerramenta, HeroMarca } from "@/components/hero-ferramenta";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/calc" },
@@ -39,13 +38,14 @@ export default async function CalcPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <TituloFerramenta
-        arte="calculadora"
-        cor="var(--color-t-calc)"
-        reserva={<Calculator size={26} strokeWidth={1.8} style={{ color: "var(--color-t-calc)" }} />}
-      >
-        Calculadora
-      </TituloFerramenta>
+      <HeroFerramenta
+        href="/calc"
+        marcas={
+          <HeroMarca n={especies.length} cor="var(--color-t-calc)">
+            espécies
+          </HeroMarca>
+        }
+      />
 
       {/* O manual vem ANTES do formulario porque e ele que diz de onde saem os
           numeros que o formulario pede. Fechado, ele custa uma faixa de 40px. */}

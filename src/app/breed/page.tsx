@@ -5,8 +5,7 @@ import { agora, fecharPiso } from "@/lib/pacing";
 import { BreedTool, type BreedSpecies } from "@/components/breed-tool";
 import { HowTo, Panel, SkeletonForm } from "@/components/ui";
 import { COMO_USAR_BREED } from "@/lib/how-to";
-import { Egg } from "lucide-react";
-import { TituloFerramenta } from "@/components/titulo-ferramenta";
+import { HeroFerramenta, HeroMarca } from "@/components/hero-ferramenta";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/breed" },
@@ -39,13 +38,14 @@ export default async function BreedPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <TituloFerramenta
-        arte="breeding"
-        cor="var(--color-t-breed)"
-        reserva={<Egg size={26} strokeWidth={1.8} style={{ color: "var(--color-t-breed)" }} />}
-      >
-        Breeding
-      </TituloFerramenta>
+      <HeroFerramenta
+        href="/breed"
+        marcas={
+          <HeroMarca n={especies.length} cor="var(--color-t-breed)">
+            espécies
+          </HeroMarca>
+        }
+      />
 
       <HowTo {...COMO_USAR_BREED} tint="var(--color-t-breed)" />
 

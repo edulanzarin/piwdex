@@ -5,60 +5,83 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { cn } from "@/lib/cn";
 import { IconClose, IconRows, Pokeball } from "@/components/ui";
+import { FERRAMENTAS, type Ferramenta } from "@/lib/ferramentas";
 
 /**
  * Barra de navegacao. Fixa no topo porque a dex e uma tela de rolagem longa e
  * voltar pro topo pra trocar de ferramenta e atrito puro.
  *
- * A ferramenta ATIVA e marcada por barra de acento embaixo, nao so por cor —
- * mesma regra das abas.
+ * Ela lista o MESMO registro que a home e os herois (`lib/ferramentas.ts`), e
+ * traz duas coisas que antes ficavam so la dentro: o icone e a cor.
+ *
+ * O icone paga aluguel. Seis palavras curtas em caixa alta, na mesma fonte e no
+ * mesmo tom, viram uma fileira de manchas indistinguiveis — a pessoa le todas
+ * pra achar a que quer. Com a silhueta na frente, "livro / caixa / calculadora /
+ * radar / ovo / espadas" se acha de relance, e a palavra vira confirmacao.
+ *
+ * A cor entra so no estado ATIVO, e e a cor da ferramenta, nao o acento do
+ * tema: a barra de baixo acende laranja na Hunt e rosa no Breeding. E o mesmo
+ * sinal que a faixa de topo da, repetido onde o olho ja estava.
  */
-const LINKS = [
-  { href: "/dex", label: "Pokedex" },
-  { href: "/itens", label: "Itens" },
-  { href: "/calc", label: "Calculadora" },
-  { href: "/hunt", label: "Hunt" },
-  { href: "/breed", label: "Breeding" },
-  { href: "/meta", label: "Meta" },
-];
-
 export function SiteNav() {
   const path = usePathname();
   const [open, setOpen] = useState(false);
 
-  // Nao ha mais "em breve": as seis ferramentas estao no ar. O estado desabilitado
-  // saiu junto — link que nao leva a lugar nenhum e ruido depois que leva.
-  const item = (l: (typeof LINKS)[number], onNav?: () => void) => {
-    const on = path === l.href || path.startsWith(`${l.href}/`);
+  const item = (f: Ferramenta, onNav?: () => void) => {
+    const on = path === f.href || path.startsWith(`${f.href}/`);
+    const Icone = f.Icone;
     return (
       <Link
-        key={l.href}
-        href={l.href}
+        key={f.href}
+        href={f.href}
         onClick={onNav}
+        aria-current={on ? "page" : undefined}
         className={cn(
-          "pix relative flex items-center gap-1.5 px-3 py-2 text-[12px] transition-colors",
-          on ? "text-accent" : "text-text-mute hover:text-text-dim",
+          "pix group relative flex items-center gap-1.5 px-3 py-2 text-[12px] transition-colors",
+          on ? "text-text" : "text-text-mute hover:text-text-dim",
         )}
       >
-        {l.label}
-        {/* Mesma barra que cresce das abas — a navegacao e a mesma leitura. */}
-        <span
+        <Icone
+          size={14}
+          strokeWidth={2.25}
+          aria-hidden="true"
           className={cn(
-            "absolute inset-x-2 -bottom-px h-0.5 origin-center bg-accent transition-transform duration-150 ease-out",
-            on ? "scale-x-100 shadow-[0_0_10px_0_var(--color-accent)]" : "scale-x-0",
+            "shrink-0 transition-transform duration-150 ease-out",
+            // No hover o glifo cresce um degrau. E resposta imediata, antes de
+            // qualquer mudanca de pagina — o link diz que ouviu o ponteiro.
+            "group-hover:-translate-y-px group-hover:scale-110",
           )}
+          // Ativo pinta na cor da ferramenta; parado, herda o tom do texto.
+          style={on ? { color: f.cor } : undefined}
+        />
+        {f.nome}
+        {/* A barra que cresce do centro, na cor da ferramenta. */}
+        <span
+          aria-hidden="true"
+          className={cn(
+            "absolute inset-x-2 -bottom-px h-0.5 origin-center transition-transform duration-150 ease-out",
+            on ? "scale-x-100" : "scale-x-0 group-hover:scale-x-50",
+          )}
+          style={{
+            backgroundColor: f.cor,
+            boxShadow: on ? `0 0 10px 0 ${f.cor}` : undefined,
+          }}
         />
       </Link>
     );
   };
 
   return (
-    <header className="sticky top-0 z-40 border-b border-white/10 bg-bg/45 backdrop-blur-2xl backdrop-saturate-150 shadow-[inset_0_-1px_0_0_rgb(255_255_255/0.04)]">
+    <header className="sticky top-0 z-40 border-b border-white/10 bg-bg/92 backdrop-blur-xl backdrop-saturate-150 shadow-[inset_0_-1px_0_0_rgb(255_255_255/0.04)]">
       <div className="mx-auto flex h-14 w-full max-w-[1600px] items-center gap-1 px-3 sm:px-5">
-        <Link href="/" className="mr-3 flex shrink-0 items-center gap-2">
+        <Link href="/" className="group mr-3 flex shrink-0 items-center gap-2">
           {/* A bola e VERMELHA — ela e uma pokebola, e essa e a unica cor de marca
-              que sobrou depois que o roxo saiu do tema. */}
-          <Pokeball size={26} className="text-[var(--color-t-dex)]" />
+              que sobrou depois que o roxo saiu do tema. Ela BALANCA no hover: a
+              marca e o unico lugar do topo onde cabe uma piscadela. */}
+          <Pokeball
+            size={26}
+            className="text-[var(--color-t-dex)] transition-transform duration-150 group-hover:rotate-12"
+          />
           {/* `normal-case`: a marca e PIWdex — PIW em caixa alta (as iniciais do
               jogo) e "dex" em caixa baixa. O `.pix` poe caixa alta em tudo, entao
               aqui ele e desligado e a palavra vai literal. */}
@@ -67,7 +90,7 @@ export function SiteNav() {
           </span>
         </Link>
 
-        <nav className="hidden items-center md:flex">{LINKS.map((l) => item(l))}</nav>
+        <nav className="hidden items-center md:flex">{FERRAMENTAS.map((f) => item(f))}</nav>
 
         <button
           type="button"
@@ -81,8 +104,8 @@ export function SiteNav() {
       </div>
 
       {open ? (
-        <nav className="anim-rise flex flex-col border-t border-white/10 bg-surface/90 px-3 py-1 backdrop-blur-2xl md:hidden">
-          {LINKS.map((l) => item(l, () => setOpen(false)))}
+        <nav className="anim-rise flex flex-col border-t border-white/10 bg-surface/95 px-3 py-1 backdrop-blur-xl md:hidden">
+          {FERRAMENTAS.map((f) => item(f, () => setOpen(false)))}
         </nav>
       ) : null}
     </header>

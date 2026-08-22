@@ -20,7 +20,7 @@ export function SiteFooter() {
   return (
     // O id nao e enfeite: o balao de apoio observa este elemento pra sumir quando
     // o rodape aparece — os dois pedem a mesma coisa e nao podem se sobrepor.
-    <footer id="rodape" className="mt-10 border-t border-line bg-bg-soft/60">
+    <footer id="rodape" className="mt-10 border-t border-line bg-bg-soft/95">
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-3 px-3 py-6 sm:px-5">
         <FaixaApoio />
         {/* A privacidade tem que ser alcancavel de qualquer pagina — e exigencia

@@ -5,8 +5,7 @@ import { agora, fecharPiso } from "@/lib/pacing";
 import { MetaTool } from "@/components/meta-tool";
 import { HowTo, Panel, SkeletonForm } from "@/components/ui";
 import { COMO_USAR_META } from "@/lib/how-to";
-import { Swords } from "lucide-react";
-import { TituloFerramenta } from "@/components/titulo-ferramenta";
+import { HeroFerramenta, HeroMarca } from "@/components/hero-ferramenta";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/meta" },
@@ -28,13 +27,14 @@ export default async function MetaPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <TituloFerramenta
-        arte="meta"
-        cor="var(--color-t-meta)"
-        reserva={<Swords size={26} strokeWidth={1.8} style={{ color: "var(--color-t-meta)" }} />}
-      >
-        Meta
-      </TituloFerramenta>
+      <HeroFerramenta
+        href="/meta"
+        marcas={
+          <HeroMarca n={mons.length} cor="var(--color-t-meta)">
+            na lista
+          </HeroMarca>
+        }
+      />
 
       <HowTo {...COMO_USAR_META} tint="var(--color-t-meta)" />
 
