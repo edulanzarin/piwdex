@@ -139,6 +139,29 @@ const ITEM_CATEGORY_ICON: Record<ItemCategory, ReturnType<typeof wrap>> = {
   misc: IconMisc,
 };
 
+/**
+ * ARTE pixel por categoria de item — o caminho do PNG, nao o componente.
+ *
+ * Fica como dado (e nao como um componente que ja renderiza) porque este modulo
+ * e de servidor e o `Sprite` e client: exportar o caminho deixa cada tela montar
+ * a arte no tamanho que ela usa, sem arrastar a fronteira de cliente pra ca.
+ *
+ * REGRA DE TAMANHO: esta arte e de FIGURA, de 24px pra cima. Nos slots miudos
+ * (chip de filtro, celula de tabela, 14-16px) o certo continua sendo o icone de
+ * linha acima — pixel art nesse tamanho ja foi tentada neste projeto e reprovada,
+ * e e por isso que o lucide entrou. Ver o cabecalho de scripts/pixel-icons/arte.py.
+ */
+export const ITEM_CATEGORY_ART: Record<ItemCategory, string> = {
+  loot: "/images/icons/item-drop.png",
+  stone: "/images/icons/item-pedra.png",
+  heal: "/images/icons/item-cura.png",
+  revive: "/images/icons/item-reviver.png",
+  clan: "/images/icons/item-cla.png",
+  tm: "/images/icons/item-tm.png",
+  card: "/images/icons/item-carta.png",
+  misc: "/images/icons/item-diverso.png",
+};
+
 export function ItemCategoryIcon({
   category,
   size = 16,

@@ -1,6 +1,6 @@
 import sys
 sys.path.insert(0, ".")
-from draw import Canvas, save
+from draw import Canvas, acabar, save
 
 # Fonte 3x5 — o suficiente pra rotular uma tela sem virar borrao.
 FONTE = {
@@ -18,26 +18,6 @@ def texto(c, s, x, y, ch):
                     if p == "1":
                         c.set(x + i, y + j, ch)
         x += 4
-
-def halo(c, ch="e"):
-    """Halo de acento bem escuro POR FORA do contorno preto — e o que da o
-    neon do pokedex.png sem clarear o icone inteiro."""
-    novos = []
-    for y in range(c.n):
-        for x in range(c.n):
-            if c.px[y][x] != ".":
-                continue
-            for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1), (1, 1), (-1, -1), (1, -1), (-1, 1)):
-                nx, ny = x + dx, y + dy
-                if 0 <= nx < c.n and 0 <= ny < c.n and c.px[ny][nx] == "k":
-                    novos.append((x, y)); break
-    for x, y in novos:
-        c.set(x, y, ch)
-
-def acabar(c):
-    c.outline("k")
-    halo(c)
-    return c
 
 # ---------------------------------------------------------------- ITENS: bau
 def itens():

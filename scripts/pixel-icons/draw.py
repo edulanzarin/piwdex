@@ -21,13 +21,23 @@ BASE = {
 
 # a = cheio, b = brilho, c = sombra do acento, e = tela (acento bem escuro)
 ACCENTS = {
+    # --- uma por ferramenta (a cor que a home ja usa no card) ---
     "itens":       ("#46E08A", "#8CF3BA", "#1E7A4A", "#0E3326"),
-    "calculadora": ("#5B9DFF", "#A6C8FF", "#2A5296", "#0F2murky"),
+    "calculadora": ("#5B9DFF", "#A6C8FF", "#2A5296", "#0F1E38"),
     "hunt":        ("#FFB454", "#FFD79A", "#8F5A17", "#33220A"),
     "breeding":    ("#F472B6", "#FBAFD5", "#8C3468", "#33132A"),
     "meta":        ("#2EE6D6", "#8CF6EC", "#157A72", "#0A2F2E"),
+
+    # --- arte que NAO pertence a uma ferramenta ---
+    # Segue os tokens semanticos do globals.css, nao cor inventada: quem le a arte
+    # ja aprendeu o significado da cor no resto da interface.
+    "dex":     ("#FF5C72", "#FFA3B0", "#8C2434", "#331016"),  # --color-t-dex (a marca)
+    "acento":  ("#A8BFE0", "#DCE8F7", "#4A5A70", "#161C26"),  # --color-accent (institucional)
+    "ok":      ("#46E08A", "#8CF3BA", "#1E7A4A", "#0E3326"),  # --color-ok
+    "aviso":   ("#FFB454", "#FFD79A", "#8F5A17", "#33220A"),  # --color-warn
+    "perigo":  ("#FF5C72", "#FFA3B0", "#8C2434", "#331016"),  # --color-danger
+    "neon":    ("#2EE6D6", "#8CF6EC", "#157A72", "#0A2F2E"),  # --color-neon
 }
-ACCENTS["calculadora"] = ("#5B9DFF", "#A6C8FF", "#2A5296", "#0F1E38")
 
 
 class Canvas:
@@ -128,6 +138,34 @@ class Canvas:
             "pixel_size": pixel_size,
             "pixels": pixels,
         }
+
+
+def halo(c, ch="e"):
+    """Halo de acento bem escuro POR FORA do contorno preto — e o que da o neon do
+    pokedex.png sem clarear o icone inteiro."""
+    novos = []
+    for y in range(c.n):
+        for x in range(c.n):
+            if c.px[y][x] != ".":
+                continue
+            for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1), (1, 1), (-1, -1), (1, -1), (-1, 1)):
+                nx, ny = x + dx, y + dy
+                if 0 <= nx < c.n and 0 <= ny < c.n and c.px[ny][nx] == "k":
+                    novos.append((x, y)); break
+    for x, y in novos:
+        c.set(x, y, ch)
+
+
+def acabar(c):
+    """O acabamento comum a TODA arte do site: contorno preto e halo de acento.
+
+    Vive aqui, e nao no modulo de desenho, porque e o que faz um icone novo
+    pertencer ao mesmo conjunto dos outros — quem desenha escolhe a forma, nao o
+    acabamento.
+    """
+    c.outline("k")
+    halo(c)
+    return c
 
 
 def palette_for(tool):
