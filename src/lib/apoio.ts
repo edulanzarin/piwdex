@@ -6,8 +6,9 @@
 //  1. **Mandar o quanto quiser** por um link de pagamento fixo. Quem decide o valor
 //     e quem paga; o site nao sugere numero nem cria "plano".
 //  2. **Usar o codigo de indicacao no jogo** ao comprar diamante. Nao muda o preco
-//     pra quem compra e volta pro projeto — e por isso ele vem PRIMEIRO na tela:
-//     e o apoio que a maioria consegue dar.
+//     pra quem compra e volta pro projeto — e o apoio que a maioria consegue dar,
+//     entao ele e o que SEMPRE existe: o botao do dinheiro some quando nao ha link,
+//     o do codigo nunca some.
 //
 // Trocar qualquer um dos dois e mexer numa linha aqui. Nenhum componente escreve o
 // codigo nem a URL na mao.

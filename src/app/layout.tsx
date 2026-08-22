@@ -58,12 +58,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           Pular para o conteúdo
         </a>
         <SiteNav />
+        {/* ANTES do conteudo, e nao no fim do documento: a ordem do DOM e a ordem
+            do Tab. Depois do rodape, chegar no X do balao exigia atravessar a
+            pagina inteira — e ao chegar la o rodape entrava em cena e o balao
+            sumia, entao ele era literalmente inalcancavel pelo teclado. Aqui ele
+            fica a dois Tabs da navegacao, e quem so quer o conteudo tem o "pular
+            para o conteudo" como primeiro elemento da pagina. */}
+        <ApoioFlutuante />
         <main id="conteudo" className="mx-auto w-full max-w-[1600px] flex-1 px-3 pb-16 pt-4 sm:px-5">
           {children}
         </main>
         <SiteFooter />
-        {/* Fora do `main` de proposito: ele e fixo na janela, nao conteudo da pagina. */}
-        <ApoioFlutuante />
       </body>
     </html>
   );
