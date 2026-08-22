@@ -123,9 +123,14 @@ export type MovesOf = (pokeId: number) => Move[];
 export type RiskLevel = "safe" | "risky" | "deadly";
 
 /** Cor do risco — token unico (var de tema, serve tanto pra texto quanto pro LED), pra
- *  "letal" ter a mesma cor no planner publico e no painel do robo. */
+ *  "letal" ter a mesma cor em toda tela que fala de risco.
+ *
+ *  Os nomes sao os do piwdex2 (`--color-ok/warn/danger`). Vieram errados no porte, com os
+ *  tokens do piwdex 1 (`--green`, `--yellow`, `--red`), que aqui NAO EXISTEM: `var()` sem
+ *  fallback e cor invalida, entao a propriedade cai pra herdada e "SEGURO" saia branco,
+ *  igualzinho a "LETAL". A tela dizia risco nenhum sem nunca dar erro. */
 export const RISK_COLOR: Record<RiskLevel, string> = {
-  safe: "var(--green)", risky: "var(--yellow)", deadly: "var(--red)",
+  safe: "var(--color-ok)", risky: "var(--color-warn)", deadly: "var(--color-danger)",
 };
 
 /** O outro lado do combate: quanto o wild bate em VOCE. */

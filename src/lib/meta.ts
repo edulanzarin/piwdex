@@ -78,10 +78,12 @@ const TIER_CUTS: Record<MovePool, [Tier, number][]> = {
   tm: [["S", 74], ["A", 65], ["B", 44], ["C", 35], ["D", 27], ["E", -1]],
 };
 
-/** Cor do tier — escada quente->fria, mesma leitura do resto do site. */
+/** Cor do tier — escada quente->fria, mesma leitura do resto do site. Tokens do
+ *  piwdex2: os do piwdex 1 (`--yellow` e companhia) nao existem aqui, e cor invalida
+ *  vira cor herdada — a escada inteira saia branca sem dar erro nenhum. */
 export const TIER_COLOR: Record<Tier, string> = {
-  S: "var(--yellow)", A: "var(--green)", B: "var(--cyan)",
-  C: "var(--blue)", D: "var(--purple)", E: "var(--text-dim)",
+  S: "var(--color-warn)", A: "var(--color-ok)", B: "var(--color-neon)",
+  C: "var(--color-t-calc)", D: "var(--color-t-breed)", E: "var(--color-text-mute)",
 };
 
 export const tierOf = (score: number, pool: MovePool = "natural"): Tier =>
