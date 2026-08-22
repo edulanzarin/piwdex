@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import { Pokeball } from "./pokeball";
 
@@ -87,7 +87,14 @@ export function Sprite({
   return (
     <span
       className={cn("relative grid shrink-0 place-items-center", className)}
-      style={{ width: size, height: size }}
+      /* O tamanho sai por VARIAVEL, nao direto em width/height.
+         Estilo inline vence classe utilitaria, entao com `width: size` cru o
+         chamador nao tinha como encolher a arte numa tela estreita — nem com
+         `!important`. Com a variavel, `size` continua sendo o padrao e quem
+         precisa faz `className="[--sprite:80px] sm:[--sprite:104px]"`. Foi o
+         que destravou o card da home a 320px, onde a arte de 104 mais o botao
+         nao cabiam na mesma linha. */
+      style={{ "--sprite": `${size}px`, width: "var(--sprite)", height: "var(--sprite)" } as CSSProperties}
     >
       {state === "fail" && fallback ? (
         <span className="absolute text-line-strong">{fallback}</span>

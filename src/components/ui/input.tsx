@@ -35,7 +35,9 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
       <input
         ref={ref}
         className={cn(
-          "min-w-0 flex-1 bg-transparent text-[14px] text-text outline-none",
+          // `self-stretch`: ver o comentario do combobox — no `.field` alto do toque o
+          // input ficava com 22px e o campo inteiro nao era area de foco.
+          "min-w-0 flex-1 self-stretch bg-transparent text-[14px] text-text outline-none",
           "placeholder:text-text-mute disabled:cursor-not-allowed",
           className,
         )}

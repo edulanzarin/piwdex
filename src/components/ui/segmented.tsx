@@ -44,7 +44,7 @@ export function Segmented<T extends string>({
         // ganho por breed). O botao ficava com um vao morto a direita — "um tantao pra
         // direita". `inline-flex` nao segura isso; `self-start` segura.
         "inline-flex shrink-0 self-start items-center gap-0.5 rounded-pix border border-line bg-bg-soft p-0.5",
-        size === "sm" ? "h-8" : "h-10",
+        size === "sm" ? "h-8 pointer-coarse:h-12" : "h-10 pointer-coarse:h-12",
         className,
       )}
     >
@@ -60,7 +60,9 @@ export function Segmented<T extends string>({
             onClick={() => onChange(o.value)}
             className={cn(
               "pix inline-flex items-center justify-center gap-1.5 rounded-pix transition-colors",
-              size === "sm" ? "h-full px-2 text-[11px]" : "h-full px-3 text-[12px]",
+              size === "sm"
+                ? "h-full px-2 text-[11px] pointer-coarse:px-4"
+                : "h-full px-3 text-[12px] pointer-coarse:px-5",
               on
                 ? "bg-accent/25 text-accent shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--color-accent)_55%,transparent)]"
                 : "text-text-mute hover:bg-surface-2 hover:text-text-dim",

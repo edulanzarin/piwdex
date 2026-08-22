@@ -27,7 +27,7 @@ export function SiteFooter() {
             de quem serve anuncio, e antes disso e o minimo pra quem le. */}
         <Link
           href="/privacidade"
-          className="pix self-start text-[11px] text-text-mute transition-colors hover:text-accent"
+          className="tap pix self-start text-[11px] text-text-mute transition-colors hover:text-accent"
         >
           Privacidade
         </Link>

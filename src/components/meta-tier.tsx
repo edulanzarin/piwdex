@@ -168,7 +168,7 @@ export function MetaTier({
                     onClick={() =>
                       setAbertas((cur) => (aberta ? cur.filter((x) => x !== tier) : [...cur, tier]))
                     }
-                    className="pix self-center px-3 text-[11px] text-text-mute transition-colors hover:text-accent"
+                    className="tap pix self-center px-3 text-[11px] text-text-mute transition-colors hover:text-accent"
                   >
                     {aberta ? "mostrar menos" : `+${linhas.length - POR_FAIXA} restantes`}
                   </button>

@@ -28,6 +28,7 @@ export function Switch({ label, hint, className, ...props }: SwitchProps) {
         // com dica a caixa cresce (a altura fixa cortaria a segunda linha), mas o
         // piso continua sendo a altura de campo — a fila nao desalinha por causa dela
         hint ? "h-auto min-h-10 items-start py-2" : "items-center",
+        "pointer-coarse:min-h-11",
         props.disabled && "pointer-events-none opacity-40",
         className,
       )}

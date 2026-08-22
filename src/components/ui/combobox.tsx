@@ -101,7 +101,11 @@ export function Combobox<T extends string | number>({
             placeholder={selected?.label ?? placeholder}
             onChange={(e) => setQ(e.target.value)}
             onKeyDown={onKey}
-            className="min-w-0 flex-1 bg-transparent text-[14px] text-text outline-none placeholder:text-text-mute"
+            /* `self-stretch`: dentro do `.field` (2,75rem no toque) o input media so 22px de
+               altura, porque `align-items: center` centraliza sem esticar. Tocar a
+               folga do campo nao foca um input — so um <label> faria isso —, entao o
+               alvo real era 22px, abaixo do piso duro de 24 da WCAG 2.2 AA. */
+            className="min-w-0 flex-1 self-stretch bg-transparent text-[14px] text-text outline-none placeholder:text-text-mute"
           />
         ) : (
           <span className={cn("min-w-0 flex-1 truncate text-[14px]", !selected && "text-text-mute")}>

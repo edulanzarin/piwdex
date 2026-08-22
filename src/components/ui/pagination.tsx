@@ -57,7 +57,7 @@ export function Pagination({
             variant={p === page ? "primary" : "ghost"}
             aria-current={p === page ? "page" : undefined}
             onClick={() => onChange(p)}
-            className="min-w-7 px-1.5 tabular"
+            className="min-w-7 px-1.5 tabular pointer-coarse:min-w-11"
           >
             {p + 1}
           </Button>

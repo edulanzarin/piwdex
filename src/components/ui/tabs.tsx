@@ -37,6 +37,8 @@ export function Tabs<T extends string>({
             onClick={() => onChange(t.value)}
             className={cn(
               "pix relative flex shrink-0 items-center gap-1.5 px-3 py-2 text-[12px] transition-colors",
+              // no dedo a aba ganha altura de alvo; no mouse segue rente ao trilho
+              "pointer-coarse:min-h-11 pointer-coarse:px-4",
               "disabled:pointer-events-none disabled:opacity-40",
               on ? "text-accent" : "text-text-mute hover:text-text-dim",
             )}

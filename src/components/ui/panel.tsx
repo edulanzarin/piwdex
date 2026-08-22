@@ -36,8 +36,13 @@ export function Panel({
       className={cn("panel relative", raised && "bg-surface-2/90", scan && "scanline", className)}
       {...props}
     >
+      {/* `flex-wrap` no cabecalho: a linha nao podia quebrar, entao numa tela de
+          320px o botao de acao ("limpar") saia pela direita e levava a PAGINA
+          inteira junto. O piso de alvo de toque piorou isso — o botao passou de 64
+          pra 72px —, o que so expos que a linha ja era rigida demais. Titulo em
+          cima, acoes embaixo, quando nao couber lado a lado. */}
       {(title || actions) && (
-        <header className="flex min-h-9 items-center justify-between gap-3 border-b border-line px-3 py-2">
+        <header className="flex min-h-9 flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b border-line px-3 py-2">
           {title ? <h2 className="pix text-[12px] text-text-dim">{title}</h2> : <span />}
           {actions ? <div className="flex items-center gap-1.5">{actions}</div> : null}
         </header>

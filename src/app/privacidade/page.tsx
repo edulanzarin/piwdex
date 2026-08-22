@@ -124,7 +124,7 @@ export default function PrivacidadePage() {
         </div>
       </Panel>
 
-      <Link href="/" className="pix text-[11px] text-text-mute transition-colors hover:text-accent">
+      <Link href="/" className="tap pix text-[11px] text-text-mute transition-colors hover:text-accent">
         voltar para a home
       </Link>
     </div>

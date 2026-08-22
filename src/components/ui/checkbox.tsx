@@ -24,6 +24,9 @@ export function Checkbox({ label, indeterminate, tint, boxed, className, ...prop
     <label
       className={cn(
         "group flex cursor-pointer select-none items-center gap-2 rounded-pix px-1.5 py-1",
+        // O quadradinho tem 16px e nunca vai crescer — quem carrega o toque e a
+        // LINHA inteira (label incluso), que ja e o alvo de clique do <label>.
+        "pointer-coarse:min-h-11 pointer-coarse:px-2",
         "text-[14px] text-text-dim transition-colors hover:bg-surface-2 hover:text-text",
         boxed && "field w-auto whitespace-nowrap hover:bg-[color-mix(in_oklab,var(--color-bg-soft)_66%,transparent)]",
         props.disabled && "pointer-events-none opacity-40",

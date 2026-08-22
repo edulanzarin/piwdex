@@ -4,9 +4,17 @@ import { useId, useRef, useState, type ReactNode } from "react";
 import { Popover } from "./popover";
 
 /**
- * Dica. Abre no hover E no foco (teclado nao tem hover), e o conteudo NUNCA
- * carrega informacao que exista so ali — dica e reforco, nao esconderijo de
- * dado: em toque, hover nao existe.
+ * Dica. Abre no hover, no foco E no TOQUE.
+ *
+ * A regra de conteudo continua valendo: o que esta aqui e reforco, nunca dado
+ * que exista so aqui. Mas "em toque hover nao existe" era uma constatacao, nao
+ * uma solucao — na ficha de especie a dica de chance de drop ficava literalmente
+ * inalcancavel no celular, e o gatilho tinha 22px de altura, abaixo ate do piso
+ * duro de 24 da WCAG.
+ *
+ * O toque so ENTRA onde o hover nao chega: `pointer: coarse`. No mouse, clique
+ * que fecha uma dica que o proprio ponteiro esta mantendo aberta seria briga
+ * entre dois gestos pela mesma acao.
  */
 export function Tooltip({
   content,
@@ -26,6 +34,10 @@ export function Tooltip({
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => setOpen(true), delay);
   };
+  /** Dedo: nao ha hover, entao o toque alterna. Consultado na hora e nao guardado
+   *  em estado porque o servidor nao sabe qual e o apontador — decidir isso na
+   *  renderizacao daria HTML diferente do que o cliente monta. */
+  const noDedo = () => typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches;
   const hide = () => {
     if (timer.current) clearTimeout(timer.current);
     setOpen(false);
@@ -37,11 +49,12 @@ export function Tooltip({
         ref={anchor}
         tabIndex={0}
         aria-describedby={open ? id : undefined}
-        onPointerEnter={show}
-        onPointerLeave={hide}
-        onFocus={show}
+        onPointerEnter={() => { if (!noDedo()) show(); }}
+        onPointerLeave={() => { if (!noDedo()) hide(); }}
+        onClick={() => { if (noDedo()) (open ? hide() : setOpen(true)); }}
+        onFocus={() => { if (!noDedo()) show(); }}
         onBlur={hide}
-        className="inline-flex cursor-help items-center rounded-pix"
+        className="tap inline-flex cursor-help items-center rounded-pix"
       >
         {children}
       </span>

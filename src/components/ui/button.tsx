@@ -33,10 +33,19 @@ const VARIANT: Record<Variant, string> = {
     "active:bg-danger/30",
 };
 
+/**
+ * O degrau vale pro MOUSE; no dedo ele sobe.
+ *
+ * `pointer-coarse` e a pergunta certa — "quem aponta e um dedo?" —, nao a
+ * largura da janela: desktop com a janela estreita continua no mouse e nao
+ * precisa de 44px, tablet grande com toque precisa. O enum continua fechado (o
+ * chamador nao escolhe altura); o que muda e o valor de cada degrau por
+ * apontador, e isso vive AQUI, num lugar so.
+ */
 const SIZE: Record<Size, string> = {
-  sm: "h-7 px-2 text-[13px] gap-1.5",
-  md: "h-8 px-3 text-[14px] gap-2",
-  lg: "h-10 px-4 text-[15px] gap-2",
+  sm: "h-7 px-2 text-[13px] gap-1.5 pointer-coarse:h-11 pointer-coarse:px-3",
+  md: "h-8 px-3 text-[14px] gap-2 pointer-coarse:h-11 pointer-coarse:px-4",
+  lg: "h-10 px-4 text-[15px] gap-2 pointer-coarse:h-12 pointer-coarse:px-5",
 };
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -98,7 +107,13 @@ export interface IconButtonProps extends Omit<ButtonProps, "iconLeft" | "iconRig
 }
 
 export function IconButton({ label, size = "md", className, children, ...props }: IconButtonProps) {
-  const square = { sm: "w-8", md: "w-9", lg: "w-11" }[size];
+  // Quadrado do mesmo degrau — e no toque ele acompanha a altura, senao o botao
+  // de fechar do modal fica 32x44: alto o bastante e estreito demais.
+  const square = {
+    sm: "w-8 pointer-coarse:w-11",
+    md: "w-9 pointer-coarse:w-11",
+    lg: "w-11 pointer-coarse:w-12",
+  }[size];
   return (
     <Button
       size={size}

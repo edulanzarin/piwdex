@@ -386,14 +386,25 @@ function DexToolbar({
         {catalog.live ? "AO VIVO" : "SNAPSHOT"}
       </Chip>
 
-      <div className="ml-auto flex items-center gap-1.5">
+      {/* No celular este grupo vazava a tela: o Select travado em `w-60` (240px)
+          mais o botao de ordem e o segmented somam 414px, e a linha util de um
+          390 com padding e 366. Como o pai ja e `flex-wrap`, o grupo INTEIRO
+          descia junto e continuava com 414 — quebrar DENTRO do grupo e o que
+          resolve. No estreito ele vira faixa de largura cheia; do `sm` pra cima
+          volta a ser o bloco a direita de sempre.
+
+          Nao era so respingo de barra: com a pagina 40px mais larga que a janela,
+          o overlay `fixed` do modal passava a centrar nos 430 e a gaveta de
+          filtros abria deslocada, saindo pela direita. Um defeito alimentava o
+          outro. */}
+      <div className="flex w-full flex-wrap items-center gap-1.5 sm:ml-auto sm:w-auto sm:flex-nowrap">
         <Select
           aria-label="Ordenar por"
           prefix="ordem"
           value={state.sort}
           onChange={onSort}
           options={SORT_OPTIONS}
-          className="w-60"
+          className="w-full min-w-0 flex-1 sm:w-60 sm:flex-none"
         />
         <Button
           size="sm"
