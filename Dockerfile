@@ -11,6 +11,18 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
+
+# AdSense: `NEXT_PUBLIC_*` e INLINADO no bundle durante o build, entao o id tem
+# que estar aqui — passar por `environment:` no compose e tarde demais, o codigo
+# do cliente ja foi gerado. Sem os args, a checagem vira codigo morto e o site
+# sai sem anuncio nenhum, que e o padrao certo.
+ARG NEXT_PUBLIC_ADSENSE_CLIENT=""
+ARG NEXT_PUBLIC_ADSENSE_SLOT_GRADE=""
+ARG NEXT_PUBLIC_ADSENSE_SLOT_RODAPE=""
+ENV NEXT_PUBLIC_ADSENSE_CLIENT=$NEXT_PUBLIC_ADSENSE_CLIENT \
+    NEXT_PUBLIC_ADSENSE_SLOT_GRADE=$NEXT_PUBLIC_ADSENSE_SLOT_GRADE \
+    NEXT_PUBLIC_ADSENSE_SLOT_RODAPE=$NEXT_PUBLIC_ADSENSE_SLOT_RODAPE
+
 RUN npm run build
 
 FROM node:22-alpine AS runner

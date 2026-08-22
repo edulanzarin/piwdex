@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { FaixaApoio } from "@/components/apoio";
 
 /**
@@ -20,8 +21,16 @@ export function SiteFooter() {
     // O id nao e enfeite: o balao de apoio observa este elemento pra sumir quando
     // o rodape aparece — os dois pedem a mesma coisa e nao podem se sobrepor.
     <footer id="rodape" className="mt-10 border-t border-line bg-bg-soft/60">
-      <div className="mx-auto w-full max-w-5xl px-3 py-6 sm:px-5">
+      <div className="mx-auto flex w-full max-w-5xl flex-col gap-3 px-3 py-6 sm:px-5">
         <FaixaApoio />
+        {/* A privacidade tem que ser alcancavel de qualquer pagina — e exigencia
+            de quem serve anuncio, e antes disso e o minimo pra quem le. */}
+        <Link
+          href="/privacidade"
+          className="pix self-start text-[11px] text-text-mute transition-colors hover:text-accent"
+        >
+          Privacidade
+        </Link>
       </div>
     </footer>
   );

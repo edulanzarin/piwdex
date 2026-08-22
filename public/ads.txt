@@ -1,0 +1,10 @@
+# ads.txt do piwdex — declara quem pode vender o inventario deste site.
+#
+# Enquanto estiver so com comentario, o arquivo nao autoriza ninguem: e o estado
+# certo pra quem ainda nao tem conta. Ao criar a conta no AdSense, troque a linha
+# abaixo pelo seu publisher id (o mesmo `ca-pub-...`, sem o `ca-`) e publique:
+#
+# google.com, pub-0000000000000000, DIRECT, f08c47fec0942fa0
+#
+# O id tambem entra em `src/lib/ads.ts`. Os dois precisam bater — o AdSense
+# recusa o site quando o ads.txt nao declara a conta que serve os anuncios.

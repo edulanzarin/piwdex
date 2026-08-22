@@ -8,7 +8,14 @@
 
 services:
   app:
-    build: .
+    build:
+      context: .
+      # O id do AdSense entra no BUILD (o Next inlina `NEXT_PUBLIC_*` no bundle);
+      # vazio aqui = imagem sem anuncio nenhum.
+      args:
+        NEXT_PUBLIC_ADSENSE_CLIENT: ${NEXT_PUBLIC_ADSENSE_CLIENT:-}
+        NEXT_PUBLIC_ADSENSE_SLOT_GRADE: ${NEXT_PUBLIC_ADSENSE_SLOT_GRADE:-}
+        NEXT_PUBLIC_ADSENSE_SLOT_RODAPE: ${NEXT_PUBLIC_ADSENSE_SLOT_RODAPE:-}
     container_name: piwdex2-app
     restart: unless-stopped
     # Porta interna constante (3000), externa por variavel.

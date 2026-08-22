@@ -41,6 +41,8 @@ import {
   ItemCategoryIcon,
 } from "@/components/game-icons";
 import { ITEM_CATEGORY_LABEL, ITEM_ORIGIN_LABEL, compact } from "@/lib/labels";
+import { CardAnuncio } from "@/components/anuncio";
+import { ehAnuncio, intercalar } from "@/lib/ads";
 
 /**
  * A tela de Itens.
@@ -261,9 +263,13 @@ export function ItemsBrowser({
           </Panel>
         ) : state.view === "grid" ? (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5">
-            {shown.map((e, i) => (
-              <ItemCard key={e.id} e={e} index={i} priority={i < 10} />
-            ))}
+            {intercalar(shown).map((e, i) =>
+              ehAnuncio(e) ? (
+                <CardAnuncio key={`anuncio-${e.ordem}`} />
+              ) : (
+                <ItemCard key={e.id} e={e} index={i} priority={i < 10} />
+              ),
+            )}
           </div>
         ) : (
           <Panel bodyClassName="p-0">

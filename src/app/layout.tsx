@@ -1,8 +1,11 @@
 import type { Metadata, Viewport } from "next";
 import { Quantico } from "next/font/google";
+import Script from "next/script";
 import { SiteNav } from "@/components/site-nav";
 import { SiteFooter } from "@/components/site-footer";
 import { ApoioFlutuante } from "@/components/apoio";
+import { ADSENSE_CLIENT, temAnuncios } from "@/lib/ads";
+import { Anuncio } from "@/components/anuncio";
 import "./globals.css";
 
 /**
@@ -34,6 +37,7 @@ export const metadata: Metadata = {
   description:
     "Pokédex completa do Poke Idle World: filtro por tipo, raridade, fraqueza, " +
     "drop e faixa de nível, com stats, golpes, locais de caça e índice reverso de itens.",
+  ...(temAnuncios() ? { other: { "google-adsense-account": ADSENSE_CLIENT } } : {}),
 };
 
 export const viewport: Viewport = {
@@ -47,6 +51,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       {/* flex-col + `main` que cresce: o rodape encosta no fim da JANELA quando a
           pagina e curta, em vez de subir e deixar uma faixa de fundo embaixo dele. */}
       <body className="flex min-h-dvh flex-col antialiased">
+        {/* O script do AdSense so entra quando existe conta: sem id, a pagina nao
+            carrega um kilobyte de terceiro nem abre conexao pra rede de anuncio.
+            `afterInteractive` porque ele nao pode disputar a rede com o catalogo,
+            que e o que a pessoa veio buscar. */}
+        {temAnuncios() ? (
+          <Script
+            id="adsense"
+            strategy="afterInteractive"
+            crossOrigin="anonymous"
+            src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT}`}
+          />
+        ) : null}
         {/* Pular pro conteudo: quem navega por teclado nao deve atravessar o
             trilho de filtro inteiro pra chegar na lista. */}
         <a
@@ -68,6 +84,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <main id="conteudo" className="mx-auto w-full max-w-[1600px] flex-1 px-3 pb-16 pt-4 sm:px-5">
           {children}
         </main>
+        {/* A faixa antes do rodape: e o unico lugar FIXO do site. Nada de anuncio
+            dentro de painel de ferramenta — ali o numero ao lado e resultado de
+            calculo, e anuncio colado em dado e o jeito mais rapido de fazer a
+            pessoa clicar sem querer (e de perder a conta por isso). */}
+        <div className="mx-auto w-full max-w-5xl px-3 sm:px-5">
+          <Anuncio lugar="rodape" minH={100} rotulo />
+        </div>
         <SiteFooter />
       </body>
     </html>

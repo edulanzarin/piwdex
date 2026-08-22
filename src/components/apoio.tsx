@@ -127,10 +127,16 @@ function fechadoRecentemente(): boolean {
  *    por cima do outro e o site pedindo duas vezes na mesma tela — e ainda tapando
  *    o proprio botao que ele quer que a pessoa clique. Sumir aqui NAO e dispensar:
  *    rolou pra cima de novo, ele volta.
+ * 5. **Ele nunca cobre um anuncio.** "Conteudo que encobre total ou parcialmente
+ *    anuncios veiculados pelo Google" e violacao de politica, e vale mesmo por um
+ *    instante — entao o balao mede a propria area contra a de cada anuncio na
+ *    tela e sai da frente. Sem anuncio configurado, nada disso roda.
  */
 export function ApoioFlutuante() {
   const [visivel, setVisivel] = useState(false);
   const [noRodape, setNoRodape] = useState(false);
+  const [sobreAnuncio, setSobreAnuncio] = useState(false);
+  const caixa = useRef<HTMLElement>(null);
   // Dispensado nesta sessao. Precisa ser REF e nao estado: o listener de rolagem
   // fecha sobre o valor do primeiro render, entao com estado ele continuaria
   // enxergando "nao dispensado" e o balao voltava no primeiro scroll depois do X.
@@ -177,6 +183,34 @@ export function ApoioFlutuante() {
     return () => obs.disconnect();
   }, []);
 
+  // Anuncio na frente: o balao sai. Aqui a conta e de RETANGULO e nao de
+  // interseccao com a janela — um anuncio no topo da tela nao atrapalha um balao
+  // no canto de baixo, e esconder o pedido a toa seria pagar caro por nada.
+  useEffect(() => {
+    if (!visivel) return;
+    const medir = () => {
+      const eu = caixa.current?.getBoundingClientRect();
+      if (!eu) return;
+      const anuncios = document.querySelectorAll<HTMLElement>("[data-anuncio]");
+      let bate = false;
+      anuncios.forEach((a) => {
+        const r = a.getBoundingClientRect();
+        if (r.width === 0 || r.height === 0) return;
+        if (r.left < eu.right && r.right > eu.left && r.top < eu.bottom && r.bottom > eu.top) {
+          bate = true;
+        }
+      });
+      setSobreAnuncio(bate);
+    };
+    medir();
+    window.addEventListener("scroll", medir, { passive: true });
+    window.addEventListener("resize", medir);
+    return () => {
+      window.removeEventListener("scroll", medir);
+      window.removeEventListener("resize", medir);
+    };
+  }, [visivel]);
+
   const fechar = () => {
     dispensado.current = true;
     setVisivel(false);
@@ -188,12 +222,24 @@ export function ApoioFlutuante() {
     }
   };
 
-  if (!visivel || noRodape) return null;
+  if (!visivel) return null;
+
+  // Escondido NAO e desmontado: a medicao precisa da caixa pra saber quando o
+  // anuncio saiu da frente. `visibility` guarda o retangulo (ao contrario de
+  // `display: none`), e `inert` tira o conteudo do teclado e do leitor de tela
+  // enquanto ele estiver invisivel.
+  const escondido = noRodape || sobreAnuncio;
 
   return (
     <aside
+      ref={caixa}
       aria-label="Apoiar o piwdex"
-      className="anim-rise fixed inset-x-3 bottom-3 z-30 sm:inset-x-auto sm:right-5 sm:bottom-5 sm:w-[22rem]"
+      aria-hidden={escondido || undefined}
+      inert={escondido || undefined}
+      className={cn(
+        "anim-rise fixed inset-x-3 bottom-3 z-30 sm:inset-x-auto sm:right-5 sm:bottom-5 sm:w-[22rem]",
+        escondido && "invisible pointer-events-none",
+      )}
     >
       {/* `.pop` e nao `.panel`: painel e a superficie de CONTEUDO (vidro arejado, pra
           deixar o wallpaper passar). O balao flutua POR CIMA da pagina — sobre a grade

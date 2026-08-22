@@ -31,6 +31,8 @@ import {
   type SelectOption,
 } from "@/components/ui";
 import { DexFilters } from "@/components/dex-filters";
+import { CardAnuncio } from "@/components/anuncio";
+import { ehAnuncio, intercalar } from "@/lib/ads";
 import { PokeCard, PokeRow } from "@/components/poke-card";
 import { IconGem, IconScale, IconTarget, IconTm, IconXp, IconBag, IconLevel, STAT_ICONS } from "@/components/game-icons";
 import { ACQ_LABEL, RARITY_LABEL, REGION_LABEL, STAGE_LABEL, TYPE_LABEL } from "@/lib/labels";
@@ -203,15 +205,22 @@ export function DexBrowser({
           </Panel>
         ) : state.view === "grid" ? (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
-            {shown.map((e, i) => (
-              <PokeCard
-                key={e.id}
-                e={e}
-                ceiling={bounds.statCeiling}
-                priority={i < 10}
-                index={i}
-              />
-            ))}
+            {/* `null` no meio da lista e um lugar de anuncio (ver `lib/ads.ts`).
+                Ele ocupa uma celula da grade como qualquer card — o que nao pode
+                e PARECER um card de pokemon; disso cuida o `CardAnuncio`. */}
+            {intercalar(shown).map((e, i) =>
+              ehAnuncio(e) ? (
+                <CardAnuncio key={`anuncio-${e.ordem}`} />
+              ) : (
+                <PokeCard
+                  key={e.id}
+                  e={e}
+                  ceiling={bounds.statCeiling}
+                  priority={i < 10}
+                  index={i}
+                />
+              ),
+            )}
           </div>
         ) : (
           <Panel bodyClassName="p-0">
