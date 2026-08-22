@@ -38,7 +38,12 @@ export function Segmented<T extends string>({
       className={cn(
         // A altura e a MESMA do `.field` (2.5rem): segmentado e campo dividem fila
         // em toda tela de filtro, e 8px de diferenca sao os 8px que o olho pega.
-        "inline-flex shrink-0 items-center gap-0.5 rounded-pix border border-line bg-bg-soft p-0.5",
+        //
+        // `self-start`: dentro de uma coluna flex o padrao e `align-self: stretch`, e
+        // a casca esticava ate a largura do irmao mais largo (no breeding, a frase de
+        // ganho por breed). O botao ficava com um vao morto a direita — "um tantao pra
+        // direita". `inline-flex` nao segura isso; `self-start` segura.
+        "inline-flex shrink-0 self-start items-center gap-0.5 rounded-pix border border-line bg-bg-soft p-0.5",
         size === "sm" ? "h-8" : "h-10",
         className,
       )}

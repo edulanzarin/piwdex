@@ -36,6 +36,7 @@ import {
   Button,
   Chip,
   Combobox,
+  Field,
   FieldLabel,
   IconCheck,
   IconClose,
@@ -365,8 +366,14 @@ export function BreedTool({ especies }: { especies: BreedSpecies[] }) {
       {/* ============================ o modo ============================ */}
       <Panel title={<span className="pix">Como vai ser o breed</span>}>
         <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="flex flex-col gap-2">
-            <FieldLabel>Modo</FieldLabel>
+          <Field
+            label="Modo"
+            hint={
+              s.mode === "free"
+                ? `+${expectedGain("free").toFixed(4)} de Quality por breed, em média`
+                : `+${expectedGain("pheromone").toFixed(4)} por breed, ao custo de 9 Pheromones`
+            }
+          >
             <Segmented
               aria-label="Modo de breeding"
               value={s.mode}
@@ -376,12 +383,7 @@ export function BreedTool({ especies }: { especies: BreedSpecies[] }) {
                 { value: "pheromone", label: "Pheromone", title: "Gasta 9 Strange Pheromones" },
               ]}
             />
-            <span className="text-[13px] text-text-mute">
-              {s.mode === "free"
-                ? `+${expectedGain("free").toFixed(4)} de Quality por breed, em média`
-                : `+${expectedGain("pheromone").toFixed(4)} por breed, ao custo de 9 Pheromones`}
-            </span>
-          </div>
+          </Field>
 
           <div className="flex flex-col gap-2">
             <FieldLabel className="flex items-center gap-1.5">

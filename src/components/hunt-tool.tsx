@@ -325,7 +325,6 @@ export function HuntTool({ payload }: { payload: HuntPayload }) {
 
               <Field>
                 <Switch
-                  boxed
                   checked={s.vip}
                   onChange={(e) => patch({ vip: e.currentTarget.checked, page: 0 })}
                   label="VIP (+50% de XP)"
