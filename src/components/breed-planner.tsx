@@ -59,6 +59,12 @@ export function BreedPlanner({
     [base, target],
   );
 
+  // O aviso de desperdicio muda de texto conforme o alvo SEJA o teto ou apenas
+  // esteja a menos de um sorteio dele: no primeiro caso a sobra inteira se perde,
+  // no segundo so a parte que passa de 2.600.
+  const alvoNoTeto =
+    plano != null && plano.cap != null && plano.effectiveTarget >= plano.cap - 1e-9;
+
   return (
     <Panel
       title={<span className="flex items-center gap-2"><IconTarget size={16} />Planejador de Quality</span>}
@@ -141,8 +147,20 @@ export function BreedPlanner({
             ) : null}
 
             <div className="grid gap-3 lg:grid-cols-2">
-              <LinhaModo plano={plano.free} delta={plano.delta} atual={mode === "free"} tint="var(--color-t-calc)" />
-              <LinhaModo plano={plano.pheromone} delta={plano.delta} atual={mode === "pheromone"} tint="var(--color-t-breed)" />
+              <LinhaModo
+                plano={plano.free}
+                delta={plano.delta}
+                atual={mode === "free"}
+                alvoNoTeto={alvoNoTeto}
+                tint="var(--color-t-calc)"
+              />
+              <LinhaModo
+                plano={plano.pheromone}
+                delta={plano.delta}
+                atual={mode === "pheromone"}
+                alvoNoTeto={alvoNoTeto}
+                tint="var(--color-t-breed)"
+              />
             </div>
 
             <Note flush>
@@ -161,11 +179,13 @@ function LinhaModo({
   plano,
   delta,
   atual,
+  alvoNoTeto,
   tint,
 }: {
   plano: ModePlan;
   delta: number;
   atual: boolean;
+  alvoNoTeto: boolean;
   tint: string;
 }) {
   const { dist } = plano;
@@ -267,8 +287,18 @@ function LinhaModo({
         )}
         {plano.capWaste ? (
           <Note tone="warn" flush>
-            O último sorteio passa do alvo em {q3(dist.sobra)} de Quality, em média — no
-            pokémon normal isso bate no teto e é dinheiro jogado fora.
+            {alvoNoTeto ? (
+              <>
+                O alvo É o teto: o último sorteio passa dele em {q3(dist.sobra)} de Quality,
+                em média, e no pokémon normal essa sobra morre em {q3(QUALITY_MAX_NORMAL)} —
+                é dinheiro jogado fora.
+              </>
+            ) : (
+              <>
+                O alvo está a menos de um sorteio do teto: os ganhos altos do último breed
+                passam de {q3(QUALITY_MAX_NORMAL)}, e o que passa do teto não conta.
+              </>
+            )}
           </Note>
         ) : null}
       </div>

@@ -92,7 +92,8 @@ export interface BreedsDist {
  * Cadeia absorvente: o estado é quanto já se acumulou (0..need-1) e a absorção é
  * "chegou". `P(N = n)` é o que cai na absorção no passo n, então mediana, p90 e
  * média saem da mesma varredura — junto com a SOBRA, que é o quanto o último
- * sorteio passa do alvo (no normal, é exatamente o que o teto 2.600 engole).
+ * sorteio passa do ALVO. Passar do alvo só custa alguma coisa quando o alvo está
+ * colado no teto 2.600; quem decide isso é `modePlan`, não esta função.
  */
 export function breedsDist(deltaMil: number, mode: BreedMode): BreedsDist {
   const { unidade, passos, media: mu, variancia } = passosDe(mode);
@@ -184,7 +185,7 @@ export interface ModePlan {
   parents: [number, number];
   /** chance de o filho AINDA casar com um parceiro na Quality de agora */
   compatChance: number;
-  /** o teto 2.600 engole a sobra do último sorteio */
+  /** o alvo está perto o bastante do teto pra sobra do último sorteio bater nele */
   capWaste: boolean;
 }
 
@@ -202,7 +203,12 @@ export interface BreedPlan {
   pheromone: ModePlan;
 }
 
-function modePlan(deltaMil: number, mode: BreedMode, temTeto: boolean): ModePlan {
+function modePlan(
+  deltaMil: number,
+  mode: BreedMode,
+  effectiveTarget: number,
+  cap: number | null,
+): ModePlan {
   const dist = breedsDist(deltaMil, mode);
   const tiers = tiersFor(mode);
   // Um filho que sobe mais de 0.150 acima do parceiro fica ÓRFÃO: não existe par
@@ -212,6 +218,16 @@ function modePlan(deltaMil: number, mode: BreedMode, temTeto: boolean): ModePlan
   const compatChance = tiers
     .filter((t) => t.gain <= QUALITY_DIFF_MAX + 1e-9)
     .reduce((s, t) => s + t.prob, 0);
+  // Transbordo só é DESPERDÍCIO quando passa do TETO — passar do alvo, por si, não
+  // custa nada. A regra antiga era `temTeto && dist.sobra > 0`, e `sobra` é a esperança
+  // do transbordo do ÚLTIMO sorteio: ela é > 0 em praticamente todo plano, então o
+  // aviso amarelo saía até com o alvo 1.4 de Quality ABAIXO do teto, onde a sobra é
+  // ganho de graça. Aviso que dispara sempre não é aviso: é ruído que ensina a ignorar
+  // o amarelo. O último sorteio pousa em [alvo, alvo + maiorGanho) — parte de menos que
+  // o alvo e soma um ganho —, logo só há o que perder se essa faixa cruza o teto. Com o
+  // alvo NO teto isso vale sempre, que é o caso que o aviso existia pra pegar.
+  const maiorGanho = Math.max(...tiers.map((t) => t.gain));
+  const capWaste = cap != null && effectiveTarget + maiorGanho > cap + 1e-9 && dist.sobra > 0;
   return {
     mode,
     dist,
@@ -223,7 +239,7 @@ function modePlan(deltaMil: number, mode: BreedMode, temTeto: boolean): ModePlan
         : [0, 0],
     parents: [dist.p50 + 1, dist.p90 + 1],
     compatChance: round4(compatChance),
-    capWaste: temTeto && dist.sobra > 0,
+    capWaste,
   };
 }
 
@@ -232,7 +248,6 @@ export function planBreeding(base: number, target: number, shiny: boolean): Bree
   const cap = shiny ? null : QUALITY_MAX_NORMAL;
   const effectiveTarget = cap != null ? Math.min(target, cap) : target;
   const deltaMil = Math.max(0, milesimos(effectiveTarget) - milesimos(base));
-  const temTeto = cap != null;
   return {
     base: round3(base),
     target: round3(target),
@@ -241,8 +256,8 @@ export function planBreeding(base: number, target: number, shiny: boolean): Bree
     delta: round3(deltaMil / MIL),
     reached: deltaMil <= 0,
     overCap: cap != null && target > cap + 1e-9,
-    free: modePlan(deltaMil, "free", temTeto),
-    pheromone: modePlan(deltaMil, "pheromone", temTeto),
+    free: modePlan(deltaMil, "free", effectiveTarget, cap),
+    pheromone: modePlan(deltaMil, "pheromone", effectiveTarget, cap),
   };
 }
 
