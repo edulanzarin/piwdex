@@ -1,6 +1,6 @@
 "use client";
 
-import type { ButtonHTMLAttributes, ReactNode } from "react";
+import type { AnchorHTMLAttributes, ButtonHTMLAttributes, ReactNode } from "react";
 import { cn } from "@/lib/cn";
 
 /**
@@ -50,6 +50,22 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   block?: boolean;
 }
 
+/** A casca do botao, sem o elemento. Existe pra o `ButtonLink` nao copiar a lista
+ *  de classes: botao e link que parecem iguais TEM que ser a mesma casca, senao um
+ *  dos dois envelhece sozinho. */
+function shell(variant: Variant, size: Size, block?: boolean, className?: string) {
+  return cn(
+    "inline-flex select-none items-center justify-center whitespace-nowrap rounded-none",
+    "border font-medium uppercase tracking-wide transition-colors",
+    "disabled:pointer-events-none disabled:opacity-40",
+    "data-[active]:bg-accent/25 data-[active]:text-accent data-[active]:border-accent/70",
+    SIZE[size],
+    VARIANT[variant],
+    block && "w-full",
+    className,
+  );
+}
+
 export function Button({
   variant = "outline",
   size = "md",
@@ -66,16 +82,7 @@ export function Button({
     <button
       type={type}
       data-active={active || undefined}
-      className={cn(
-        "inline-flex select-none items-center justify-center whitespace-nowrap rounded-none",
-        "border font-medium uppercase tracking-wide transition-colors",
-        "disabled:pointer-events-none disabled:opacity-40",
-        "data-[active]:bg-accent/25 data-[active]:text-accent data-[active]:border-accent/70",
-        SIZE[size],
-        VARIANT[variant],
-        block && "w-full",
-        className,
-      )}
+      className={shell(variant, size, block, className)}
       {...props}
     >
       {iconLeft}
@@ -102,5 +109,49 @@ export function IconButton({ label, size = "md", className, children, ...props }
     >
       {children}
     </Button>
+  );
+}
+
+/**
+ * O mesmo botao, mas e um LINK.
+ *
+ * Nao e preciosismo semantico: navegacao que nasce de `<button onClick>` perde o
+ * "abrir em nova aba", o menu de contexto, o atalho do teclado e o rastro que o
+ * leitor de tela le. E um link de saida (pagamento, jogo) e exatamente o caso em
+ * que a pessoa vai querer abrir noutra aba.
+ *
+ * `external` liga `target="_blank"` com o `rel` que fecha a brecha do
+ * `window.opener` — a aba nova nao pode ganhar controle da nossa.
+ */
+export interface ButtonLinkProps extends AnchorHTMLAttributes<HTMLAnchorElement> {
+  variant?: Variant;
+  size?: Size;
+  iconLeft?: ReactNode;
+  iconRight?: ReactNode;
+  block?: boolean;
+  external?: boolean;
+}
+
+export function ButtonLink({
+  variant = "outline",
+  size = "md",
+  iconLeft,
+  iconRight,
+  block,
+  external,
+  className,
+  children,
+  ...props
+}: ButtonLinkProps) {
+  return (
+    <a
+      className={shell(variant, size, block, className)}
+      {...(external ? { target: "_blank", rel: "noopener noreferrer" } : null)}
+      {...props}
+    >
+      {iconLeft}
+      {children}
+      {iconRight}
+    </a>
   );
 }

@@ -5,7 +5,7 @@
  * de inventar mais um botao "quase igual": se a primitiva nao serve, o certo e
  * abrir uma VARIANTE aqui dentro, nao um componente novo na pasta da tela.
  */
-export { Button, IconButton, type ButtonProps } from "./button";
+export { Button, ButtonLink, IconButton, type ButtonProps, type ButtonLinkProps } from "./button";
 export { Checkbox } from "./checkbox";
 export { Chip } from "./chip";
 export { Combobox, type ComboOption } from "./combobox";
