@@ -49,10 +49,15 @@ export function Tabs<T extends string>({
                 {t.count}
               </span>
             ) : null}
+            {/* A barra CRESCE do centro em vez de trocar de cor. So
+                `transition-colors` fazia ela teletransportar de uma aba pra
+                outra: aparecia pronta no destino, sem nada ligar a origem ao
+                fim. `scaleX` sai de graca (composicao, nao layout) e e o unico
+                sinal que conta pra onde a selecao foi. */}
             <span
               className={cn(
-                "absolute inset-x-0 -bottom-px h-0.5 transition-colors",
-                on ? "bg-accent shadow-[0_0_10px_0_var(--color-accent)]" : "bg-transparent",
+                "absolute inset-x-0 -bottom-px h-0.5 origin-center bg-accent transition-transform duration-150 ease-out",
+                on ? "scale-x-100 shadow-[0_0_10px_0_var(--color-accent)]" : "scale-x-0",
               )}
             />
           </button>

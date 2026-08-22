@@ -4,6 +4,8 @@ import { getItemsPayload } from "@/lib/items-data";
 import { agora, fecharPiso } from "@/lib/pacing";
 import { ItemsBrowser } from "@/components/items-browser";
 import { Panel, SkeletonItemGrid } from "@/components/ui";
+import { Package } from "lucide-react";
+import { TituloFerramenta } from "@/components/titulo-ferramenta";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/itens" },
@@ -25,7 +27,13 @@ export default async function ItensPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="pix text-[22px] text-text">Itens</h1>
+      <TituloFerramenta
+        arte="itens"
+        cor="var(--color-t-itens)"
+        reserva={<Package size={26} strokeWidth={1.8} style={{ color: "var(--color-t-itens)" }} />}
+      >
+        Itens
+      </TituloFerramenta>
 
       <Suspense
         fallback={

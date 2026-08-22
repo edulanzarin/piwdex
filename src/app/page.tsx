@@ -194,6 +194,17 @@ export default async function HomePage() {
           <Chip
             size="sm"
             tone={catalog.live ? "ok" : "warn"}
+            /* O selo e o argumento de credibilidade da home — "este numero veio
+               do jogo agora" — e era so texto. A arte da o sinal antes da
+               leitura: torre transmitindo contra cartucho salvo. */
+            icon={
+            <Sprite
+              src={catalog.live ? "/images/icons/ao-vivo.png" : "/images/icons/snapshot.png"}
+              alt=""
+              size={18}
+              fallback={null}
+            />
+          }
             title={
               catalog.live
                 ? `Catálogo do jogo, publicado em ${catalog.generatedAt}`

@@ -228,7 +228,11 @@ export function ItemsBrowser({
               value={state.sort}
               onChange={setSort}
               options={SORT_OPTIONS}
-              className="w-full min-w-0 flex-1 sm:w-60 sm:flex-none"
+              /* `basis-full`: dividindo a linha com o botao de direcao e o
+             alternador, o rotulo da ordem truncava em "Nú..." — o controle
+             que DIZ como a lista esta ordenada era o unico ilegivel. Linha
+             propria no estreito; do `sm` pra cima volta pros 240px. */
+          className="min-w-0 basis-full sm:w-60 sm:basis-auto"
             />
             <Button
               size="sm"
@@ -273,7 +277,12 @@ export function ItemsBrowser({
             />
           </Panel>
         ) : state.view === "grid" ? (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5">
+          <div
+            // Mesma troca do grid da dex: o container anima, os filhos nao
+            // remontam. Ver o comentario em dex-browser.tsx.
+            key={`${state.sort}|${state.dir}|${state.page}|${sorted.length}`}
+            className="anim-swap grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5"
+          >
             {intercalar(shown).map((e, i) =>
               ehAnuncio(e) ? (
                 <CardAnuncio key={`anuncio-${e.ordem}`} />

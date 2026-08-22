@@ -41,10 +41,11 @@ export function SiteNav() {
         )}
       >
         {l.label}
+        {/* Mesma barra que cresce das abas — a navegacao e a mesma leitura. */}
         <span
           className={cn(
-            "absolute inset-x-2 -bottom-px h-0.5 transition-colors",
-            on ? "bg-accent shadow-[0_0_10px_0_var(--color-accent)]" : "bg-transparent",
+            "absolute inset-x-2 -bottom-px h-0.5 origin-center bg-accent transition-transform duration-150 ease-out",
+            on ? "scale-x-100 shadow-[0_0_10px_0_var(--color-accent)]" : "scale-x-0",
           )}
         />
       </Link>

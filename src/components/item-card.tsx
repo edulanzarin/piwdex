@@ -9,6 +9,7 @@ import {
   IconLevel,
   IconLoot,
   IconShop,
+  ITEM_CATEGORY_ART,
   ItemCategoryIcon,
 } from "@/components/game-icons";
 import { ITEM_CATEGORY_LABEL, ITEM_ORIGIN_LABEL, compact } from "@/lib/labels";
@@ -143,7 +144,12 @@ export function ItemCard({
       <div className="relative grid place-items-center py-1">
         <span
           aria-hidden="true"
-          className="absolute h-20 w-20 rounded-full bg-[var(--color-t-itens)] opacity-15 blur-2xl transition-all duration-300 group-hover:h-24 group-hover:w-24"
+          /* Caixa FIXA no tamanho MAIOR, e so `transform` anima. Animar h/w
+               num elemento com `blur-2xl` obriga o navegador a rasterizar o
+               desfoque de novo a cada quadro, e o grid tem ate 48 destes na
+               tela ao mesmo tempo — era a animacao mais cara da pagina, e ela
+               e enfeite de hover. `scale` reusa a textura ja borrada. */
+          className="absolute h-24 w-24 origin-center scale-[0.833] rounded-full bg-[var(--color-t-itens)] opacity-15 blur-2xl transition-transform duration-300 ease-out group-hover:scale-100"
         />
         {/* O icone vem do proprio jogo. Quando ele nao vem, o marcador e a
             categoria — uma pokebola diria que faltou um POKEMON, que e outra
@@ -153,7 +159,18 @@ export function ItemCard({
           alt={e.name}
           size={72}
           priority={priority}
-          fallback={<ItemCategoryIcon category={e.category} size={30} />}
+          /* Aqui a reserva tem TAMANHO DE FIGURA (o slot e de 72px), entao ela
+             pode ser arte pixel de verdade em vez de um glifo de linha de 30px
+             perdido no meio da caixa. Nos slots miudos deste mesmo arquivo (14,
+             15, 16px) o lucide continua, que e onde ele ganha. */
+          fallback={
+            <Sprite
+              src={ITEM_CATEGORY_ART[e.category]}
+              alt=""
+              size={56}
+              fallback={<ItemCategoryIcon category={e.category} size={30} />}
+            />
+          }
           className="relative transition-transform duration-300 ease-out group-hover:-translate-y-1 group-hover:scale-110"
         />
       </div>

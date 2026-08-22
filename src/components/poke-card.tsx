@@ -134,7 +134,12 @@ export function PokeCard({
       <div className="relative grid place-items-center py-1">
         <span
           aria-hidden="true"
-          className="absolute h-24 w-24 rounded-full blur-2xl transition-all duration-300 group-hover:h-28 group-hover:w-28 group-hover:opacity-100"
+          /* Caixa FIXA no tamanho MAIOR, e so `transform` anima. Animar h/w
+               num elemento com `blur-2xl` obriga o navegador a rasterizar o
+               desfoque de novo a cada quadro, e o grid tem ate 60 destes na
+               tela ao mesmo tempo — era a animacao mais cara da pagina, e ela
+               e enfeite de hover. `scale` reusa a textura ja borrada. */
+          className="absolute h-28 w-28 origin-center scale-[0.857] rounded-full blur-2xl transition-transform duration-300 ease-out group-hover:scale-100"
           style={{ backgroundColor: tint, opacity: 0.22 }}
         />
         <Sprite

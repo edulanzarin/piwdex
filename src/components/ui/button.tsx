@@ -65,7 +65,14 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 function shell(variant: Variant, size: Size, block?: boolean, className?: string) {
   return cn(
     "inline-flex select-none items-center justify-center whitespace-nowrap rounded-none",
-    "border font-medium uppercase tracking-wide transition-colors",
+    "border font-medium uppercase tracking-wide",
+    // O botao so tinha `transition-colors`, e cor de hover NAO EXISTE no dedo:
+    // no celular o toque nao produzia resposta nenhuma ate a tela mudar, o que
+    // le como "nao funcionou" e faz a pessoa tocar de novo. Um pixel de
+    // afundamento em 100ms resolve — sem `scale` e sem mola, que e o que a
+    // estetica de canto reto pede.
+    "transition-[color,background-color,border-color,transform] duration-100 ease-out",
+    "active:translate-y-px",
     "disabled:pointer-events-none disabled:opacity-40",
     "data-[active]:bg-accent/25 data-[active]:text-accent data-[active]:border-accent/70",
     SIZE[size],

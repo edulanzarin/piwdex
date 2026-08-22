@@ -204,7 +204,15 @@ export function DexBrowser({
             />
           </Panel>
         ) : state.view === "grid" ? (
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+          <div
+            // `key` + `.anim-swap`: filtrar, ordenar e virar pagina trocavam o
+            // grid inteiro sem um quadro de transicao — a cascata `.anim-enter`
+            // so roda na montagem — e sem sinal de movimento nao da pra saber se
+            // a acao pegou. Quem anima e o CONTAINER: um elemento so, sem
+            // remontar os 60 filhos, ao custo de uma composicao por troca.
+            key={`${state.sort}|${state.dir}|${state.page}|${sorted.length}`}
+            className="anim-swap grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4"
+          >
             {/* `null` no meio da lista e um lugar de anuncio (ver `lib/ads.ts`).
                 Ele ocupa uma celula da grade como qualquer card — o que nao pode
                 e PARECER um card de pokemon; disso cuida o `CardAnuncio`. */}
@@ -404,7 +412,11 @@ function DexToolbar({
           value={state.sort}
           onChange={onSort}
           options={SORT_OPTIONS}
-          className="w-full min-w-0 flex-1 sm:w-60 sm:flex-none"
+          /* `basis-full`: dividindo a linha com o botao de direcao e o
+             alternador, o rotulo da ordem truncava em "Nú..." — o controle
+             que DIZ como a lista esta ordenada era o unico ilegivel. Linha
+             propria no estreito; do `sm` pra cima volta pros 240px. */
+          className="min-w-0 basis-full sm:w-60 sm:basis-auto"
         />
         <Button
           size="sm"
