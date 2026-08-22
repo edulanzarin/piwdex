@@ -10,7 +10,7 @@
 // ontem pra sempre.
 
 import { cache } from "react";
-import { fetchSource } from "./source";
+import { fetchSource, fromSnapshot, type SourceData } from "./source";
 import type { Acquisition, Creature, DropSource, EvolutionStage, Hunt, Item } from "./types";
 
 // chance vem em escala 0..100000; porcentagem = chance / 1000. (Puro, sem fetch.)
@@ -54,6 +54,21 @@ type DerivedIndex = Pick<
 /** `force` fura a CDN do jogo e refaz o download (acao explicita do usuario). */
 export const getData = cache(async (force = false): Promise<DB> => {
   const src = await fetchSource(force);
+  try {
+    return montar(src);
+  } catch (e) {
+    // A promessa do projeto e "o site nao cai". A maquinaria de fallback do source.ts
+    // cobria so a REDE — se o jogo publicasse um registro com forma nova e a derivacao
+    // lancasse aqui, o throw acontecia DEPOIS do fetch ter dado certo e a rota inteira
+    // virava 500. Dado malformado tambem tem que cair no snapshot.
+    const why = e instanceof Error ? e.message : "derivacao falhou";
+    if (src.version.startsWith("snapshot:")) throw e; // ja estamos no chao; nao ha pra onde cair
+    console.error(`[piwdex] derivacao falhou no catalogo do jogo (${why}) — caindo pro snapshot`);
+    return montar(fromSnapshot(`derivacao falhou: ${why}`));
+  }
+});
+
+function montar(src: SourceData): DB {
   const { creatures, items, hunts, generatedAt, live, version, checkedAt, error } = src;
 
   if (derived && derived.version === version) {
@@ -168,4 +183,4 @@ export const getData = cache(async (force = false): Promise<DB> => {
     counts: { creatures: creatures.length, items: items.length, hunts: hunts.length },
     ...index,
   };
-});
+}
