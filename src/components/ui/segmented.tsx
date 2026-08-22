@@ -36,7 +36,10 @@ export function Segmented<T extends string>({
       role="radiogroup"
       aria-label={props["aria-label"]}
       className={cn(
+        // A altura e a MESMA do `.field` (2.5rem): segmentado e campo dividem fila
+        // em toda tela de filtro, e 8px de diferenca sao os 8px que o olho pega.
         "inline-flex shrink-0 items-center gap-0.5 rounded-pix border border-line bg-bg-soft p-0.5",
+        size === "sm" ? "h-8" : "h-10",
         className,
       )}
     >
@@ -52,7 +55,7 @@ export function Segmented<T extends string>({
             onClick={() => onChange(o.value)}
             className={cn(
               "pix inline-flex items-center justify-center gap-1.5 rounded-pix transition-colors",
-              size === "sm" ? "h-6 px-1.5 text-[11px]" : "h-7 px-2.5 text-[12px]",
+              size === "sm" ? "h-full px-2 text-[11px]" : "h-full px-3 text-[12px]",
               on
                 ? "bg-accent/25 text-accent shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--color-accent)_55%,transparent)]"
                 : "text-text-mute hover:bg-surface-2 hover:text-text-dim",

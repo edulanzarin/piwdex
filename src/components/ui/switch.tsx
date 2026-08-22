@@ -8,13 +8,17 @@ import { cn } from "@/lib/cn";
 export interface SwitchProps extends Omit<InputHTMLAttributes<HTMLInputElement>, "type" | "size"> {
   label?: ReactNode;
   hint?: ReactNode;
+  /** veste a casca `.field`: mesma altura, borda e fundo dos campos, pra o switch
+   *  entrar numa fila de filtros sem boiar no meio dela */
+  boxed?: boolean;
 }
 
-export function Switch({ label, hint, className, ...props }: SwitchProps) {
+export function Switch({ label, hint, boxed, className, ...props }: SwitchProps) {
   return (
     <label
       className={cn(
         "group flex cursor-pointer select-none items-center gap-2.5",
+        boxed && "field w-auto",
         props.disabled && "pointer-events-none opacity-40",
         className,
       )}
