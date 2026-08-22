@@ -11,17 +11,30 @@ import { FERRAMENTAS, type Ferramenta } from "@/lib/ferramentas";
  * Barra de navegacao. Fixa no topo porque a dex e uma tela de rolagem longa e
  * voltar pro topo pra trocar de ferramenta e atrito puro.
  *
- * Ela lista o MESMO registro que a home e os herois (`lib/ferramentas.ts`), e
- * traz duas coisas que antes ficavam so la dentro: o icone e a cor.
+ * Ela lista o MESMO registro que a home e os herois (`lib/ferramentas.ts`), e o
+ * que ela pega de la e a COR — nao o glifo.
  *
- * O icone paga aluguel. Seis palavras curtas em caixa alta, na mesma fonte e no
- * mesmo tom, viram uma fileira de manchas indistinguiveis — a pessoa le todas
- * pra achar a que quer. Com a silhueta na frente, "livro / caixa / calculadora /
- * radar / ovo / espadas" se acha de relance, e a palavra vira confirmacao.
+ * ## Por que aqui nao entra icone
  *
- * A cor entra so no estado ATIVO, e e a cor da ferramenta, nao o acento do
- * tema: a barra de baixo acende laranja na Hunt e rosa no Breeding. E o mesmo
- * sinal que a faixa de topo da, repetido onde o olho ja estava.
+ * Entrou, e saiu. O argumento pro glifo de traco era que seis palavras curtas em
+ * caixa alta viram uma fileira de manchas iguais; olhando a barra pronta, isso
+ * nao se sustenta: POKEDEX, ITENS, CALCULADORA, HUNT, BREEDING e META tem
+ * comprimentos bem diferentes, e o comprimento ja e a silhueta. O glifo estava
+ * resolvendo um problema que a tipografia resolvia sozinha, e num chrome de 56px
+ * de altura cada elemento a mais custa densidade.
+ *
+ * A alternativa era usar a ARTE das ferramentas, que e o que o site tem de
+ * proprio. Ela nao cabe: e uma grade de 32x32, e a nav pede 14 a 20px — nao ha
+ * como desenhar 32 pixels em 20, e o teste (a 3x de zoom, ja) devolveu seis
+ * manchas coloridas que nao se distinguem. E a fronteira de
+ * [[Arte de icone se julga no tamanho de uso, e o acento e a massa]]: arte de
+ * figura vive de 24px pra cima, o chrome miudo e do traco — ou de nada. De
+ * quebra, o `pokedex.png` tem 571 KB e passaria a carregar em TODA pagina.
+ *
+ * O que sobrou e o que de fato informa: a COR da ferramenta no estado ativo. A
+ * barra de baixo acende laranja na Hunt e rosa no Breeding, que e o mesmo sinal
+ * da faixa de topo repetido onde o olho ja estava — sem custar um pixel de
+ * largura.
  */
 export function SiteNav() {
   const path = usePathname();
@@ -29,7 +42,6 @@ export function SiteNav() {
 
   const item = (f: Ferramenta, onNav?: () => void) => {
     const on = path === f.href || path.startsWith(`${f.href}/`);
-    const Icone = f.Icone;
     return (
       <Link
         key={f.href}
@@ -37,24 +49,13 @@ export function SiteNav() {
         onClick={onNav}
         aria-current={on ? "page" : undefined}
         className={cn(
-          "pix group relative flex items-center gap-1.5 px-3 py-2 text-[12px] transition-colors",
+          "pix group relative flex items-center px-3 py-2 text-[12px] transition-colors",
           on ? "text-text" : "text-text-mute hover:text-text-dim",
         )}
       >
-        <Icone
-          size={14}
-          strokeWidth={2.25}
-          aria-hidden="true"
-          className={cn(
-            "shrink-0 transition-transform duration-150 ease-out",
-            // No hover o glifo cresce um degrau. E resposta imediata, antes de
-            // qualquer mudanca de pagina — o link diz que ouviu o ponteiro.
-            "group-hover:-translate-y-px group-hover:scale-110",
-          )}
-          // Ativo pinta na cor da ferramenta; parado, herda o tom do texto.
-          style={on ? { color: f.cor } : undefined}
-        />
-        {f.nome}
+        {/* A palavra tambem acende na cor quando ativa: a barra sozinha e um
+            sinal de 2px, e num trilho de seis ela pede que o olho procure. */}
+        <span style={on ? { color: f.cor } : undefined}>{f.nome}</span>
         {/* A barra que cresce do centro, na cor da ferramenta. */}
         <span
           aria-hidden="true"
