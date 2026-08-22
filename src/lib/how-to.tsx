@@ -28,7 +28,7 @@ import {
 /** Calculadora de IV, Quality e Poder. */
 export const COMO_USAR_CALC: Omit<HowToProps, "tint"> = {
   resumo:
-    "Descobre o IV que o jogo esconde a partir dos stats que ele mostra — e projeta o pokémon em qualquer nível.",
+    "Você copia os seis stats da tela do jogo. Ela devolve o IV que está escondido atrás deles e projeta o pokémon no nível que você quiser.",
   passos: [
     {
       titulo: "Escolha a espécie",
@@ -82,7 +82,7 @@ export const COMO_USAR_CALC: Omit<HowToProps, "tint"> = {
 /** Breeding: par, ovo e planejador de Quality. */
 export const COMO_USAR_BREED: Omit<HowToProps, "tint"> = {
   resumo:
-    "Diz se o par presta, o que sai do ovo e quantos breeds faltam até a Quality que você quer.",
+    "Você monta os dois pais. Ela diz se o par é válido, que Quality o ovo pode sortear e quantos breeds ainda faltam até a que você quer.",
   passos: [
     {
       titulo: "Monte os dois pais",
@@ -176,7 +176,7 @@ export const COMO_USAR_BREED: Omit<HowToProps, "tint"> = {
 /** Hunt: onde caçar agora e a rota até um nível. */
 export const COMO_USAR_HUNT: Omit<HowToProps, "tint"> = {
   resumo:
-    "Mede todo alvo do jogo contra o SEU pokémon — pelos dois lados do combate — e diz onde ele rende mais e até onde dá pra encarar.",
+    "Ela simula o seu pokémon contra cada alvo do jogo, contando os dois lados da briga: o quanto você bate e o quanto apanha. Daí sai a ordem de onde caçar e o aviso de onde não dá.",
   passos: [
     {
       titulo: "Escolha o seu pokémon",
@@ -248,7 +248,7 @@ export const COMO_USAR_HUNT: Omit<HowToProps, "tint"> = {
 /** Meta: tier list, duelo e panorama de tipos. */
 export const COMO_USAR_META: Omit<HowToProps, "tint"> = {
   resumo:
-    "Dá nota a todas as espécies pelo que decide combate — dano por segundo e HP efetivo — e mostra quem ganha de quem.",
+    "Ela dá nota a cada espécie por dano por segundo e por quanto ela aguenta, e usa essa nota pra montar a tier list, o duelo e o panorama de tipos.",
   passos: [
     {
       titulo: "Escolha o pool antes de olhar a nota",

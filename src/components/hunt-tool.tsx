@@ -422,7 +422,7 @@ export function HuntTool({ payload }: { payload: HuntPayload }) {
         <Panel>
           <Empty
             title="Escolha o seu pokémon e mande calcular"
-            hint="Sem ele não há hunt: a melhor caçada do jogo depende de quem está batendo."
+            hint="A melhor caçada depende de quem está batendo, então a conta só começa depois que você escolher o pokémon."
             action={
               <Button variant="primary" onClick={preencherExemplo}>
                 preencher exemplo

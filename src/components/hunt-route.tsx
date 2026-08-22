@@ -288,10 +288,10 @@ export function HuntRoute({
 
       {rota.length > 0 ? (
         <Note flush icon={<IconInfo size={15} />}>
-          A rota não evolui ninguém: evoluir reseta o nível e não re-rola IV nem quality,
-          então ela usa a espécie que você escolheu em todos os níveis. O tempo sai da curva
-          de XP do jogo dividida pelo XP/h de cada faixa — ritmo constante, sem contar as
-          horas que você passa longe do jogo.
+          A rota não evolui ninguém. Evoluir reseta o nível e não re-rola IV nem quality,
+          então ela mantém a espécie que você escolheu do começo ao fim. O tempo sai da
+          curva de XP do jogo dividida pelo XP/h de cada faixa, em ritmo constante: as horas
+          que você passa longe do jogo não entram na conta.
         </Note>
       ) : null}
     </div>

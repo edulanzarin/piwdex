@@ -78,7 +78,7 @@ export function MetaTool({ mons: packed }: { mons: PackedMon[] }) {
               value={s.pool}
               onChange={(pool) => patch({ pool })}
               options={[
-                { value: "natural", label: "só naturais", title: "O que a espécie aprende sozinha — o que todo jogador tem" },
+                { value: "natural", label: "só naturais", title: "O que a espécie aprende sozinha, sem comprar máquina" },
                 { value: "tm", label: "com TM", title: "Inclui golpes de máquina; todo golpe de poder 600 do jogo é TM" },
               ]}
             />
@@ -86,8 +86,8 @@ export function MetaTool({ mons: packed }: { mons: PackedMon[] }) {
         </FieldRow>
         <Note flush className="max-w-[46rem]">
           {s.pool === "tm"
-            ? "Com TM a nota responde “quem presta se eu comprar a máquina”: o golpe de poder 600 abre um vale entre o básico e a evolução final, e por isso o corte de tier é outro."
-            : "Só naturais é o que todo jogador tem sem gastar. O tier sempre responde “entre o que EU posso usar, quem presta?” — por isso a régua de corte muda junto com o pool."}
+            ? "Com TM a nota responde “quem presta se eu comprar a máquina”. O golpe de poder 600 abre um vale entre o básico e a evolução final, então o corte de cada tier cai noutro lugar."
+            : "Só naturais é o que todo jogador tem sem gastar nada. A pergunta vira “entre o que eu já posso usar, quem presta?”, e a régua de corte muda junto."}
         </Note>
       </Panel>
 

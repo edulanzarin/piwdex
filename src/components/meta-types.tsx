@@ -109,11 +109,10 @@ export function MetaTypes({
       </Panel>
 
       <Note flush>
-        &quot;Bate mais forte&quot; é dano por segundo com a recarga do golpe dentro, e com
-        STAB quando o dono é do mesmo tipo — não é o poder do golpe. Um golpe de 160 com 30s
-        de recarga rende menos que um de 60 a cada 5s, e é isso que o número mostra.
-        &quot;Quem carrega&quot; conta quantas espécies têm algum golpe do tipo; a última
-        coluna conta quem É do tipo.
+        &quot;Bate mais forte&quot; é dano por segundo, com a recarga do golpe na conta e com
+        STAB quando o dono é do mesmo tipo. Não é o poder do golpe: um de 160 a cada 30s
+        rende menos que um de 60 a cada 5s. &quot;Quem carrega&quot; conta quantas espécies
+        têm algum golpe do tipo; a última coluna conta quem É do tipo.
       </Note>
     </div>
   );
