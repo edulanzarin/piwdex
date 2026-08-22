@@ -411,14 +411,15 @@
     transition-duration: 0.01ms !important;
   }
 
-  /* EXCECAO: quem indica progresso continua se mexendo, so que sem
-     deslocamento. Congelar o indicador junto com o resto deixa a tela com cara
-     de travada — e "travou" e uma informacao pior que o movimento que a pessoa
-     pediu pra evitar. Pulso de opacidade cumpre o papel sem mover nada. */
+  /* EXCECAO, e ela e ESTREITA: quem indica PROGRESSO continua se mexendo, so
+     que sem deslocamento — congelar o indicador junto com o resto deixa a tela
+     com cara de travada, e "travou" e uma informacao pior que o movimento que a
+     pessoa pediu pra evitar.
+     `float` e `glow` NAO entram aqui: sao enfeite, nao progresso. Elas estavam
+     na lista, e o efeito era o oposto do pedido — quem liga "reduzir animacoes"
+     via a pokebola do heroi PISCANDO pra sempre, em vez de parada. */
   .anim-wiggle,
-  .anim-bar,
-  .anim-float,
-  .anim-glow {
+  .anim-bar {
     animation: pix-pulse 1.6s ease-in-out infinite !important;
     transform: none !important;
   }

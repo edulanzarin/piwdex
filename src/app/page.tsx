@@ -114,7 +114,9 @@ export default async function HomePage() {
           na parte mais clara da cena sem escurecer a foto inteira. */}
       <section className="on-art flex flex-col items-center justify-center gap-7 px-4 py-14 text-center sm:py-20">
         <div className="flex items-center gap-5">
-          <Pokeball size={88} className="anim-float text-[var(--color-t-dex)]" />
+          {/* Parada: a bola e a marca, nao um indicador. Flutuando ela disputa
+              atencao com o titulo que esta do lado. */}
+          <Pokeball size={104} className="text-[var(--color-t-dex)]" />
           <div className="text-left">
             <h1 className="pix text-[52px] leading-none text-text sm:text-[68px]">
               piw<span className="text-accent">dex</span>
@@ -125,9 +127,13 @@ export default async function HomePage() {
           </div>
         </div>
 
-        <h2 className="max-w-4xl text-[36px] leading-tight font-bold text-text sm:text-[48px]">
+        {/* Caixa alta e mais corpo: e a manchete da home, e em caixa baixa ela
+            competia de igual pra igual com o paragrafo logo abaixo. O tracking
+            desce em relacao ao `.pix` padrao — caixa alta com tracking de rotulo,
+            em 60px, vira uma linha larga demais pra ler de uma vez. */}
+        <h2 className="pix max-w-5xl text-[34px] leading-[1.15] tracking-[0.03em] text-text sm:text-[52px]">
           A dex <span style={{ color: "var(--color-t-dex)" }}>completa</span> do{" "}
-          <span style={{ color: "var(--color-t-meta)" }}>Poke Idle World</span>.
+          <span style={{ color: "var(--color-t-meta)" }}>Poke Idle World</span>
         </h2>
 
         <p className="max-w-2xl text-[18px] leading-relaxed text-text-dim">
