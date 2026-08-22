@@ -29,7 +29,7 @@ import {
 } from "@/lib/breed-url";
 import { spriteUrl } from "@/lib/sprites";
 import { TYPE_COLOR } from "@/lib/typing";
-import { STAT_LABEL, STAT_SHORT } from "@/lib/labels";
+import { STAT_LABEL, STAT_SHORT, num} from "@/lib/labels";
 import { TypeBadge } from "@/components/type-icon";
 import { IconGem, IconLevel, IconStone, STAT_ICONS } from "@/components/game-icons";
 import {
@@ -370,8 +370,8 @@ export function BreedTool({ especies }: { especies: BreedSpecies[] }) {
             label="Modo"
             hint={
               s.mode === "free"
-                ? `+${expectedGain("free").toFixed(4)} de Quality por breed, em média`
-                : `+${expectedGain("pheromone").toFixed(4)} por breed, ao custo de 9 Pheromones`
+                ? `+${num(expectedGain("free"), 4)} de Quality por breed, em média`
+                : `+${num(expectedGain("pheromone"), 4)} por breed, ao custo de 9 Pheromones`
             }
           >
             <Segmented

@@ -12,7 +12,7 @@ import {
   ITEM_CATEGORY_ART,
   ItemCategoryIcon,
 } from "@/components/game-icons";
-import { ITEM_CATEGORY_LABEL, ITEM_ORIGIN_LABEL, compact } from "@/lib/labels";
+import { ITEM_CATEGORY_LABEL, ITEM_ORIGIN_LABEL, compact, num} from "@/lib/labels";
 
 /**
  * Card de item.
@@ -45,7 +45,7 @@ import { ITEM_CATEGORY_LABEL, ITEM_ORIGIN_LABEL, compact } from "@/lib/labels";
 export function pctText(p: number): string {
   if (p <= 0) return "0%";
   if (p < 0.0001) return "<0,0001%";
-  const s = p < 0.01 ? p.toFixed(4) : p < 1 ? p.toFixed(3) : p.toFixed(2);
+  const s = p < 0.01 ? num(p, 4) : p < 1 ? num(p, 3) : num(p, 2);
   return `${s.replace(".", ",").replace(/,?0+$/, "")}%`;
 }
 

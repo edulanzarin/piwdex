@@ -5,7 +5,7 @@
 //   - Pais da mesma especie, diferenca de Quality <= 0.150.
 //   - Quality com 3 casas; filho parte da MAIOR Quality entre os pais + um ganho.
 //   - Filho herda a distribuicao COMPLETA de IVs do pai de maior Quality; empate -> Slot 1.
-//   - Custo base R$ 2.000.000 + 20 Evolution Stones (tipo duplo divide igual).
+//   - Custo base 2.000.000 de ouro + 20 Evolution Stones (tipo duplo divide igual).
 //   - Double Stones: 40 Stones, 5% de +1 IV num stat aleatorio abaixo de 32.
 //   - Ao menos um pai Shiny -> filho Shiny (mantem a heranca de IV). Normal tem Q max 2.600.
 

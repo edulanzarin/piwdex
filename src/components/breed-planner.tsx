@@ -6,7 +6,7 @@ import type { BreedMon } from "@/lib/breeding";
 import { QUALITY_DIFF_MAX, QUALITY_MAX_NORMAL, expectedGain, type BreedMode } from "@/lib/breeding";
 import { planBreeding, type ModePlan } from "@/lib/breed-plan";
 import { spriteUrl } from "@/lib/sprites";
-import { compact } from "@/lib/labels";
+import { compact, num} from "@/lib/labels";
 import { IconGem, IconStone, IconTarget } from "@/components/game-icons";
 import {
   Chip,
@@ -28,7 +28,7 @@ const pct = (n: number) => `${Math.round(n * 100)}%`;
  *
  * Esta e a tela que justifica a ferramenta existir. O jogo mostra a Quality de
  * agora; o que ele nao mostra e o TAMANHO da escada — e a escada e cara: cada
- * degrau custa R$ 2.000.000, 20 Stones e dois pokemon.
+ * degrau custa 2.000.000 de ouro, 20 Stones e dois pokemon.
  *
  * A resposta e uma DISTRIBUICAO e aparece como tres numeros, nunca um:
  *
@@ -207,7 +207,7 @@ function LinhaModo({
           {nome}
         </span>
         <span className="text-[12px] text-text-mute tabular">
-          ganho médio +{expectedGain(plano.mode).toFixed(4)}
+          ganho médio +{num(expectedGain(plano.mode), 4)}
         </span>
       </div>
 
@@ -242,11 +242,16 @@ function LinhaModo({
       {/* O orcamento vai pelo AZARADO, nao pelo tipico: quem orça na mediana
           para no meio da corrente metade das vezes. */}
       <dl className="flex flex-col gap-1.5 border-t border-line pt-3 text-[13px]">
+        {/* "ouro", nao "R$". A moeda do jogo se chama ouro em todo o resto do site
+            ("ouro no caminho", "ouro por abate", "ouro em bolas"); "R$" e o real
+            brasileiro, que nao existe no Poke Idle World — e fazia o unico numero
+            de custo da ferramenta parecer dinheiro de verdade, numa tela que manda
+            ORCAR justamente por ele. */}
         <Linha
           icon={<IconCoin size={15} className="text-warn" />}
-          label="dinheiro"
-          tipico={`R$ ${compact(plano.money[0])}`}
-          azarado={`R$ ${compact(plano.money[1])}`}
+          label="ouro"
+          tipico={`${compact(plano.money[0])} de ouro`}
+          azarado={`${compact(plano.money[1])} de ouro`}
         />
         <Linha
           icon={<IconStone size={15} className="text-[var(--color-t-calc)]" />}

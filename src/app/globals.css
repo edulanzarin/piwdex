@@ -33,10 +33,24 @@
   --color-line: #272d38;
   --color-line-strong: #39414f;
 
-  /* ---- texto: tres degraus, nunca mais ---- */
+  /* ---- texto: tres degraus, nunca mais ----
+     O degrau mais apagado subiu. O #5f6b80 anterior media 3,00:1 sobre o
+     `surface-2` do cabecalho de tabela e 2,67:1 sobre o `.pop` — onde caem
+     select, combobox, multi-select e tooltip —, contra os 4,5:1 que a AA pede.
+     E nao havia como alegar a excecao de texto grande (3:1), porque este token
+     e usado justamente no miudo: `text-[11px] text-text-mute` aparece 23 vezes,
+     `text-[10px]` outras 13.
+
+     Piora ainda: o painel e VIDRO sobre o wallpaper, entao no pico claro da foto
+     o contraste real fica abaixo do que a conta sobre a cor solida indica.
+
+     #8691a5 passa em todas as quatro superficies (4,65:1 no pior caso, o
+     flutuante). O degrau do meio subiu junto pra escada continuar sendo escada —
+     tres tons que ninguem distingue viram um tom so, e ai o token nao informa
+     mais nada. */
   --color-text: #e8edf7;
-  --color-text-dim: #97a3b8;
-  --color-text-mute: #5f6b80;
+  --color-text-dim: #b3bece;
+  --color-text-mute: #8691a5;
 
   /* ---- acento da INTERFACE ----
      Aco frio, NAO roxo. O violeta anterior tingia tudo — halo do topo, borda de

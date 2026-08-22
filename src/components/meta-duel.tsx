@@ -14,7 +14,7 @@ import { effLabel } from "@/lib/hunt";
 import type { MetaState } from "@/lib/meta-url";
 import { animatedSpriteUrl, spriteUrl } from "@/lib/sprites";
 import { TYPE_COLOR } from "@/lib/typing";
-import { STAT_LABEL, TYPE_LABEL, compact, monLabel } from "@/lib/labels";
+import { STAT_LABEL, TYPE_LABEL, compact, monLabel, num} from "@/lib/labels";
 import {
   Chip,
   Combobox,
@@ -175,7 +175,7 @@ export function MetaDuel({
                       tela. Vantagem impossivel de medir mostra o simbolo, dos
                       dois lados. */}
                   {resultado.margin > 0 && Number.isFinite(resultado.margin)
-                    ? `${(resultado.win ? resultado.margin : 1 / resultado.margin).toFixed(2)}x`
+                    ? `${num(resultado.win ? resultado.margin : 1 / resultado.margin, 2)}x`
                     : "∞"}
                 </span>
                 <span className="pix text-[10px] text-text-mute">mais rápido</span>
@@ -308,7 +308,7 @@ function LadoResultado({ titulo, lado, alvo }: { titulo: string; lado: ArenaSide
               { label: "dano por segundo", valor: compact(Math.round(lado.dps)) },
               {
                 label: "segundos pra derrubar",
-                valor: Number.isFinite(lado.ttk) ? `${lado.ttk.toFixed(1)}s` : "nunca",
+                valor: Number.isFinite(lado.ttk) ? `${num(lado.ttk, 1)}s` : "nunca",
               },
             ].map((k) => (
               <div key={k.label} className="bg-surface px-2.5 py-2">

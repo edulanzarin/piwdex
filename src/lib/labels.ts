@@ -190,6 +190,29 @@ export function multWord(mult: number): string {
   return `${mult}x de dano`;
 }
 
+/**
+ * Numero com casas fixas, na vírgula.
+ *
+ * O site inteiro e pt-BR e mesmo assim `toFixed` vazava ponto decimal pra tela.
+ * Nao era so inconsistencia de estilo: na ficha da especie o paragrafo dizia
+ * "3,4%" e a tabela LOGO ABAIXO dizia "3.400%" pro mesmo drop — e em pt-BR o
+ * ponto e separador de MILHAR, entao a tabela afirmava tres mil e quatrocentos
+ * por cento. O `compact` e o `perHourLabel` ja convertiam por conta propria;
+ * esta funcao existe pra a conversao parar de ser lembrada caso a caso.
+ *
+ * `max` corta o zero a direita quando ele nao informa nada (2,50x vira 2,5x).
+ */
+export function num(n: number, casas = 1, max = false): string {
+  if (!Number.isFinite(n)) return "—";
+  return n.toLocaleString("pt-BR", {
+    minimumFractionDigits: max ? 0 : casas,
+    maximumFractionDigits: casas,
+  });
+}
+
+/** O mesmo, com o sinal de porcento colado. */
+export const pct = (n: number, casas = 1): string => `${num(n, casas)}%`;
+
 /** Numero grande em formato compacto brasileiro: 6.500.000.000 vira "6,5 B".
  *  Sem os degraus altos, a versao anterior imprimia "6500000k". */
 export function compact(n: number): string {

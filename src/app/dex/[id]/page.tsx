@@ -45,6 +45,7 @@ import {
   STAT_LABEL,
   compact as gold,
   multWord,
+  num,
 } from "@/lib/labels";
 
 // Dinamica de proposito — o frescor mora no source.ts. Ver src/app/page.tsx.
@@ -510,7 +511,7 @@ export default async function CreaturePage({ params }: Props) {
                       </td>
                       <td className="px-3 py-1.5 text-right text-[14px] text-ok tabular">
                         <Tooltip content={`1 a cada ${Math.round(100 / pct).toLocaleString("pt-BR")} abates, na média`}>
-                          <span>{pct < 0.01 ? pct.toFixed(4) : pct.toFixed(3)}%</span>
+                          <span>{pct < 0.01 ? num(pct, 4) : num(pct, 3)}%</span>
                         </Tooltip>
                       </td>
                       <td className="px-3 py-1.5 text-right text-[14px] text-text-dim tabular">

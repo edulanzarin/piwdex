@@ -18,7 +18,7 @@ import {
 import { effLabel } from "@/lib/hunt";
 import { animatedSpriteUrl, spriteUrl } from "@/lib/sprites";
 import { TYPE_COLOR } from "@/lib/typing";
-import { META_ROLE_HINT, META_ROLE_LABEL, STAT_LABEL, TYPE_LABEL, monLabel } from "@/lib/labels";
+import { META_ROLE_HINT, META_ROLE_LABEL, STAT_LABEL, TYPE_LABEL, monLabel, num} from "@/lib/labels";
 import {
   Chip,
   FieldLabel,
@@ -134,7 +134,7 @@ export function MetaProfile({
               {entry.best.attack.name}
             </Chip>
             <span className="text-[13px] text-text-mute">
-              poder {entry.best.attack.power} a cada {(entry.best.attack.cooldownMs / 1000).toFixed(1)}s
+              poder {entry.best.attack.power} a cada {num(entry.best.attack.cooldownMs / 1000, 1)}s
               {entry.best.stab ? " · com STAB" : ""}
               {entry.best.tm ? " · é TM" : ""}
             </span>

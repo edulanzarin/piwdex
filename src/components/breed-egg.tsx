@@ -359,8 +359,8 @@ export function BreedEgg({
           <div className="grid gap-2 sm:grid-cols-3">
             <Custo
               icon={<IconCoin size={16} />}
-              label="dinheiro"
-              value={`R$ ${egg.cost.money.toLocaleString("pt-BR")}`}
+              label="ouro"
+              value={`${egg.cost.money.toLocaleString("pt-BR")} de ouro`}
               tint="var(--color-warn)"
             />
             <Custo

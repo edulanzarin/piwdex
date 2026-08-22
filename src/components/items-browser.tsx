@@ -30,6 +30,8 @@ import {
   Segmented,
   Select,
   type SelectOption,
+  IconChevronDown,
+  IconChevronUp,
 } from "@/components/ui";
 import { ItemsFilters } from "@/components/items-filters";
 import { ItemCard, ItemRow } from "@/components/item-card";
@@ -281,7 +283,18 @@ export function ItemsBrowser({
             // Mesma troca do grid da dex: o container anima, os filhos nao
             // remontam. Ver o comentario em dex-browser.tsx.
             key={`${state.sort}|${state.dir}|${state.page}|${sorted.length}`}
-            className="anim-swap grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5"
+            // O trilho de filtro liga em `lg` e a grade subia de coluna no MESMO
+            // `lg`: em 1023px eram 2 cards de ~485px, em 1024px o trilho comia
+            // 290 e sobravam 3 de ~218 — 55% de encolhimento num pixel, e bem na
+            // faixa de notebook (1024-1280). Nesses 218 o card ainda tinha de
+            // caber sprite, nome, dois selos de tipo, a espinha de seis barras e
+            // um `dl` de tres colunas. A coluna a mais so entra no `xl`, quando
+            // ha largura pra ela.
+            //
+            // E a primeira coluna: comecava em `grid-cols-2` ja no celular, entao
+            // num 360px eram 165px por card e o nome do item truncava SEMPRE. A
+            // segunda coluna so entra quando ha 420px de janela.
+            className="anim-swap grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5"
           >
             {intercalar(shown).map((e, i) =>
               ehAnuncio(e) ? (
@@ -304,6 +317,17 @@ export function ItemsBrowser({
                           key={col.label}
                           scope="col"
                           title={col.hint}
+                          /* `aria-sort` no cabecalho: sem ele o leitor de tela
+                             nao anuncia por qual coluna a tabela esta ordenada nem
+                             em que sentido — e o triangulo que dava essa
+                             informacao visualmente nao existe pra quem ouve. */
+                          aria-sort={
+                            col.key == null || state.sort !== col.key
+                              ? undefined
+                              : state.dir === "asc"
+                                ? "ascending"
+                                : "descending"
+                          }
                           className={cn(
                             "px-3 py-2.5 whitespace-nowrap",
                             col.align === "right" && "text-right",
@@ -320,8 +344,15 @@ export function ItemsBrowser({
                             >
                               {col.icon}
                               {col.label}
+                              {/* Era um triangulo unicode em 7px — abaixo do piso
+                                  de 14 do proprio `icons.tsx`, e glifo de fonte
+                                  renderiza em tamanho diferente por plataforma. */}
                               {on ? (
-                                <span className="text-[7px]">{state.dir === "asc" ? "▲" : "▼"}</span>
+                                state.dir === "asc" ? (
+                                  <IconChevronUp size={14} />
+                                ) : (
+                                  <IconChevronDown size={14} />
+                                )
                               ) : null}
                             </button>
                           ) : (

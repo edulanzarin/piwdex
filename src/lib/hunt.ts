@@ -26,6 +26,7 @@ import { CATCH_LAW_FALLBACK, predictCatchRate } from "./catch-law";
 import { estimateHunt, type HuntEstimate, type Move, type MovePool, type MovesOf, type Species } from "./combat";
 import type { HuntTarget, PackedDrops, PackedMove, PackedSpecies } from "./hunt-data";
 import type { PokeType } from "./types";
+import { num } from "@/lib/labels";
 
 // ------------------------------------------------------------------ desempacotar
 
@@ -254,7 +255,7 @@ export const RISK_LABEL = { safe: "Seguro", risky: "Arriscado", deadly: "Letal" 
 
 /** Multiplicador de efetividade como o jogo mostra: x2.5, x1, x0.33. */
 export const effLabel = (m: number): string =>
-  m === 0 ? "imune" : Number.isInteger(m) ? `${m}x` : `${+m.toFixed(2)}x`;
+  m === 0 ? "imune" : Number.isInteger(m) ? `${m}x` : `${num(m, 2, true)}x`;
 
 /** Numero por hora em notacao compacta — a coluna nao pode esticar com "1.234.567". */
 export function perHourLabel(n: number): string {

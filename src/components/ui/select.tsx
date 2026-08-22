@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import { IconCheck, IconChevronDown } from "./icons";
 import { Popover, PopoverScroll } from "./popover";
@@ -65,6 +65,20 @@ export function Select<T extends string>({
     });
   };
 
+  /**
+   * O menu aberto NAO recebe o foco, e isso e deliberado.
+   *
+   * O padrao ARIA de combobox manda o foco FICAR no gatilho e apontar pra opcao
+   * corrente com `aria-activedescendant` — mover o foco pra lista quebraria a
+   * navegacao por seta que ja funciona aqui. O que faltava nao era foco: era a
+   * ligacao. Sem `aria-activedescendant` e sem `id` nas opcoes, o cursor visual
+   * (`i === cursor` pinta o fundo) nao tinha contrapartida nenhuma pra quem ouve
+   * a tela — a pessoa navegava as opcoes sem o leitor anunciar qual estava sob o
+   * cursor.
+   */
+  const listaId = useId();
+  const opcaoId = (i: number) => `${listaId}-o${i}`;
+
   const onKey = (e: React.KeyboardEvent) => {
     if (!open && (e.key === "Enter" || e.key === " " || e.key === "ArrowDown")) {
       e.preventDefault();
@@ -90,8 +104,11 @@ export function Select<T extends string>({
         type="button"
         disabled={disabled}
         data-open={open || undefined}
+        role="combobox"
         aria-haspopup="listbox"
         aria-expanded={open}
+        aria-controls={open ? listaId : undefined}
+        aria-activedescendant={open && options[cursor] ? opcaoId(cursor) : undefined}
         aria-label={props["aria-label"]}
         onClick={() => setOpen((o) => !o)}
         onKeyDown={onKey}
@@ -108,15 +125,22 @@ export function Select<T extends string>({
 
       <Popover open={open} onClose={close} anchorRef={anchor} matchWidth>
         <PopoverScroll>
-          <ul role="listbox" aria-label={props["aria-label"]}>
+          <ul id={listaId} role="listbox" aria-label={props["aria-label"]}>
             {options.map((o, i) => {
               const on = o.value === value;
               return (
                 <li key={o.value}>
                   <button
+                    id={opcaoId(i)}
                     type="button"
                     role="option"
                     aria-selected={on}
+                    /* Fora da ordem de tabulacao: quem navega e o gatilho, via
+                       `aria-activedescendant`. O painel vai pro fim do <body> por
+                       portal, entao opcao tabulavel poe a lista inteira DEPOIS de
+                       todo o documento — Tab a partir do gatilho ia parar no
+                       proximo elemento da pagina, nunca nas opcoes. */
+                    tabIndex={-1}
                     disabled={o.disabled}
                     onMouseEnter={() => setCursor(i)}
                     onClick={() => { onChange(o.value); close(); }}

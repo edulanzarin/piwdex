@@ -19,7 +19,7 @@ import {
 import type { HuntPayload } from "@/lib/hunt-data";
 import type { HuntState } from "@/lib/hunt-url";
 import { TYPE_COLOR } from "@/lib/typing";
-import { TYPE_LABEL, compact } from "@/lib/labels";
+import { TYPE_LABEL, compact, num} from "@/lib/labels";
 import { animatedSpriteUrl, spriteUrl } from "@/lib/sprites";
 import type { PokeType } from "@/lib/types";
 import {
@@ -41,6 +41,8 @@ import {
   Sprite,
   StatTile,
   Tooltip,
+  IconChevronDown,
+  IconChevronUp,
 } from "@/components/ui";
 import { TypeBadge, TypeIcon } from "@/components/type-icon";
 import { BallIcon } from "@/components/ball-icon";
@@ -67,7 +69,7 @@ const TIPOS: PokeType[] = [
 ];
 
 const areaLabel = (a: string) => a.charAt(0).toUpperCase() + a.slice(1);
-const pct = (v: number) => (v >= 0.01 ? `${(v * 100).toFixed(1)}%` : `${(v * 100).toFixed(3)}%`);
+const pct = (v: number) => (v >= 0.01 ? `${num(v * 100, 1)}%` : `${num(v * 100, 3)}%`);
 
 type Col = { key: HuntSort | null; label: string; align?: "right"; title?: string };
 
@@ -281,6 +283,15 @@ export function HuntRanking({
                         key={col.label}
                         scope="col"
                         title={col.title}
+                        /* `aria-sort`: sem ele o leitor de tela nao anuncia por qual
+                           coluna a tabela esta ordenada nem em que sentido. */
+                        aria-sort={
+                          col.key == null || state.sort !== col.key
+                            ? undefined
+                            : state.dir === "asc"
+                              ? "ascending"
+                              : "descending"
+                        }
                         className={cn("px-3 py-2.5 whitespace-nowrap", col.align === "right" && "text-right")}
                       >
                         {col.key ? (
@@ -293,7 +304,13 @@ export function HuntRanking({
                             )}
                           >
                             {col.label}
-                            {on ? <span className="text-[7px]">{state.dir === "asc" ? "▲" : "▼"}</span> : null}
+                            {on ? (
+                              state.dir === "asc" ? (
+                                <IconChevronUp size={14} />
+                              ) : (
+                                <IconChevronDown size={14} />
+                              )
+                            ) : null}
                           </button>
                         ) : (
                           <span className="pix text-[11px] text-text-mute">{col.label}</span>
@@ -411,7 +428,7 @@ function Linha({ r, onOpen }: { r: HuntRow; onOpen: () => void }) {
             {RISK_LABEL[th.risk]}
           </span>
           <span className="text-[12px] text-text-mute tabular">
-            {th.killsPerLife >= 999 ? "sem risco" : `${th.killsPerLife.toFixed(1)} abates/vida`}
+            {th.killsPerLife >= 999 ? "sem risco" : `${num(th.killsPerLife, 1)} abates/vida`}
           </span>
         </span>
       </td>
@@ -537,7 +554,7 @@ function Detalhe({
                 </div>
                 <p className="text-[13px] leading-relaxed text-text-dim">
                   {Math.round(th.hitDmg)} de dano por golpe. A vida cheia aguenta{" "}
-                  {th.killsPerLife >= 999 ? "toda a hora" : `${th.killsPerLife.toFixed(1)} abates`}
+                  {th.killsPerLife >= 999 ? "toda a hora" : `${num(th.killsPerLife, 1)} abates`}
                   {th.uptime < 1
                     ? ` — com os desmaios, só ${Math.round(th.uptime * 100)}% da hora rende.`
                     : ", então a hora inteira rende."}
