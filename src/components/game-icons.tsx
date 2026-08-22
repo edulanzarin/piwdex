@@ -11,6 +11,7 @@
  */
 import {
   Award,
+  HandCoins,
   CreditCard,
   Diamond,
   Disc3,
@@ -108,6 +109,9 @@ export const IconWeak = wrap(ShieldAlert, "IconWeak");
 export const IconTarget = wrap(Target, "IconTarget");
 export const IconScale = wrap(Scale, "IconScale");
 export const IconAward = wrap(Award, "IconAward");
+// Apoio: mao com moeda. Nao e coracao — `Heart` ja e VIDA na espinha de stats, e
+// dois coracoes com significados diferentes na mesma pagina viram a mesma mancha.
+export const IconApoio = wrap(HandCoins, "IconApoio");
 
 // ---- categoria do item ----
 // Um contorno por categoria, escolhido pra NAO colidir com os de cima: a pedra

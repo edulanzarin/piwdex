@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Quantico } from "next/font/google";
 import { SiteNav } from "@/components/site-nav";
+import { SiteFooter } from "@/components/site-footer";
+import { ApoioFlutuante } from "@/components/apoio";
 import "./globals.css";
 
 /**
@@ -42,7 +44,9 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt-BR" className={quantico.variable}>
-      <body className="min-h-dvh antialiased">
+      {/* flex-col + `main` que cresce: o rodape encosta no fim da JANELA quando a
+          pagina e curta, em vez de subir e deixar uma faixa de fundo embaixo dele. */}
+      <body className="flex min-h-dvh flex-col antialiased">
         {/* Pular pro conteudo: quem navega por teclado nao deve atravessar o
             trilho de filtro inteiro pra chegar na lista. */}
         <a
@@ -54,9 +58,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           Pular para o conteúdo
         </a>
         <SiteNav />
-        <main id="conteudo" className="mx-auto w-full max-w-[1600px] px-3 pb-16 pt-4 sm:px-5">
+        <main id="conteudo" className="mx-auto w-full max-w-[1600px] flex-1 px-3 pb-16 pt-4 sm:px-5">
           {children}
         </main>
+        <SiteFooter />
+        {/* Fora do `main` de proposito: ele e fixo na janela, nao conteudo da pagina. */}
+        <ApoioFlutuante />
       </body>
     </html>
   );
