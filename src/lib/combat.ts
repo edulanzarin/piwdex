@@ -163,6 +163,38 @@ export interface HuntEstimate {
 }
 
 /**
+ * Os cinco stats do lutador que o motor de hunt le: os dois ofensivos (movesetDps) e os
+ * tres defensivos (threatOf). Dependem SO de (nivel, IV, qualidade) — o alvo nao entra.
+ *
+ * Existe por custo, nao por estilo. `movesetDps` e `threatOf` projetavam os cinco DE NOVO
+ * a cada alvo, e o `buildRoute` varre os 342 alvos em CADA nivel da rota: uma rota
+ * 50->500 gastava 598.385 chamadas de `projectStat` (cada uma com um `Math.pow` dentro)
+ * onde 2.255 valores distintos bastavam — 450 niveis x 5 stats. E isso roda num `useMemo`
+ * de client component, ou seja, na thread que desenha a tela.
+ *
+ * Projetar uma vez por NIVEL e passar pronto e o ganho inteiro: a aritmetica por alvo
+ * continua a mesma, entao todo numero que sai daqui e identico ao de antes.
+ */
+export interface FighterStats {
+  hp: number;
+  atk: number;
+  def: number;
+  spa: number;
+  spDef: number;
+}
+
+/** Projeta os cinco stats de combate do lutador num nivel. `hp` NAO leva o x5 do wild. */
+export function fighterStats(species: Species, level: number, ivs: number[], quality: number): FighterStats {
+  return {
+    hp: projectStat(species.bases[0], ivs[0], level, quality, 0),
+    atk: projectStat(species.bases[1], ivs[1], level, quality, 1),
+    def: projectStat(species.bases[2], ivs[2], level, quality, 2),
+    spa: projectStat(species.bases[3], ivs[3], level, quality, 3),
+    spDef: projectStat(species.bases[4], ivs[4], level, quality, 4),
+  };
+}
+
+/**
  * Dano por segundo do moveset INTEIRO contra o alvo.
  *
  * O motor media so o melhor golpe, e isso e o jogo errado: aqui cada golpe tem cooldown
@@ -174,9 +206,7 @@ export interface HuntEstimate {
  * `top` continua sendo o golpe de maior dano — e o que a tela mostra ("com que tipo voce
  * bate"), e e ele que define a efetividade exibida.
  */
-function movesetDps(species: Species, level: number, ivs: number[], quality: number, e: EnemyCombat, pool: MovePool) {
-  const atk = projectStat(species.bases[1], ivs[1], level, quality, 1);
-  const spa = projectStat(species.bases[3], ivs[3], level, quality, 3);
+function movesetDps(species: Species, level: number, fs: FighterStats, e: EnemyCombat, pool: MovePool) {
   let total = 0;
   let top: { mv: Move; eff: number; dmg: number; dps: number } | null = null;
   for (const mv of species.moves) {
@@ -185,7 +215,7 @@ function movesetDps(species: Species, level: number, ivs: number[], quality: num
     const eff = huntEffectiveness(mv.type, e.t1, e.t2);
     if (eff <= 0) continue; // imune
     const stab = mv.type === species.t1 || mv.type === species.t2 ? 1.5 : 1;
-    const off = mv.category === "SPECIAL" ? spa : atk;
+    const off = mv.category === "SPECIAL" ? fs.spa : fs.atk;
     const def = mv.category === "SPECIAL" ? e.spDef : e.def;
     const dmg = hitDamage(mv.power, off, def, stab, eff);
     const dps = dmg / (mv.cooldownMs / 1000);
@@ -203,18 +233,52 @@ const NO_THREAT: Threat = {
   ttdS: CAP_KILLS, killsPerLife: CAP_KILLS, uptime: 1, risk: "safe",
 };
 
+/**
+ * Fatia das mortes que a auto-pocao NAO evita — de 1 (margem nenhuma) a 0 (folga).
+ *
+ * Antes isto era um degrau: `killsPerLife >= SAFE_KILLS ? 1 : ...` no uptime. O
+ * problema nao e o modelo, e a DESCONTINUIDADE. `killsPerLife` e continuo, entao
+ * dois alvos praticamente identicos caiam em lados opostos do 6 e a tela mostrava
+ * um rendendo 2,5x o outro: com ttkS de 5s, killsPerLife 5,999 dava uptime 0,40 e
+ * 6,001 dava 1,00. Como `kosH` multiplica XP/h, ouro/h e KOs/h, o salto aparecia
+ * nos tres numeros de uma vez.
+ *
+ * E nao era caso de canto: no catalogo, 299.928 combinacoes de (lutador, nivel,
+ * alvo) caem entre 4,5 e 7,5 de killsPerLife, e em 642 delas o alvo VENCEDOR da
+ * rota mudava so por causa do lado do 6 — o `SWITCH_MARGIN` de 8% do `buildRoute`
+ * nao tem como amortecer um salto de 150%. O cabecalho deste arquivo promete que
+ * "a ordenacao e robusta" as constantes; com degrau, nao era.
+ *
+ * A curva e um smoothstep entre RISKY_KILLS e SAFE_KILLS, e a escolha e
+ * deliberada em duas pontas:
+ *  - ela ainda chega a ZERO em SAFE_KILLS, entao hunt segura continua com uptime
+ *    exatamente 1 e a CALIBRACAO em numero absoluto (Tyrogue 900 abates/h, Yanma
+ *    713) fica intacta — trocar por uma exponencial rebaixaria toda a escala;
+ *  - a derivada tambem zera nas duas pontas, entao nao ha nem degrau nem quina —
+ *    uma rampa linear tiraria o salto mas deixaria um joelho em cada extremo.
+ */
+function mortesNaoEvitadas(killsPerLife: number): number {
+  if (killsPerLife >= SAFE_KILLS) return 0;
+  if (killsPerLife <= RISKY_KILLS) return 1;
+  const t = (SAFE_KILLS - killsPerLife) / (SAFE_KILLS - RISKY_KILLS); // 0..1
+  return t * t * (3 - 2 * t);
+}
+
 /** Dano que o WILD te causa: mesmo modelo, lado invertido (o golpe dele de maior DPS
  *  contra os SEUS stats defensivos, com a vantagem elemental amplificada igual). Converte
  *  em quantos kills a vida cheia aguenta e no tempo que sobra cacando.
  *  `combatS` = segundos de PORRADA por kill; `ttkS` = ciclo cheio (com o overhead, em que
- *  voce nao esta apanhando). Sua vida so anda no combate; o desmaio custa a hora inteira. */
+ *  voce nao esta apanhando). Sua vida so anda no combate; o desmaio custa a hora inteira.
+ *
+ *  `fs` e otimizacao, nao regra nova: quem varre muitos alvos com o MESMO lutador projeta
+ *  os stats uma vez e passa aqui (ver `fighterStats`). Sem ele o resultado e igual, so
+ *  mais caro. */
 export function threatOf(
   species: Species, level: number, ivs: number[], quality: number,
   e: EnemyCombat, enemyMoves: Move[], combatS: number, ttkS: number,
+  fs?: FighterStats,
 ): Threat {
-  const hp = projectStat(species.bases[0], ivs[0], level, quality, 0); // seu HP NAO leva o x5 do wild
-  const def = projectStat(species.bases[2], ivs[2], level, quality, 2);
-  const spDef = projectStat(species.bases[4], ivs[4], level, quality, 4);
+  const { hp, def, spDef } = fs ?? fighterStats(species, level, ivs, quality);
 
   let worst: { mv: Move; eff: number; dmg: number; dps: number } | null = null;
   let totalDps = 0; // o wild tambem dispara o moveset inteiro, nao so o pior golpe
@@ -237,7 +301,7 @@ export function threatOf(
   const killsPerLife = Math.min(CAP_KILLS, ttdS / Math.max(0.1, combatS));
   // vida em tempo de relogio ate cair, e o quanto da hora sobra depois da parada da Joy
   const lifeS = killsPerLife * ttkS;
-  const uptime = killsPerLife >= SAFE_KILLS ? 1 : lifeS / (lifeS + DEATH_COST_S);
+  const uptime = lifeS / (lifeS + DEATH_COST_S * mortesNaoEvitadas(killsPerLife));
   return {
     moveType: worst.mv.type, category: worst.mv.category, eff: worst.eff,
     hitDmg: Math.round(worst.dmg * 10) / 10,
@@ -259,13 +323,14 @@ export function estimateHunt(
   enemyMoves: Move[],
   vip: boolean,
   pool: MovePool = "natural",
+  fs: FighterStats = fighterStats(species, level, ivs, quality),
 ): HuntEstimate | null {
-  const bm = movesetDps(species, level, ivs, quality, e, pool);
+  const bm = movesetDps(species, level, fs, e, pool);
   if (!bm) return null;
   const hits = Math.max(1, Math.ceil(e.hp / bm.dmg));
   const combatS = e.hp / bm.total;
   const ttkS = combatS + OVERHEAD_S;
-  const threat = threatOf(species, level, ivs, quality, e, enemyMoves, combatS, ttkS);
+  const threat = threatOf(species, level, ivs, quality, e, enemyMoves, combatS, ttkS, fs);
   const kosH = (3600 / ttkS) * threat.uptime;
   return {
     moveName: bm.mv.type,
@@ -307,6 +372,54 @@ export interface RoutePick {
   est: HuntEstimate;
 }
 
+/**
+ * A varredura de alvos de um nivel. `keep` e um alvo cuja estimativa o chamador tambem
+ * quer: ele ja esta na varredura, entao devolver a conta pronta evita um `estimateHunt`
+ * (e um `movesOf`) repetido logo depois — e o caso do `buildRoute`, que precisa saber o
+ * quanto a hunt ATUAL ainda rende neste nivel pra decidir se troca.
+ *
+ * Os stats do lutador saem UMA vez aqui, antes do laco: sao os mesmos pros 342 alvos.
+ * Ver `fighterStats` pro que isso custava.
+ */
+function scanHunts(
+  species: Species,
+  level: number,
+  ivs: number[],
+  quality: number,
+  enemies: EnemyCombat[],
+  movesOf: MovesOf,
+  mode: RouteMode,
+  vip: boolean,
+  skip: ((e: EnemyCombat) => boolean) | undefined,
+  pool: MovePool,
+  keep?: EnemyCombat,
+): { pick: RoutePick | null; keepEst: HuntEstimate | null; keepSeen: boolean } {
+  const reach = reachOf(level);
+  const fs = fighterStats(species, level, ivs, quality);
+  let best: RoutePick | null = null;
+  let lastResort: RoutePick | null = null;
+  let keepEst: HuntEstimate | null = null;
+  let keepSeen = false;
+  for (const e of enemies) {
+    if (e.huntLevel > reach) continue;
+    if (skip?.(e)) continue;
+    const est = estimateHunt(species, level, ivs, quality, e, movesOf(e.pokeId), vip, pool, fs);
+    if (e === keep) {
+      keepSeen = true;
+      keepEst = est;
+    }
+    if (!est) continue;
+    const score = mode === "gold" ? est.goldH : est.xpH;
+    const pick: RoutePick = { score, enemy: e, est };
+    if (est.threat.risk === "deadly") {
+      if (!lastResort || score > lastResort.score) lastResort = pick;
+      continue;
+    }
+    if (!best || score > best.score) best = pick;
+  }
+  return { pick: best ?? lastResort, keepEst, keepSeen };
+}
+
 /** Melhor alvo pro nivel dado. Alvo "deadly" (voce cai antes de 2 kills) NAO entra —
  *  fica so como ultimo recurso, pra rota nunca voltar vazia quando nada e seguro. */
 export function pickHunt(
@@ -321,23 +434,7 @@ export function pickHunt(
   skip?: (e: EnemyCombat) => boolean,
   pool: MovePool = "natural",
 ): RoutePick | null {
-  const reach = reachOf(level);
-  let best: RoutePick | null = null;
-  let lastResort: RoutePick | null = null;
-  for (const e of enemies) {
-    if (e.huntLevel > reach) continue;
-    if (skip?.(e)) continue;
-    const est = estimateHunt(species, level, ivs, quality, e, movesOf(e.pokeId), vip, pool);
-    if (!est) continue;
-    const score = mode === "gold" ? est.goldH : est.xpH;
-    const pick: RoutePick = { score, enemy: e, est };
-    if (est.threat.risk === "deadly") {
-      if (!lastResort || score > lastResort.score) lastResort = pick;
-      continue;
-    }
-    if (!best || score > best.score) best = pick;
-  }
-  return best ?? lastResort;
+  return scanHunts(species, level, ivs, quality, enemies, movesOf, mode, vip, skip, pool).pick;
 }
 
 export interface RouteStep {
@@ -369,12 +466,20 @@ export function buildRoute(
   const SWITCH_MARGIN = 1.08;
 
   for (let lvl = s; lvl <= t; lvl++) {
-    const p = pickHunt(species, lvl, ivs, quality, enemies, movesOf, mode, vip, undefined, pool);
-    if (!p) continue;
     const last = steps[steps.length - 1];
+    // a varredura ja passa pelo alvo da faixa atual, entao pede a conta dele de carona
+    // (`keepEst`) em vez de refazer o `estimateHunt` logo abaixo.
+    const { pick: p, keepEst, keepSeen } = scanHunts(
+      species, lvl, ivs, quality, enemies, movesOf, mode, vip, undefined, pool, last?.enemy,
+    );
+    if (!p) continue;
     if (last) {
       // rendimento do alvo ATUAL neste nivel — so troca se o novo ganha por margem.
-      const curEst = estimateHunt(species, lvl, ivs, quality, last.enemy, movesOf(last.enemy.pokeId), vip, pool);
+      // `keepSeen` falso = o alvo ficou fora da varredura (saiu do alcance); ai a conta
+      // dele ainda precisa ser feita a parte, senao a faixa quebraria so por isso.
+      const curEst = keepSeen
+        ? keepEst
+        : estimateHunt(species, lvl, ivs, quality, last.enemy, movesOf(last.enemy.pokeId), vip, pool);
       const curScore = curEst ? (mode === "gold" ? curEst.goldH : curEst.xpH) : 0;
       const curSafe = curEst != null && (curEst.threat.risk !== "deadly" || p.est.threat.risk === "deadly");
       if (curEst && curSafe && p.score <= curScore * SWITCH_MARGIN) {

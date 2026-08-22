@@ -167,7 +167,14 @@ export function MetaDuel({
                     resultado.win ? "text-ok" : "text-danger",
                   )}
                 >
-                  {Number.isFinite(resultado.margin)
+                  {/* `margin` tem tres casos que nao sao razao: 0 (voce nao
+                      machuca ele), Infinity (ele nao machuca voce) e 1 vindo de
+                      empate por imunidade dos dois lados. O guarda antigo era so
+                      `Number.isFinite`, e como ZERO e finito ele passava direto
+                      pro ramo de derrota, onde `1 / 0` imprimia "Infinityx" na
+                      tela. Vantagem impossivel de medir mostra o simbolo, dos
+                      dois lados. */}
+                  {resultado.margin > 0 && Number.isFinite(resultado.margin)
                     ? `${(resultado.win ? resultado.margin : 1 / resultado.margin).toFixed(2)}x`
                     : "∞"}
                 </span>
