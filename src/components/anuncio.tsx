@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/cn";
-import { ADSENSE_CLIENT, SLOTS, temSlot, type LugarDeAnuncio } from "@/lib/ads";
+import { ADSENSE_CLIENT, LAYOUTS, SLOTS, temSlot, type LugarDeAnuncio } from "@/lib/ads";
 
 /**
  * Uma unidade de anuncio.
@@ -159,7 +159,15 @@ export function CardAnuncio({ className }: { className?: string }) {
       <span className="pix border-b border-line-strong px-3 py-1.5 text-[10px] text-text-mute">
         Publicidade
       </span>
-      <Anuncio lugar="grade" formato="fluid" minH={220} className="flex-1 p-2" />
+      <Anuncio
+        lugar="grade"
+        formato="fluid"
+        /* String vazia vira `data-ad-layout-key=""` no HTML, e atributo vazio nao
+           e a mesma coisa que atributo ausente pro script do Google. */
+        layoutKey={LAYOUTS.grade || undefined}
+        minH={220}
+        className="flex-1 p-2"
+      />
     </div>
   );
 }

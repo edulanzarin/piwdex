@@ -40,6 +40,28 @@ export const SLOTS = {
 
 export type LugarDeAnuncio = keyof typeof SLOTS;
 
+/**
+ * O `data-ad-layout-key` das unidades de FEED.
+ *
+ * Ele existe separado do slot porque e outra coisa: o slot identifica a unidade,
+ * o layout key descreve o ARRANJO (onde entram imagem, titulo e descricao dentro
+ * do card) que voce montou no editor do painel. Sao dois codigos, gerados na
+ * mesma tela, e o AdSense so entrega o segundo depois de voce desenhar o
+ * anuncio.
+ *
+ * Sem ele, a unidade de feed sobe **sem erro nenhum** e simplesmente nao pinta —
+ * que e o pior modo de falha possivel, porque parece que o anuncio "ainda nao
+ * encheu". Por isso ele e configuracao propria, e nao um valor chutado no
+ * componente.
+ *
+ * Unidade de DISPLAY nao usa layout key. Se voce criar a da grade como display
+ * em vez de feed, deixe esta variavel vazia e troque `formato` pra "auto" no
+ * `CardAnuncio`.
+ */
+export const LAYOUTS = {
+  grade: process.env.NEXT_PUBLIC_ADSENSE_LAYOUT_GRADE ?? "",
+} as const;
+
 /** Ha conta configurada? Sem isso o script nem carrega. */
 export const temAnuncios = (): boolean => ADSENSE_CLIENT.trim().length > 0;
 
