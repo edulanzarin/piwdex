@@ -88,11 +88,13 @@ const TOOLS = [
   {
     href: "/meta",
     name: "Meta",
-    desc: "Quem bate em quem: cobertura de tipo, fraquezas cruzadas e montagem de time.",
+    desc:
+      "Tier list por nota — dano por segundo e HP efetivo, não poder de golpe —, duelo " +
+      "entre dois pokémon com nível e quality, e o panorama ofensivo de cada tipo.",
     icon: Swords,
     arte: "meta",
     cor: "var(--color-t-meta)",
-    ready: false,
+    ready: true,
   },
 ];
 

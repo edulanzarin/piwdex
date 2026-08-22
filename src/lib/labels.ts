@@ -128,6 +128,49 @@ export const STAT_LABEL = ["Vida", "Ataque", "Defesa", "Atq. Esp.", "Def. Esp.",
 /** A versao de 2-3 letras, pra cabecalho de tabela e espinha do card. */
 export const STAT_SHORT = ["VID", "ATQ", "DEF", "AES", "DES", "VEL"] as const;
 
+/**
+ * Nome da especie com a REGIAO quando ela e a variante de Orre.
+ *
+ * Orre repete o nome do catalogo base ("Sableye") com stats proprios, entao as duas
+ * entram na tier list — e a lista mostrava o mesmo nome duas vezes, com notas
+ * diferentes, parecendo defeito. O nome proprio continua em ingles (e a chave de
+ * busca do jogo); o que se acrescenta e o vocabulario do sistema.
+ */
+export const monLabel = (m: { name: string; area: string | null }): string =>
+  m.area === "orre" ? `${m.name} · Orre` : m.name;
+
+/** Papel que o formato dos stats sugere (motor: `meta.ts` -> `roleOf`). E leitura
+ *  de PERCENTIL dentro do catalogo, nao rotulo do jogo — "parede" quer dizer que a
+ *  especie aguenta mais que quase todas, nao que ela tenha uma classe. */
+export const META_ROLE_LABEL: Record<string, string> = {
+  glassCannon: "Canhão de vidro",
+  sweeper: "Varredor",
+  physicalAttacker: "Atacante físico",
+  specialAttacker: "Atacante especial",
+  mixedAttacker: "Atacante misto",
+  bulkyAttacker: "Atacante resistente",
+  wall: "Parede",
+  physicalWall: "Parede física",
+  specialWall: "Parede especial",
+  balanced: "Equilibrado",
+  filler: "Sem destaque",
+};
+
+/** O que cada papel quer dizer, em uma frase — o rotulo sozinho e adjetivo. */
+export const META_ROLE_HINT: Record<string, string> = {
+  glassCannon: "bate muito e aguenta pouco",
+  sweeper: "bate muito e é rápido",
+  physicalAttacker: "o dano dele sai do Ataque",
+  specialAttacker: "o dano dele sai do Atq. Especial",
+  mixedAttacker: "bate igual pelos dois lados",
+  bulkyAttacker: "bate forte e ainda aguenta",
+  wall: "aguenta muito e bate pouco",
+  physicalWall: "aguenta golpe físico",
+  specialWall: "aguenta golpe especial",
+  balanced: "sem extremo pra nenhum lado",
+  filler: "abaixo da média nos dois eixos",
+};
+
 /** Papel de combate lido dos stats. */
 export const ROLE_LABEL: Record<string, string> = {
   FISICO: "Físico",

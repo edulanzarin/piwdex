@@ -1,6 +1,7 @@
 import type { HowToProps } from "@/components/ui";
 import { IV_MAX } from "@/lib/stats";
 import { SIM_IV, WILD_HP_MULT } from "@/lib/combat";
+import { DEFAULT_IV } from "@/lib/meta";
 import {
   QUALITY_DIFF_MAX,
   QUALITY_MAX_NORMAL,
@@ -240,6 +241,78 @@ export const COMO_USAR_HUNT: Omit<HowToProps, "tint"> = {
     <>
       A rota não evolui ninguém: evoluir reseta o nível e não re-rola IV nem quality, então
       o pokémon que você escolheu é o pokémon do começo ao fim.
+    </>,
+  ],
+};
+
+/** Meta: tier list, duelo e panorama de tipos. */
+export const COMO_USAR_META: Omit<HowToProps, "tint"> = {
+  resumo:
+    "Dá nota a todas as espécies pelo que decide combate — dano por segundo e HP efetivo — e mostra quem ganha de quem.",
+  passos: [
+    {
+      titulo: "Escolha o pool antes de olhar a nota",
+      texto:
+        "Todo golpe de poder 600 do jogo é TM. Com TM a lista responde “quem presta se eu comprar a máquina”; só naturais responde “quem presta com o que eu já tenho”. São duas listas diferentes, e a régua de corte de cada tier muda junto.",
+    },
+    {
+      titulo: "Leia o tier como NOTA, não como fila",
+      texto:
+        "O corte é por pontuação, e o piso de cada faixa fica ao lado da letra. Isso importa num jogo que recebe patch: se trinta espécies forem buffadas, elas sobem de tier — num corte por posição (top 10% = S) alguém teria que descer pra abrir vaga.",
+    },
+    {
+      titulo: "Abra o perfil pra saber de onde vem a nota",
+      texto:
+        "Clicar num pokémon mostra os dois eixos separados (bater e aguentar), o golpe que define a velocidade dele, onde cada stat cai dentro do catálogo — e quem derruba ele, medindo os dois lados do duelo, não só quem tem o tipo certo.",
+    },
+    {
+      titulo: "Use o duelo pro seu pokémon, não pra espécie",
+      texto: (
+        <>
+          A tier list compara espécies; o duelo compara INDIVÍDUOS, com nível e quality de
+          cada lado. Os dois usam o mesmo IV ({DEFAULT_IV} ou {IV_MAX}) de propósito: assim
+          a diferença que aparece é de espécie, nível e quality, e não de sorte de IV.
+        </>
+      ),
+    },
+    {
+      titulo: "Marque o adversário como selvagem quando for caçada",
+      texto: (
+        <>
+          Na hunt o selvagem tem {WILD_HP_MULT}x o HP e bate mais forte. É por isso que
+          “ganho dele no duelo” não quer dizer “caço ele em paz” — com o reforço ligado, o
+          mesmo confronto costuma virar.
+        </>
+      ),
+    },
+    {
+      titulo: "Vá em Tipos quando a pergunta for de time",
+      texto:
+        "A aba mostra com que tipo o jogo bate mais forte, qual pokémon carrega esse tipo e quantas espécies o têm. É a resposta pra “meu time não tem nada de Pedra, quem eu pego?”.",
+    },
+  ],
+  bomSaber: [
+    <>
+      A nota combina bater (55%) e aguentar (45%). Bater é dano por SEGUNDO, com a recarga
+      do golpe dentro — um golpe de 160 com 30s de recarga rende menos que um de 60 a cada
+      5s, e medir só o poder inverte a ordem.
+    </>,
+    <>
+      Aguentar é HP VEZES defesa, não HP mais defesa: 200 de vida com 20 de defesa aguenta
+      dez vezes mais que o contrário, e a soma esconde exatamente isso.
+    </>,
+    <>
+      Velocidade fica fora da nota. O que se observa jogando é ela encurtar a recarga — se
+      for isso, ela multiplica o eixo de ataque em vez de somar. Sem a fórmula publicada,
+      dar peso a ela seria inventar número.
+    </>,
+    <>
+      Quem derruba quem mede os DOIS lados: entra na lista quem ganha a corrida do abate,
+      não quem simplesmente tem golpe super efetivo contra você.
+    </>,
+    <>
+      Variantes de skin não entram na lista: elas apontam pra espécie base e não são uma
+      linha própria do catálogo. As de Orre entram, porque têm stats próprios.
     </>,
   ],
 };

@@ -239,7 +239,9 @@ export function HuntRoute({
                     </span>
                   </span>
                   <span className="flex items-center gap-2 text-[12px] text-text-mute">
-                    <span className="pix text-[10px]">você apanha</span>
+                    {/* "voce apanha" lia como se o jogador levasse a surra; o que a
+                        linha responde e o RISCO da hunt, e a palavra e essa. */}
+                    <span className="pix text-[10px]">risco</span>
                     {th.moveType ? <TypeIcon type={th.moveType} size={12} /> : null}
                     <span style={{ color: RISK_COLOR[th.risk] }} className="pix text-[10px]">
                       {RISK_LABEL[th.risk]}

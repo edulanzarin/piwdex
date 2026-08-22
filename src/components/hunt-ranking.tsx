@@ -504,7 +504,7 @@ function Detalhe({
             a vantagem elemental vale pros DOIS lados. */}
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="flex flex-col gap-2 border border-line bg-surface/60 p-3">
-            <FieldLabel>Você bate</FieldLabel>
+            <FieldLabel>Você bate nele</FieldLabel>
             <div className="flex flex-wrap items-center gap-2">
               <Chip tint={TYPE_COLOR[est.moveName]} icon={<TypeIcon type={est.moveName} size={14} />}>
                 {TYPE_LABEL[est.moveName]}
@@ -521,7 +521,7 @@ function Detalhe({
           </div>
 
           <div className="flex flex-col gap-2 border border-line bg-surface/60 p-3">
-            <FieldLabel>Você apanha</FieldLabel>
+            <FieldLabel>Ele bate em você</FieldLabel>
             {th.moveType ? (
               <>
                 <div className="flex flex-wrap items-center gap-2">

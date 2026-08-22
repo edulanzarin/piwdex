@@ -19,36 +19,34 @@ const LINKS = [
   { href: "/calc", label: "Calculadora" },
   { href: "/hunt", label: "Hunt" },
   { href: "/breed", label: "Breeding" },
-  { href: "/meta", label: "Meta", soon: true },
+  { href: "/meta", label: "Meta" },
 ];
 
 export function SiteNav() {
   const path = usePathname();
   const [open, setOpen] = useState(false);
 
+  // Nao ha mais "em breve": as seis ferramentas estao no ar. O estado desabilitado
+  // saiu junto — link que nao leva a lugar nenhum e ruido depois que leva.
   const item = (l: (typeof LINKS)[number], onNav?: () => void) => {
     const on = path === l.href || path.startsWith(`${l.href}/`);
-    const cls = cn(
-      "pix relative flex items-center gap-1.5 px-3 py-2 text-[12px] transition-colors",
-      on ? "text-accent" : "text-text-mute hover:text-text-dim",
-      l.soon && "cursor-not-allowed opacity-45 hover:text-text-mute",
-    );
-    const inner = (
-      <>
+    return (
+      <Link
+        key={l.href}
+        href={l.href}
+        onClick={onNav}
+        className={cn(
+          "pix relative flex items-center gap-1.5 px-3 py-2 text-[12px] transition-colors",
+          on ? "text-accent" : "text-text-mute hover:text-text-dim",
+        )}
+      >
         {l.label}
-        {l.soon ? <span className="text-[11px] text-text-mute">em breve</span> : null}
         <span
           className={cn(
             "absolute inset-x-2 -bottom-px h-0.5 transition-colors",
             on ? "bg-accent shadow-[0_0_10px_0_var(--color-accent)]" : "bg-transparent",
           )}
         />
-      </>
-    );
-    if (l.soon) return <span key={l.href} className={cls} aria-disabled="true">{inner}</span>;
-    return (
-      <Link key={l.href} href={l.href} onClick={onNav} className={cls}>
-        {inner}
       </Link>
     );
   };
