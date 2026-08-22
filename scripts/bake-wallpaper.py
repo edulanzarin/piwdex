@@ -26,11 +26,31 @@ DESTINO = RAIZ / "public" / "images"
 # bloco: tamanho do "pixel" em px na imagem final. 8 no 2560 e o ponto em que
 # ainda se le PIXEL, mas uma fresta estreita entre paineis mostra estrutura
 # suficiente pra parecer cena — a 16 aquilo virava artefato de compressao.
-PERFIS = [(2560, "wallpaper.webp", 8), (1280, "wallpaper-sm.webp", 4)]
+# bloco menor que o da foto anterior: a cidade neon tem letreiro e janela de um
+# pixel, e no bloco 8 tudo virava mancha. 4/2 mantem a leitura de pixel e a cena.
+PERFIS = [(2560, "wallpaper.webp", 4), (1280, "wallpaper-sm.webp", 3)]
 
-BRILHO = 0.27       # media alvo ~37 (de 148)
-SATURACAO = 0.44    # a arte crua briga com a cor de tipo/raridade por cima
-AZUL = 1.20         # puxa pro azul-noite do tema
+# 80 e nao 90: comparado lado a lado no recorte com mais detalhe (o letreiro
+# japones), a diferenca visivel e nenhuma e o arquivo cai um terco. Fundo de tela
+# cheia e o maior byte da primeira visita — e agora ele conta pro ranking.
+QUALIDADE = 80
+
+# O ALVO e a luminancia media, nao o fator. Fator fixo so funciona pra uma arte:
+# o 0.27 daqui foi calculado pra uma foto de media 148, e aplicado numa arte que
+# ja nasce escura (a cidade neon, media 44) devolveria um retangulo preto. Medir a
+# fonte e derivar o fator faz trocar o wallpaper ser trocar o arquivo — que e o
+# que o cabecalho deste script promete.
+ALVO = 38           # luminancia media do fundo, medida depois de assar
+SATURACAO = 0.78    # so o suficiente pra cor de tipo/raridade ganhar da arte
+AZUL = 1.06         # a arte ja e azul-noite; empurrar mais vira monocromatico
+
+
+def fator_de_brilho(img) -> float:
+    """Quanto multiplicar pra chegar no ALVO. Teto em 1.0: a funcao ESCURECE —
+    clarear arte escura levantaria o ruido junto e nao e o que o fundo precisa."""
+    amostra = list(img.convert("L").resize((64, 64)).get_flattened_data())
+    media = sum(amostra) / len(amostra)
+    return min(1.0, ALVO / max(1.0, media))
 
 
 def assar(largura: int, nome: str, bloco: int) -> None:
@@ -43,7 +63,7 @@ def assar(largura: int, nome: str, bloco: int) -> None:
     out = out.resize((largura, altura), Image.NEAREST)
 
     out = ImageEnhance.Color(out).enhance(SATURACAO)
-    out = ImageEnhance.Brightness(out).enhance(BRILHO)
+    out = ImageEnhance.Brightness(out).enhance(fator_de_brilho(src))
 
     r, g, b = out.split()
     out = Image.merge("RGB", (
@@ -53,7 +73,7 @@ def assar(largura: int, nome: str, bloco: int) -> None:
     ))
 
     destino = DESTINO / nome
-    out.save(destino, "WEBP", quality=90, method=6)
+    out.save(destino, "WEBP", quality=QUALIDADE, method=6)
 
     amostra = list(out.convert("L").resize((16, 16)).get_flattened_data())
     media = sum(amostra) / len(amostra)
