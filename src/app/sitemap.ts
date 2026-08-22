@@ -14,7 +14,9 @@ import { SITE_URL } from "@/lib/site";
  * `lastModified` sai da data do CATALOGO, nao do relogio: dizer que tudo mudou
  * hoje, todo dia, e ruido que o rastreador aprende a ignorar.
  */
-export const revalidate = 86400;
+// Dinamico pelo mesmo motivo das telas (source.ts busca com no-store), entao o
+// `revalidate = 86400` que morava aqui tambem era letra morta.
+export const dynamic = "force-dynamic";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const db = await getData();

@@ -14,7 +14,8 @@ export const metadata: Metadata = {
     "que o filho herda e o custo — e calcula quantos breeds faltam até a Quality alvo.",
 };
 
-export const revalidate = 3600;
+// Dinamica de proposito — o frescor mora no source.ts. Ver src/app/page.tsx.
+export const dynamic = "force-dynamic";
 
 export default async function BreedPage() {
   const t0 = agora();

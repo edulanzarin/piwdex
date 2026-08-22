@@ -47,7 +47,8 @@ import {
   multWord,
 } from "@/lib/labels";
 
-export const revalidate = 3600;
+// Dinamica de proposito — o frescor mora no source.ts. Ver src/app/page.tsx.
+export const dynamic = "force-dynamic";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -127,7 +128,7 @@ export default async function CreaturePage({ params }: Props) {
     <div className="flex flex-col gap-4">
       <JsonLd dado={migalhas} />
       <nav className="flex items-center gap-1.5 text-[13px] text-text-mute">
-        <Link href="/dex" className="transition-colors hover:text-accent">
+        <Link href="/dex" className="tap transition-colors hover:text-accent">
           Pokedex
         </Link>
         <IconChevronRight size={14} />
@@ -497,7 +498,7 @@ export default async function CreaturePage({ params }: Props) {
                           {item ? (
                             <Link
                               href={`/itens/${item.id}`}
-                              className="transition-colors hover:text-[var(--color-t-itens)]"
+                              className="tap transition-colors hover:text-[var(--color-t-itens)]"
                             >
                               {l.name}
                             </Link>

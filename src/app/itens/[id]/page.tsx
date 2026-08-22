@@ -48,7 +48,8 @@ import {
   compact as gold,
 } from "@/lib/labels";
 
-export const revalidate = 3600;
+// Dinamica de proposito — o frescor mora no source.ts. Ver src/app/page.tsx.
+export const dynamic = "force-dynamic";
 
 interface Props {
   params: Promise<{ id: string }>;

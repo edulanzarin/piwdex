@@ -14,7 +14,8 @@ export const metadata: Metadata = {
     "da quality, e projeta os stats e o poder em qualquer nível.",
 };
 
-export const revalidate = 3600;
+// Dinamica de proposito — o frescor mora no source.ts. Ver src/app/page.tsx.
+export const dynamic = "force-dynamic";
 
 export default async function CalcPage() {
   const t0 = agora();

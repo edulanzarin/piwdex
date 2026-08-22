@@ -14,7 +14,8 @@ export const metadata: Metadata = {
     "item rende de ouro por abate.",
 };
 
-export const revalidate = 3600;
+// Dinamica de proposito — o frescor mora no source.ts. Ver src/app/page.tsx.
+export const dynamic = "force-dynamic";
 
 export default async function ItensPage() {
   const t0 = agora();

@@ -14,7 +14,8 @@ export const metadata: Metadata = {
     "lados do combate — XP/h, ouro/h e risco reais — e a rota de níveis até a meta.",
 };
 
-export const revalidate = 3600;
+// Dinamica de proposito — o frescor mora no source.ts. Ver src/app/page.tsx.
+export const dynamic = "force-dynamic";
 
 export default async function HuntPage() {
   const t0 = agora();

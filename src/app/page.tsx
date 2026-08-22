@@ -9,7 +9,21 @@ import { BookOpen, Calculator, Egg, Package, Radar, Swords } from "lucide-react"
 // poderia acertar por acidente — e "por acidente" nao e contrato.
 export const metadata: Metadata = { alternates: { canonical: "/" } };
 
-export const revalidate = 3600;
+/**
+ * Esta rota e DINAMICA de proposito, e a declaracao precisa dizer isso.
+ *
+ * Antes havia aqui um `export const revalidate = 3600` que nao fazia nada: o
+ * `fetchSource` busca com `cache: "no-store"` (lib/source.ts), o que ja tira a rota
+ * do prerender — o `.next/prerender-manifest.json` do build so lista /privacidade,
+ * /robots.txt e os icones. Ou seja, a linha anunciava "cacheada por 1 hora" enquanto
+ * a pagina renderizava a cada request.
+ *
+ * O frescor nao mora aqui: mora no `source.ts`, que segura o catalogo em memoria e
+ * repergunta ao jogo por ETag (um HEAD, zero byte). Render por request custa quase
+ * nada porque o dado ja esta na memoria do processo — o que ele NAO pode e mentir na
+ * declaracao.
+ */
+export const dynamic = "force-dynamic";
 
 /**
  * Pagina inicial.
@@ -118,11 +132,13 @@ export default async function HomePage() {
           ilegivel. `.on-art` poe sombra na letra, que e o que segura o texto
           na parte mais clara da cena sem escurecer a foto inteira. */}
       <section className="on-art flex flex-col items-center justify-center gap-7 px-4 py-14 text-center sm:py-20">
-        <div className="flex items-center gap-5">
+        {/* Empilha no MUITO estreito: a bola de 104 mais o titulo de 52px somam 358
+            numa janela de 320, e o conjunto empurrava a pagina pra fora da tela. */}
+        <div className="flex flex-col items-center gap-3 text-center sm:flex-row sm:gap-5 sm:text-left">
           {/* Parada: a bola e a marca, nao um indicador. Flutuando ela disputa
               atencao com o titulo que esta do lado. */}
-          <Pokeball size={104} className="text-[var(--color-t-dex)]" />
-          <div className="text-left">
+          <Pokeball size={104} className="w-[76px] shrink-0 text-[var(--color-t-dex)] sm:w-[104px]" />
+          <div className="text-center sm:text-left">
             {/* PIWdex, nao PIWDEX: `normal-case` desliga a caixa alta do `.pix`
                 pra a marca sair como ela se escreve. */}
             <h1 className="pix text-[52px] leading-none normal-case text-text sm:text-[68px]">
@@ -211,6 +227,10 @@ export default async function HomePage() {
                       alt=""
                       size={104}
                       priority
+                      /* A 320px a arte de 104 mais o botao nao cabiam na linha e
+                         o card empurrava a pagina 17px pra fora da tela. Aqui ela
+                         encolhe em vez de o card vazar. */
+                      className="[--sprite:76px] sm:[--sprite:104px]"
                       fallback={<Icon size={34} strokeWidth={1.8} style={{ color: t.cor }} />}
                     />
                   </span>
@@ -241,7 +261,12 @@ export default async function HomePage() {
                         frase que explica pra onde vai. */}
                     {t.ready ? (
                       <span
-                        className="pix mt-1 inline-flex h-10 w-fit items-center gap-2 border px-4 text-[13px] transition-all group-hover:brightness-125"
+                        /* `h-10` fixo com rotulo em caixa alta ("ABRIR
+                           CALCULADORA" passa de 180px) nao cabia em tela estreita:
+                           a linha nao podia quebrar, entao ela vazava. Altura
+                           MINIMA no lugar de fixa deixa o rotulo virar duas linhas
+                           quando precisa, sem cortar. */
+                        className="pix mt-1 inline-flex min-h-10 w-fit max-w-full items-center gap-2 border px-4 py-2 text-[13px] transition-all group-hover:brightness-125"
                         style={{
                           borderColor: `color-mix(in oklab, ${t.cor} 60%, transparent)`,
                           backgroundColor: `color-mix(in oklab, ${t.cor} 18%, transparent)`,
@@ -266,7 +291,7 @@ export default async function HomePage() {
               <Link
                 key={t.href}
                 href={t.href}
-                className="panel group flex flex-col p-5 transition-all hover:brightness-110"
+                className="panel group flex min-w-0 flex-col p-4 transition-all hover:brightness-110 sm:p-5"
                 style={skin}
               >
                 {body}
@@ -275,7 +300,7 @@ export default async function HomePage() {
               /* `opacity` no card inteiro tambem apagava o VIDRO — sobre a foto,
                  o texto ficava ilegivel. Quem esmaece e o conteudo, pela cor; a
                  superficie fica de pe. */
-              <div key={t.href} className="panel flex flex-col p-5" style={skin}>
+              <div key={t.href} className="panel flex min-w-0 flex-col p-4 sm:p-5" style={skin}>
                 {body}
               </div>
             );

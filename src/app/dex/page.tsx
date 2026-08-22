@@ -16,7 +16,8 @@ export const metadata: Metadata = {
 // Revalida de hora em hora: o catalogo se atualiza sozinho quando o jogo publica
 // patch, sem redeploy. O `source.ts` ainda confere por ETag a cada request, isso
 // aqui e so o teto da pagina renderizada.
-export const revalidate = 3600;
+// Dinamica de proposito — o frescor mora no source.ts. Ver src/app/page.tsx.
+export const dynamic = "force-dynamic";
 
 export default async function DexPage() {
   const t0 = agora();
