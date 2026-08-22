@@ -11,7 +11,7 @@
 // shiny e breeding chegam la.
 //
 // ATENCAO aos DOIS eixos que compartilham nomes:
-//   - QUALIDADE do INDIVIDUO (esta tabela): o que o jogo mostra no bicho e no filtro.
+//   - QUALIDADE do INDIVIDUO (esta tabela): o que o jogo mostra no pokemon e no filtro.
 //   - RARIDADE da ESPECIE (creatures.json, 6 valores COMMON..MYTHIC): traco do catalogo.
 // Em tela de individuo use qualityTier(quality); em tela de especie, a rarity do dex.
 

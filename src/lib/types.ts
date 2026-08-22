@@ -79,6 +79,9 @@ export interface Item {
   healAmount?: number;
   revivePct?: number;
   priceGold?: number;
+  /** So 103 dos 428 itens tem. E o unico texto que diz PRA QUE o item serve
+   *  ("estimula os instintos durante o breeding"), entao entra na busca. */
+  description?: string;
 }
 
 export interface Hunt {

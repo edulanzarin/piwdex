@@ -2,279 +2,265 @@
 
 import { useMemo } from "react";
 import Link from "next/link";
-import { spriteUrl } from "@/lib/sprites";
-import { defensiveDetailed, offensiveDetailed, TYPE_COLOR } from "@/lib/typing";
+import { cn } from "@/lib/cn";
 import {
-  nemeses, preys, roleOf, scoredMoves, statStandings, STAT_KEYS,
-  type Duel, type MetaEntry, type MetaMon, type MovePool, type StatKey,
+  STAT_KEYS,
+  TIER_COLOR,
+  nemeses,
+  preys,
+  roleOf,
+  statStandings,
+  type Duel,
+  type MetaEntry,
+  type MetaMon,
+  type MovePool,
 } from "@/lib/meta";
-import { STAT_LABELS } from "@/lib/stats";
-import { Sprite } from "./sprite";
-import { TypeBadges, TypeBadge } from "./badges";
-import { StatIcon } from "./stat-icons";
-import { PokemonCombobox } from "./pokemon-combobox";
-import { TierBadge, AxisBar, MonCell, fmtDps } from "./meta-badges";
-import { useT } from "./locale-provider";
+import { effLabel } from "@/lib/hunt";
+import { animatedSpriteUrl, spriteUrl } from "@/lib/sprites";
+import { TYPE_COLOR } from "@/lib/typing";
+import { META_ROLE_HINT, META_ROLE_LABEL, STAT_LABEL, TYPE_LABEL, monLabel, num} from "@/lib/labels";
+import {
+  Chip,
+  FieldLabel,
+  IconChevronRight,
+  Modal,
+  Note,
+  Sprite,
+  StatTile,
+  Tooltip,
+} from "@/components/ui";
+import { TypeBadge, TypeIcon } from "@/components/type-icon";
+import { STAT_ICONS } from "@/components/game-icons";
 
-const ACCENT = "var(--pink)";
-
-/** Rotulo do stat na ordem canonica do site (hp, atk, def, spAtk, spDef, speed). */
-const statLabel = (k: StatKey): string => STAT_LABELS[STAT_KEYS.indexOf(k)];
-
+/**
+ * O perfil de uma especie: a nota por extenso.
+ *
+ * A tier list responde "quanto ele vale"; aqui responde-se **por que** — de que lado
+ * vem a nota (bater ou aguentar), com que golpe, e contra quem isso ganha ou perde.
+ *
+ * Algozes e presas medem os DOIS lados do duelo, e nao "tem golpe super efetivo
+ * contra voce" — esse criterio promove qualquer bicho fraco com o tipo certo. Quem
+ * entra na lista de algozes e quem te DERRUBA PRIMEIRO.
+ */
 export function MetaProfile({
-  mons, all, pool, entry, focus, onFocus, table,
+  entry,
+  mons,
+  pool,
+  onOpen,
+  onClose,
 }: {
-  mons: MetaMon[];
-  all: MetaMon[];
-  pool: MovePool;
   entry: MetaEntry | null;
-  focus: MetaMon | null;
-  onFocus: (m: MetaMon | null) => void;
-  table: MetaEntry[];
+  mons: MetaMon[];
+  pool: MovePool;
+  onOpen: (m: MetaMon) => void;
+  onClose: () => void;
 }) {
-  const t = useT();
-  const combo = useMemo(
-    () => [...mons].sort((a, b) => a.name.localeCompare(b.name)),
-    [mons],
-  );
+  const c = entry?.creature ?? null;
+
+  const perfil = useMemo(() => {
+    if (!c) return null;
+    const st = statStandings(c, mons);
+    return {
+      st,
+      papel: roleOf(st),
+      algozes: nemeses(c, mons, 6, pool),
+      presas: preys(c, mons, 6, pool),
+    };
+  }, [c, mons, pool]);
+
+  if (!entry || !c || !perfil) return <Modal open={false} onClose={onClose}>{null}</Modal>;
+
+  const tint = TYPE_COLOR[c.type1];
 
   return (
-    <div className="flex flex-col gap-5">
-      <div className="card p-4 sm:p-5">
-        <label className="flex flex-col gap-1">
-          <span className="field-label">{t("meta.pickPokemon")}</span>
-          <PokemonCombobox
-            creatures={combo}
-            value={focus}
-            onSelect={onFocus}
-            placeholder={t("meta.searchPlaceholder")}
+    <Modal
+      open
+      onClose={onClose}
+      size="lg"
+      eyebrow={`Meta · ${entry.position}º de ${mons.length}`}
+      title={
+        <span className="flex items-center gap-3">
+          <Sprite
+            src={spriteUrl(c.pokeId)}
+            animatedSrc={animatedSpriteUrl(c.pokeId)}
+            alt={c.name}
+            size={44}
           />
-        </label>
-      </div>
-
-      {!focus || !entry ? (
-        <div className="card p-6 text-center text-sm text-text-dim">{t("meta.profileEmpty")}</div>
-      ) : (
-        <ProfileBody mon={focus} entry={entry} all={all} pool={pool} table={table} onFocus={onFocus} />
-      )}
-    </div>
-  );
-}
-
-function ProfileBody({
-  mon, entry, all, pool, table, onFocus,
-}: {
-  mon: MetaMon; entry: MetaEntry; all: MetaMon[]; pool: MovePool;
-  table: MetaEntry[]; onFocus: (m: MetaMon) => void;
-}) {
-  const t = useT();
-  const standings = useMemo(() => statStandings(mon, all), [mon, all]);
-  const role = useMemo(() => roleOf(standings), [standings]);
-  const moves = useMemo(() => scoredMoves(mon, pool).slice(0, 6), [mon, pool]);
-  const nem = useMemo(() => nemeses(mon, all, 6, pool), [mon, all, pool]);
-  const prey = useMemo(() => preys(mon, all, 6, pool), [mon, all, pool]);
-  const def = useMemo(() => defensiveDetailed(mon.type1, mon.type2), [mon]);
-  const off = useMemo(() => offensiveDetailed(mon.type1, mon.type2), [mon]);
-  const tierPeers = useMemo(
-    () => table.filter((e) => e.tier === entry.tier).length,
-    [table, entry.tier],
-  );
-
-  return (
-    <div className="flex flex-col gap-5">
-      {/* ---- cartao de identidade ---- */}
-      <section className="card flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:gap-6 sm:p-6">
-        <Sprite src={spriteUrl(mon.pokeId)} alt={mon.name} size={112} className="shrink-0 self-center" />
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-3">
-            <h2 className="pixel text-2xl text-text">{mon.name}</h2>
-            <TypeBadges t1={mon.type1} t2={mon.type2} />
-            {mon.area === "orre" && <span className="chip" style={{ background: "var(--purple)", color: "#140a26" }}>Orre</span>}
-          </div>
-          <p className="mt-2 text-sm text-text-dim">
-            {t(`meta.role.${role}`)} · {t("meta.huntLevel", { n: mon.huntLevel })}
-          </p>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <AxisBar value={entry.offense} color="var(--red)" label={`${t("meta.col.offense")} · ${fmtDps(entry.dps)}`} hint={t("meta.dpsHint")} />
-            <AxisBar value={entry.bulk} color="var(--cyan)" label={`${t("meta.col.bulk")} · ${fmtDps(entry.ehp)}`} hint={t("meta.ehpHint")} />
-          </div>
-        </div>
-        <div className="flex shrink-0 flex-col items-center gap-2 self-center">
-          <TierBadge tier={entry.tier} size="lg" />
-          <span className="pixel text-2xl tabular-nums" style={{ color: ACCENT }}>{entry.score.toFixed(1)}</span>
-          <span className="text-center text-xs text-text-dim">
-            {t("meta.position", { n: entry.position, total: table.length })}
+          <span className="flex flex-col gap-1">
+            <span>{monLabel(c)}</span>
+            <span className="flex items-center gap-1.5">
+              <TypeBadge type={c.type1} size="xs" />
+              {c.type2 ? <TypeBadge type={c.type2} size="xs" /> : null}
+            </span>
           </span>
-          <span className="text-center text-xs text-text-dim">{t("meta.tierPeers", { n: tierPeers })}</span>
-        </div>
-      </section>
-
-      {/* ---- destaques de stats ---- */}
-      <section className="card p-4 sm:p-5">
-        <h3 className="pixel text-lg text-text">{t("meta.statsTitle")}</h3>
-        <p className="mt-1 text-xs text-text-dim">{t("meta.statsDesc")}</p>
-        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {STAT_KEYS.map((k, i) => {
-            const s = standings[k];
-            const pct = s.percentile;
-            const color = pct >= 0.85 ? "var(--green)" : pct >= 0.6 ? "var(--cyan)" : pct >= 0.35 ? "var(--yellow)" : "var(--red)";
-            return (
-              <div key={k} className="well flex items-center gap-3 p-3">
-                <StatIcon index={i} size={18} />
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-baseline justify-between gap-2">
-                    <span className="field-label">{statLabel(k)}</span>
-                    <span className="tabular-nums text-text">{s.value}</span>
-                  </div>
-                  <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-surface-2">
-                    <div className="h-full rounded-full" style={{ width: `${pct * 100}%`, background: color }} />
-                  </div>
-                  <p className="mt-1 text-xs text-text-dim">{t("meta.statPercentile", { n: Math.round(pct * 100) })}</p>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* ---- golpes ---- */}
-      <section className="card p-4 sm:p-5">
-        <h3 className="pixel text-lg text-text">{t("meta.movesTitle")}</h3>
-        <p className="mt-1 text-xs text-text-dim">{t("meta.movesDesc")}</p>
-        {moves.length === 0 ? (
-          <p className="mt-4 text-sm text-text-dim">{t("meta.noMoves")}</p>
-        ) : (
-          <div className="mt-4 max-w-full overflow-x-auto">
-            <table className="w-full min-w-[34rem] text-sm">
-              <thead className="text-left text-text-dim">
-                <tr>
-                  <th className="px-2 py-2">{t("meta.col.move")}</th>
-                  <th className="w-28 px-2 py-2">{t("meta.col.type")}</th>
-                  <th className="w-20 px-2 py-2 text-right">{t("meta.col.power")}</th>
-                  <th className="w-24 px-2 py-2 text-right">{t("meta.col.dps")}</th>
-                  <th className="w-20 px-2 py-2 text-right">{t("meta.col.learn")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {moves.map((m) => (
-                  <tr key={m.attack.name} className="border-t border-border/60">
-                    <td className="px-2 py-2">
-                      <span className="flex flex-wrap items-center gap-1.5">
-                        <span className="text-text">{m.attack.name}</span>
-                        {m.tm && <span className="chip" style={{ background: "var(--yellow)", color: "#2a2200" }}>TM</span>}
-                        {m.stab && <span className="chip" style={{ background: "var(--green)", color: "#052012" }}>STAB</span>}
-                      </span>
-                    </td>
-                    <td className="px-2 py-2"><TypeBadge type={m.attack.type} /></td>
-                    <td className="px-2 py-2 text-right tabular-nums text-text-dim">{m.attack.power}</td>
-                    <td className="px-2 py-2 text-right tabular-nums" style={{ color: ACCENT }}>{fmtDps(m.dps)}</td>
-                    <td className="px-2 py-2 text-right tabular-nums text-text-dim">{m.attack.learnLevel}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            <p className="mt-3 text-xs leading-relaxed text-text-dim">{t("meta.cdNote")}</p>
-          </div>
-        )}
-      </section>
-
-      {/* ---- tipagem ---- */}
-      <section className="card p-4 sm:p-5">
-        <h3 className="pixel text-lg text-text">{t("meta.typingTitle")}</h3>
-        <p className="mt-1 text-xs text-text-dim">{t("meta.typingDesc")}</p>
-        <div className="mt-4 grid gap-4 lg:grid-cols-3">
-          <TypeGroup title={t("meta.weakTo")} accent="var(--red)" items={def.weak.map((x) => ({ type: x.type, label: x.label }))} empty={t("meta.none")} />
-          <TypeGroup title={t("meta.resists")} accent="var(--green)" items={def.resist.map((x) => ({ type: x.type, label: x.label }))} empty={t("meta.none")} />
-          <TypeGroup title={t("meta.hitsHard")} accent="var(--yellow)" items={off.map((x) => ({ type: x.type, label: x.label }))} empty={t("meta.none")} />
-        </div>
-        {def.immune.length > 0 && (
-          <p className="mt-3 text-xs text-text-dim">
-            {t("meta.immuneTo")}: {def.immune.map((x) => x.type).join(", ")}
-          </p>
-        )}
-        <p className="mt-3 text-xs text-text-dim">{t("meta.ampNote")}</p>
-      </section>
-
-      {/* ---- duelos ---- */}
-      <div className="grid gap-5 lg:grid-cols-2">
-        <DuelList
-          title={t("meta.nemesesTitle")} desc={t("meta.nemesesDesc")}
-          duels={nem} accent="var(--red)" side="theirs" onFocus={onFocus} empty={t("meta.nemesesEmpty")}
-        />
-        <DuelList
-          title={t("meta.preysTitle")} desc={t("meta.preysDesc")}
-          duels={prey} accent="var(--green)" side="mine" onFocus={onFocus} empty={t("meta.preysEmpty")}
-        />
-      </div>
-
-      <p className="text-center text-xs text-text-dim">
-        <Link href={`/dex/${mon.pokeId}`} className="underline decoration-dotted hover:text-cyan">
-          {t("meta.openDex", { name: mon.name })}
+        </span>
+      }
+      footer={
+        <Link
+          href={`/dex/${c.pokeId}`}
+          className="pix flex items-center gap-1 text-[12px] text-text-dim transition-colors hover:text-accent"
+        >
+          ver a ficha completa na dex
+          <IconChevronRight size={14} />
         </Link>
-      </p>
-    </div>
+      }
+    >
+      <div className="flex flex-col gap-5">
+        {/* ---- a nota e de onde ela vem ---- */}
+        <div className="flex flex-wrap items-center gap-4 border border-line-strong bg-surface-2/60 p-3">
+          <span
+            className="pix grid h-14 w-14 shrink-0 place-items-center border text-[28px]"
+            style={{ color: TIER_COLOR[entry.tier], borderColor: TIER_COLOR[entry.tier] }}
+          >
+            {entry.tier}
+          </span>
+          <span className="flex flex-col gap-0.5">
+            <span className="text-[30px] leading-none font-bold text-text tabular">{entry.score}</span>
+            <span className="pix text-[11px] text-text-mute">de 100</span>
+          </span>
+          <span className="flex min-w-[12rem] flex-1 flex-col gap-2">
+            <Eixo label="Ataque" valor={entry.offense} cor="var(--color-danger)" />
+            <Eixo label="Resistência" valor={entry.bulk} cor="var(--color-ok)" />
+          </span>
+          <Tooltip content={META_ROLE_HINT[perfil.papel]}>
+            <Chip tint={tint}>{META_ROLE_LABEL[perfil.papel]}</Chip>
+          </Tooltip>
+        </div>
+
+        {entry.best ? (
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <FieldLabel>Golpe que define a velocidade</FieldLabel>
+            <Chip tint={TYPE_COLOR[entry.best.attack.type]} icon={<TypeIcon type={entry.best.attack.type} size={14} />}>
+              {entry.best.attack.name}
+            </Chip>
+            <span className="text-[13px] text-text-mute">
+              poder {entry.best.attack.power} a cada {num(entry.best.attack.cooldownMs / 1000, 1)}s
+              {entry.best.stab ? " · com STAB" : ""}
+              {entry.best.tm ? " · é TM" : ""}
+            </span>
+          </div>
+        ) : (
+          <Note flush>Esta espécie não tem golpe de dano no pool escolhido.</Note>
+        )}
+
+        {/* ---- onde cada stat cai dentro do catalogo ---- */}
+        <div className="flex flex-col gap-2">
+          <FieldLabel>Cada stat dentro do catálogo</FieldLabel>
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {STAT_KEYS.map((k, i) => {
+              const s = perfil.st[k];
+              const Icon = STAT_ICONS[i];
+              return (
+                <StatTile
+                  key={k}
+                  label={STAT_LABEL[i]}
+                  icon={<Icon size={14} />}
+                  value={s.value}
+                  ratio={s.percentile}
+                  tint={tint}
+                  footLeft={`supera ${Math.round(s.percentile * 100)}%`}
+                  footRight={`${s.rank}º`}
+                />
+              );
+            })}
+          </div>
+        </div>
+
+        {/* ---- os dois lados do confronto ---- */}
+        <div className="grid gap-3 sm:grid-cols-2">
+          <ListaDuelo
+            titulo="Quem derruba ele"
+            vazio="Ninguém do catálogo derruba ele primeiro."
+            duelos={perfil.algozes}
+            onOpen={onOpen}
+            perigo
+          />
+          <ListaDuelo
+            titulo="Quem ele derruba"
+            vazio="Ele não tem vantagem clara sobre ninguém."
+            duelos={perfil.presas}
+            onOpen={onOpen}
+          />
+        </div>
+
+        <Note flush>
+          A nota combina bater (55%) e aguentar (45%), e cada eixo é normalizado pelo maior
+          do catálogo. Bater é dano por SEGUNDO, com a recarga do golpe dentro; aguentar é
+          HP vezes defesa, porque os dois se multiplicam — somar esconde o tanque.
+        </Note>
+      </div>
+    </Modal>
   );
 }
 
-function TypeGroup({
-  title, accent, items, empty,
-}: {
-  title: string; accent: string; items: { type: string; label: string }[]; empty: string;
-}) {
+function Eixo({ label, valor, cor }: { label: string; valor: number; cor: string }) {
   return (
-    <div className="well p-3">
-      <p className="field-label" style={{ color: accent }}>{title}</p>
-      {items.length === 0 ? (
-        <p className="mt-2 text-xs text-text-dim">{empty}</p>
-      ) : (
-        <ul className="mt-2 flex flex-wrap gap-1.5">
-          {items.map((x) => (
-            <li key={x.type} className="flex items-center gap-1">
-              <TypeBadge type={x.type} />
-              <span className="text-xs tabular-nums" style={{ color: TYPE_COLOR[x.type as keyof typeof TYPE_COLOR] }}>{x.label}</span>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
+    <span className="flex items-center gap-2">
+      <span className="pix w-24 shrink-0 text-[11px] text-text-mute">{label}</span>
+      <span className="h-2 min-w-0 flex-1 bg-bg-soft ring-1 ring-line">
+        <span className="block h-full" style={{ width: `${Math.round(valor * 100)}%`, backgroundColor: cor }} />
+      </span>
+      <span className="w-9 shrink-0 text-right text-[12px] text-text-dim tabular">
+        {Math.round(valor * 100)}
+      </span>
+    </span>
   );
 }
 
-/** Nemesis e presa saem do MESMO duelo, mudando so o lado que a coluna mostra. */
-function DuelList({
-  title, desc, duels, accent, side, onFocus, empty,
+function ListaDuelo({
+  titulo,
+  vazio,
+  duelos,
+  onOpen,
+  perigo,
 }: {
-  title: string; desc: string; duels: Duel[]; accent: string;
-  side: "mine" | "theirs"; onFocus: (m: MetaMon) => void; empty: string;
+  titulo: string;
+  vazio: string;
+  duelos: Duel[];
+  onOpen: (m: MetaMon) => void;
+  perigo?: boolean;
 }) {
-  const t = useT();
   return (
-    <section className="card p-4 sm:p-5">
-      <h3 className="pixel text-lg" style={{ color: accent }}>{title}</h3>
-      <p className="mt-1 text-xs text-text-dim">{desc}</p>
-      {duels.length === 0 ? (
-        <p className="mt-4 text-sm text-text-dim">{empty}</p>
+    <div className="flex flex-col gap-2 border border-line bg-surface/60 p-3">
+      <FieldLabel>{titulo}</FieldLabel>
+      {duelos.length === 0 ? (
+        <p className="text-[13px] text-text-mute">{vazio}</p>
       ) : (
-        <ul className="mt-4 flex flex-col gap-2">
-          {duels.map((d) => {
-            const m = d[side];
+        <ul className="flex flex-col">
+          {duelos.map((d) => {
+            const golpe = perigo ? d.theirs : d.mine;
             return (
-              <li key={d.other.pokeId} className="well flex min-w-0 items-center gap-3 p-2.5">
-                <MonCell mon={d.other} onOpen={onFocus} />
-                <span className="ml-auto flex shrink-0 items-center gap-3 text-xs">
-                  <span className="flex flex-col items-end">
-                    <span className="text-text-dim">{m.move?.name ?? "—"}</span>
-                    {m.move && <TypeBadge type={m.move.type} icon={false} />}
+              <li key={d.other.pokeId}>
+                <button
+                  type="button"
+                  onClick={() => onOpen(d.other)}
+                  className="group flex w-full items-center gap-2 border-b border-line/60 py-1.5 text-left last:border-0"
+                >
+                  <Sprite src={spriteUrl(d.other.pokeId)} alt={d.other.name} size={28} />
+                  <span className="min-w-0 flex-1 truncate text-[14px] text-text-dim transition-colors group-hover:text-accent">
+                    {monLabel(d.other)}
                   </span>
-                  <span className="tabular-nums" style={{ color: accent }} title={t("meta.effHint")}>
-                    {m.eff.toFixed(2)}x
+                  {golpe.move ? (
+                    <Tooltip content={`${golpe.move.name} · ${TYPE_LABEL[golpe.move.type]}`}>
+                      <span className="shrink-0">
+                        <TypeIcon type={golpe.move.type} size={14} />
+                      </span>
+                    </Tooltip>
+                  ) : null}
+                  <span
+                    className={cn(
+                      "shrink-0 text-[13px] tabular",
+                      perigo ? "text-danger" : "text-ok",
+                    )}
+                  >
+                    {effLabel(golpe.eff)}
                   </span>
-                </span>
+                </button>
               </li>
             );
           })}
         </ul>
       )}
-    </section>
+    </div>
   );
 }

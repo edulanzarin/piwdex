@@ -3,221 +3,112 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { Pokeball } from "./pokeball";
-import { NavAccount, NavLogout } from "./nav-icons";
-import { PokedexIcon } from "./pokedex-icon";
-import { ItemsIcon, HuntIcon, CalcIcon, LabIcon, BreedIcon, BoostIcon, MetaIcon } from "./tool-icons";
-import { Robot, Gear } from "./icons";
-import { useT } from "./locale-provider";
-import { LangSwitcher } from "./lang-switcher";
-import { logout } from "@/lib/actions/auth";
+import { cn } from "@/lib/cn";
+import { IconClose, IconRows, Pokeball } from "@/components/ui";
+import { FERRAMENTAS, type Ferramenta } from "@/lib/ferramentas";
 
-export interface NavUser {
-  name: string | null;
-  image: string | null;
-  vip: boolean;
-  admin?: boolean;
-}
-
-// MESMA ordem e MESMOS icones dos cards da home (pedido do Eduardo): quem decorou a
-// home reconhece a ferramenta no topo sem reler o rotulo. Mexeu aqui, mexa em
-// src/app/page.tsx — e vice-versa.
-const TABS: { key: string; href: string; Icon: (p: { size?: number }) => React.ReactNode }[] = [
-  { key: "nav.dex", href: "/dex", Icon: PokedexIcon },
-  { key: "nav.items", href: "/items", Icon: ItemsIcon },
-  { key: "nav.hunt", href: "/hunt", Icon: HuntIcon },
-  { key: "nav.calc", href: "/calc", Icon: CalcIcon },
-  { key: "nav.breed", href: "/breed", Icon: BreedIcon },
-  { key: "nav.boost", href: "/boost", Icon: BoostIcon },
-  { key: "nav.eevee", href: "/eevee", Icon: LabIcon },
-  { key: "nav.meta", href: "/meta", Icon: MetaIcon },
-  // Conta saiu do topo: virou aba do /vip (depende da sessao de jogo, que so o BOT
-  // abre). Entra pelo botao BOT.
-];
-
-// Botao-icone do header (mesmo grid 40x40 da nav) + tooltip no hover. BOT, Entrar e
-// Sair usam o mesmo chrome que os icones de navegacao, so mudando a cor.
-const ICON_BTN = "group relative flex h-10 w-10 items-center justify-center rounded transition hover:bg-surface-2";
-function Tip({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="pointer-events-none absolute left-1/2 top-full z-40 mt-1.5 -translate-x-1/2 whitespace-nowrap rounded border border-border bg-[color:var(--surface-solid)] px-2 py-1 text-xs uppercase tracking-wide text-text-dim opacity-0 transition group-hover:opacity-100">
-      {children}
-    </span>
-  );
-}
-
-export function SiteNav({ user }: { user: NavUser | null }) {
-  const t = useT();
-  const pathname = usePathname();
+/**
+ * Barra de navegacao. Fixa no topo porque a dex e uma tela de rolagem longa e
+ * voltar pro topo pra trocar de ferramenta e atrito puro.
+ *
+ * Ela lista o MESMO registro que a home e os herois (`lib/ferramentas.ts`), e o
+ * que ela pega de la e a COR — nao o glifo.
+ *
+ * ## Por que aqui nao entra icone
+ *
+ * Entrou, e saiu. O argumento pro glifo de traco era que seis palavras curtas em
+ * caixa alta viram uma fileira de manchas iguais; olhando a barra pronta, isso
+ * nao se sustenta: POKEDEX, ITENS, CALCULADORA, HUNT, BREEDING e META tem
+ * comprimentos bem diferentes, e o comprimento ja e a silhueta. O glifo estava
+ * resolvendo um problema que a tipografia resolvia sozinha, e num chrome de 56px
+ * de altura cada elemento a mais custa densidade.
+ *
+ * A alternativa era usar a ARTE das ferramentas, que e o que o site tem de
+ * proprio. Ela nao cabe: e uma grade de 32x32, e a nav pede 14 a 20px — nao ha
+ * como desenhar 32 pixels em 20, e o teste (a 3x de zoom, ja) devolveu seis
+ * manchas coloridas que nao se distinguem. E a fronteira de
+ * [[Arte de icone se julga no tamanho de uso, e o acento e a massa]]: arte de
+ * figura vive de 24px pra cima, o chrome miudo e do traco — ou de nada. De
+ * quebra, o `pokedex.png` tem 571 KB e passaria a carregar em TODA pagina.
+ *
+ * O que sobrou e o que de fato informa: a COR da ferramenta no estado ativo. A
+ * barra de baixo acende laranja na Hunt e rosa no Breeding, que e o mesmo sinal
+ * da faixa de topo repetido onde o olho ja estava — sem custar um pixel de
+ * largura.
+ */
+export function SiteNav() {
+  const path = usePathname();
   const [open, setOpen] = useState(false);
-  const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
-  // chip do plano pago do piwdex (nosso), nao o VIP do jogo
-  const BotChip = () =>
-    user?.vip ? (
-      <span className="chip" style={{ background: "var(--yellow)", color: "#3a2c00" }}>BOT</span>
-    ) : null;
+
+  const item = (f: Ferramenta, onNav?: () => void) => {
+    const on = path === f.href || path.startsWith(`${f.href}/`);
+    return (
+      <Link
+        key={f.href}
+        href={f.href}
+        onClick={onNav}
+        aria-current={on ? "page" : undefined}
+        className={cn(
+          "pix group relative flex items-center px-3 py-2 text-[12px] transition-colors",
+          on ? "text-text" : "text-text-mute hover:text-text-dim",
+        )}
+      >
+        {/* A palavra tambem acende na cor quando ativa: a barra sozinha e um
+            sinal de 2px, e num trilho de seis ela pede que o olho procure. */}
+        <span style={on ? { color: f.cor } : undefined}>{f.nome}</span>
+        {/* A barra que cresce do centro, na cor da ferramenta. */}
+        <span
+          aria-hidden="true"
+          className={cn(
+            "absolute inset-x-2 -bottom-px h-0.5 origin-center transition-transform duration-150 ease-out",
+            on ? "scale-x-100" : "scale-x-0 group-hover:scale-x-50",
+          )}
+          style={{
+            backgroundColor: f.cor,
+            boxShadow: on ? `0 0 10px 0 ${f.cor}` : undefined,
+          }}
+        />
+      </Link>
+    );
+  };
 
   return (
-    <header className="sticky top-0 z-30 border-b border-border bg-[rgba(7,11,22,0.72)] backdrop-blur-xl backdrop-saturate-150">
-      <div className="container-page flex h-16 items-center justify-between gap-3">
-        <Link href="/" className="flex items-center gap-2.5" onClick={() => setOpen(false)}>
-          <Pokeball size={28} />
-          <div className="pixel text-lg text-text">PIWdex</div>
+    <header className="sticky top-0 z-40 border-b border-white/10 bg-bg/92 backdrop-blur-xl backdrop-saturate-150 shadow-[inset_0_-1px_0_0_rgb(255_255_255/0.04)]">
+      <div className="mx-auto flex h-14 w-full max-w-[1600px] items-center gap-1 px-3 sm:px-5">
+        <Link href="/" className="group mr-3 flex shrink-0 items-center gap-2">
+          {/* A bola e VERMELHA — ela e uma pokebola, e essa e a unica cor de marca
+              que sobrou depois que o roxo saiu do tema. Ela BALANCA no hover: a
+              marca e o unico lugar do topo onde cabe uma piscadela. */}
+          <Pokeball
+            size={26}
+            className="text-[var(--color-t-dex)] transition-transform duration-150 group-hover:rotate-12"
+          />
+          {/* `normal-case`: a marca e PIWdex — PIW em caixa alta (as iniciais do
+              jogo) e "dex" em caixa baixa. O `.pix` poe caixa alta em tudo, entao
+              aqui ele e desligado e a palavra vai literal. */}
+          <span className="pix text-[15px] normal-case text-text">
+            PIW<span className="text-accent">dex</span>
+          </span>
         </Link>
 
-        <div className="flex items-center gap-2 sm:gap-3">
-          {/* Botao BOT na nav sticky (aparece na entrada, segue o scroll, desktop+mobile).
-              Sem o bot: convite dourado pulsante -> paywall. Com o bot: entrada do
-              cockpit, sem pulso. Sempre visivel: pra quem tem, e o caminho pro cockpit. */}
-          {user?.admin && (
-            <Link
-              href="/admin"
-              title="Painel admin"
-              className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-md border border-[#e5484d] bg-[#e5484d]/12 px-2.5 pixel text-base text-[#ff6b6b] transition hover:bg-[#e5484d]/22"
-            >
-              ADM
-            </Link>
-          )}
-          <Link
-            href={user?.vip ? "/bot-app" : "/bot"}
-            title={user?.vip ? t("vip.eyebrow") : t("vipcta.btn")}
-            className={`inline-flex h-10 shrink-0 items-center gap-1.5 rounded-md border border-[color:var(--yellow)] px-2.5 pixel text-base text-yellow transition ${user?.vip ? "bg-[color:var(--yellow)]/20 hover:bg-[color:var(--yellow)]/30" : "glow-pulse bg-[color:var(--yellow)]/12 hover:bg-[color:var(--yellow)]/22"}`}
-            style={{ "--accent": "var(--yellow)" } as React.CSSProperties}
-          >
-            <Robot size={16} /> BOT
-          </Link>
-          {/* Desktop: icones com tooltip */}
-          <nav className="hidden items-center gap-1 sm:flex">
-            {TABS.map(({ key, href, Icon }) => {
-              const active = isActive(href);
-              return (
-                <Link
-                  key={href}
-                  href={href}
-                  title={t(key)}
-                  aria-label={t(key)}
-                  className={`${ICON_BTN} ${active ? "bg-surface-2 text-cyan ring-1 ring-[color:var(--border-strong)]" : "text-text-dim hover:text-text"}`}
-                >
-                  <Icon size={22} />
-                  <Tip>{t(key)}</Tip>
-                </Link>
-              );
-            })}
-          </nav>
-          <span className="hidden h-6 w-px bg-border sm:block" />
+        <nav className="hidden items-center md:flex">{FERRAMENTAS.map((f) => item(f))}</nav>
 
-          {/* conta / login-logout (desktop) — so o icone de conta; sem o BOT no topo */}
-          <div className="hidden items-center gap-2 sm:flex">
-            {user ? (
-              <>
-                {/* nome do usuario: slot maior porque a Chakra e bem mais larga que a
-                    fonte condensada antiga — 8rem cortava nome medio */}
-                <span className="max-w-[11rem] truncate pixel text-base text-text">{user.name ?? "conta"}</span>
-                <Link
-                  href="/conta"
-                  title={t("nav.account")}
-                  aria-label={t("nav.account")}
-                  className={`${ICON_BTN} text-text-dim hover:text-cyan`}
-                >
-                  <NavAccount size={22} />
-                  <Tip>{t("nav.account")}</Tip>
-                </Link>
-                <form action={logout} className="flex">
-                  <button
-                    type="submit"
-                    title={t("auth.logout")}
-                    aria-label={t("auth.logout")}
-                    className={`${ICON_BTN} text-text-dim hover:text-red`}
-                  >
-                    <NavLogout size={22} />
-                    <Tip>{t("auth.logout")}</Tip>
-                  </button>
-                </form>
-              </>
-            ) : (
-              <Link
-                href="/entrar"
-                title={t("nav.account")}
-                aria-label={t("nav.account")}
-                className={`${ICON_BTN} text-text-dim hover:text-cyan`}
-              >
-                <NavAccount size={22} />
-                <Tip>{t("nav.account")}</Tip>
-              </Link>
-            )}
-          </div>
-
-          <LangSwitcher />
-          <button
-            type="button"
-            className="flex flex-col gap-[3px] p-2 sm:hidden"
-            onClick={() => setOpen((o) => !o)}
-            aria-label="menu"
-            aria-expanded={open}
-          >
-            <span className={`h-0.5 w-5 bg-text transition ${open ? "translate-y-[5px] rotate-45" : ""}`} />
-            <span className={`h-0.5 w-5 bg-text transition ${open ? "opacity-0" : ""}`} />
-            <span className={`h-0.5 w-5 bg-text transition ${open ? "-translate-y-[5px] -rotate-45" : ""}`} />
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => setOpen((o) => !o)}
+          aria-label={open ? "Fechar menu" : "Abrir menu"}
+          aria-expanded={open}
+          className="ml-auto rounded-pix border border-line p-1.5 text-text-dim transition-colors hover:text-text md:hidden"
+        >
+          {open ? <IconClose size={16} /> : <IconRows size={16} />}
+        </button>
       </div>
 
-      {/* menu mobile: overlay ABSOLUTO sob o header — abre por cima do conteudo,
-          nunca empurra a pagina pra baixo */}
-      {open && (
-        <nav className="absolute inset-x-0 top-full max-h-[calc(100dvh-4rem)] overflow-y-auto border-t border-border bg-[rgba(7,11,22,0.88)] shadow-[0_24px_40px_-20px_rgba(0,0,0,0.9)] backdrop-blur-xl backdrop-saturate-150 sm:hidden">
-          <div className="container-page flex flex-col py-1">
-            {TABS.map(({ key, href, Icon }) => (
-              <Link
-                key={href}
-                href={href}
-                className={`flex items-center gap-3 border-b border-border/40 py-3 pixel text-base last:border-0 hover:text-cyan ${isActive(href) ? "text-cyan" : "text-text-dim"}`}
-                onClick={() => setOpen(false)}
-              >
-                <Icon size={20} />
-                {t(key)}
-              </Link>
-            ))}
-
-            {user?.admin && (
-              <Link
-                href="/admin"
-                className="flex items-center gap-3 border-b border-border/40 py-3 pixel text-base text-[#ff6b6b] hover:text-[#ff8a8a]"
-                onClick={() => setOpen(false)}
-              >
-                <Gear size={20} /> Painel admin
-              </Link>
-            )}
-
-            {/* conta / login-logout (mobile) — sem o BOT no topo */}
-            {user ? (
-              <>
-                <Link
-                  href="/conta"
-                  className="flex items-center gap-3 border-b border-border/40 py-3 pixel text-base text-text-dim hover:text-cyan"
-                  onClick={() => setOpen(false)}
-                >
-                  <NavAccount size={20} />
-                  <span className="flex items-center gap-2">{user.name ?? t("nav.account")} <BotChip /></span>
-                </Link>
-                <form action={logout}>
-                  <button type="submit" className="flex w-full items-center gap-3 py-3 pixel text-base text-text-dim hover:text-red" onClick={() => setOpen(false)}>
-                    <NavLogout size={20} /> {t("auth.logout")}
-                  </button>
-                </form>
-              </>
-            ) : (
-              <Link
-                href="/entrar"
-                className="flex items-center gap-3 py-3 pixel text-base text-cyan"
-                onClick={() => setOpen(false)}
-              >
-                <NavAccount size={20} /> {t("nav.account")}
-              </Link>
-            )}
-          </div>
+      {open ? (
+        <nav className="anim-rise flex flex-col border-t border-white/10 bg-surface/95 px-3 py-1 backdrop-blur-xl md:hidden">
+          {FERRAMENTAS.map((f) => item(f, () => setOpen(false)))}
         </nav>
-      )}
+      ) : null}
     </header>
   );
 }

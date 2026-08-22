@@ -1,45 +1,65 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
-import { getData } from "@/lib/data";
-import { Calculator, type CalcCreature } from "@/components/calculator";
-import { T } from "@/components/locale-provider";
+import { getDexPayload } from "@/lib/dex-data";
+import { agora, fecharPiso } from "@/lib/pacing";
+import { CalcTool, type CalcSpecies } from "@/components/calc-tool";
+import { HowTo, Panel, SkeletonForm } from "@/components/ui";
+import { COMO_USAR_CALC } from "@/lib/how-to";
+import { HeroFerramenta, HeroMarca } from "@/components/hero-ferramenta";
 
-export const metadata: Metadata = { title: "Analise de Status" };
+export const metadata: Metadata = {
+  alternates: { canonical: "/calc" },
+  title: "Calculadora de IV, Quality e Poder",
+  description:
+    "Estima o IV de um pokémon do Poke Idle World a partir dos stats, do nível e " +
+    "da quality, e projeta os stats e o poder em qualquer nível.",
+};
+
+// Dinamica de proposito — o frescor mora no source.ts. Ver src/app/page.tsx.
+export const dynamic = "force-dynamic";
 
 export default async function CalcPage() {
-  const db = await getData();
-  const { creatures } = db;
-  // Lista enxuta pro cliente: so o que a analise precisa (+ XP e ouro por kill).
-  const slim: CalcCreature[] = creatures
-    .map((c) => {
-      let gold = 0;
-      for (const l of c.loot) {
-        const price = db.getItemByName(l.name)?.npcPrice ?? 0;
-        gold += (l.chance / 100000) * ((l.minCount + l.maxCount) / 2) * price;
-      }
-      return {
-        pokeId: c.pokeId,
-        name: c.name,
-        type1: c.type1,
-        type2: c.type2,
-        bases: [c.baseHp, c.baseAtk, c.baseDef, c.baseSpAtk, c.baseSpDef, c.baseSpeed],
-        rarity: c.rarity,
-        xp: c.experience,
-        goldEV: Math.round(gold),
-      };
-    })
-    .sort((a, b) => a.name.localeCompare(b.name));
+  const t0 = agora();
+  const { entries } = await getDexPayload();
+
+  // O `DexEntry` inteiro carrega loot, fraquezas e haystack — nada disso entra
+  // numa conta de IV. A calculadora precisa de seis bases e do nome, entao o
+  // payload e fatiado aqui em vez de mandar 482 entradas cheias pro navegador.
+  const especies: CalcSpecies[] = entries.map((e) => ({
+    id: e.id,
+    name: e.name,
+    bases: e.stats,
+    type1: e.type1,
+    type2: e.type2,
+    rarity: e.rarity,
+  }));
+
+  await fecharPiso(t0);
+
   return (
-    <div className="flex flex-col gap-6">
-      {/* Cabecalho da ferramenta: sem a moldura colorida quem da corpo e o vidro do
-          card — titulo e descricao ficam num painel so, e o conteudo
-          abaixo (cards) nao fica solto na pagina. */}
-      <header className="card p-5 sm:p-6">
-        <h1 className="pixel text-3xl [overflow-wrap:anywhere]" style={{ color: "var(--purple)" }}><T k="calc.title" /></h1>
-        <p className="mt-3 max-w-2xl text-base text-text-dim">
-          <T k="calc.desc" />
-        </p>
-      </header>
-      <Calculator creatures={slim} />
+    <div className="flex flex-col gap-4">
+      <HeroFerramenta
+        href="/calc"
+        marcas={
+          <HeroMarca n={especies.length} cor="var(--color-t-calc)">
+            espécies
+          </HeroMarca>
+        }
+      />
+
+      {/* O manual vem ANTES do formulario porque e ele que diz de onde saem os
+          numeros que o formulario pede. Fechado, ele custa uma faixa de 40px. */}
+      <HowTo {...COMO_USAR_CALC} tint="var(--color-t-calc)" />
+
+      <Suspense
+        fallback={
+          <Panel title={<span className="pix">O pokémon</span>}>
+            <SkeletonForm />
+          </Panel>
+        }
+      >
+        <CalcTool especies={especies} />
+      </Suspense>
     </div>
   );
 }

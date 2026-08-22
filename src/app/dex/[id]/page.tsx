@@ -1,355 +1,533 @@
-import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { MapPin as LucideMapPin } from "lucide-react";
-import { getData } from "@/lib/data";
-import { spriteUrl, itemIconUrl } from "@/lib/sprites";
-import { defensiveDetailed, offensiveDetailed } from "@/lib/typing";
-import type { TypeMult } from "@/lib/typing";
-import { TypeBadge, TypeBadges, TypePill } from "@/components/badges";
-import { AcqBadge } from "@/components/acq-badge";
-import { StatBar } from "@/components/stat-bar";
-import { CASINO_PRICE } from "@/lib/casino-prices";
-import { Sprite } from "@/components/sprite";
-import { HeroSprite } from "@/components/hero-sprite";
-import { StatTile } from "@/components/stat-tile";
-import { Gold, Xp, ChevronLeft, ChevronRight } from "@/components/icons";
-import { Reveal } from "@/components/reveal";
-import { PokedexShell } from "@/components/pokedex-shell";
-import { T } from "@/components/locale-provider";
+import type { Metadata } from "next";
+import { cn } from "@/lib/cn";
+import { chanceToPct, getData } from "@/lib/data";
+import { getDexPayload } from "@/lib/dex-data";
+import { agora, fecharPiso } from "@/lib/pacing";
+import { buildEntry, rolesOf } from "@/lib/dex";
+import { resumoDaEspecie } from "@/lib/prosa";
+import { JsonLd, trilha } from "@/lib/jsonld";
+import { animatedSpriteUrl, spriteUrl } from "@/lib/sprites";
+import { RARITY_COLOR, TYPE_COLOR, defensiveDetailed, offensiveDetailed } from "@/lib/typing";
+import { projectAll } from "@/lib/stats";
+import {
+  Chip,
+  IconChevronRight,
+  IconCoin,
+  IconEvolve,
+  IconPin,
+  Note,
+  Panel,
+  Sprite,
+  StatBar,
+  Tooltip,
+} from "@/components/ui";
+import { TypeBadge, TypeMultChip } from "@/components/type-icon";
+import {
+  CategoryIcon,
+  IconAtk,
+  IconBag,
+  IconGem,
+  IconLevel,
+  IconScale,
+  IconTarget,
+  IconTm,
+  IconDef as IconDefShield,
+  IconWeak,
+  IconXp,
+  STAT_ICONS,
+} from "@/components/game-icons";
+import {
+  CATEGORY_LABEL,
+  RARITY_LABEL,
+  ROLE_LABEL,
+  STAT_LABEL,
+  compact as gold,
+  multWord,
+  num,
+} from "@/lib/labels";
 
-export async function generateStaticParams() {
-  const { creatures } = await getData();
-  return creatures.map((c) => ({ id: String(c.pokeId) }));
-}
+// Dinamica de proposito — o frescor mora no source.ts. Ver src/app/page.tsx.
+export const dynamic = "force-dynamic";
 
-export async function generateMetadata({
-  params,
-}: {
+interface Props {
   params: Promise<{ id: string }>;
-}): Promise<Metadata> {
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
-  const { getCreature } = await getData();
-  const c = getCreature(Number(id));
-  return { title: c ? `${c.name} #${c.pokeId}` : "Pokemon" };
+  const db = await getData();
+  const c = db.getCreature(Number(id));
+  // O ramo de erro NAO ganha canonical: pagina que nao existe nao pode declarar
+  // ser a versao boa de nada.
+  if (!c) return { title: "Pokémon não encontrado" };
+  return {
+    // O titulo carrega a PERGUNTA, nao so o nome: quem procura digita "onde
+    // pegar", "stats", "drop" — e o nome sozinho nao encosta em nenhuma delas.
+    title: `${c.name} — stats, drops e onde pegar`,
+    description: resumoDaEspecie(c, db).descricao,
+    alternates: { canonical: `/dex/${c.pokeId}` },
+    openGraph: {
+      type: "article",
+      title: `${c.name} — Poke Idle World`,
+      description: resumoDaEspecie(c, db).descricao,
+      url: `/dex/${c.pokeId}`,
+    },
+  };
 }
 
-const STATS = [
-  ["HP", "baseHp"], ["ATK", "baseAtk"], ["DEF", "baseDef"],
-  ["SP.ATK", "baseSpAtk"], ["SP.DEF", "baseSpDef"], ["SPEED", "baseSpeed"],
-] as const;
-
-// Pin de "onde cacar" (lucide MapPin, mesma API local).
-function MapPin({ size = 16 }: { size?: number }) {
-  return <LucideMapPin size={size} className="shrink-0" aria-hidden />;
-}
-
-function pctLabel(p: number): string {
-  if (p >= 10) return `${p.toFixed(1)}%`;
-  if (p >= 1) return `${p.toFixed(2)}%`;
-  if (p >= 0.01) return `${p.toFixed(3)}%`;
-  return `${p.toFixed(4)}%`;
-}
-
-function SectionTitle({ children }: { children: React.ReactNode }) {
-  return <h2 className="section-title mb-4">{children}</h2>;
-}
-
-function EffRow({ titleKey, entries, emptyKey }: { titleKey: string; entries: TypeMult[]; emptyKey: string }) {
-  // degrau mobile: rotulo em cima das pills no celular, coluna fixa so a partir do sm.
-  // A coluna do rotulo e FIXA em 9.5rem: cabe o pior caso das tres linguas ("Toma menos
-  // de" / "Fuerte contra") na Chakra, que e bem mais larga que a fonte antiga.
-  return (
-    <div className="grid grid-cols-1 items-start gap-x-3 gap-y-1 sm:grid-cols-[9.5rem_1fr]">
-      {/* frase, nao rotulo curto: sem caixa alta nem tracking — o peso 500 ja separa */}
-      <span className="pt-1 text-base text-text-dim"><T k={titleKey} /></span>
-      {entries.length ? (
-        <div className="flex flex-wrap gap-1.5">
-          {entries.map((e) => (
-            <TypePill key={e.type} type={e.type} mult={e.label} />
-          ))}
-        </div>
-      ) : (
-        <span className="pt-1 text-sm text-text-dim"><T k={emptyKey} /></span>
-      )}
-    </div>
-  );
-}
-
-// Papel do pokemon a partir dos bases — devolve CHAVES de traducao.
-function roleTags(c: {
-  baseHp: number; baseAtk: number; baseDef: number;
-  baseSpAtk: number; baseSpDef: number; baseSpeed: number;
-}): string[] {
-  const tags: string[] = [];
-  const phys = c.baseAtk, spec = c.baseSpAtk;
-  if (phys >= spec + 15) tags.push("cr.role.phys");
-  else if (spec >= phys + 15) tags.push("cr.role.spec");
-  else if (phys >= 90 && spec >= 90) tags.push("cr.role.mixed");
-  const bulk = c.baseHp + c.baseDef + c.baseSpDef;
-  if (bulk >= 300) tags.push("cr.role.tank");
-  if (c.baseSpeed >= 110) tags.push("cr.role.fast");
-  else if (c.baseSpeed <= 45) tags.push("cr.role.slow");
-  return tags.slice(0, 3);
-}
-
-export default async function CreaturePage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export default async function CreaturePage({ params }: Props) {
+  const t0 = agora();
   const { id } = await params;
-  const { getCreature, evolutionChainOf, locationsOf, getItemByName, acquisitionOf } = await getData();
-  const c = getCreature(Number(id));
+  const db = await getData();
+  const c = db.getCreature(Number(id));
   if (!c) notFound();
-  const acq = acquisitionOf(c);
-  const isEevee = c.pokeId === 133; // ramifica por pedra -> estrela propria
 
-  const total = c.baseHp + c.baseAtk + c.baseDef + c.baseSpAtk + c.baseSpDef + c.baseSpeed;
-  const bestStat = Math.max(c.baseHp, c.baseAtk, c.baseDef, c.baseSpAtk, c.baseSpDef, c.baseSpeed);
+  const resumo = resumoDaEspecie(c, db);
+  // A mesma trilha que o `<nav>` logo abaixo desenha, dita no formato que o
+  // rastreador le. As URLs saem da mesma string do canonical: duas verdades
+  // sobre qual e a URL da pagina e pior que nenhuma.
+  const migalhas = trilha([
+    { nome: "PIWdex", caminho: "/" },
+    { nome: "Pokédex", caminho: "/dex" },
+    { nome: c.name, caminho: `/dex/${c.pokeId}` },
+  ]);
+
+  // Mesmo teto de barra do grid: um stat 65 tem de desenhar igual na ficha e no
+  // card. Usar o proprio maximo da especie faria o Bulbasaur parecer no teto.
+  const { bounds } = await getDexPayload();
+
+  const e = buildEntry(c, {
+    spotsOf: (x) => db.locationsOf(x).length,
+    acquisitionOf: db.acquisitionOf,
+    chainOf: (x) => db.evolutionChainOf(x).map((s) => ({ pokeId: s.creature.pokeId })),
+  });
+
+  const spots = db.locationsOf(c);
+  const chain = db.evolutionChainOf(c);
   const { weak, resist, immune } = defensiveDetailed(c.type1, c.type2);
-  const offensive = offensiveDetailed(c.type1, c.type2);
-  // STAB: os proprios tipos do pokemon dao 1.5x.
-  const stab: TypeMult[] = [c.type1, c.type2]
-    .filter((tp): tp is NonNullable<typeof tp> => tp != null)
-    .map((tp) => ({ type: tp, mult: 1.5, label: "1.5x" }));
-  const chain = evolutionChainOf(c);
-  const locations = locationsOf(c);
-  const loot = [...(c.loot ?? [])].sort((a, b) => b.chance - a.chance);
-  const moves = [...(c.attacks ?? [])].sort((a, b) => a.learnLevel - b.learnLevel);
-  const bestMove = moves.reduce<typeof moves[number] | null>((best, m) => (m.power > (best?.power ?? 0) ? m : best), null);
-  const roles = roleTags(c);
+  const strong = offensiveDetailed(c.type1, c.type2);
+  const roles = rolesOf(e);
 
-  // container-wide: mesmo container largo da grade — o aparelho nao muda de largura
-  // quando a ficha abre.
+  // Ordena golpes por poder, separando os dois pools. A separacao nao e detalhe:
+  // TODO golpe de poder 600 do jogo e de TM, e misturar promete um DPS que quem
+  // nao tem a maquina nao possui.
+  const natural = c.attacks.filter((a) => !a.tm).sort((a, b) => b.power - a.power);
+  const machine = c.attacks.filter((a) => a.tm).sort((a, b) => b.power - a.power);
+
+  const drops = [...c.loot].sort((a, b) => b.chance - a.chance);
+
+  // Projecao com IV perfeito (32) e Quality 1.0 — a referencia de teto que a
+  // calculadora depois compara contra o pokemon real do jogador.
+  const perfect = projectAll(e.stats, [32, 32, 32, 32, 32, 32], 100, 1);
+
+
+  await fecharPiso(t0);
+
   return (
-    <div className="container-wide">
-      <PokedexShell animate={false}>
-      <div className="flex flex-col gap-6">
-        <Link href="/dex" className="inline-flex min-h-10 items-center gap-1.5 self-start text-base uppercase tracking-wide text-text-dim hover:text-cyan">
-          <ChevronLeft size={16} /> <T k="cr.back" />
+    <div className="flex flex-col gap-4">
+      <JsonLd dado={migalhas} />
+      <nav className="flex items-center gap-1.5 text-[13px] text-text-mute">
+        <Link href="/dex" className="tap transition-colors hover:text-accent">
+          Pokedex
         </Link>
+        <IconChevronRight size={14} />
+        <span className="text-text-dim">{c.name}</span>
+      </nav>
 
-        {/* Cabecalho */}
-        <div className="card flex flex-col gap-6 p-5 sm:flex-row sm:items-center sm:p-6">
-          <HeroSprite pokeId={c.pokeId} name={c.name} />
-          <div className="flex flex-1 flex-col gap-3">
-            <div className="pixel text-sm text-text-dim">#{String(c.pokeId).padStart(3, "0")}</div>
-            <h1 className="pixel text-2xl text-text">{c.name}</h1>
-            <div className="flex flex-wrap items-center gap-2">
-              <TypeBadges t1={c.type1} t2={c.type2} />
-              <AcqBadge kind={acq} />
-            </div>
-            <p className="text-sm leading-relaxed text-text-dim">{c.description}</p>
+      {/* ---- identidade ---- */}
+      <header className="panel scanline relative flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:gap-6">
+        <div className="relative grid shrink-0 place-items-center self-center">
+          <span
+            aria-hidden="true"
+            className="anim-glow absolute h-28 w-28 rounded-full blur-2xl"
+            style={{ backgroundColor: RARITY_COLOR[c.rarity] }}
+          />
+          {/* O gif animado do gen5 so existe ate ~id 649; acima disso o
+              `Sprite` cai sozinho no estatico. Vale a tentativa: pokemon parado
+              numa ficha e catalogo, pokemon que respira e jogo. */}
+          <Sprite
+            src={spriteUrl(c.pokeId)}
+            animatedSrc={animatedSpriteUrl(c.pokeId)}
+            alt={c.name}
+            size={128}
+            priority
+            className="anim-float relative"
+          />
+        </div>
 
-            {roles.length > 0 && (
-              <div className="flex flex-wrap gap-1.5">
-                {roles.map((r) => (
-                  <span key={r} className="chip" style={{ background: "var(--surface-2)", color: "var(--text)" }}><T k={r} /></span>
-                ))}
-              </div>
-            )}
+        <div className="flex min-w-0 flex-1 flex-col gap-2">
+          <span className="pix text-[12px] text-text-mute">
+            #{String(c.pokeId).padStart(3, "0")}
+            {c.area ? ` · ${c.area}` : ""}
+          </span>
+          <h1 className="text-[24px] leading-none font-semibold text-text">{c.name}</h1>
 
-            {/* grade de mini-stats — preenche o cabecalho com dado util */}
-            {/* 4 colunas so no md: no sm o cabecalho vira linha (sprite ao lado) e a
-                coluna dos tiles encolhe — 4 tiles ali espremiam o rotulo em duas linhas */}
-            <div className="mt-1 grid grid-cols-2 gap-2 md:grid-cols-4">
-              <StatTile label={<T k="cr.totalBase" />} value={total} accent="var(--cyan)" />
-              <StatTile label={<T k="cr.huntLvl" />} value={c.huntLevel} accent="var(--cyan)" />
-              <StatTile
-                label={<T k="cr.xp" />}
-                value={c.experience.toLocaleString("pt-BR")}
-                icon={<Xp size={14} className="text-yellow" />}
-                accent="var(--cyan)"
-              />
-              <StatTile
-                label={<T k={CASINO_PRICE[c.pokeId] ? "cr.casino" : "cr.value"} />}
-                value={<Gold value={CASINO_PRICE[c.pokeId] ?? (c.sellValue > 0 ? c.sellValue : c.priceNpc)} />}
-              />
-            </div>
+          <div className="flex flex-wrap items-center gap-1.5">
+            <TypeBadge type={c.type1} />
+            {c.type2 ? <TypeBadge type={c.type2} /> : null}
+            <Chip tint={RARITY_COLOR[c.rarity]} icon={<IconGem size={14} />}>
+              {RARITY_LABEL[c.rarity]}
+            </Chip>
+            {roles.map((r) => (
+              <Chip key={r}>{ROLE_LABEL[r] ?? r}</Chip>
+            ))}
+            {e.hasTm ? (
+              <Chip tone="neon" icon={<IconTm size={14} />}>
+                aprende TM
+              </Chip>
+            ) : null}
           </div>
-        </div>
 
-        <div className="grid gap-5 lg:grid-cols-2">
-          <Reveal className="card p-5">
-            <SectionTitle><T k="cr.statsBase" /></SectionTitle>
-            <p className="-mt-2 mb-4 text-base leading-relaxed text-text-dim">
-              <T k="cr.statsHint" />{" "}
-              <Link href="/calc" className="inline-flex items-center gap-1 text-cyan hover:underline"><T k="cr.statsHintLink" /> <ChevronRight size={16} /></Link>
-            </p>
-            <div className="flex flex-col gap-2.5">
-              {STATS.map(([label, key], i) => (
-                <StatBar key={key} iconIndex={i} label={label} value={c[key]} best={c[key] === bestStat} />
-              ))}
-              <div className="mt-2 flex items-baseline justify-between border-t border-border pt-2 text-base">
-                <span className="uppercase tracking-wide text-text-dim"><T k="cr.total" /></span>
-                <strong className="font-bold tabular-nums text-cyan">{total}</strong>
+          {/* O catalogo do jogo entrega `description: "a bulbasaur"` — as 482 sao
+              esse molde. No lugar dele entra a prosa DERIVADA do dado que esta
+              nesta pagina: de onde ele vem, pra onde evolui, o drop mais
+              frequente com a chance real, o que o abate paga. Ver `lib/prosa.ts`. */}
+          <p className="max-w-3xl text-[14px] leading-relaxed text-text-dim">
+            {resumo.frases.join(" ")}
+          </p>
+
+          <dl className="mt-1 grid grid-cols-2 gap-px overflow-hidden rounded-pix border border-line bg-line sm:grid-cols-4">
+            {[
+              { label: "nível de caça", value: c.huntLevel || "—", icon: <IconLevel size={15} /> },
+              {
+                // Declara qual grandeza esta na tela: `sellValue` (o que o jogo
+                // paga por abate) e `priceNpc` (preco do cassino) nao se
+                // comparam, e o rotulo unico faz a ficha se contradizer.
+                label: e.valueFromNpc ? "preço de npc" : "venda por abate",
+                value: e.value > 0 ? gold(e.value) : "—",
+                icon: <IconCoin size={15} />,
+                tone: e.valueFromNpc ? "text-text-dim" : "text-warn",
+              },
+              { label: "xp por abate", value: c.experience || "—", tone: "text-neon", icon: <IconXp size={15} /> },
+              {
+                label: "total de stats",
+                value: e.statTotal,
+                icon: <IconScale size={15} />,
+                tone: "text-accent",
+              },
+            ].map((s) => (
+              <div key={s.label} className="bg-surface px-3 py-2">
+                <dd className={`flex items-center gap-1 text-[18px] leading-none font-semibold tabular ${s.tone ?? "text-text"}`}>
+                  {s.icon}
+                  {s.value}
+                </dd>
+                <dt className="pix mt-1 text-[11px] text-text-mute">{s.label}</dt>
               </div>
-              {bestMove && bestMove.power > 0 && (
-                <div className="mt-1 flex items-baseline justify-between gap-3 text-base text-text-dim">
-                  <span className="shrink-0"><T k="cr.bestMove" /></span>
-                  {/* nome de golpe longo trunca em vez de esticar o card em 360px */}
-                  <span className="min-w-0 truncate text-text" title={`${bestMove.name} ${bestMove.power}`}>
-                    {bestMove.name} <span className="font-bold tabular-nums text-yellow">{bestMove.power}</span>
-                  </span>
-                </div>
-              )}
-            </div>
-          </Reveal>
-
-          <Reveal className="card p-5">
-            <SectionTitle><T k="cr.combat" /></SectionTitle>
-            {/* subtitulo e frase inteira ("Defesa: como ele recebe dano"): peso separa, caixa alta nao */}
-            <div className="mb-2 text-sm text-text-dim"><T k="cr.defenseSub" /></div>
-            <div className="flex flex-col gap-3 text-sm">
-              <EffRow titleKey="cr.takesMore" entries={weak} emptyKey="cr.noWeak" />
-              <EffRow titleKey="cr.takesLess" entries={resist} emptyKey="cr.noResist" />
-              <EffRow titleKey="cr.immune" entries={immune} emptyKey="cr.immuneEmpty" />
-            </div>
-            <div className="my-4 border-t border-border" />
-            <div className="mb-2 text-sm text-text-dim"><T k="cr.attackSub" /></div>
-            <div className="flex flex-col gap-3 text-sm">
-              <EffRow titleKey="cr.stab" entries={stab} emptyKey="cr.immuneEmpty" />
-              <EffRow titleKey="cr.strongVs" entries={offensive} emptyKey="cr.noStrong" />
-            </div>
-          </Reveal>
+            ))}
+          </dl>
         </div>
+      </header>
 
-        {/* estrutura ESTAVEL entre fichas irmas: sempre 2 colunas no lg, a celula de
-            evolucao existe sempre — linha unica vira o "estado" dela (nao some do grid) */}
-        <div className="grid gap-5 lg:grid-cols-2">
-          {isEevee ? (
-            <Reveal className="card flex flex-col p-5">
-              <SectionTitle><T k="cr.evolution" /></SectionTitle>
-              <div className="flex flex-1 flex-col items-center justify-center gap-4 py-4 text-center">
-                <p className="max-w-xs text-sm text-text-dim"><T k="eevee.branches" /></p>
-                <Link href="/eevee" className="btn btn-cyan">
-                  <T k="eevee.open" /> <ChevronRight size={14} />
-                </Link>
+      <div className="grid items-stretch gap-4 lg:grid-cols-2">
+        {/* ---- stats ---- */}
+        <Panel
+          className="h-full"
+          title={
+            <span className="flex items-center gap-2">
+              <IconScale size={16} />
+              Stats base
+            </span>
+          }
+          actions={<span className="text-[13px] text-text-mute tabular">{e.statTotal}</span>}
+        >
+          <div className="flex flex-col gap-1.5">
+            {e.stats.map((v, i) => {
+              const Icon = STAT_ICONS[i];
+              return (
+                <StatBar
+                  key={i}
+                  label={STAT_LABEL[i]}
+                  icon={<Icon size={9} />}
+                  value={v}
+                  max={bounds.statCeiling}
+                  tint={TYPE_COLOR[c.type1]}
+                />
+              );
+            })}
+          </div>
+          {/* So o DADO. A frase que explicava "IV e Quality sao por individuo,
+              o catalogo so define a base" saiu — quem joga ja sabe, e quem nao
+              sabe nao aprende num rodape de painel. */}
+          <Note flush icon={null} className="mt-3">
+            Nível 100, IV perfeito:{" "}
+            <span className="text-text-dim tabular">{perfect.sum}</span> de soma,{" "}
+            <span className="text-accent tabular">{perfect.power}</span> de Poder.
+          </Note>
+        </Panel>
+
+        {/* ---- defesa ---- */}
+        <Panel className="h-full" title={<span className="flex items-center gap-2"><IconWeak size={16} />Como apanha</span>}>
+          {weak.length ? (
+            <div className="mb-3">
+              <p className="pix mb-1.5 flex items-center gap-1.5 text-[11px] text-danger"><IconWeak size={15} />fraco contra</p>
+              <div className="flex flex-wrap gap-1">
+                {weak.map((w) => (
+                  <TypeMultChip key={w.type} m={w} tone="text-danger" />
+                ))}
               </div>
-            </Reveal>
-          ) : (
-            <Reveal className="card flex flex-col p-5">
-              <SectionTitle><T k="cr.evolution" /></SectionTitle>
-              <div className="flex flex-1 flex-wrap items-center justify-center gap-3">
-                {chain.map((stage, i) => (
-                  <div key={stage.creature.pokeId} className="flex items-center gap-3">
-                    {i > 0 && (
-                      <span className="pixel inline-flex items-center gap-1 text-xs text-text-dim">lvl {stage.evolveLevel ?? "?"} <ChevronRight size={14} /></span>
+            </div>
+          ) : null}
+
+          {resist.length ? (
+            <div className="mb-3">
+              <p className="pix mb-1.5 flex items-center gap-1.5 text-[11px] text-ok"><IconDefShield size={15} />resiste a</p>
+              <div className="flex flex-wrap gap-1">
+                {resist.map((w) => (
+                  <TypeMultChip key={w.type} m={w} tone="text-ok" />
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          {immune.length ? (
+            <div className="mb-3">
+              <p className="pix mb-1.5 text-[11px] text-text-mute">imune a</p>
+              <div className="flex flex-wrap gap-1">
+                {immune.map((w) => (
+                  <TypeMultChip key={w.type} m={w} tone="text-text-mute" />
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          {strong.length ? (
+            <div className="border-t border-line pt-3">
+              {/* STAB (1.5x por golpe do proprio tipo) e coisa SEPARADA da
+                  efetividade (x2/x0.5). Juntar os dois num numero so foi um erro
+                  ja pago — aqui a lista e so cobertura de tipo. */}
+              <p className="pix mb-1.5 flex items-center gap-1.5 text-[11px] text-accent"><IconTarget size={15} />bate forte em</p>
+              <div className="flex flex-wrap gap-1">
+                {strong.map((w) => (
+                  <TypeMultChip key={w.type} m={w} tone="text-accent" />
+                ))}
+              </div>
+            </div>
+          ) : null}
+        </Panel>
+
+        {/* ---- evolucao ----
+            O painel e SEMPRE renderizado, mesmo sem linha evolutiva. Antes ele
+            sumia e o grid de duas colunas ficava com tres paineis: o "Onde
+            caçar" pulava pra coluna da esquerda e a ficha do Mega Lucario nao
+            tinha nada a ver com a do Bulbasaur. Estrutura de pagina nao pode
+            depender do dado — o que muda e o CONTEUDO do painel. */}
+        <Panel
+          title={
+            <span className="flex items-center gap-2">
+              <IconEvolve size={16} />
+              Linha evolutiva
+            </span>
+          }
+          actions={
+            chain.length > 1 ? (
+              <span className="text-[13px] text-text-mute">{chain.length} estágios</span>
+            ) : null
+          }
+          className="h-full"
+        >
+          {chain.length > 1 ? (
+            <ol className="flex flex-wrap items-stretch gap-2">
+              {chain.map((s, i) => (
+                <li key={s.creature.pokeId} className="flex items-center gap-2">
+                  {i > 0 ? (
+                    <span className="flex w-11 shrink-0 flex-col items-center gap-0.5 text-text-mute">
+                      <IconChevronRight size={16} />
+                      {s.evolveLevel ? (
+                        <span className="text-[11px] whitespace-nowrap">nv {s.evolveLevel}</span>
+                      ) : null}
+                    </span>
+                  ) : null}
+                  {/* Largura FIXA: o nome nao pode decidir o tamanho da caixa.
+                      Com `w-auto`, "Bulbasaur" e "Ivysaur" davam caixas de
+                      tamanhos diferentes na mesma fila. */}
+                  <Link
+                    href={`/dex/${s.creature.pokeId}`}
+                    title={s.creature.name}
+                    className={cn(
+                      "flex w-26 shrink-0 flex-col items-center gap-1.5 rounded-none border p-2.5 transition-colors",
+                      s.creature.pokeId === c.pokeId
+                        ? "border-accent/60 bg-accent/10"
+                        : "border-line hover:border-accent/40 hover:bg-surface-2",
                     )}
-                    <Link
-                      href={`/dex/${stage.creature.pokeId}`}
-                      className={`flex flex-col items-center rounded p-2 hover:bg-surface-2 ${
-                        stage.creature.pokeId === c.pokeId ? "bg-surface-2 ring-1 ring-[color:var(--border-strong)]" : ""
-                      }`}
-                    >
-                      <Sprite src={spriteUrl(stage.creature.pokeId)} alt={stage.creature.name} size={68} />
-                      <span className="text-base">{stage.creature.name}</span>
-                    </Link>
-                  </div>
-                ))}
-              </div>
-            </Reveal>
+                  >
+                    <Sprite src={spriteUrl(s.creature.pokeId)} alt={s.creature.name} size={52} />
+                    <span className="w-full truncate text-center text-[12px] text-text-dim">
+                      {s.creature.name}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <p className="text-[13px] leading-relaxed text-text-mute">
+              {c.name} não evolui e não vem de nenhuma evolução — é uma linha de um estágio só.
+            </p>
           )}
+        </Panel>
 
-          <Reveal className="card p-5">
-            <SectionTitle><T k="cr.whereHunt" /></SectionTitle>
-            {locations.length ? (
-              <div className="flex flex-col gap-2">
-                {locations.map((h) => (
-                  <div key={h.slug} className="well flex items-center gap-3">
-                    <span className="text-red"><MapPin size={18} /></span>
-                    {/* nome do ponto e o dado principal (peso 500, 16px); a regiao e um
-                        rotulo curto abaixo — vem em minusculo do jogo, entao a caixa alta fica */}
-                    <div className="flex min-w-0 flex-col">
-                      <span className="truncate text-base text-text">{h.name}</span>
-                      <span className="text-sm uppercase tracking-wide text-text-dim">{h.area}</span>
-                    </div>
-                    {h.level ? (
-                      <span className="chip ml-auto shrink-0" style={{ background: "var(--surface-2)", color: "var(--text)" }}>lvl {h.level}</span>
-                    ) : null}
-                  </div>
+        {/* ---- onde cacar ---- */}
+        <Panel
+          className="h-full"
+          title={<span className="flex items-center gap-2"><IconPin size={16} />Onde caçar</span>}
+          actions={<span className="text-[13px] text-text-mute tabular">{spots.length}</span>}
+        >
+          {spots.length === 0 ? (
+            <p className="text-[14px] leading-relaxed text-text-mute">
+              {e.acquisition === "evo"
+                ? "Não aparece no mapa — só se consegue evoluindo."
+                : "Não aparece no mapa nem por evolução: vem de loja, cassino, ovo ou evento."}
+            </p>
+          ) : (
+            <ul className="flex flex-col gap-1">
+              {spots.map((h) => (
+                <li
+                  key={h.slug}
+                  className="flex items-center gap-2 rounded-pix border border-line bg-bg-soft px-2 py-1.5"
+                >
+                  <IconPin size={16} className="shrink-0 text-ok" />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-[14px] text-text">{h.name}</span>
+                    <span className="text-[12px] text-text-mute">{h.area}</span>
+                  </span>
+                  <span className="pix shrink-0 text-[11px] text-text-dim tabular">nv {h.level}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Panel>
+      </div>
+
+      {/* ---- golpes ---- */}
+      <Panel
+        title={<span className="flex items-center gap-1.5"><IconAtk size={16} />Golpes</span>}
+        actions={
+          <span className="text-[13px] text-text-mute tabular">
+            {natural.length} naturais{machine.length ? ` · ${machine.length} TM` : ""}
+          </span>
+        }
+        bodyClassName="p-0"
+      >
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[520px] border-collapse text-left">
+            <thead>
+              <tr className="border-b border-line-strong">
+                {["Golpe", "Tipo", "Categoria", "Poder", "Aprende"].map((h, i) => (
+                  <th
+                    key={h}
+                    scope="col"
+                    className={`pix px-3 py-2 text-[11px] text-text-mute ${i >= 3 ? "text-right" : ""}`}
+                  >
+                    {h}
+                  </th>
                 ))}
-              </div>
-            ) : (
-              <div className="flex flex-col gap-2">
-                <AcqBadge kind={acq} className="self-start" />
-                <p className="text-sm text-text-dim">
-                  <T k={acq === "special" ? "dex.acq.specialHint" : "dex.acq.evoHint"} />
-                </p>
-              </div>
-            )}
-          </Reveal>
+              </tr>
+            </thead>
+            <tbody>
+              {[
+                ...natural.map((a) => ({ a, tm: false })),
+                ...machine.map((a) => ({ a, tm: true })),
+              ].map(({ a, tm }) => (
+                <tr key={`${a.name}-${a.learnLevel}`} className="border-b border-line last:border-0">
+                  <td className="px-3 py-1.5 text-[14px] text-text">
+                    <span className="flex items-center gap-1.5">
+                      {a.name}
+                      {tm ? <Chip size="xs" tone="neon" icon={<IconTm size={14} />}>TM</Chip> : null}
+                    </span>
+                  </td>
+                  <td className="px-3 py-1.5">
+                    <TypeBadge type={a.type} size="xs" />
+                  </td>
+                  <td className="px-3 py-1.5 text-[13px] text-text-mute">
+                    <span className="flex items-center gap-1.5" title={CATEGORY_LABEL[a.category]}>
+                      <CategoryIcon category={a.category} size={15} />
+                      {CATEGORY_LABEL[a.category]}
+                    </span>
+                  </td>
+                  <td className="px-3 py-1.5 text-right text-[14px] text-accent tabular">{a.power}</td>
+                  <td className="px-3 py-1.5 text-right text-[14px] text-text-dim tabular">
+                    {tm ? "—" : a.learnLevel}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
+        {/* Sem coluna de cooldown: o valor do catalogo e o cooldown BASE e a
+            velocidade do pokemon o encurta no jogo, entao exibi-lo cru daria um
+            numero errado. Fica so o comentario — o aviso na tela era ruido. */}
+      </Panel>
 
-        <Reveal className="card p-5">
-          <SectionTitle><T k="cr.drops" /> ({loot.length})</SectionTitle>
+      {/* ---- drops ---- */}
+      <Panel
+        title={<span className="flex items-center gap-1.5"><IconBag size={16} />Drops</span>}
+        actions={<span className="text-[13px] text-text-mute tabular">{drops.length}</span>}
+        bodyClassName="p-0"
+      >
+        {drops.length === 0 ? (
+          <p className="p-3 text-[14px] text-text-mute">Não dropa nada.</p>
+        ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full min-w-[460px] border-collapse text-left">
               <thead>
-                {/* cabecalho e rotulo curto: caixa alta continua, mas o peso agora e real (500) */}
-                <tr className="text-left text-sm uppercase tracking-wide text-text-dim">
-                  <th className="pb-2"><T k="col.item" /></th>
-                  <th className="pb-2"><T k="col.qty" /></th>
-                  <th className="pb-2 text-right"><T k="col.chance" /></th>
+                <tr className="border-b border-line-strong">
+                  {["Item", "Chance", "Quantidade", "Valor NPC"].map((h, i) => (
+                    <th
+                      key={h}
+                      scope="col"
+                      className={`pix px-3 py-2 text-[11px] text-text-mute ${i > 0 ? "text-right" : ""}`}
+                    >
+                      {h}
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
-                {loot.map((l) => {
-                  const item = getItemByName(l.name);
-                  const p = l.chance / 1000;
+                {drops.map((l) => {
+                  const item = db.getItemByName(l.name);
+                  // A fonte guarda `chance` na escala 0..100000 — a porcentagem
+                  // real e /1000. E o numero exato que o piwtools nao mostra.
+                  const pct = chanceToPct(l.chance);
                   return (
-                    <tr key={l.name} className={`border-t border-border ${item ? "group cursor-pointer hover:bg-surface-2" : ""}`}>
-                      <td className="py-2 pr-3">
-                        {item ? (
-                          <Link href={`/items/${item.id}`} className="flex items-center gap-2 whitespace-nowrap text-cyan group-hover:underline">
-                            <Sprite src={itemIconUrl(item)} alt="" size={22} />
-                            {l.name}
-                            <span className="text-text-dim opacity-0 transition group-hover:opacity-100"><ChevronRight size={14} /></span>
-                          </Link>
-                        ) : (
-                          <span className="flex items-center gap-2 whitespace-nowrap">{l.name}</span>
-                        )}
+                    <tr key={l.name} className="border-b border-line last:border-0">
+                      <td className="px-3 py-1.5 text-[14px] text-text">
+                        {/* A ponte de volta: daqui se chega em QUEM MAIS dropa o
+                            mesmo item. A ficha da especie so sabe metade do par
+                            — a outra metade e a pagina do item. */}
+                        <span className="flex items-center gap-1.5">
+                          {item ? (
+                            <Link
+                              href={`/itens/${item.id}`}
+                              className="tap transition-colors hover:text-[var(--color-t-itens)]"
+                            >
+                              {l.name}
+                            </Link>
+                          ) : (
+                            l.name
+                          )}
+                          {item?.rare ? <Chip size="xs" tone="accent" icon={<IconGem size={14} />}>raro</Chip> : null}
+                        </span>
                       </td>
-                      <td className="py-2 pr-3 whitespace-nowrap tabular-nums text-text-dim">{l.minCount === l.maxCount ? l.minCount : `${l.minCount}–${l.maxCount}`}</td>
-                      <td className="py-2 text-right whitespace-nowrap tabular-nums">{l.chance === 0 ? <T k="special" /> : pctLabel(p)}</td>
+                      <td className="px-3 py-1.5 text-right text-[14px] text-ok tabular">
+                        <Tooltip content={`1 a cada ${Math.round(100 / pct).toLocaleString("pt-BR")} abates, na média`}>
+                          <span>{pct < 0.01 ? num(pct, 4) : num(pct, 3)}%</span>
+                        </Tooltip>
+                      </td>
+                      <td className="px-3 py-1.5 text-right text-[14px] text-text-dim tabular">
+                        {l.minCount === l.maxCount ? l.minCount : `${l.minCount}–${l.maxCount}`}
+                      </td>
+                      <td className="px-3 py-1.5 text-right text-[14px] text-warn tabular">
+                        {item?.npcPrice ? gold(item.npcPrice) : "—"}
+                      </td>
                     </tr>
                   );
                 })}
               </tbody>
             </table>
           </div>
-        </Reveal>
-
-        <Reveal className="card p-5">
-          <SectionTitle><T k="cr.moves" /> ({moves.length})</SectionTitle>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left text-sm uppercase tracking-wide text-text-dim">
-                  <th className="pb-2 pr-3"><T k="col.name" /></th>
-                  <th className="pb-2 pr-3"><T k="col.type" /></th>
-                  <th className="pb-2 pr-3"><T k="col.cat" /></th>
-                  <th className="pb-2 pr-3 text-right"><T k="col.power" /></th>
-                  <th className="pb-2 text-right"><T k="col.lvl" /></th>
-                </tr>
-              </thead>
-              <tbody>
-                {moves.map((m, i) => (
-                  <tr key={`${m.name}-${i}`} className="border-t border-border">
-                    <td className="py-2 pr-3 whitespace-nowrap">{m.name}</td>
-                    <td className="py-2 pr-3"><TypeBadge type={m.type} /></td>
-                    <td className="py-2 pr-3 whitespace-nowrap text-text-dim"><T k={`cat.${m.category}`} /></td>
-                    <td className="py-2 pr-3 text-right tabular-nums">{m.power || <span className="slot-empty">—</span>}</td>
-                    <td className="py-2 text-right tabular-nums">{m.learnLevel}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Reveal>
-      </div>
-      </PokedexShell>
+        )}
+      </Panel>
     </div>
   );
 }

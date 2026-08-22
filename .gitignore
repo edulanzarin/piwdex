@@ -1,24 +1,11 @@
-# deps
-/node_modules
-
-# next
-/.next
-/out
-next-env.d.ts
-
-# builds
-/build
+node_modules/
+.next/
+out/
+build/
 *.tsbuildinfo
-
-# env
+next-env.d.ts
 .env
 .env.local
-
-# snapshots crus por data (o normalizado versionado fica em src/data/piwdex.json)
-/data/raw
-
-# os
 .DS_Store
-
-# capturas HAR (contem token de acesso na URL do WS — NUNCA commitar)
-/docs/*.har
+npm-debug.log*
+docs/*.har

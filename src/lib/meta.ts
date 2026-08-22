@@ -74,14 +74,39 @@ export const TIERS: Tier[] = ["S", "A", "B", "C", "D", "E"];
 // (o golpe de poder 600 abre um vale entre basico e evolucao final), sem TM ela e um
 // morro so. O tier sempre responde "entre o que EU posso usar, quem presta?".
 const TIER_CUTS: Record<MovePool, [Tier, number][]> = {
-  natural: [["S", 66], ["A", 52], ["B", 45], ["C", 39], ["D", 31], ["E", -1]],
-  tm: [["S", 74], ["A", 65], ["B", 44], ["C", 35], ["D", 27], ["E", -1]],
+  natural: [["S", 66], ["A", 57], ["B", 49], ["C", 43], ["D", 34], ["E", -1]],
+  tm: [["S", 70], ["A", 59], ["B", 47], ["C", 37], ["D", 29], ["E", -1]],
 };
 
-/** Cor do tier — escada quente->fria, mesma leitura do resto do site. */
+/**
+ * Denominador dos eixos — FIXO, e essa e a questao.
+ *
+ * Os eixos eram normalizados pelo maior do catalogo corrente (`Math.max(...raw)`)
+ * enquanto os cortes de tier acima sao numeros absolutos. Regua absoluta sobre
+ * escala flutuante quebra exatamente a propriedade que o comentario dos cortes
+ * promete: medido sobre o snapshot, bastava o jogo publicar UMA especie com 4x o
+ * DPS do melhor atual pra `maxO` dobrar, todo `offense` cair pela metade e o tier
+ * S ir de 22 especies pra ZERO — 308 especies trocando de tier sem nenhuma delas
+ * ter sido tocada, e o Mewtwo caindo de 87 pra 59,6 por causa de um pokemon que
+ * nem e ele.
+ *
+ * Com a referencia gravada aqui, o buff faz o que tem que fazer: quem foi buffado
+ * SOBE e o resto fica onde estava. Um `offense` acima de 1 e legitimo e significa
+ * "passou da melhor especie da ultima calibragem" — e o sinal de que esta na hora
+ * de recalibrar este par junto com os cortes, num commit deliberado.
+ *
+ * Medidos em ago/2026 sobre `src/data/piwdex.json`, ja no eixo de SOMA do moveset
+ * (`lin` = raiz, entao a unidade e a mesma dos eixos). O bulk nao depende do pool.
+ */
+const REF_OFFENSE: Record<MovePool, number> = { natural: 128.95, tm: 174.61 };
+const REF_BULK = 135.97;
+
+/** Cor do tier — escada quente->fria, mesma leitura do resto do site. Tokens do
+ *  piwdex2: os do piwdex 1 (`--yellow` e companhia) nao existem aqui, e cor invalida
+ *  vira cor herdada — a escada inteira saia branca sem dar erro nenhum. */
 export const TIER_COLOR: Record<Tier, string> = {
-  S: "var(--yellow)", A: "var(--green)", B: "var(--cyan)",
-  C: "var(--blue)", D: "var(--purple)", E: "var(--text-dim)",
+  S: "var(--color-warn)", A: "var(--color-ok)", B: "var(--color-neon)",
+  C: "var(--color-t-calc)", D: "var(--color-t-breed)", E: "var(--color-text-mute)",
 };
 
 export const tierOf = (score: number, pool: MovePool = "natural"): Tier =>
@@ -133,9 +158,32 @@ export function scoredMoves(c: MetaMon, pool: MovePool): ScoredMove[] {
     .sort((x, y) => y.dps - x.dps || y.attack.power - x.attack.power || x.attack.learnLevel - y.attack.learnLevel);
 }
 
-/** O golpe que define a velocidade de kill da especie. */
+/** O golpe de maior DPS — o que a TELA mostra ("quem carrega a especie").
+ *  Nao e mais o que define velocidade: pra isso existe `poolDps`. */
 export const bestMove = (c: MetaMon, pool: MovePool): ScoredMove | null =>
   scoredMoves(c, pool)[0] ?? null;
+
+/**
+ * DPS do MOVESET INTEIRO — a velocidade real da especie.
+ *
+ * O `combat.ts` ja tinha abandonado o melhor-golpe de proposito (ver o comentario
+ * do `movesetDps` la): neste jogo cada golpe tem recarga propria e dispara sozinho
+ * quando recarrega, entao ninguem "escolhe um" — o que fecha a conta e a SOMA das
+ * recargas. O meta continuou medindo so o topo, e as duas telas passaram a dar
+ * respostas diferentes pra mesma luta: razao soma/topo com mediana 3,07x no
+ * catalogo, 6,33x no pior caso (Seviper, 8 golpes).
+ *
+ * E nao era so escala — era ORDEM: 292 das 434 especies jogaveis mudam mais de 20
+ * posicoes no ranking ofensivo entre os dois criterios. Quem tem quatro golpes
+ * medios bate mais que quem tem um bom e nada mais, e so a soma enxerga isso.
+ */
+export function poolDps(c: MetaMon, pool: MovePool): number {
+  let total = 0;
+  for (const a of c.attacks) {
+    if (isOffensive(a) && inPool(a, pool)) total += moveDps(c, a);
+  }
+  return total;
+}
 
 /** HP efetivo: quanto de dano a especie absorve antes de cair, na media dos dois lados
  *  (fisico e especial). E um PRODUTO — e por isso que somar hp+def esconde o tanque. */
@@ -183,17 +231,15 @@ export function metaTable(creatures: MetaMon[], pool: MovePool = "natural"): Met
   const set = playableSet(creatures);
   const raw = set.map((c) => {
     const best = bestMove(c, pool);
-    const dps = best?.dps ?? 0;
+    const dps = poolDps(c, pool);
     const ehp = effectiveHp(c);
     return { creature: c, best, dps, ehp, o: lin(dps), b: lin(ehp) };
   });
-  const maxO = Math.max(1, ...raw.map((r) => r.o));
-  const maxB = Math.max(1, ...raw.map((r) => r.b));
 
   return raw
     .map((r) => {
-      const offense = r.o / maxO;
-      const bulk = r.b / maxB;
+      const offense = r.o / REF_OFFENSE[pool];
+      const bulk = r.b / REF_BULK;
       const score = Math.round((W_OFFENSE * offense + W_BULK * bulk) * 1000) / 10;
       const c = r.creature;
       return {
@@ -248,11 +294,17 @@ const HUNT_HP_MULT = 5;
 
 /** Melhor golpe do atacante contra o defensor, e quanto ele demora pra derrubar. */
 export function matchup(attacker: MetaMon, defender: MetaMon, pool: MovePool = "natural"): Matchup {
+  // `total` manda na VELOCIDADE (os golpes disparam todos, cada um na sua recarga);
+  // `best` manda no que a tela MOSTRA — com que golpe e com que efetividade voce
+  // bate. Sao perguntas diferentes e por isso sao dois numeros, nao um.
   let best: { a: Attack; dps: number } | null = null;
+  let total = 0;
   for (const a of attacker.attacks) {
     if (!isOffensive(a) || !inPool(a, pool)) continue;
     const d = dpsAgainst(attacker, a, defender);
-    if (d > 0 && (!best || d > best.dps)) best = { a, dps: d };
+    if (d <= 0) continue; // imune a esse tipo
+    total += d;
+    if (!best || d > best.dps) best = { a, dps: d };
   }
   const hp = defender.baseHp * HUNT_HP_MULT;
   return {
@@ -260,8 +312,8 @@ export function matchup(attacker: MetaMon, defender: MetaMon, pool: MovePool = "
     defender,
     move: best?.a ?? null,
     eff: best ? effOf(best.a.type, defender) : 0,
-    dps: best?.dps ?? 0,
-    ttk: best ? hp / best.dps : Infinity,
+    dps: total,
+    ttk: total > 0 ? hp / total : Infinity,
   };
 }
 
@@ -274,6 +326,28 @@ export interface Duel {
   edge: number;
 }
 
+/**
+ * Vantagem como razao de tempos: >1 = eu derrubo antes.
+ *
+ * Os tres casos degenerados existem de verdade no catalogo e precisam de resposta,
+ * nao de uma divisao torta:
+ *  - so ELE nao me machuca -> Infinity (ganho sem chance de perder);
+ *  - so EU nao machuco ele -> 0 (perco sem chance de ganhar). Era aqui que a tela
+ *    quebrava: 0 e finito, entao o guarda `Number.isFinite(margin)` deixava passar
+ *    e o `1 / margin` do ramo de derrota imprimia literalmente "Infinityx" — em
+ *    991 pares do catalogo em nivel 100, e 1.542 em nivel 5;
+ *  - NENHUM dos dois machuca o outro -> 1, empate. Antes o primeiro `if` respondia
+ *    Infinity, ou seja, "voce ganha", numa luta que nao termina.
+ */
+function razaoDeTempo(meuTtk: number, dele: number): number {
+  const euNaoBato = !Number.isFinite(meuTtk);
+  const eleNaoBate = !Number.isFinite(dele);
+  if (euNaoBato && eleNaoBate) return 1;
+  if (eleNaoBate) return Infinity;
+  if (euNaoBato) return 0;
+  return dele / meuTtk;
+}
+
 /** Duelo entre duas especies, medindo OS DOIS LADOS.
  *  O piwtools decide nemesis so por "tem golpe super efetivo contra voce" — o que promove
  *  qualquer pokemon fraco com o tipo certo. Aqui quem ganha e quem derruba primeiro. */
@@ -281,7 +355,7 @@ export function duel(mine: MetaMon, other: MetaMon, pool: MovePool = "natural"):
   const a = matchup(mine, other, pool);
   // O outro lado e sempre natural: o wild nao compra TM (mesma regra do combat.ts).
   const b = matchup(other, mine, "natural");
-  const edge = b.ttk === Infinity ? Infinity : a.ttk === Infinity ? 0 : b.ttk / a.ttk;
+  const edge = razaoDeTempo(a.ttk, b.ttk);
   return { other, mine: a, theirs: b, edge };
 }
 
@@ -455,6 +529,7 @@ function sideOf(atk: Fighter, def: Fighter, pool: MovePool, dmgMult: number) {
   const defHp = d.stats[0] * (def.wild ? WILD_HP_X : 1);
 
   let best: { mv: Attack; eff: number; hit: number; dps: number } | null = null;
+  let total = 0;
   for (const mv of atk.mon.attacks) {
     if (!isOffensive(mv) || !inPool(mv, pool)) continue;
     if (mv.learnLevel > atk.level) continue;
@@ -464,6 +539,11 @@ function sideOf(atk: Fighter, def: Fighter, pool: MovePool, dmgMult: number) {
     const wall = mv.category === "SPECIAL" ? d.stats[4] : d.stats[2];
     const hit = hitDamage(mv.power, off, wall, hasStab(atk.mon, mv) ? 1.5 : 1, eff) * dmgMult;
     const dps = hit / (mv.cooldownMs / 1000);
+    // O Stadium media so o melhor golpe enquanto o Hunt Planner soma o moveset, e
+    // o mesmo par saia com "segundos pra derrubar" ~3x diferentes de uma tela pra
+    // outra. Aqui o criterio passa a ser o mesmo: a soma manda no tempo, o melhor
+    // golpe segue sendo o que a tela nomeia.
+    total += dps;
     if (!best || dps > best.dps) best = { mv, eff, hit, dps };
   }
 
@@ -471,8 +551,8 @@ function sideOf(atk: Fighter, def: Fighter, pool: MovePool, dmgMult: number) {
     move: best?.mv ?? null,
     eff: best?.eff ?? 0,
     hit: best?.hit ?? 0,
-    dps: best?.dps ?? 0,
-    ttk: best && best.dps > 0 ? defHp / best.dps : Infinity,
+    dps: total,
+    ttk: total > 0 ? defHp / total : Infinity,
     stats: a.stats,
     power: a.power,
   };
@@ -487,7 +567,7 @@ export function arenaDuel(me: Fighter, foe: Fighter, pool: MovePool = "natural")
   // A TM e do jogador: o lado selvagem bate sempre com o moveset natural.
   const mine = sideOf(me, foe, me.wild ? "natural" : pool, me.wild ? WILD_DMG_X : 1);
   const theirs = sideOf(foe, me, foe.wild ? "natural" : pool, foe.wild ? WILD_DMG_X : 1);
-  const margin = theirs.ttk === Infinity ? Infinity : mine.ttk === Infinity ? 0 : theirs.ttk / mine.ttk;
+  const margin = razaoDeTempo(mine.ttk, theirs.ttk);
   return { me: mine, foe: theirs, win: mine.ttk < theirs.ttk, margin };
 }
 

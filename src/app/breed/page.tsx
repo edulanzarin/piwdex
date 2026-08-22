@@ -1,36 +1,63 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
-import { getData } from "@/lib/data";
-import { BreedTool, type BreedCreature } from "@/components/breed-tool";
-import { T } from "@/components/locale-provider";
+import { getDexPayload } from "@/lib/dex-data";
+import { agora, fecharPiso } from "@/lib/pacing";
+import { BreedTool, type BreedSpecies } from "@/components/breed-tool";
+import { HowTo, Panel, SkeletonForm } from "@/components/ui";
+import { COMO_USAR_BREED } from "@/lib/how-to";
+import { HeroFerramenta, HeroMarca } from "@/components/hero-ferramenta";
 
-export const metadata: Metadata = { title: "Planejador de Breeding" };
+export const metadata: Metadata = {
+  alternates: { canonical: "/breed" },
+  title: "Breeding: o par, o ovo e quantos faltam",
+  description:
+    "Simula o ovo do Poke Idle World: valida o par, mostra o sorteio de Quality, o IV " +
+    "que o filho herda e o custo — e calcula quantos breeds faltam até a Quality alvo.",
+};
+
+// Dinamica de proposito — o frescor mora no source.ts. Ver src/app/page.tsx.
+export const dynamic = "force-dynamic";
 
 export default async function BreedPage() {
-  const { creatures } = await getData();
-  // Lista enxuta pro seletor de especie + bases (pra projetar os stats reais do ovo).
-  const slim: BreedCreature[] = creatures
-    .map((c) => ({
-      pokeId: c.pokeId,
-      name: c.name,
-      type1: c.type1,
-      type2: c.type2,
-      bases: [c.baseHp, c.baseAtk, c.baseDef, c.baseSpAtk, c.baseSpDef, c.baseSpeed],
-    }))
-    .sort((a, b) => a.name.localeCompare(b.name));
+  const t0 = agora();
+  const { entries } = await getDexPayload();
+
+  // Mesmo corte da calculadora: o breeding precisa das seis bases e do nome, e
+  // nada de loot, fraqueza ou haystack. Mandar o `DexEntry` inteiro seria ~1MB
+  // pra uma tela que so projeta stats.
+  const especies: BreedSpecies[] = entries.map((e) => ({
+    id: e.id,
+    name: e.name,
+    bases: e.stats,
+    type1: e.type1,
+    type2: e.type2,
+    rarity: e.rarity,
+  }));
+
+  await fecharPiso(t0);
 
   return (
-    <div className="flex flex-col gap-6">
-      {/* Cabecalho da ferramenta: sem a moldura colorida quem da corpo e o vidro do
-          card — titulo e descricao ficam num painel so, e o conteudo
-          abaixo (cards) nao fica solto na pagina. */}
-      <header className="card p-5 sm:p-6">
-        <h1 className="pixel flex flex-wrap items-center gap-2 text-3xl [overflow-wrap:anywhere]" style={{ color: "var(--brown)" }}>
-          <T k="breed.title" />
-          <span className="chip" style={{ background: "var(--brown)", color: "#2a1608" }}><T k="breed.alpha" /></span>
-        </h1>
-        <p className="mt-3 max-w-2xl text-base text-text-dim"><T k="breed.desc" /></p>
-      </header>
-      <BreedTool creatures={slim} />
+    <div className="flex flex-col gap-4">
+      <HeroFerramenta
+        href="/breed"
+        marcas={
+          <HeroMarca n={especies.length} cor="var(--color-t-breed)">
+            espécies
+          </HeroMarca>
+        }
+      />
+
+      <HowTo {...COMO_USAR_BREED} tint="var(--color-t-breed)" />
+
+      <Suspense
+        fallback={
+          <Panel title={<span className="pix">Os dois pais</span>}>
+            <SkeletonForm />
+          </Panel>
+        }
+      >
+        <BreedTool especies={especies} />
+      </Suspense>
     </div>
   );
 }

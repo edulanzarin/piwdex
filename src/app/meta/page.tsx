@@ -1,51 +1,52 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
-import { getData } from "@/lib/data";
+import { getMetaPayload } from "@/lib/meta-data";
+import { agora, fecharPiso } from "@/lib/pacing";
 import { MetaTool } from "@/components/meta-tool";
-import { isOffensive, type MetaMon } from "@/lib/meta";
-import { T } from "@/components/locale-provider";
+import { HowTo, Panel, SkeletonForm } from "@/components/ui";
+import { COMO_USAR_META } from "@/lib/how-to";
+import { HeroFerramenta, HeroMarca } from "@/components/hero-ferramenta";
 
-export const metadata: Metadata = { title: "Meta Analyzer" };
+export const metadata: Metadata = {
+  alternates: { canonical: "/meta" },
+  title: "Tier list, duelo e tipos",
+  description:
+    "Quem presta no Poke Idle World: tier list por nota (dano por segundo e HP efetivo, " +
+    "não poder de golpe), duelo entre dois pokémon com nível e quality, e o panorama " +
+    "ofensivo de cada tipo.",
+};
+
+// Dinamica de proposito — o frescor mora no source.ts. Ver src/app/page.tsx.
+export const dynamic = "force-dynamic";
 
 export default async function MetaPage() {
-  const db = await getData();
+  const t0 = agora();
+  const { mons } = await getMetaPayload();
 
-  // Payload enxuto: o motor de meta roda no CLIENTE, porque trocar o pool de golpes,
-  // abrir o perfil de outro pokemon ou montar um time no Stadium sao perguntas que o
-  // usuario faz em sequencia — cada uma custaria uma ida ao servidor. Entao mandamos o
-  // que o motor le e nada mais: sem loot, sem descricao, sem preco, e so os golpes que
-  // causam dano (STATUS nao entra em nenhuma conta daqui).
-  const mons: MetaMon[] = db.creatures.map((c) => ({
-    pokeId: c.pokeId,
-    name: c.name,
-    type1: c.type1,
-    type2: c.type2,
-    rarity: c.rarity,
-    huntLevel: c.huntLevel,
-    baseHp: c.baseHp,
-    baseAtk: c.baseAtk,
-    baseDef: c.baseDef,
-    baseSpAtk: c.baseSpAtk,
-    baseSpDef: c.baseSpDef,
-    baseSpeed: c.baseSpeed,
-    attacks: c.attacks.filter(isOffensive),
-    area: c.area,
-    captureBase: c.captureBase,
-  }));
+  await fecharPiso(t0);
 
   return (
-    <div className="flex flex-col gap-6">
-      {/* Cabecalho da ferramenta: sem a moldura colorida quem da corpo e o vidro do
-          card — titulo e descricao ficam num painel so, e o conteudo
-          abaixo (cards) nao fica solto na pagina. */}
-      <header className="card p-5 sm:p-6">
-        <h1 className="pixel text-3xl [overflow-wrap:anywhere]" style={{ color: "var(--pink)" }}>
-          <T k="meta.title" />
-        </h1>
-        <p className="mt-3 max-w-3xl text-base text-text-dim">
-          <T k="meta.desc" />
-        </p>
-      </header>
-      <MetaTool mons={mons} />
+    <div className="flex flex-col gap-4">
+      <HeroFerramenta
+        href="/meta"
+        marcas={
+          <HeroMarca n={mons.length} cor="var(--color-t-meta)">
+            na lista
+          </HeroMarca>
+        }
+      />
+
+      <HowTo {...COMO_USAR_META} tint="var(--color-t-meta)" />
+
+      <Suspense
+        fallback={
+          <Panel title={<span className="pix">Tier list</span>}>
+            <SkeletonForm />
+          </Panel>
+        }
+      >
+        <MetaTool mons={mons} />
+      </Suspense>
     </div>
   );
 }

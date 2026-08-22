@@ -46,5 +46,10 @@ export function predictCatchRate(
   ballCatchRate: number,
 ): number {
   if (sellValue <= 0) return 0;
+  // Bola garantida sai FORA da lei, e nao passa por ela. O ajuste foi medido em
+  // Poke..Ultra (catchRate 1 a 5); jogar a Master (255) nele so satura o `min(1)`
+  // por acidente de escala — 64x acima do maior ponto que existe no dado. Master
+  // captura sempre, entao a resposta e 1 por definicao, nao por extrapolacao.
+  if (ballCatchRate >= 255) return 1;
   return Math.min(1, law.a * Math.pow(sellValue, law.b) * Math.max(1, ballCatchRate));
 }

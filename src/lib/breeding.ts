@@ -5,7 +5,7 @@
 //   - Pais da mesma especie, diferenca de Quality <= 0.150.
 //   - Quality com 3 casas; filho parte da MAIOR Quality entre os pais + um ganho.
 //   - Filho herda a distribuicao COMPLETA de IVs do pai de maior Quality; empate -> Slot 1.
-//   - Custo base R$ 2.000.000 + 20 Evolution Stones (tipo duplo divide igual).
+//   - Custo base 2.000.000 de ouro + 20 Evolution Stones (tipo duplo divide igual).
 //   - Double Stones: 40 Stones, 5% de +1 IV num stat aleatorio abaixo de 32.
 //   - Ao menos um pai Shiny -> filho Shiny (mantem a heranca de IV). Normal tem Q max 2.600.
 
@@ -199,7 +199,7 @@ export interface PlanLine {
   pheromones: number;
   maxStepGain: number;
   orphanRisk: boolean; // um ganho pode passar de 0.150 e orfar o filho na leva
-  capWaste: boolean; // rolls altos passam do teto 2.600
+  capWaste: boolean; // com o alvo colado no teto, os rolls altos passam de 2.600
 }
 
 export interface QualityPlan {
@@ -225,7 +225,11 @@ function planLine(base: number, effTarget: number, mode: BreedMode, shiny: boole
     pheromones: mode === "pheromone" ? breeds * PHEROMONE_NORMAL_COUNT : 0,
     maxStepGain,
     orphanRisk: maxStepGain > QUALITY_DIFF_MAX + 1e-9,
-    capWaste: !shiny && base + maxStepGain > QUALITY_MAX_NORMAL + 1e-9,
+    // Mesma regra do planejador novo (`breed-plan.ts`): o que se perde e o que passa
+    // do TETO, no ULTIMO breed. Ancorar em `base` errava o caso comum — subir de 1.000
+    // ate 2.600 desperdica no fim da corrente, e `base + 0.040` nao chega perto do teto,
+    // entao o aviso ficava mudo justo no plano em que ele importa.
+    capWaste: !shiny && breeds > 0 && effTarget + maxStepGain > QUALITY_MAX_NORMAL + 1e-9,
   };
 }
 

@@ -1,32 +1,54 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
-import { getData } from "@/lib/data";
+import { getDexPayload } from "@/lib/dex-data";
+import { agora, fecharPiso } from "@/lib/pacing";
 import { DexBrowser } from "@/components/dex-browser";
-import { PokedexShell } from "@/components/pokedex-shell";
-import { T } from "@/components/locale-provider";
+import { Panel, SkeletonGrid } from "@/components/ui";
+import { HeroFerramenta, HeroMarca } from "@/components/hero-ferramenta";
 
-export const metadata: Metadata = { title: "Pokedex" };
+export const metadata: Metadata = {
+  alternates: { canonical: "/dex" },
+  title: "Pokédex do Poke Idle World",
+  description:
+    "Todas as espécies do Poke Idle World com filtro por tipo, raridade, origem, " +
+    "estágio, fraqueza, drop e faixa de nível, valor, XP, stats e poder de golpe.",
+};
+
+// Revalida de hora em hora: o catalogo se atualiza sozinho quando o jogo publica
+// patch, sem redeploy. O `source.ts` ainda confere por ETag a cada request, isso
+// aqui e so o teto da pagina renderizada.
+// Dinamica de proposito — o frescor mora no source.ts. Ver src/app/page.tsx.
+export const dynamic = "force-dynamic";
 
 export default async function DexPage() {
-  const db = await getData();
-  const { creatures } = db;
-  // Ordena por pokeId pra dar a ordem natural de dex.
-  const ordered = [...creatures].sort((a, b) => a.pokeId - b.pokeId);
-  // Origem derivada por pokemon (caca / evolucao / especial) pro badge e filtro.
-  const acq: Record<number, ReturnType<typeof db.acquisitionOf>> = {};
-  for (const c of creatures) acq[c.pokeId] = db.acquisitionOf(c);
+  const t0 = agora();
+  const { entries, bounds, lootIndex, catalog } = await getDexPayload();
+
+
+  await fecharPiso(t0);
+
   return (
-    // container-wide: o aparelho da Pokedex estoura o container do site pra a grade
-    // caber os dois tipos lado a lado (ver .container-wide no globals.css). A ficha
-    // (/dex/[id]) usa o mesmo container pra o aparelho nao mudar de largura ao abrir.
-    <div className="container-wide">
-      <PokedexShell>
-        <div className="flex flex-col gap-6">
-          <div>
-            <h1 className="pixel text-3xl text-cyan"><T k="dex.title" /></h1>
-          </div>
-          <DexBrowser creatures={ordered} acq={acq} />
-        </div>
-      </PokedexShell>
+    <div className="flex flex-col gap-4">
+      <HeroFerramenta
+        href="/dex"
+        marcas={
+          <HeroMarca n={entries.length} cor="var(--color-t-dex)">
+            espécies
+          </HeroMarca>
+        }
+      />
+
+      {/* useSearchParams precisa de fronteira de Suspense pra a pagina poder ser
+          pre-renderizada; o esqueleto tem a forma do grid que vai chegar. */}
+      <Suspense
+        fallback={
+          <Panel>
+            <SkeletonGrid count={10} />
+          </Panel>
+        }
+      >
+        <DexBrowser entries={entries} bounds={bounds} lootIndex={lootIndex} catalog={catalog} />
+      </Suspense>
     </div>
   );
 }

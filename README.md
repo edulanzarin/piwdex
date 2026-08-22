@@ -1,63 +1,97 @@
-# piwdex
+# piwdex2
 
-Dex e ferramentas completas para o jogo **Poke Idle World** (poke.idleworld.online).
-Faz o que o piwtools faz e vai além: **chance real de cada drop**, índice reverso
-"onde dropa cada item", localização de hunt por pokemon, cadeia evolutiva e fraquezas.
+Dex e ferramentas para **Poke Idle World** (`poke.idleworld.online`).
 
-Domínio: piwdex.com.br
+Reescrita do piwdex com uma premissa diferente: a dex nao e uma galeria de
+sprites, e uma **ferramenta de consulta**. A pergunta que ela responde nao e
+"como e o Bulbasaur", e "quem apanha de Fogo, dropa Bulb e da pra encarar no
+nivel 40".
 
-## Como os dados chegam
+## Estado
 
-O jogo serve o catálogo como JSON público (sem auth). O piwdex puxa **direto da
-fonte-mestra** — não de terceiros — pra ficar na mesma origem e pegar patch de
-balanceamento antes:
-
-- `poke.idleworld.online/game/creatures.json` — 482 pokemons (stats, tipos, raridade,
-  hunt level, evolução, XP, preços, drop table com chance, movesets)
-- `poke.idleworld.online/game/items.json` — 330 itens
-- `poke.idleworld.online/api/game/map-markers` — 347 pontos de hunt
-
-`scripts/ingest.mjs` baixa os três, valida integridade (todo loot bate com um item),
-normaliza e grava o snapshot versionado em `src/data/piwdex.json`. As **derivações**
-(índice reverso de drop, localizações, evolução) vivem no código (`src/lib/data.ts`),
-não no snapshot — assim o snapshot é diffável contra o jogo.
-
-`chance` vem numa escala 0–100000; a porcentagem é `chance / 1000`.
-
-Dois campos da fonte que é fácil deixar passar e mudam conta:
-
-- **`tm` no ataque** — guarda o TIPO da máquina; ausente quer dizer golpe natural.
-  Os 187 golpes de poder 600 do jogo são TODOS de TM, e 165 das 482 espécies têm
-  alguma. Tratar TM como golpe natural faz o motor prometer até 10x o DPS que o
-  jogador tem. Por isso todo motor daqui recebe um **pool** (`natural` por padrão,
-  `tm` quando o jogador diz que comprou a máquina), e o lado selvagem nunca usa TM.
-- **`area` / `captureBase` na espécie** — `area: "orre"` marca as 72 espécies de
-  Orre, que têm stats próprios; `captureBase` aponta a espécie que se captura, e é
-  o que separa variante de skin (Brave Blastoise) de espécie de verdade. O conjunto
-  "jogável" do meta sai daí.
+| Area | Situacao |
+|---|---|
+| Sistema de design (tokens + 22 primitivas) | pronto |
+| Pagina inicial | pronta |
+| Pokedex (17 filtros, grid/tabela, estado na URL) | pronta |
+| Ficha da especie (stats, fraquezas, golpes, drops, evolucao, spots) | pronta |
+| Itens com indice reverso (10 filtros, ficha com quem dropa) | pronto |
+| Calculadora de IV/Quality/Poder | pronta |
+| Rota de hunt / Breeding / Meta | a fazer |
+| Robo (area logada) | a portar do piwdex |
 
 ## Rodar
 
 ```bash
 npm install
-npm run ingest     # baixa/atualiza o snapshot da fonte-mestra
-npm run dev        # http://localhost:4070
+npm run dev          # http://localhost:4071
+PORT=3000 npm run dev   # outra porta, sem criar script novo
 ```
 
-Par de portas reservado (chassi do Brain): app **4070**, banco **5070**.
+Producao:
 
-## Roadmap
+```bash
+npm run build && npm start
+# ou
+docker compose up -d --build
+```
 
-- [x] Camada 1 — base pública: pokedex, ficha completa, itens e índice reverso de drop.
-- [x] Camada 2 — calculadoras: análise de status, hunt planner com rota, boost, breeding,
-  Eevee e o **Meta Analyzer** (`/meta`: tier list, rankings, perfil, tipos e Stadium).
-  Fórmulas conferidas contra `/pokepedia/systems/*`.
-- [ ] Camada 3 — companion logado: proxy da API JWT do jogo + WebSocket (progresso da
-  dex, inventário, alertas). Aqui entra o chassi Postgres + Docker compose.
+## De onde vem o dado
 
-## Stack
+Direto do catalogo publico do jogo, sem intermediario:
 
-Next.js 16 (App Router) · React 19 · Tailwind 4 · TypeScript. Dados estáticos
-gerados em build (camada 1 é 100% dado público read-only); o backend entra na camada 3.
+| Endpoint | Conteudo |
+|---|---|
+| `/game/creatures.json` | especies: stats, tipos, raridade, loot, golpes, evolucao |
+| `/game/items.json` | itens: categoria, preco de NPC, cura |
+| `/api/game/map-markers` | pontos de caca: area, nivel, posicao no mapa |
 
-Projeto não oficial. Dados e sprites são do Poke Idle World / PokeAPI.
+O frescor e conferido por **ETag** a cada visita (um HEAD de ~30ms, zero byte) e
+o download de 1 MB so acontece quando o jogo mexeu no catalogo. Se a fonte cair,
+o site continua de pe com o snapshot versionado em `src/data/piwdex.json` — e
+**diz isso na tela** (o selo troca de `AO VIVO` pra `SNAPSHOT`), em vez de
+servir dado velho fingindo estar ao vivo.
+
+Atualizar o snapshot de fallback: `npm run ingest`.
+
+## Arquitetura
+
+```
+src/
+  app/            paginas (App Router)
+  components/
+    ui/           PRIMITIVAS — botao, campo, select, modal, faixa, ...
+    *.tsx         componentes de dominio (card, filtros, navegacao)
+  lib/
+    source.ts     fonte do catalogo: ETag, cache, fallback
+    data.ts       derivacoes (indice reverso de drop, spots, evolucao)
+    dex.ts        motor da dex: o que se pode perguntar e como ordenar
+    dex-url.ts    a pergunta serializada na URL
+    items.ts      motor dos itens: de onde vem, da pra farmar, rende quanto
+    items-url.ts  a mesma serializacao, do lado dos itens
+    calc-url.ts   o pokemon da calculadora, serializado no link
+    stats.ts      formula de stat/IV/Poder do jogo (verificada)
+    typing.ts     tabela de efetividade e cores de tipo
+    rarity.ts     faixas de qualidade (tabela oficial do jogo)
+    xp.ts         curva de XP (formula fechada da pokepedia)
+    catch-law.ts  lei de captura derivada (ajuste empirico, nao formula oficial)
+```
+
+Duas regras que valem em todo arquivo:
+
+1. **Cor e espaco saem de token** (`globals.css`). A excecao sao as cores de
+   DADO — tipo de pokemon, faixa de raridade — que vivem em `lib/`, porque sao
+   dado do jogo e nao decisao de interface.
+2. **Toda tela importa de `@/components/ui`.** Se a primitiva nao serve, o certo
+   e abrir uma variante nela, nao criar mais um botao quase igual.
+
+## Convencoes
+
+Slug `piwdex2` governa o nome de tudo (`piwdex2-app`, `piwdex2-db`, rede
+`piwdex2-net`). Porta interna constante (3000), externa por variavel. Par de
+portas reservado: **4071** (app) / **5071** (banco).
+
+## Aviso
+
+Projeto de fa. Sem vinculo com os autores do Poke Idle World. Todo acesso ao
+jogo e de LEITURA.

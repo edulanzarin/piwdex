@@ -1,5 +1,5 @@
-import { LoadingBall } from "@/components/loaders";
+import { Loading } from "@/components/ui";
 
-export default function Loading() {
-  return <LoadingBall label="Carregando pokemon" />;
+export default function FichaLoading() {
+  return <Loading label="Abrindo a ficha" />;
 }

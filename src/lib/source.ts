@@ -35,6 +35,14 @@ const FRESH_MS = 10_000;
 /** Teto de espera da fonte. Passou disso, serve o que tem e nao trava a pagina. */
 const TIMEOUT_MS = 12_000;
 
+/** Fonte caiu: repergunta no maximo uma vez por minuto. Sem isso, cada visita paga o
+ *  timeout inteiro de novo — com a fonte fora do ar a pagina levava ate 24s por visita. */
+const ESPERA_APOS_FALHA_MS = 60_000;
+
+/** A sonda (HEAD) parou de responder mas o catalogo em memoria continua bom: espaca a
+ *  pergunta em vez de baixar 1,6 MB no escuro. */
+const SONDA_CEGA_MS = 5 * 60_000;
+
 const SOURCES = {
   creatures: `${HOST}/game/creatures.json`,
   items: `${HOST}/game/items.json`,
@@ -75,8 +83,26 @@ async function getJson(url: string, bust: boolean): Promise<unknown> {
   return res.json();
 }
 
-/** Identidade do catalogo agora, sem baixar o corpo. null = a fonte nao respondeu. */
-async function probeVersion(): Promise<{ version: string; modified: string | null } | null> {
+/**
+ * Identidade do catalogo agora, sem baixar o corpo.
+ *
+ * O retorno tem TRES estados, e nao dois, porque "nao sei" nao e "mudou". Antes um
+ * `catch {}` devolvia null pra qualquer erro (DNS, TLS, timeout, 405) e o chamador
+ * tratava null como versao diferente — ou seja, baixava tudo. Se a CDN do jogo
+ * passasse a recusar HEAD (405/403 e comportamento comum e fora do nosso controle),
+ * o mecanismo de ETag inteiro deixava de existir SEM UMA LINHA DE LOG: o site
+ * passaria a baixar ~1,6 MB a cada janela de 10s, indefinidamente, contra o
+ * servidor do jogo, e o unico sintoma apareceria na conta de banda deles.
+ */
+type Sonda =
+  | { ok: true; version: string; modified: string | null }
+  | { ok: false; why: string };
+
+/** Estado da ultima sonda cega, pra o aviso sair UMA vez por transicao e nao a cada
+ *  request — log que repete a cada 10s vira ruido e ninguem le. */
+let sondaCega = false;
+
+async function sondarVersao(): Promise<Sonda> {
   try {
     const res = await fetch(SOURCES.creatures, {
       method: "HEAD",
@@ -84,13 +110,18 @@ async function probeVersion(): Promise<{ version: string; modified: string | nul
       cache: "no-store",
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });
-    if (!res.ok) return null;
+    if (!res.ok) return { ok: false, why: `HEAD -> ${res.status}` };
     const etag = res.headers.get("etag");
     const modified = res.headers.get("last-modified");
     const version = etag ?? modified;
-    return version ? { version, modified } : null;
-  } catch {
-    return null;
+    if (!version) return { ok: false, why: "sem ETag nem Last-Modified" };
+    if (sondaCega) {
+      console.warn("[piwdex] sonda de versao voltou a funcionar");
+      sondaCega = false;
+    }
+    return { ok: true, version, modified };
+  } catch (e) {
+    return { ok: false, why: e instanceof Error ? e.message : "HEAD falhou" };
   }
 }
 
@@ -147,7 +178,10 @@ function normalizeAttacks(src: unknown): Attack[] {
   });
 }
 
-function fromSnapshot(error: string): SourceData {
+/** O catalogo do build, com o motivo de termos caido nele. Exportado porque a
+ *  degradacao nao e so de REDE: se a derivacao quebrar em cima de um registro novo do
+ *  jogo, o `data.ts` tambem precisa de um chao pra pisar. */
+export function fromSnapshot(error: string): SourceData {
   const s = snapshot as unknown as Snapshot;
   return {
     creatures: s.creatures,
@@ -167,9 +201,11 @@ function fromSnapshot(error: string): SourceData {
 let held: SourceData | null = null;
 // Uma atualizacao por vez: sem isto, dez requests simultaneos viram dez downloads de 1MB.
 let inFlight: Promise<SourceData> | null = null;
+/** Epoch ms antes do qual nao vale a pena reperguntar a fonte. Ver `fetchSource`. */
+let reperguntarEm = 0;
 
 async function download(bust: boolean): Promise<SourceData> {
-  const probe = await probeVersion();
+  const sonda = await sondarVersao();
   const [cRaw, iRaw, mRaw] = await Promise.all([
     getJson(SOURCES.creatures, bust),
     getJson(SOURCES.items, bust),
@@ -183,49 +219,107 @@ async function download(bust: boolean): Promise<SourceData> {
   if (!Array.isArray(items) || !items.length) throw new Error("items vazio");
   if (!Array.isArray(hunts) || !hunts.length) throw new Error("hunts vazio");
 
+  // ---- piso de plausibilidade ----
+  // "Array nao vazio" aceita um arquivo de 3 especies do mesmo jeito que aceita 482.
+  // Toda a maquinaria de fallback cobria "a fonte nao respondeu"; nada cobria "a fonte
+  // respondeu LIXO". Um creatures.json publicado pela metade passava, o `version` novo
+  // invalidava toda derivacao memoizada, e o site servia uma dex de 3 especies com o
+  // selo AO VIVO e a data do patch — sem nada acionar o snapshot.
+  //
+  // A regua e o snapshot versionado: patch legitimo nunca corta metade do catalogo,
+  // arquivo truncado sempre corta. O `throw` cai no caminho de degradacao que ja
+  // existe, entao o custo e uma comparacao por endpoint.
+  const base = snapshot as unknown as Snapshot;
+  const piso = (nome: string, veio: number, tinha: number) => {
+    if (veio < tinha * 0.5) throw new Error(`${nome} implausivel: ${veio} contra ${tinha} do snapshot`);
+  };
+  piso("creatures", creaturesSrc.length, base.creatures.length);
+  piso("items", items.length, base.items.length);
+  piso("hunts", hunts.length, base.hunts.length);
+
   const now = Date.now();
   return {
     creatures: normalizeCreatures(creaturesSrc),
     items,
     hunts,
     // a data do PATCH, nao a do nosso snapshot
-    generatedAt: probe?.modified ?? new Date(now).toISOString(),
+    generatedAt: (sonda.ok ? sonda.modified : null) ?? new Date(now).toISOString(),
     live: true,
-    version: probe?.version ?? `live:${now}`,
+    // Sem ETag o `version` cai num carimbo de tempo, que muda a cada download e
+    // invalida toda derivacao memoizada — e o preco de nao ter identidade de catalogo.
+    version: sonda.ok ? sonda.version : `live:${now}`,
     checkedAt: now,
     error: null,
   };
 }
 
+const eSnapshot = (d: SourceData): boolean => d.version.startsWith("snapshot:");
+
 async function refresh(force: boolean): Promise<SourceData> {
-  // Ja temos catalogo: pergunta ao jogo se ele mudou antes de baixar 1MB de novo.
-  if (held && !force) {
-    const probe = await probeVersion();
-    if (probe && probe.version === held.version) {
-      held = { ...held, checkedAt: Date.now() };
+  // Ja temos catalogo do jogo: pergunta se ele mudou antes de baixar 1MB de novo.
+  if (held && !force && !eSnapshot(held)) {
+    const sonda = await sondarVersao();
+
+    if (sonda.ok && sonda.version === held.version) {
+      // Sonda que responde e PROVA de que a fonte esta viva. Antes esta linha era
+      // `{ ...held, checkedAt }`, preservando `live` e `error` do objeto anterior — e
+      // como so um patch do jogo muda o ETag, um 502 transitorio deixava o site
+      // anunciando "SNAPSHOT / fonte caiu" por horas com a fonte perfeitamente de pe.
+      // `live` reflete a ULTIMA CONFERENCIA, nao o ultimo download.
+      held = { ...held, live: true, error: null, checkedAt: Date.now() };
+      reperguntarEm = Date.now() + FRESH_MS;
       return held;
     }
+
+    if (!sonda.ok) {
+      // Nao saber se mudou NAO e motivo pra baixar 1,6 MB. Segura o que tem e espaca
+      // a proxima pergunta — se a CDN parou de aceitar HEAD, isso e degradacao de
+      // desempenho, nao de correcao, e nao pode virar rajada contra o jogo.
+      if (!sondaCega) {
+        console.warn(`[piwdex] sonda de versao indisponivel (${sonda.why}) — segurando o catalogo em memoria`);
+        sondaCega = true;
+      }
+      held = { ...held, checkedAt: Date.now() };
+      reperguntarEm = Date.now() + SONDA_CEGA_MS;
+      return held;
+    }
+    // sonda.ok e versao diferente: o jogo mexeu no catalogo. Cai no download.
   }
+
   try {
     held = await download(force);
+    reperguntarEm = Date.now() + FRESH_MS;
     return held;
   } catch (e) {
     const why = e instanceof Error ? e.message : "fonte indisponivel";
-    // Dado velho do JOGO ainda e melhor que o snapshot do build — mas para de se dizer
-    // ao vivo, pra a tela poder avisar que a fonte caiu.
-    if (held?.live) {
-      held = { ...held, live: false, checkedAt: Date.now(), error: why };
-      return held;
-    }
-    return fromSnapshot(why);
+
+    // Dado do JOGO em memoria ganha do snapshot do build SEMPRE — inclusive na segunda
+    // falha seguida. A condicao antiga era `if (held?.live)`, entao na segunda falha
+    // `held.live` ja era false e a funcao devolvia o snapshot, DESCARTANDO o catalogo
+    // do jogo que ainda estava ali: o site caia de "dado de um minuto atras" pro
+    // arquivo do build. Quem decide e a procedencia do dado, nao o selo.
+    held = held && !eSnapshot(held)
+      ? { ...held, live: false, checkedAt: Date.now(), error: why }
+      : { ...fromSnapshot(why), checkedAt: Date.now() };
+
+    // A falha tambem precisa ser GRAVADA em `held`. Antes o ramo do snapshot nao
+    // reescrevia nada, entao `checkedAt` congelava e a trava de frescor nunca mais
+    // engatava: toda request seguinte reentrava aqui e pagava o timeout inteiro de
+    // novo. Com a fonte fora do ar, isso e a pagina inteira travando por 24s por
+    // visita. Fonte caida se repergunta uma vez por minuto, nao uma vez por request.
+    reperguntarEm = Date.now() + ESPERA_APOS_FALHA_MS;
+    return held;
   }
 }
 
 /** Catalogo corrente. `force` refaz o download furando a CDN do jogo (acao do usuario,
  *  nao caminho normal — ver o comentario do cabecalho). */
 export async function fetchSource(force = false): Promise<SourceData> {
-  const now = Date.now();
-  if (!force && held && now - held.checkedAt < FRESH_MS) return held;
+  // A cadencia vive numa variavel so (`reperguntarEm`) em vez de sair de
+  // `checkedAt + FRESH_MS`: sao TRES ritmos diferentes — 10s no caminho normal, 5min
+  // quando a sonda cegou, 1min quando a fonte caiu — e derivar os tres de um campo de
+  // dado misturava "quando perguntei" com "quando vale perguntar de novo".
+  if (!force && held && Date.now() < reperguntarEm) return held;
   if (!force && inFlight) return inFlight; // rajada de requests -> uma atualizacao so
   const run = refresh(force).finally(() => {
     if (inFlight === run) inFlight = null;

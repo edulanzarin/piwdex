@@ -1,102 +1,62 @@
-"use client";
+import type { HTMLAttributes, ReactNode } from "react";
+import { cn } from "@/lib/cn";
 
-// Panel — o card-com-cabecalho padrao da area VIP. Fecha a FORMA (card, padding,
-// cabecalho com icone/titulo/slot a direita) e abre so a variacao: acento, badge ao
-// vivo, acao, e o modo EXPANSIVEL (cabecalho recolhe/abre o corpo — tela densa sem
-// caixa vazia ocupando espaco). Substitui as copias soltas de `card p-4` + header.
-// O `card` e VIDRO (superficie translucida + blur): tudo que mora DENTRO do Panel usa
-// fundo chapado (--well-bg) — vidro sobre vidro em varios niveis suja a leitura.
+/**
+ * Bloco de conteudo. A hierarquia e por SUPERFICIE (profundidade), nao por
+ * borda grossa — a borda so aparece porque o fundo sozinho nao separa o
+ * suficiente num tema quase preto.
+ */
 
-import { useState, type CSSProperties } from "react";
-import { LiveBadge } from "./status";
-import { Caret } from "../icons";
+// `title` do HTML e string (vira tooltip nativo); aqui ele e o CABECALHO do
+// painel e aceita no. Por isso o nativo sai do tipo herdado.
+export interface PanelProps extends Omit<HTMLAttributes<HTMLDivElement>, "title"> {
+  /** rotulo pixel no topo, com a linha divisoria */
+  title?: ReactNode;
+  /** area a direita do titulo: acoes, contagem, toggles */
+  actions?: ReactNode;
+  /** camada acima da base — pra painel dentro de painel */
+  raised?: boolean;
+  /** o brilho de scanline do console */
+  scan?: boolean;
+  bodyClassName?: string;
+}
 
 export function Panel({
-  icon,
   title,
-  accent,
-  live = false,
-  right,
-  collapsible = false,
-  defaultOpen = true,
-  open: openProp,
-  onOpenChange,
-  className = "",
-  bodyClassName = "",
+  actions,
+  raised,
+  scan,
+  className,
+  bodyClassName,
   children,
-}: {
-  /** icone do cabecalho (cor de apoio; o acento NAO pinta mais o chrome) */
-  icon?: React.ReactNode;
-  title?: React.ReactNode;
-  /** cor do acento (token/var). Alimenta --accent (glow/flash). NAO pinta titulo nem
-   *  icone: cabecalho colorido virava arco-iris. Cor no VIP so onde ela e DADO. */
-  accent?: string;
-  /** badge "ao vivo" pulsando no cabecalho */
-  live?: boolean;
-  /** slot a direita do cabecalho (botao, contador, chip) */
-  right?: React.ReactNode;
-  /** cabecalho clicavel que recolhe/abre o corpo */
-  collapsible?: boolean;
-  defaultOpen?: boolean;
-  /** modo CONTROLADO: quem chama guarda o aberto/fechado (ex.: pra lembrar a escolha
-   *  entre visitas). Sem isto o estado morre a cada remontagem do painel. */
-  open?: boolean;
-  onOpenChange?: (open: boolean) => void;
-  className?: string;
-  bodyClassName?: string;
-  children: React.ReactNode;
-}) {
-  const [innerOpen, setInnerOpen] = useState(defaultOpen);
-  const open = openProp ?? innerOpen;
-  const setOpen = (next: boolean) => {
-    if (openProp == null) setInnerOpen(next);
-    onOpenChange?.(next);
-  };
-  const header = (title || icon || right) && (
-    <>
-      {icon && (
-        <span className="inline-flex shrink-0 text-text-dim">{icon}</span>
-      )}
-      {title && <h3 className="section-title min-w-0 flex-1 truncate text-left">{title}</h3>}
-      {live && <LiveBadge />}
-      {right && (
-        // o clique nos controles do cabecalho e DELES; sem isto ele borbulha pro
-        // cabecalho colapsavel e cada troca de modo fechava o painel
-        <span onClick={(e) => e.stopPropagation()} className="contents">{right}</span>
-      )}
-      {collapsible && (
-        <span className="inline-flex shrink-0 text-text-dim" style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform .15s" }}>
-          {/* 18px: e o chevron do CABECALHO do card — no tamanho antigo (9px) o traco
-              lucide sumia. Mesmo degrau do icone de titulo ao lado. */}
-          <Caret size={18} />
-        </span>
-      )}
-    </>
-  );
+  ...props
+}: PanelProps) {
   return (
     <section
-      className={`card flex flex-col gap-2.5 p-4 ${className}`}
-      style={accent ? ({ "--accent": accent } as CSSProperties) : undefined}
+      className={cn("panel relative", raised && "bg-surface-2/90", scan && "scanline", className)}
+      {...props}
     >
-      {header && (collapsible ? (
-        // div clicavel (nao <button>): o slot `right` pode conter botao proprio e
-        // button-dentro-de-button e HTML invalido
-        <div
-          role="button"
-          tabIndex={0}
-          onClick={() => setOpen(!open)}
-          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setOpen(!open); } }}
-          className="flex min-w-0 cursor-pointer select-none items-center gap-2"
-          aria-expanded={open}
-        >
-          {header}
-        </div>
-      ) : (
-        <header className="flex min-w-0 items-center gap-2">{header}</header>
-      ))}
-      {(!collapsible || open) && (
-        <div className={`flex min-h-0 flex-1 flex-col gap-2.5 ${bodyClassName}`}>{children}</div>
+      {/* `flex-wrap` no cabecalho: a linha nao podia quebrar, entao numa tela de
+          320px o botao de acao ("limpar") saia pela direita e levava a PAGINA
+          inteira junto. O piso de alvo de toque piorou isso — o botao passou de 64
+          pra 72px —, o que so expos que a linha ja era rigida demais. Titulo em
+          cima, acoes embaixo, quando nao couber lado a lado. */}
+      {(title || actions) && (
+        <header className="flex min-h-9 flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b border-line px-3 py-2">
+          {title ? <h2 className="pix text-[12px] text-text-dim">{title}</h2> : <span />}
+          {actions ? <div className="flex items-center gap-1.5">{actions}</div> : null}
+        </header>
       )}
+      <div className={cn("p-3", bodyClassName)}>{children}</div>
     </section>
+  );
+}
+
+/** Rotulo de secao dentro de um painel — o degrau abaixo do titulo. */
+export function FieldLabel({ children, className, ...props }: HTMLAttributes<HTMLElement>) {
+  return (
+    <span className={cn("pix block text-[11px] text-text-mute", className)} {...props}>
+      {children}
+    </span>
   );
 }

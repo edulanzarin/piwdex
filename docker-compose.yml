@@ -1,77 +1,53 @@
-# Compose igual em dev e producao (app + db + migrations).
-# Slug `piwdex` governa o nome de tudo. Ver [[Infra]]. Par de portas: app 4070 / banco 5070.
-name: ${COMPOSE_PROJECT_NAME:-piwdex}
+# Chassi do piwdex2. Slug `piwdex2` governa o nome de tudo; par de portas
+# reservado 4071 (app) / 5071 (banco) — registrado em [[Uma faixa de portas por
+# projeto]] no Brain.
+#
+# O banco AINDA NAO SOBE: a camada publica (dex, itens, calculadoras) nao tem
+# estado. O servico fica comentado com a porta ja reservada pra quando o robo
+# for portado — reservar a porta e barato, subir um Postgres ocioso nao e.
 
 services:
-  piwdex-db:
-    image: postgres:17-alpine
-    container_name: piwdex-db
+  app:
+    build:
+      context: .
+      # O id do AdSense entra no BUILD (o Next inlina `NEXT_PUBLIC_*` no bundle);
+      # vazio aqui = imagem sem anuncio nenhum.
+      args:
+        NEXT_PUBLIC_ADSENSE_CLIENT: ${NEXT_PUBLIC_ADSENSE_CLIENT:-}
+        NEXT_PUBLIC_ADSENSE_SLOT_GRADE: ${NEXT_PUBLIC_ADSENSE_SLOT_GRADE:-}
+        NEXT_PUBLIC_ADSENSE_SLOT_RODAPE: ${NEXT_PUBLIC_ADSENSE_SLOT_RODAPE:-}
+        NEXT_PUBLIC_ADSENSE_LAYOUT_GRADE: ${NEXT_PUBLIC_ADSENSE_LAYOUT_GRADE:-}
+        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-}
+    container_name: piwdex2-app
     restart: unless-stopped
+    # Porta interna constante (3000), externa por variavel.
+    ports: ["${APP_PORT:-4071}:3000"]
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-piwdex}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-piwdex}
-      POSTGRES_DB: ${POSTGRES_DB:-piwdex}
-    ports:
-      - "${DB_PORT:-5070}:5432"
-    volumes:
-      - piwdex-db-data:/var/lib/postgresql/data
+      NODE_ENV: production
+    networks: [piwdex2-net]
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-piwdex} -d ${POSTGRES_DB:-piwdex}"]
-      interval: 5s
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/"]
+      interval: 30s
       timeout: 5s
-      retries: 12
-    networks: [piwdex-net]
+      retries: 3
+      start_period: 20s
 
-  # Migrations rodam em container proprio, no boot, e saem.
-  # Ver [[Migrations em container proprio no Docker Compose]].
-  piwdex-migrate:
-    build:
-      context: .
-      target: migrate
-    image: piwdex-migrate
-    container_name: piwdex-migrate
-    restart: "no"
-    environment:
-      DATABASE_URL: postgres://${POSTGRES_USER:-piwdex}:${POSTGRES_PASSWORD:-piwdex}@piwdex-db:5432/${POSTGRES_DB:-piwdex}
-    command: ["node", "db/setup.mjs"]
-    depends_on:
-      piwdex-db:
-        condition: service_healthy
-    networks: [piwdex-net]
-
-  piwdex-app:
-    build:
-      context: .
-      target: runner
-    image: piwdex-app
-    container_name: piwdex-app
-    restart: unless-stopped
-    environment:
-      DATABASE_URL: postgres://${POSTGRES_USER:-piwdex}:${POSTGRES_PASSWORD:-piwdex}@piwdex-db:5432/${POSTGRES_DB:-piwdex}
-      AUTH_SECRET: ${AUTH_SECRET:-}
-      SESSION_SECRET: ${SESSION_SECRET:-}
-      GAME_HOST: ${GAME_HOST:-https://poke.idleworld.online}
-      APP_URL: ${APP_URL:-}
-      MP_ACCESS_TOKEN: ${MP_ACCESS_TOKEN:-}
-      CRON_SECRET: ${CRON_SECRET:-}
-      SCAN_INTERVAL: ${SCAN_INTERVAL:-60}
-    ports:
-      - "${APP_PORT:-4070}:3000"
-    depends_on:
-      piwdex-db:
-        condition: service_healthy
-      piwdex-migrate:
-        condition: service_completed_successfully
-    networks: [piwdex-net]
-
-  # O sniper roda DENTRO do app (loop interno em instrumentation.ts, a cada
-  # SCAN_INTERVAL s) — mesmo mecanismo em dev, compose e Railway, sem worker externo.
-  # /api/cron/scan continua existindo como gatilho manual (CRON_SECRET).
-
-volumes:
-  piwdex-db-data:
-    name: piwdex-db-data
+  # db:
+  #   image: postgres:17-alpine
+  #   container_name: piwdex2-db
+  #   restart: unless-stopped
+  #   ports: ["${DB_PORT:-5071}:5432"]
+  #   environment:
+  #     POSTGRES_USER: ${POSTGRES_USER:-piwdex2}
+  #     POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina no .env}
+  #     POSTGRES_DB: ${POSTGRES_DB:-piwdex2}
+  #   volumes: [piwdex2-db-data:/var/lib/postgresql/data]
+  #   networks: [piwdex2-net]
 
 networks:
-  piwdex-net:
-    name: piwdex-net
+  piwdex2-net:
+    name: piwdex2-net
+
+# volumes:
+#   piwdex2-db-data:
+#     name: piwdex2-db-data
