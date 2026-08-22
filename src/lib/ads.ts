@@ -70,6 +70,23 @@ export const temSlot = (lugar: LugarDeAnuncio): boolean =>
   temAnuncios() && SLOTS[lugar].trim().length > 0;
 
 /**
+ * Aquele lugar DESENHA alguma coisa?
+ *
+ * Nao e a mesma pergunta que `temSlot`, e a diferenca e o que faltava: em
+ * DESENVOLVIMENTO o lugar sem slot vira o marcador tracejado, pra dar pra
+ * desenhar contra o layout que vai ao ar; em PRODUCAO ele nao existe.
+ *
+ * Sem isto, o contrato escrito no topo deste arquivo — "sem id, nenhum espaco e
+ * reservado" — era mentira. O `Reservado` sumia em producao, mas a casca em volta
+ * dele continuava de pe, com o rotulo "Publicidade" e a altura minima. O site ia
+ * ao ar com duas caixas vazias rotuladas na dex: uma caixa que diz "Publicidade"
+ * e nao mostra nada promete conteudo que nao vem, e e o tipo de coisa que a
+ * revisao do AdSense marca.
+ */
+export const mostrarAnuncio = (lugar: LugarDeAnuncio): boolean =>
+  temSlot(lugar) || process.env.NODE_ENV !== "production";
+
+/**
  * De quantos em quantos cards entra um anuncio na grade.
  *
  * O numero e alto de proposito. A pagina da dex mostra 24 cards por padrao: com
@@ -104,8 +121,13 @@ export const ehAnuncio = (x: unknown): x is MarcaDeAnuncio =>
  *    formato de feed; aqui o intervalo padrao e 12, quatro vezes a folga;
  *  - **so com material suficiente**: pagina menor que o intervalo nao ganha
  *    anuncio nenhum, senao uma busca com 3 resultados viria com um anuncio no meio.
+ *
+ * E antes de todas elas: sem a unidade da grade ligada, a lista volta INTEIRA,
+ * sem marcador nenhum. Espalhar marcador que vira caixa vazia e o mesmo erro de
+ * reservar espaco pra um anuncio que nao existe.
  */
 export function intercalar<T>(itens: T[], cada = CARDS_POR_ANUNCIO): (T | MarcaDeAnuncio)[] {
+  if (!mostrarAnuncio("grade")) return itens;
   if (itens.length <= cada) return itens;
   const saida: (T | MarcaDeAnuncio)[] = [];
   let ordem = 0;

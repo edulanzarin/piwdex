@@ -3,7 +3,14 @@
 import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/cn";
-import { ADSENSE_CLIENT, LAYOUTS, SLOTS, temSlot, type LugarDeAnuncio } from "@/lib/ads";
+import {
+  ADSENSE_CLIENT,
+  LAYOUTS,
+  SLOTS,
+  mostrarAnuncio,
+  temSlot,
+  type LugarDeAnuncio,
+} from "@/lib/ads";
 
 /**
  * Uma unidade de anuncio.
@@ -56,6 +63,11 @@ declare global {
 export function Anuncio({ lugar, formato = "auto", layoutKey, minH = 120, rotulo, className }: AnuncioProps) {
   const pathname = usePathname();
   const ligado = temSlot(lugar);
+
+  // Em producao, lugar sem slot nao desenha NADA — nem o rotulo, nem a altura
+  // reservada. Deixar a casca de pe era o que fazia o site ir ao ar com uma
+  // caixa vazia dizendo "Publicidade".
+  if (!mostrarAnuncio(lugar)) return null;
 
   return (
     // `data-anuncio` e o que o balao de apoio observa pra nunca cobrir um anuncio:
@@ -119,11 +131,11 @@ function Unidade({
   );
 }
 
-/** O lugar do anuncio enquanto nao ha conta: so aparece fora de producao, com a
- *  MESMA geometria da unidade real, pra dar pra desenhar contra o layout que vai
- *  ao ar. Em producao sem conta, nao existe nada. */
+/** O lugar do anuncio enquanto nao ha conta. So se chega aqui fora de producao —
+ *  quem barra em producao e o `mostrarAnuncio`, antes da casca. Ele tem a MESMA
+ *  geometria da unidade real, pra dar pra desenhar contra o layout que vai ao
+ *  ar. */
 function Reservado({ lugar }: { lugar: LugarDeAnuncio }) {
-  if (process.env.NODE_ENV === "production") return null;
   return (
     <div
       aria-hidden="true"
