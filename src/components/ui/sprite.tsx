@@ -111,7 +111,13 @@ export function Sprite({
           decoding="async"
           onLoad={() => setState("ok")}
           onError={() => setState("fail")}
-          className="relative h-full w-full object-contain"
+          /* ABSOLUTA, e nao um item do grid: os sprites do jogo nao sao quadrados
+             (o Delibird e 32x64) e `h-full` num item de linha automatica e uma
+             dependencia circular — o navegador desiste, usa a altura intrinseca e
+             a linha cresce pra 68px dentro de uma caixa de 34. O sprite vazava pra
+             fora da celula e cruzava o divisor da tabela. Fora do fluxo, quem manda
+             na caixa e o `size`, e o `object-contain` centraliza o que couber. */
+          className="absolute inset-0 h-full w-full object-contain"
         />
       ) : null}
     </span>
