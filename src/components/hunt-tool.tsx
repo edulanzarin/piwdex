@@ -12,9 +12,15 @@ import { animatedSpriteUrl, spriteUrl } from "@/lib/sprites";
 import { TYPE_COLOR } from "@/lib/typing";
 import { STAT_LABEL, STAT_SHORT, TYPE_LABEL, compact } from "@/lib/labels";
 import { TYPE_DAY_BONUS } from "@/lib/boost";
-import { BALLS } from "@/lib/balls";
 import type { HuntPayload } from "@/lib/hunt-data";
-import { EMPTY_HUNT, buildHuntSearch, parseHuntState, type HuntState } from "@/lib/hunt-url";
+import {
+  EMPTY_HUNT,
+  HUNT_BALLS,
+  QUALITY_MIN,
+  buildHuntSearch,
+  parseHuntState,
+  type HuntState,
+} from "@/lib/hunt-url";
 import type { PokeType } from "@/lib/types";
 import {
   Button,
@@ -235,9 +241,12 @@ export function HuntTool({ payload }: { payload: HuntPayload }) {
               />
             </Field>
 
+            {/* quality 0 zera o `pow(q, 0.95)` de todo stat e o motor inteiro colapsa
+                em silencio (dano 0 -> kos/h 0 -> xp/h 0 pra todo alvo), entao o piso
+                e do campo, nao da conta. O mesmo piso vale no parse da URL. */}
             <Field label="Quality" icon={<IconGem size={14} />} className="w-32">
               <NumberField
-                min={0}
+                min={QUALITY_MIN}
                 step={0.01}
                 fallback={1}
                 value={s.quality}
@@ -345,7 +354,7 @@ export function HuntTool({ payload }: { payload: HuntPayload }) {
                   <Select
                     value={s.ball}
                     onChange={(ball) => patch({ ball, page: 0 })}
-                    options={BALLS.filter((b) => b.catchRate < 255 && b.priceGold != null).map((b) => ({
+                    options={HUNT_BALLS.map((b) => ({
                       value: b.key,
                       label: b.name,
                       // preco e multiplicador vao na dica: no gatilho fica so o

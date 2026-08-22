@@ -9,10 +9,28 @@
 // O que NAO entra: pagina da tabela e nada mais. Padrao omitido, como nas outras
 // telas, pra o link curto continuar curto.
 
+import { BALLS, type Ball } from "./balls";
 import type { MovePool } from "./combat";
 import type { RouteMode } from "./combat";
 import type { HuntSort } from "./hunt";
 import type { PokeType } from "./types";
+
+/**
+ * As bolas que a Hunt oferece — UMA lista, usada pelo seletor da tela E pela URL.
+ *
+ * Fora ficam as garantidas (catchRate 255: nao ha conta de captura pra fazer) e as
+ * sem preco, que nao dao pra descontar do ouro. Era um `filter` solto dentro do
+ * seletor, e por isso a URL nao sabia dele: `?bola=master` repunha a bola que a
+ * tela escondia de proposito, `economyOf` gravava chance 1 e custo 0, e a captura
+ * saia de graca. Filtro que a tela aplica e a URL nao, a URL desfaz.
+ */
+export const HUNT_BALLS: Ball[] = BALLS.filter((b) => b.catchRate < 255 && b.priceGold != null);
+
+/** Piso da quality. Quality 0 nao existe no jogo e zera o `Math.pow(q, 0.95)` de
+ *  TODO stat: o motor devolve dano 0, kos/h 0 e xp/h 0 pra todo alvo, e a tela
+ *  fica sem rendimento nenhum sem dizer por que. O campo trava aqui e a URL
+ *  tambem — senao o link repoe o 0 que o campo passou a barrar. */
+export const QUALITY_MIN = 0.1;
 
 export type HuntView = "ranking" | "rota";
 
@@ -78,6 +96,10 @@ const num = (v: string | null, fallback: number): number => {
 const oneOf = <T extends string>(v: string | null, valid: readonly T[], fallback: T): T =>
   (valid as readonly string[]).includes(v ?? "") ? (v as T) : fallback;
 
+/** Bola da URL, so se for uma das que a tela oferece — mesma lista, um lugar so. */
+const huntBall = (v: string | null): string =>
+  HUNT_BALLS.some((b) => b.key === v) ? (v as string) : EMPTY_HUNT.ball;
+
 const VIEWS = ["rota", "ranking"] as const;
 const MODES = ["xp", "gold"] as const;
 const POOLS = ["natural", "tm"] as const;
@@ -90,14 +112,14 @@ export function parseHuntState(sp: URLSearchParams): HuntState {
   return {
     id: Number.isFinite(id) && id > 0 ? id : null,
     level: Math.max(1, num(sp.get("lv"), EMPTY_HUNT.level)),
-    quality: Math.max(0, num(sp.get("q"), EMPTY_HUNT.quality)),
+    quality: Math.max(QUALITY_MIN, num(sp.get("q"), EMPTY_HUNT.quality)),
     stats: Array.from({ length: 6 }, (_, i) => Math.max(0, num(raw[i] ?? null, 0))),
     pool: oneOf(sp.get("golpes"), POOLS, EMPTY_HUNT.pool),
     vip: sp.get("vip") === "1",
     view: oneOf(sp.get("v"), VIEWS, EMPTY_HUNT.view),
     mode: oneOf(sp.get("m"), MODES, EMPTY_HUNT.mode),
     cap: sp.get("cap") === "1",
-    ball: sp.get("bola") ?? EMPTY_HUNT.ball,
+    ball: huntBall(sp.get("bola")),
     day: (sp.get("dia") ?? "") as PokeType | "",
     target: Math.max(2, num(sp.get("alvo"), EMPTY_HUNT.target)),
     type: (sp.get("t") ?? "") as PokeType | "",

@@ -42,7 +42,7 @@ import { IconLevel, IconXp } from "@/components/game-icons";
  *
  * 1. **A rota nao evolui ninguem.** Evoluir reseta o nivel e NAO re-rola IV/Quality,
  *    entao o pokemon que voce escolheu e o pokemon — a rota usa a especie escolhida
- *    em todos os niveis, em vez de fingir que voce vira outro bicho no meio.
+ *    em todos os niveis, em vez de fingir que voce vira outro pokemon no meio.
  * 2. **A rota foge de hunt letal.** Alvo que te derruba antes de 2 abates fica fora,
  *    mesmo rendendo mais no papel: o rendimento dele ja e zero na pratica.
  *
@@ -105,16 +105,23 @@ export function HuntRoute({
 
   // O preco da rota em tempo: o XP que cada faixa custa (curva fechada do jogo)
   // dividido pelo XP/h que a hunt daquela faixa entrega.
+  //
+  // Faixa sem rendimento e AUSENCIA de dado (`null`), nao tempo infinito. Com
+  // `Infinity` no lugar, o ouro do trecho virava `Infinity * 0` = NaN, o NaN
+  // contaminava a soma inteira e a tela imprimia a string "NaN" em "ouro no
+  // caminho". Somamos so o que tem numero e, se algum trecho ficou sem, o total
+  // vira "—": meio total mente mais do que nao responder.
   const comTempo = useMemo(
     () =>
       rota.map((s) => {
         const xpFaixa = xpTotalForLevel(s.to + 1) - xpTotalForLevel(s.from);
-        return { step: s, xpFaixa, horas: s.est.xpH > 0 ? xpFaixa / s.est.xpH : Infinity };
+        return { step: s, xpFaixa, horas: s.est.xpH > 0 ? xpFaixa / s.est.xpH : null };
       }),
     [rota],
   );
-  const horasTotal = comTempo.reduce((a, x) => a + x.horas, 0);
-  const ouroTotal = comTempo.reduce((a, x) => a + x.horas * x.step.est.goldH, 0);
+  const totalIncompleto = comTempo.some((x) => x.horas == null);
+  const horasTotal = comTempo.reduce((a, x) => a + (x.horas ?? 0), 0);
+  const ouroTotal = comTempo.reduce((a, x) => a + (x.horas ?? 0) * x.step.est.goldH, 0);
 
   return (
     <div className="flex flex-col gap-3">
@@ -158,14 +165,16 @@ export function HuntRoute({
             <span className="flex items-baseline gap-1.5">
               <span className="pix text-[11px] text-text-mute">tempo estimado</span>
               <span className="text-[20px] leading-none font-bold text-accent tabular">
-                {horasLabel(horasTotal)}
+                {totalIncompleto ? "—" : horasLabel(horasTotal)}
               </span>
             </span>
             <Tooltip content="Ouro que a própria subida rende no caminho, no ritmo de cada faixa.">
               <span className="flex items-baseline gap-1.5">
                 <span className="pix text-[11px] text-text-mute">ouro no caminho</span>
                 <span className="text-[17px] leading-none font-semibold text-warn tabular">
-                  {Math.round(ouroTotal).toLocaleString("pt-BR")}
+                  {totalIncompleto || !Number.isFinite(ouroTotal)
+                    ? "—"
+                    : Math.round(ouroTotal).toLocaleString("pt-BR")}
                 </span>
               </span>
             </Tooltip>
@@ -208,7 +217,9 @@ export function HuntRoute({
                   <span className="pix text-[13px]" style={{ color: tint }}>
                     {step.from} → {step.to}
                   </span>
-                  <span className="pix text-[11px] text-text-mute">{horasLabel(horas)}</span>
+                  <span className="pix text-[11px] text-text-mute">
+                    {horas == null ? "—" : horasLabel(horas)}
+                  </span>
                 </span>
 
                 <span className="flex min-w-0 flex-1 items-center gap-2.5 border-line/60 lg:border-l lg:pl-4">
