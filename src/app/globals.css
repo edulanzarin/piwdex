@@ -79,7 +79,7 @@
   --radius-pix-lg: 0px;
   --radius-glass: 0px;
 
-  /* ---- fonte unica: Quantico, do next/font ---- */
+  /* ---- fonte unica: Chakra Petch, do next/font ---- */
   --font-ui-stack: var(--font-ui), "Segoe UI", system-ui, sans-serif;
 
   /* ---- sombra/brilho neon: escada fechada ---- */
@@ -115,6 +115,9 @@
     background-color: var(--color-bg);
     color: var(--color-text);
     font-family: var(--font-ui-stack);
+    /* 500 e o corpo: a familia tem peso medio de verdade, e e ele que da o traco
+       um pouco mais grosso sem cair no negrito — que nesta densidade vira mancha. */
+    font-weight: 500;
     /* 16px. Foram tres subidas ate aqui (14 -> 15 -> 16): a queixa "tudo
        esmagado e pequeno" nao era de um elemento, era da escala inteira. */
     font-size: 1rem;

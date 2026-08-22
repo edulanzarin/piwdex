@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Quantico } from "next/font/google";
+import { Oxanium } from "next/font/google";
 import Script from "next/script";
 import { SiteNav } from "@/components/site-nav";
 import { SiteFooter } from "@/components/site-footer";
@@ -9,21 +9,29 @@ import { Anuncio } from "@/components/anuncio";
 import "./globals.css";
 
 /**
- * Uma fonte so: **Quantico**, nos pesos 400 e 700.
+ * Uma fonte so: **Oxanium**, nos pesos 400/500/600/700.
  *
- * Chegou depois de quatro reprovadas — Press Start 2P (ilegivel), Silkscreen
- * (some no corpo pequeno), Jersey 10 (condensada e fina) e Orbitron (legivel,
- * mas larga e fria). O padrao das bitmap era sempre o mesmo: so funcionam com
- * traco grosso E corpo grande, e nessa combinacao a densidade morre. A Quantico
- * e quadrada e tecno com formas de letra normais, entao aguenta o site inteiro.
+ * Ela sucede a Quantico, que sucedeu quatro reprovadas — Press Start 2P
+ * (ilegivel), Silkscreen (some no corpo pequeno), Jersey 10 (condensada e fina) e
+ * Orbitron (larga e fria). O padrao das bitmap era sempre o mesmo: so funcionam
+ * com traco grosso E corpo grande, e nessa combinacao a densidade morre.
  *
- * Ela NAO tem numeral tabular (o "1" e ~15% mais estreito que o "0"), entao
- * coluna de numero se resolve por ALINHAMENTO A DIREITA, nunca contando com o
- * `tabular-nums` — que aqui nao tem efeito nenhum.
+ * A troca comecou por gosto — "quadrada e um pouco mais grossa" — e a Quantico
+ * nao tinha como atender: ela existe so em 400 e 700, entao nao ha meio termo
+ * entre fino e negrito. Seis familias quadradas foram comparadas RENDERIZADAS na
+ * mesma tabela da Hunt, e nao no catalogo.
+ *
+ * Quem decidiu, no fim, foi um numero: **o digito da Oxanium tem largura fixa**.
+ * Medido no proprio site, "1111" e "0000" dao a MESMA largura (0% de diferenca),
+ * contra 6% da Quantico e 30-44% de Chakra Petch, Bai Jamjuree, Saira e Rubik.
+ * Num site que e coluna de numero de ponta a ponta — XP/h, ouro/h, stats, notas
+ * de tier —, digito de largura variavel desalinha a coluna inteira a cada "1".
+ * O `tabular-nums` do CSS nao salva ninguem aqui: nenhuma das seis publica a
+ * feature, entao ou a fonte ja nasce com o digito fixo, ou nao ha o que ligar.
  */
-const quantico = Quantico({
-  weight: ["400", "700"],
-  subsets: ["latin"],
+const quantico = Oxanium({
+  weight: ["400", "500", "600", "700"],
+  subsets: ["latin", "latin-ext"],
   variable: "--font-ui",
   display: "swap",
 });
