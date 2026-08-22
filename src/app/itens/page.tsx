@@ -6,7 +6,8 @@ import { ItemsBrowser } from "@/components/items-browser";
 import { Panel, SkeletonItemGrid } from "@/components/ui";
 
 export const metadata: Metadata = {
-  title: "Itens",
+  alternates: { canonical: "/itens" },
+  title: "Itens do Poke Idle World",
   description:
     "Catálogo de itens do Poke Idle World com o índice reverso: quem dropa cada " +
     "item, com que chance real, a partir de que nível dá pra farmar e quanto o " +

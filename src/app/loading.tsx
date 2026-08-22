@@ -6,5 +6,5 @@ import { Loading } from "@/components/ui";
  * rota que ficava em branco enquanto o servidor trabalhava.
  */
 export default function HomeLoading() {
-  return <Loading label="Ligando o piwdex" />;
+  return <Loading label="Ligando o PIWdex" />;
 }

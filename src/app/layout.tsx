@@ -5,6 +5,7 @@ import { SiteNav } from "@/components/site-nav";
 import { SiteFooter } from "@/components/site-footer";
 import { ApoioFlutuante } from "@/components/apoio";
 import { ADSENSE_CLIENT, temAnuncios } from "@/lib/ads";
+import { SITE_URL } from "@/lib/site";
 import { Anuncio } from "@/components/anuncio";
 import "./globals.css";
 
@@ -38,13 +39,31 @@ const quantico = Oxanium({
 
 
 export const metadata: Metadata = {
+  // `metadataBase` e a base de TODA URL relativa que o Next escreve — og:image,
+  // canonical, alternates. Sem ela o Next emite caminho relativo e nenhum
+  // rastreador resolve; e o pre-requisito dos dois blocos abaixo.
+  metadataBase: new URL(SITE_URL),
   title: {
-    default: "piwdex — dex e ferramentas de Poke Idle World",
-    template: "%s · piwdex",
+    default: "PIWdex — dex e ferramentas de Poke Idle World",
+    template: "%s · PIWdex",
   },
   description:
     "Pokédex completa do Poke Idle World: filtro por tipo, raridade, fraqueza, " +
     "drop e faixa de nível, com stats, golpes, locais de caça e índice reverso de itens.",
+  applicationName: "PIWdex",
+  // CANONICAL NAO ENTRA AQUI. Metadata de layout e HERDADA: um canonical fixo no
+  // topo colapsaria as 918 fichas numa URL so, que e a unica forma de esta
+  // passada PERDER busca em vez de ganhar. Cada rota declara a sua.
+  openGraph: {
+    type: "website",
+    siteName: "PIWdex",
+    locale: "pt_BR",
+    title: "PIWdex — dex e ferramentas de Poke Idle World",
+    description:
+      "Stats, drops com a chance real, onde farmar cada item, rota de caça e " +
+      "tier list — direto do catálogo do Poke Idle World.",
+  },
+  twitter: { card: "summary_large_image" },
   ...(temAnuncios() ? { other: { "google-adsense-account": ADSENSE_CLIENT } } : {}),
 };
 

@@ -7,7 +7,8 @@ import { HowTo, Panel, SkeletonForm } from "@/components/ui";
 import { COMO_USAR_META } from "@/lib/how-to";
 
 export const metadata: Metadata = {
-  title: "Meta",
+  alternates: { canonical: "/meta" },
+  title: "Tier list, duelo e tipos",
   description:
     "Quem presta no Poke Idle World: tier list por nota (dano por segundo e HP efetivo, " +
     "não poder de golpe), duelo entre dois pokémon com nível e quality, e o panorama " +

@@ -40,7 +40,7 @@ export function FaixaApoio() {
       <div className="flex min-w-0 flex-1 gap-2.5">
         <IconApoio size={16} className="mt-0.5 shrink-0 text-neon" />
         <p className="max-w-[74ch] text-[13px] leading-relaxed text-text-dim">
-          <span className="text-text">O piwdex é gratuito e o apoio é totalmente opcional.</span>{" "}
+          <span className="text-text">O PIWdex é gratuito e o apoio é totalmente opcional.</span>{" "}
           Se for comprar diamante no jogo, usar o meu código de indicação não muda o preço
           pra você e ajuda a manter o projeto de pé.
           {temPagamento() ? " Quem preferir mandar um valor escolhe quanto." : ""}
@@ -233,7 +233,7 @@ export function ApoioFlutuante() {
   return (
     <aside
       ref={caixa}
-      aria-label="Apoiar o piwdex"
+      aria-label="Apoiar o PIWdex"
       aria-hidden={escondido || undefined}
       inert={escondido || undefined}
       className={cn(
@@ -253,9 +253,9 @@ export function ApoioFlutuante() {
         <div className="flex items-start gap-2">
           <IconApoio size={16} className="mt-0.5 text-neon" />
           <div className="min-w-0 flex-1">
-            <p className="pix text-[12px] text-neon">Apoiar o piwdex</p>
+            <p className="pix text-[12px] text-neon">Apoiar o PIWdex</p>
             <p className="mt-1.5 text-[13px] leading-relaxed text-text-dim">
-              O piwdex é gratuito e o apoio é totalmente opcional. Se for comprar diamante
+              O PIWdex é gratuito e o apoio é totalmente opcional. Se for comprar diamante
               no jogo, usar o meu código não muda o preço pra você.
             </p>
           </div>

@@ -6,6 +6,8 @@ import { chanceToPct, getData } from "@/lib/data";
 import { getDexPayload } from "@/lib/dex-data";
 import { agora, fecharPiso } from "@/lib/pacing";
 import { buildEntry, rolesOf } from "@/lib/dex";
+import { resumoDaEspecie } from "@/lib/prosa";
+import { JsonLd, trilha } from "@/lib/jsonld";
 import { animatedSpriteUrl, spriteUrl } from "@/lib/sprites";
 import { RARITY_COLOR, TYPE_COLOR, defensiveDetailed, offensiveDetailed } from "@/lib/typing";
 import { projectAll } from "@/lib/stats";
@@ -55,12 +57,21 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   const db = await getData();
   const c = db.getCreature(Number(id));
+  // O ramo de erro NAO ganha canonical: pagina que nao existe nao pode declarar
+  // ser a versao boa de nada.
   if (!c) return { title: "Pokémon não encontrado" };
   return {
-    title: c.name,
-    description:
-      `${c.name} no Poke Idle World: stats base, fraquezas, golpes, evolução, ` +
-      `locais de caça e drops com a chance real de cada item.`,
+    // O titulo carrega a PERGUNTA, nao so o nome: quem procura digita "onde
+    // pegar", "stats", "drop" — e o nome sozinho nao encosta em nenhuma delas.
+    title: `${c.name} — stats, drops e onde pegar`,
+    description: resumoDaEspecie(c, db).descricao,
+    alternates: { canonical: `/dex/${c.pokeId}` },
+    openGraph: {
+      type: "article",
+      title: `${c.name} — Poke Idle World`,
+      description: resumoDaEspecie(c, db).descricao,
+      url: `/dex/${c.pokeId}`,
+    },
   };
 }
 
@@ -70,6 +81,16 @@ export default async function CreaturePage({ params }: Props) {
   const db = await getData();
   const c = db.getCreature(Number(id));
   if (!c) notFound();
+
+  const resumo = resumoDaEspecie(c, db);
+  // A mesma trilha que o `<nav>` logo abaixo desenha, dita no formato que o
+  // rastreador le. As URLs saem da mesma string do canonical: duas verdades
+  // sobre qual e a URL da pagina e pior que nenhuma.
+  const migalhas = trilha([
+    { nome: "PIWdex", caminho: "/" },
+    { nome: "Pokédex", caminho: "/dex" },
+    { nome: c.name, caminho: `/dex/${c.pokeId}` },
+  ]);
 
   // Mesmo teto de barra do grid: um stat 65 tem de desenhar igual na ficha e no
   // card. Usar o proprio maximo da especie faria o Bulbasaur parecer no teto.
@@ -104,6 +125,7 @@ export default async function CreaturePage({ params }: Props) {
 
   return (
     <div className="flex flex-col gap-4">
+      <JsonLd dado={migalhas} />
       <nav className="flex items-center gap-1.5 text-[13px] text-text-mute">
         <Link href="/dex" className="transition-colors hover:text-accent">
           Pokedex
@@ -156,9 +178,13 @@ export default async function CreaturePage({ params }: Props) {
             ) : null}
           </div>
 
-          {c.description ? (
-            <p className="max-w-2xl text-[14px] leading-relaxed text-text-mute">{c.description}</p>
-          ) : null}
+          {/* O catalogo do jogo entrega `description: "a bulbasaur"` — as 482 sao
+              esse molde. No lugar dele entra a prosa DERIVADA do dado que esta
+              nesta pagina: de onde ele vem, pra onde evolui, o drop mais
+              frequente com a chance real, o que o abate paga. Ver `lib/prosa.ts`. */}
+          <p className="max-w-3xl text-[14px] leading-relaxed text-text-dim">
+            {resumo.frases.join(" ")}
+          </p>
 
           <dl className="mt-1 grid grid-cols-2 gap-px overflow-hidden rounded-pix border border-line bg-line sm:grid-cols-4">
             {[

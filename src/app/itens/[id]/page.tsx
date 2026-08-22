@@ -12,6 +12,8 @@ import {
   type ItemEntry,
 } from "@/lib/items";
 import { assetIconUrl, spriteUrl } from "@/lib/sprites";
+import { resumoDoItem } from "@/lib/prosa";
+import { JsonLd, trilha } from "@/lib/jsonld";
 import { TYPE_COLOR } from "@/lib/typing";
 import type { Attack, Creature, PokeType } from "@/lib/types";
 import {
@@ -58,10 +60,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const item = db.getItem(Number(id));
   if (!item) return { title: "Item não encontrado" };
   return {
-    title: item.name,
-    description:
-      `${item.name} no Poke Idle World: quem dropa, com que chance real, ` +
-      `em que área farmar e quanto o Mark paga.`,
+    title: `${item.name} — onde farmar e quanto vale`,
+    description: resumoDoItem(item, db).descricao,
+    alternates: { canonical: `/itens/${item.id}` },
+    openGraph: {
+      type: "article",
+      title: `${item.name} — Poke Idle World`,
+      description: resumoDoItem(item, db).descricao,
+      url: `/itens/${item.id}`,
+    },
   };
 }
 
@@ -87,6 +94,13 @@ export default async function ItemPage({ params }: Props) {
     sourcesOf: db.dropSourcesOf,
     spotsOf: (c) => db.locationsOf(c).length,
   });
+
+  const resumo = resumoDoItem(item, db);
+  const migalhas = trilha([
+    { nome: "PIWdex", caminho: "/" },
+    { nome: "Itens", caminho: "/itens" },
+    { nome: item.name, caminho: `/itens/${item.id}` },
+  ]);
 
   const fontes: Fonte[] = db.dropSourcesOf(item.name).map((s) => ({
     creature: s.creature,
@@ -159,6 +173,7 @@ export default async function ItemPage({ params }: Props) {
 
   return (
     <div className="flex flex-col gap-4">
+      <JsonLd dado={migalhas} />
       <nav className="flex items-center gap-1.5 text-[13px] text-text-mute">
         <Link href="/itens" className="transition-colors hover:text-[var(--color-t-itens)]">
           Itens
@@ -213,8 +228,14 @@ export default async function ItemPage({ params }: Props) {
             ) : null}
           </div>
 
+          {/* A prosa derivada vem primeiro (de onde cai, quantos abates por
+              unidade, quanto paga); a descricao do jogo, quando existe, fica
+              depois — ela e sabor, nao resposta. Ver `lib/prosa.ts`. */}
+          <p className="max-w-3xl text-[14px] leading-relaxed text-text-dim">
+            {resumo.frases.join(" ")}
+          </p>
           {item.description ? (
-            <p className="max-w-2xl text-[14px] leading-relaxed text-text-mute">
+            <p className="max-w-2xl text-[13px] leading-relaxed text-text-mute italic">
               {item.description}
             </p>
           ) : null}

@@ -7,7 +7,8 @@ import { HowTo, Panel, SkeletonForm } from "@/components/ui";
 import { COMO_USAR_CALC } from "@/lib/how-to";
 
 export const metadata: Metadata = {
-  title: "Calculadora",
+  alternates: { canonical: "/calc" },
+  title: "Calculadora de IV, Quality e Poder",
   description:
     "Estima o IV de um pokémon do Poke Idle World a partir dos stats, do nível e " +
     "da quality, e projeta os stats e o poder em qualquer nível.",

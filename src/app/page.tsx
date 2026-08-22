@@ -1,8 +1,13 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { getDexPayload } from "@/lib/dex-data";
 import { agora, fecharPiso } from "@/lib/pacing";
 import { Chip, IconChevronRight, Pokeball, Sprite } from "@/components/ui";
 import { BookOpen, Calculator, Egg, Package, Radar, Swords } from "lucide-react";
+
+// A home canonicaliza pra RAIZ. Ela e a unica pagina cujo canonical o layout
+// poderia acertar por acidente — e "por acidente" nao e contrato.
+export const metadata: Metadata = { alternates: { canonical: "/" } };
 
 export const revalidate = 3600;
 
@@ -118,8 +123,10 @@ export default async function HomePage() {
               atencao com o titulo que esta do lado. */}
           <Pokeball size={104} className="text-[var(--color-t-dex)]" />
           <div className="text-left">
-            <h1 className="pix text-[52px] leading-none text-text sm:text-[68px]">
-              piw<span className="text-accent">dex</span>
+            {/* PIWdex, nao PIWDEX: `normal-case` desliga a caixa alta do `.pix`
+                pra a marca sair como ela se escreve. */}
+            <h1 className="pix text-[52px] leading-none normal-case text-text sm:text-[68px]">
+              PIW<span className="text-accent">dex</span>
             </h1>
             <p className="pix mt-3 text-[13px] text-text-mute">
               dex e ferramentas de poke idle world

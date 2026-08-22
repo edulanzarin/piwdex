@@ -6,7 +6,8 @@ import { DexBrowser } from "@/components/dex-browser";
 import { Panel, SkeletonGrid } from "@/components/ui";
 
 export const metadata: Metadata = {
-  title: "Pokedex",
+  alternates: { canonical: "/dex" },
+  title: "Pokédex do Poke Idle World",
   description:
     "Todas as espécies do Poke Idle World com filtro por tipo, raridade, origem, " +
     "estágio, fraqueza, drop e faixa de nível, valor, XP, stats e poder de golpe.",

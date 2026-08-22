@@ -58,8 +58,11 @@ export function SiteNav() {
           {/* A bola e VERMELHA — ela e uma pokebola, e essa e a unica cor de marca
               que sobrou depois que o roxo saiu do tema. */}
           <Pokeball size={26} className="text-[var(--color-t-dex)]" />
-          <span className="pix text-[15px] text-text">
-            piw<span className="text-accent">dex</span>
+          {/* `normal-case`: a marca e PIWdex — PIW em caixa alta (as iniciais do
+              jogo) e "dex" em caixa baixa. O `.pix` poe caixa alta em tudo, entao
+              aqui ele e desligado e a palavra vai literal. */}
+          <span className="pix text-[15px] normal-case text-text">
+            PIW<span className="text-accent">dex</span>
           </span>
         </Link>
 

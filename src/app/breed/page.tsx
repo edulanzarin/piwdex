@@ -7,7 +7,8 @@ import { HowTo, Panel, SkeletonForm } from "@/components/ui";
 import { COMO_USAR_BREED } from "@/lib/how-to";
 
 export const metadata: Metadata = {
-  title: "Breeding",
+  alternates: { canonical: "/breed" },
+  title: "Breeding: o par, o ovo e quantos faltam",
   description:
     "Simula o ovo do Poke Idle World: valida o par, mostra o sorteio de Quality, o IV " +
     "que o filho herda e o custo — e calcula quantos breeds faltam até a Quality alvo.",

@@ -4,9 +4,10 @@ import { temAnuncios } from "@/lib/ads";
 import { Panel } from "@/components/ui";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/privacidade" },
   title: "Privacidade",
   description:
-    "O que o piwdex guarda (quase nada), o que fica só no seu navegador e o que " +
+    "O que o PIWdex guarda (quase nada), o que fica só no seu navegador e o que " +
     "terceiros usam quando há anúncio na página.",
 };
 
@@ -32,7 +33,7 @@ export default function PrivacidadePage() {
           <section className="flex flex-col gap-2">
             <h2 className="pix text-[12px] text-text">O que eu guardo sobre você</h2>
             <p>
-              Nada. O piwdex não tem cadastro, não tem login e não pede e-mail. Nenhuma
+              Nada. O PIWdex não tem cadastro, não tem login e não pede e-mail. Nenhuma
               conta do jogo é conectada aqui, e nenhum dado seu do Poke Idle World passa
               por este site.
             </p>

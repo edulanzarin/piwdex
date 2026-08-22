@@ -7,7 +7,8 @@ import { HowTo, Panel, SkeletonForm } from "@/components/ui";
 import { COMO_USAR_HUNT } from "@/lib/how-to";
 
 export const metadata: Metadata = {
-  title: "Hunt",
+  alternates: { canonical: "/hunt" },
+  title: "Onde caçar: rota de treino e XP por hora",
   description:
     "Onde caçar no Poke Idle World com o SEU pokémon: todo alvo do jogo medido pelos dois " +
     "lados do combate — XP/h, ouro/h e risco reais — e a rota de níveis até a meta.",
