@@ -21,10 +21,13 @@ import { IV_MAX, estimateIvs, ivRange } from "./stats";
 const trava = (v: number): number => Math.min(IV_MAX, Math.max(0, v));
 
 export interface IvReading {
-  /** o ponto mais provavel de cada IV, travado em 0..32 */
+  /** o ponto mais provavel de cada IV, travado em 0..IV_MAX */
   ivs: number[];
-  /** o intervalo compativel com o stat da tela, stat a stat */
+  /** o intervalo compativel com o stat da tela, travado em 0..IV_MAX */
   faixas: [number, number][];
+  /** as mesmas faixas SEM trava — e nelas que se ve a leitura furada, porque
+   *  depois da trava toda faixa cabe em 0..IV_MAX por construcao */
+  faixasCruas: [number, number][];
   /** o mesmo ponto arredondado pra inteiro — IV no jogo e inteiro */
   inteiros: number[];
   soma: number;
@@ -45,23 +48,41 @@ export function lerIvs(
   level: number,
   quality: number,
 ): IvReading {
-  const { ivs } = estimateIvs(bases, stats, level, quality);
-  const faixas = bases.map((b, i) => ivRange(b, stats[i], level, quality, i));
+  const faixasCruas = bases.map((b, i) => ivRange(b, stats[i], level, quality, i));
+  const { ivs: crus } = estimateIvs(bases, stats, level, quality);
+
+  // A trava e AQUI, nas duas pontas e de uma vez so, antes de qualquer conta
+  // derivada. Antes ela morava em cada consumidor: `textoIv` travava so o piso
+  // no piso e so o teto no teto, e uma faixa inteira acima de IV_MAX saia
+  // INVERTIDA na tela ("99-32", com Electrode nv54 quality 0.8, HP 113). O ramo
+  // estreito era pior: imprimia o ponto vindo de `estimateIvs`, que so tem
+  // Math.max(0, ...) e nenhum teto — a tela afirmava "IV 99.8 /32".
+  // `trava` e monotona, entao lo <= hi cru continua lo <= hi travado: faixa
+  // invertida deixa de ser representavel em vez de depender de quem imprime.
+  const ivs = crus.map(trava);
+  const faixas = faixasCruas.map(
+    ([lo, hi]) => [trava(lo), trava(hi)] as [number, number],
+  );
+
   return {
     ivs,
     faixas,
-    inteiros: ivs.map((v) => Math.round(trava(v))),
+    faixasCruas,
+    inteiros: ivs.map((v) => Math.round(v)),
     soma: stats.reduce((a, b) => a + b, 0),
-    somaIv: ivs.reduce((a, v) => a + trava(v), 0),
+    somaIv: ivs.reduce((a, v) => a + v, 0),
     // O trio minimo / mais provavel / maximo sai do MESMO intervalo de
     // arredondamento das barras — nao e margem de erro chutada.
-    totalMin: faixas.reduce((a, [lo]) => a + trava(lo), 0),
-    totalMax: faixas.reduce((a, [, hi]) => a + trava(hi), 0),
+    totalMin: faixas.reduce((a, [lo]) => a + lo, 0),
+    totalMax: faixas.reduce((a, [, hi]) => a + hi, 0),
     largura: Math.max(...faixas.map(([lo, hi]) => hi - lo)),
     /** Impossivel e quando NENHUM IV valido cabe na leitura — testar o ponto
-     *  dava alarme falso em todo pokemon de nivel baixo. */
-    impossivel: faixas.some(([lo, hi]) => lo > IV_MAX || hi < 0),
+     *  dava alarme falso em todo pokemon de nivel baixo. Le a faixa CRUA: a
+     *  travada cabe em 0..IV_MAX sempre, e o alarme nunca dispararia. */
+    impossivel: faixasCruas.some(([lo, hi]) => lo > IV_MAX || hi < 0),
     // Uma faixa mais estreita que 1 nao contem dois inteiros: o IV esta cravado.
+    // Vale sobre a faixa TRAVADA: quem sabe que o IV nao passa de IV_MAX sabe
+    // mais, e [31.2, 33.5] e duvida de 0.8 ponto, nao de 2.3.
     cravado: faixas.every(([lo, hi]) => hi - lo <= 1),
   };
 }
@@ -69,10 +90,12 @@ export function lerIvs(
 /** Texto de UM IV: faixa quando ela e larga, ponto quando ela e estreita.
  *  A regra e a mesma nas duas ferramentas, entao ela mora junto da leitura. */
 export function textoIv(r: IvReading, i: number): string {
+  // Leitura impossivel nao tem numero pra mostrar. Travada em 0..IV_MAX ela sai
+  // com cara de leitura boa ("32,0") bem do lado do aviso que diz que ela nao
+  // vale — e o numero cala o aviso. O aviso e a informacao util aqui.
+  if (r.impossivel) return "—";
   const [lo, hi] = r.faixas[i];
-  return hi - lo > 1
-    ? `${Math.max(0, lo).toFixed(0)}–${Math.min(IV_MAX, hi).toFixed(0)}`
-    : r.ivs[i].toFixed(1);
+  return hi - lo > 1 ? `${lo.toFixed(0)}–${hi.toFixed(0)}` : r.ivs[i].toFixed(1);
 }
 
 /** Texto do IV total: faixa quando a leitura e larga. */

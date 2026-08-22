@@ -114,9 +114,16 @@ export function CalcTool({ especies }: { especies: CalcSpecies[] }) {
 
   const projecao = useMemo(() => {
     if (!especie || !leitura) return null;
-    const ivs = leitura.ivs.map((v) => Math.min(IV_MAX, Math.max(0, v)));
+    // Leitura impossivel NAO projeta. Os IVs saem travados em 0..IV_MAX, entao numa
+    // leitura furada eles viram 32 nos seis — e a projecao passava a ser identica a
+    // do pokemon perfeito, com os seis tiles dizendo "no teto" em VERDE bem embaixo
+    // do aviso vermelho de que a leitura nao fecha. Travar o numero resolveu o
+    // absurdo do IV; nao resolvia o que a tela AFIRMA a partir dele.
+    if (leitura.impossivel) return null;
+    // Sem travar de novo: `lerIvs` ja devolve `ivs` dentro de 0..IV_MAX. Cada
+    // tela travando por conta propria era o que deixava as pontas soltas.
     return {
-      dele: projectAll(especie.bases, ivs, s.target, s.quality),
+      dele: projectAll(especie.bases, leitura.ivs, s.target, s.quality),
       perfeito: projectAll(especie.bases, Array(6).fill(IV_MAX), s.target, s.quality),
     };
   }, [especie, leitura, s.target, s.quality]);
@@ -342,6 +349,10 @@ export function CalcTool({ especies }: { especies: CalcSpecies[] }) {
               {especie.bases.map((base, i) => {
                 const [lo, hi] = leitura!.faixas[i];
                 const Icon = STAT_ICONS[i];
+                // Leitura furada zera a barra junto com o numero: travado em
+                // 0..IV_MAX o IV encosta no teto, e barra cheia le como pokemon
+                // perfeito mesmo com "—" escrito em cima dela.
+                const furado = leitura!.impossivel;
                 return (
                   <StatTile
                     key={i}
@@ -349,8 +360,8 @@ export function CalcTool({ especies }: { especies: CalcSpecies[] }) {
                     icon={<Icon size={14} />}
                     value={textoIv(i)}
                     suffix={`/${IV_MAX}`}
-                    ratio={leitura!.ivs[i] / IV_MAX}
-                    range={[lo / IV_MAX, hi / IV_MAX]}
+                    ratio={furado ? 0 : leitura!.ivs[i] / IV_MAX}
+                    range={furado ? undefined : [lo / IV_MAX, hi / IV_MAX]}
                     tint={tint}
                     footLeft={`base ${base}`}
                   />
@@ -362,14 +373,25 @@ export function CalcTool({ especies }: { especies: CalcSpecies[] }) {
               <FieldLabel className="mb-1.5">Faixa do IV total</FieldLabel>
               <dl className="grid grid-cols-3 gap-px overflow-hidden border border-line bg-line">
                 {[
-                  { label: "mínimo", value: Math.round(leitura!.totalMin), tone: "text-text-mute" },
+                  // Os tres campos caem juntos quando a leitura e impossivel:
+                  // travado em 0..IV_MAX o trio virava "192 / — / 192", que le
+                  // como pokemon perfeito bem embaixo do aviso de entrada furada.
+                  {
+                    label: "mínimo",
+                    value: leitura!.impossivel ? "—" : Math.round(leitura!.totalMin),
+                    tone: "text-text-mute",
+                  },
                   {
                     label: "mais provável",
                     value: leitura!.impossivel ? "—" : Math.round(leitura!.somaIv),
                     tone: "text-text",
                     forte: true,
                   },
-                  { label: "máximo", value: Math.round(leitura!.totalMax), tone: "text-text-mute" },
+                  {
+                    label: "máximo",
+                    value: leitura!.impossivel ? "—" : Math.round(leitura!.totalMax),
+                    tone: "text-text-mute",
+                  },
                 ].map((k) => (
                   <div
                     key={k.label}
@@ -446,8 +468,10 @@ export function CalcTool({ especies }: { especies: CalcSpecies[] }) {
           </div>
 
           {!projecao ? (
-            <Note icon={null}>
-              Preencha a espécie e os stats.
+            <Note icon={null} tone={leitura?.impossivel ? "danger" : undefined}>
+              {leitura?.impossivel
+                ? "A leitura não fecha, então não dá pra projetar: com esses stats nesse nível e nessa Quality, o IV cai fora de 0–32. Confira o nível e a Quality do slot."
+                : "Preencha a espécie e os stats."}
             </Note>
           ) : (
             <>
@@ -583,10 +607,14 @@ function Compartilhar({
         stats: STAT_LABEL.map((label, i) => ({
           label,
           texto: textoIv(i),
-          ratio: leitura.ivs[i] / IV_MAX,
-          range: [leitura.faixas[i][0] / IV_MAX, leitura.faixas[i][1] / IV_MAX] as [number, number],
+          ratio: leitura.impossivel ? 0 : leitura.ivs[i] / IV_MAX,
+          range: leitura.impossivel
+            ? undefined
+            : ([leitura.faixas[i][0] / IV_MAX, leitura.faixas[i][1] / IV_MAX] as [number, number]),
         })),
-        ivTotal: `${Math.round(leitura.somaIv)}/${TOTAL_MAX}`,
+        // O cartao circula sozinho no grupo, longe do aviso da tela: se a
+        // leitura nao vale, ele nao pode sair afirmando "192/192".
+        ivTotal: leitura.impossivel ? "—" : `${Math.round(leitura.somaIv)}/${TOTAL_MAX}`,
         ivPct: leitura.impossivel
           ? "—"
           : `${Math.round((leitura.somaIv / TOTAL_MAX) * 100)}%`,

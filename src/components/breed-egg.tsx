@@ -226,11 +226,15 @@ export function BreedEgg({
                   <span
                     className={cn(
                       "leading-none font-semibold tabular",
-                      largo ? "text-[15px] text-warn" : "text-[18px]",
-                      largo ? "" : v >= IV_MAX ? "text-ok" : v >= 24 ? "text-text" : "text-text-dim",
+                      // `furado` entra ANTES da escada de cor: sem isso o "—" caia
+                      // no ramo `v >= IV_MAX` (a leitura furada trava tudo em 32) e
+                      // saia VERDE de IV perfeito, colado no aviso vermelho que diz
+                      // pra nao acreditar no numero. Cor tambem afirma.
+                      furado ? "text-[18px] text-text-mute" : largo ? "text-[15px] text-warn" : "text-[18px]",
+                      furado || largo ? "" : v >= IV_MAX ? "text-ok" : v >= 24 ? "text-text" : "text-text-dim",
                     )}
                   >
-                    {largo ? textoIv(leitura!, i) : v}
+                    {furado ? "—" : largo ? textoIv(leitura!, i) : v}
                   </span>
                 </div>
               );
@@ -268,7 +272,12 @@ export function BreedEgg({
             </Note>
           ) : null}
 
-          {double ? (
+          {/* `!furado`: com a leitura impossivel os IVs vem travados em 32, entao
+              `ds.elegiveis` da 0 e a nota escrevia por extenso "os seis stats ja
+              estao em 32" — afirmando pokemon perfeito no mesmo bloco em que o
+              aviso vermelho diz que a leitura nao fecha. Conselho tirado de dado
+              furado nao e conselho conservador: e conselho errado. */}
+          {double && !furado ? (
             <Note tone={ds.elegiveis > 0 ? "warn" : "muted"} className="mt-3">
               {ds.elegiveis > 0 ? (
                 <>
