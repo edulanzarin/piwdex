@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getDexPayload } from "@/lib/dex-data";
 import { agora, fecharPiso } from "@/lib/pacing";
-import { Chip, IconChevronRight, Pokeball, Sprite } from "@/components/ui";
+import { ButtonLink, Chip, IconChevronRight, Pokeball, Sprite } from "@/components/ui";
 import { BookOpen, Calculator, Egg, Package, Radar, Swords } from "lucide-react";
 
 // A home canonicaliza pra RAIZ. Ela e a unica pagina cujo canonical o layout
@@ -131,57 +131,126 @@ export default async function HomePage() {
           (luminancia media 37, pico 67) — com a foto clara original era
           ilegivel. `.on-art` poe sombra na letra, que e o que segura o texto
           na parte mais clara da cena sem escurecer a foto inteira. */}
-      <section className="on-art flex flex-col items-center justify-center gap-7 px-4 py-14 text-center sm:py-20">
-        {/* Empilha no MUITO estreito: a bola de 104 mais o titulo de 52px somam 358
-            numa janela de 320, e o conjunto empurrava a pagina pra fora da tela. */}
-        <div className="flex flex-col items-center gap-3 text-center sm:flex-row sm:gap-5 sm:text-left">
-          {/* Parada: a bola e a marca, nao um indicador. Flutuando ela disputa
-              atencao com o titulo que esta do lado. */}
-          <Pokeball size={104} className="w-[76px] shrink-0 text-[var(--color-t-dex)] sm:w-[104px]" />
-          <div className="text-center sm:text-left">
-            {/* PIWdex, nao PIWDEX: `normal-case` desliga a caixa alta do `.pix`
-                pra a marca sair como ela se escreve. */}
-            <h1 className="pix text-[52px] leading-none normal-case text-text sm:text-[68px]">
-              PIW<span className="text-accent">dex</span>
-            </h1>
-            <p className="pix mt-3 text-[13px] text-text-mute">
-              dex e ferramentas de poke idle world
-            </p>
+      {/* ================= topo =================
+
+          O herói era uma pilha CENTRALIZADA de cinco blocos — marca, manchete,
+          parágrafo, quatro números e selo —, cada um centrado no seu próprio
+          eixo. Três problemas juntos: parágrafo longo centralizado é o pior caso
+          de leitura (cada linha recomeça num ponto diferente), a pilha comia a
+          tela inteira antes de aparecer uma ferramenta sequer, e os números
+          ficavam soltos no fim parecendo enfeite em vez de argumento.
+
+          O layout novo é ASSIMÉTRICO, e quem decidiu foi a arte. Medindo o
+          wallpaper por célula (média e desvio de luminância), a coluna da
+          ESQUERDA é a mais escura e calma em toda a altura (média 16-26, desvio
+          10-15) e o centro-direita é o neon brilhante e agitado (até 77, desvio
+          44). Então: texto à esquerda, direto sobre a parte calma; e o painel de
+          vidro à direita, sobre a parte movimentada — que é exatamente onde o
+          vidro tem função, e não enfeite.
+
+          Os números viram CARD com moldura própria: deixam de ser rodapé do
+          herói e passam a ser o que sempre foram, a prova de que o catálogo está
+          vivo. */}
+      <section className="grid items-center gap-8 py-10 lg:grid-cols-[1.15fr_minmax(0,0.85fr)] lg:gap-12 lg:py-16">
+        <div className="on-art flex flex-col items-start gap-6">
+          <div className="flex items-center gap-4">
+            {/* Parada: a bola é a marca, não um indicador. */}
+            <Pokeball size={72} className="w-[56px] shrink-0 text-[var(--color-t-dex)] sm:w-[72px]" />
+            <div>
+              {/* PIWdex, não PIWDEX: `normal-case` desliga a caixa alta do `.pix`
+                  pra a marca sair como ela se escreve. */}
+              <h1 className="pix text-[40px] leading-none normal-case text-text sm:text-[52px]">
+                PIW<span className="text-accent">dex</span>
+              </h1>
+              <p className="pix mt-2 text-[12px] text-text-mute">
+                dex e ferramentas de poke idle world
+              </p>
+            </div>
+          </div>
+
+          {/* Caixa alta e mais corpo: é a manchete da home, e em caixa baixa ela
+              competia de igual pra igual com o parágrafo logo abaixo. O tracking
+              desce em relação ao `.pix` padrão — caixa alta com tracking de
+              rótulo, nesse corpo, vira uma linha larga demais pra ler de uma vez. */}
+          {/* `text-balance` distribui as linhas em vez de encher a primeira e
+              deixar a sobra sozinha embaixo — sem ele a manchete quebrava em
+              "...POKE IDLE" / "WORLD", com uma palavra órfã. */}
+          <h2 className="pix text-[32px] leading-[1.12] tracking-[0.03em] text-balance text-text sm:text-[44px]">
+            A dex <span style={{ color: "var(--color-t-dex)" }}>completa</span> do{" "}
+            <span style={{ color: "var(--color-t-meta)" }}>Poke Idle World</span>
+          </h2>
+
+          <p className="max-w-xl text-[17px] leading-relaxed text-text-dim">
+            Stats, movesets, evoluções, a chance{" "}
+            <span style={{ color: "var(--color-t-hunt)" }}>real</span> de cada drop, onde
+            farmar cada item e em que área cada pokémon aparece — com filtro por tipo,
+            raridade, estágio, fraqueza e faixa de nível, valor, XP e poder de golpe.
+          </p>
+
+          {/* O herói não tinha saída: a pessoa lia e precisava rolar pra achar a
+              primeira ferramenta. Dois caminhos, na hierarquia certa — a Pokédex é
+              o que a maioria vem buscar. */}
+          {/* Largura cheia no estreito: lado a lado eles ficavam com larguras
+              diferentes (o rótulo é que mandava), e dois botões de tamanhos
+              distintos empilhados leem como hierarquia que não existe. */}
+          <div className="flex w-full flex-col items-stretch gap-2.5 sm:w-auto sm:flex-row sm:items-center">
+            <ButtonLink
+              href="/dex"
+              variant="primary"
+              size="lg"
+              iconRight={<IconChevronRight size={16} />}
+            >
+              abrir a pokédex
+            </ButtonLink>
+            <ButtonLink href="#ferramentas" size="lg">
+              ver as ferramentas
+            </ButtonLink>
           </div>
         </div>
 
-        {/* Caixa alta e mais corpo: e a manchete da home, e em caixa baixa ela
-            competia de igual pra igual com o paragrafo logo abaixo. O tracking
-            desce em relacao ao `.pix` padrao — caixa alta com tracking de rotulo,
-            em 60px, vira uma linha larga demais pra ler de uma vez. */}
-        <h2 className="pix max-w-5xl text-[34px] leading-[1.15] tracking-[0.03em] text-text sm:text-[52px]">
-          A dex <span style={{ color: "var(--color-t-dex)" }}>completa</span> do{" "}
-          <span style={{ color: "var(--color-t-meta)" }}>Poke Idle World</span>
-        </h2>
+        {/* ---- o card do catálogo ----
+            Vidro sobre a parte movimentada da arte: a superfície separa o número
+            do neon atrás, coisa que sombra de texto sozinha não faria nesse
+            trecho (desvio de luminância 44). */}
+        <aside className="panel flex flex-col gap-5 p-5 sm:p-6">
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="pix text-[12px] text-text-dim">o catálogo agora</h3>
+            <Chip
+              size="xs"
+              tone={catalog.live ? "ok" : "warn"}
+              /* O selo é o argumento de credibilidade da home — "este número veio
+                 do jogo agora" — e era só texto. A arte dá o sinal antes da
+                 leitura: torre transmitindo contra cartucho salvo. */
+              icon={
+                <Sprite
+                  src={catalog.live ? "/images/icons/ao-vivo.png" : "/images/icons/snapshot.png"}
+                  alt=""
+                  size={16}
+                  fallback={null}
+                />
+              }
+              title={
+                catalog.live
+                  ? `Catálogo do jogo, publicado em ${catalog.generatedAt}`
+                  : `Fonte indisponível (${catalog.error ?? "motivo desconhecido"})`
+              }
+            >
+              {catalog.live ? "AO VIVO" : "SNAPSHOT"}
+            </Chip>
+          </div>
 
-        <p className="max-w-2xl text-[18px] leading-relaxed text-text-dim">
-          Stats, movesets, evoluções, a chance{" "}
-          <span style={{ color: "var(--color-t-hunt)" }}>real</span> de cada drop, onde
-          farmar cada item e em que área cada pokémon aparece — com filtro por tipo,
-          raridade, estágio, fraqueza e faixa de nível, valor, XP e poder de golpe.
-        </p>
-
-        {/* O vao entre o paragrafo e os cards era espaco morto. Aqui ele faz o
-            terceiro trabalho da home — provar que o catalogo esta VIVO. Nao e
-            lista de dado (isso e a Pokedex): e o tamanho do catalogo do momento
-            e de onde ele veio, que e exatamente o que uma dex de fa precisa
-            dizer pra ser levada a serio. */}
-        <div className="flex flex-col items-center gap-4 pt-2">
-          <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-4">
+          <div className="grid grid-cols-2 gap-px bg-line">
             {[
               { n: counts.creatures, label: "espécies", cor: "var(--color-t-dex)" },
               { n: counts.items, label: "itens", cor: "var(--color-t-itens)" },
               { n: counts.hunts, label: "locais de caça", cor: "var(--color-t-hunt)" },
               { n: counts.drops, label: "registros de drop", cor: "var(--color-t-meta)" },
             ].map((k) => (
-              <span key={k.label} className="flex flex-col items-center gap-1">
+              // O fio que separa as células é o `gap-px` sobre o fundo de linha —
+              // uma borda por célula somaria duas no meio da grade.
+              <span key={k.label} className="flex flex-col gap-1 bg-surface/70 px-3 py-4">
                 <span
-                  className="text-[30px] leading-none font-bold tabular sm:text-[34px]"
+                  className="text-[28px] leading-none font-bold tabular sm:text-[32px]"
                   style={{ color: k.cor }}
                 >
                   {k.n.toLocaleString("pt-BR")}
@@ -191,33 +260,27 @@ export default async function HomePage() {
             ))}
           </div>
 
-          <Chip
-            size="sm"
-            tone={catalog.live ? "ok" : "warn"}
-            /* O selo e o argumento de credibilidade da home — "este numero veio
-               do jogo agora" — e era so texto. A arte da o sinal antes da
-               leitura: torre transmitindo contra cartucho salvo. */
-            icon={
-            <Sprite
-              src={catalog.live ? "/images/icons/ao-vivo.png" : "/images/icons/snapshot.png"}
-              alt=""
-              size={18}
-              fallback={null}
-            />
-          }
-            title={
-              catalog.live
-                ? `Catálogo do jogo, publicado em ${catalog.generatedAt}`
-                : `Fonte indisponível (${catalog.error ?? "motivo desconhecido"})`
-            }
-          >
-            {catalog.live ? "direto do catálogo do jogo" : "fonte fora do ar — último catálogo salvo"}
-          </Chip>
-        </div>
+          {/* Não falar no condicional sobre uma coisa que já aconteceu: com a
+              fonte fora do ar, "se a fonte cair" soa como se estivesse tudo bem,
+              logo abaixo de um selo que diz o contrário. */}
+          <p className="text-[13px] leading-relaxed text-text-mute">
+            {catalog.live ? (
+              <>
+                Direto do catálogo do jogo, conferido a cada visita. Se a fonte cair, o
+                site continua de pé com o último catálogo salvo — e avisa aqui.
+              </>
+            ) : (
+              <>
+                A fonte do jogo não respondeu, então estes números são do último catálogo
+                salvo, de {catalog.generatedAt}. As ferramentas continuam funcionando.
+              </>
+            )}
+          </p>
+        </aside>
       </section>
 
       {/* ================= ferramentas ================= */}
-      <section className="flex flex-col gap-4">
+      <section id="ferramentas" className="flex flex-col gap-4 scroll-mt-20">
         <h2 className="pix text-[14px] text-text-dim">Ferramentas</h2>
         <div className="grid gap-4 lg:grid-cols-2">
           {TOOLS.map((t) => {
