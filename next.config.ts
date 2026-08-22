@@ -4,6 +4,41 @@ const nextConfig: NextConfig = {
   // Imagem standalone pro Docker (chassi do Brain).
   output: "standalone",
 
+  /**
+   * Redirecionamentos herdados do piwdex v1, que este site substituiu no ar.
+   *
+   * Os dois grupos existem por razoes diferentes, e nenhum deles e sobre esta
+   * versao — sao sobre links que ja circulam por ai e nao vao deixar de existir
+   * so porque o codigo atras deles mudou.
+   */
+  async redirects() {
+    return [
+      // 1. O canonico e o APEX. Sem esta regra o mesmo site responde em dois
+      //    enderecos, e buscador trata isso como conteudo duplicado — o pior
+      //    resultado possivel pra um site que vive de busca.
+      {
+        source: "/:path*",
+        has: [{ type: "host", value: "www.piwdex.com.br" }],
+        destination: "https://piwdex.com.br/:path*",
+        permanent: true,
+      },
+
+      // 2. O cockpit do robo. Ele nao existe mais nesta versao, e as rotas dele
+      //    estao salvas no proprio jogo, no Discord e no favorito de quem usava.
+      //    Mandar essa gente pra um 404 e a pior despedida possivel; a home pelo
+      //    menos mostra o que o site passou a ser.
+      //
+      //    TEMPORARIO (307), e a escolha e deliberada: `permanent` ensina o
+      //    navegador e o buscador a nunca mais pedir a rota original, e o robo
+      //    esta parqueado, nao enterrado — o Eduardo ainda vai decidir o que
+      //    fazer com ele. Redirect permanente e caro de desfazer; este nao e.
+      { source: "/vip", destination: "/", permanent: false },
+      { source: "/vip/:path*", destination: "/", permanent: false },
+      { source: "/bot-app", destination: "/", permanent: false },
+      { source: "/bot-app/:path*", destination: "/", permanent: false },
+    ];
+  },
+
   async headers() {
     return [
       {
