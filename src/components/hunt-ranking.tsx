@@ -43,6 +43,7 @@ import {
   Tooltip,
 } from "@/components/ui";
 import { TypeBadge, TypeIcon } from "@/components/type-icon";
+import { BallIcon } from "@/components/ball-icon";
 import { IconLevel, IconTarget, IconXp } from "@/components/game-icons";
 
 /**
@@ -552,7 +553,10 @@ function Detalhe({
 
         {/* ---- captura ---- */}
         <div className="flex flex-col gap-2">
-          <FieldLabel>Capturar este pokémon</FieldLabel>
+          <FieldLabel className="flex items-center gap-2">
+            {c ? <BallIcon ball={c.ball} size={16} /> : null}
+            Capturar este pokémon
+          </FieldLabel>
           {c ? (
             <>
               <div className="grid grid-cols-2 gap-px overflow-hidden border border-line bg-line sm:grid-cols-4">

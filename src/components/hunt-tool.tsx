@@ -40,6 +40,7 @@ import { TypeBadge, TypeIcon } from "@/components/type-icon";
 import { IconGem, IconLevel, IconScale, IconTm, IconTarget, STAT_ICONS } from "@/components/game-icons";
 import { HuntRanking } from "@/components/hunt-ranking";
 import { HuntRoute } from "@/components/hunt-route";
+import { BallIcon } from "@/components/ball-icon";
 
 /**
  * A Hunt.
@@ -341,14 +342,22 @@ export function HuntTool({ payload }: { payload: HuntPayload }) {
               </Field>
 
               {s.cap ? (
-                <Field label="Bola usada" className="w-[13rem]">
+                <Field label="Bola usada" className="w-[15rem]">
                   <Select
                     value={s.ball}
                     onChange={(ball) => patch({ ball, page: 0 })}
                     options={BALLS.filter((b) => b.catchRate < 255 && b.priceGold != null).map((b) => ({
                       value: b.key,
-                      label: `${b.name} · ${b.priceGold} de ouro`,
-                      hint: `Chance x${b.catchRate}`,
+                      label: b.name,
+                      // preco e multiplicador vao na dica: no gatilho fica so o
+                      // icone e o nome, que e o que se reconhece de relance
+                      hint: `x${b.catchRate} · ${b.priceGold} de ouro`,
+                      render: (
+                        <span className="flex items-center gap-2">
+                          <BallIcon ball={b} />
+                          {b.name}
+                        </span>
+                      ),
                     }))}
                   />
                 </Field>
@@ -375,11 +384,11 @@ export function HuntTool({ payload }: { payload: HuntPayload }) {
               Ele e o meio da tela: a conta e cara e o resultado tem hora pra
               chegar. Enquanto o rascunho e igual ao aplicado, ele fica quieto
               (desabilitado); mudou alguma coisa, ele vira RECALCULAR aceso. */}
-          <div className="flex flex-col items-stretch gap-2 border-t border-line pt-4 sm:flex-row sm:items-center">
+          <div className="border-t border-line pt-4">
             <Button
               size="lg"
               variant="primary"
-              className="flex-1 justify-center"
+              className="w-full justify-center"
               disabled={!rascunho || calculando || (aplicada != null && !desatualizado)}
               onClick={() => calcular(rascunho)}
               iconLeft={<IconTarget size={16} />}
@@ -392,11 +401,6 @@ export function HuntTool({ payload }: { payload: HuntPayload }) {
                     ? "recalcular"
                     : "calculado"}
             </Button>
-            {desatualizado ? (
-              <span className="pix self-center text-[11px] text-warn">
-                os dados mudaram — o resultado abaixo é o anterior
-              </span>
-            ) : null}
           </div>
         </div>
       </Panel>
