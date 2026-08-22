@@ -9,3 +9,9 @@ next-env.d.ts
 .DS_Store
 npm-debug.log*
 docs/*.har
+
+# Despejo cru do `npm run ingest`, um arquivo por dia de catalogo. O v1 versionava
+# isto (2,4 MB de JSON) e o piwdex2 nunca versionou — o que o site serve e o
+# snapshot derivado, `src/data/piwdex.json`, e esse SIM e versionado.
+# O historico de despejos do v1 continua na tag v1.0.0.
+data/raw/
