@@ -17,6 +17,7 @@ services:
         NEXT_PUBLIC_ADSENSE_SLOT_GRADE: ${NEXT_PUBLIC_ADSENSE_SLOT_GRADE:-}
         NEXT_PUBLIC_ADSENSE_SLOT_RODAPE: ${NEXT_PUBLIC_ADSENSE_SLOT_RODAPE:-}
         NEXT_PUBLIC_ADSENSE_LAYOUT_GRADE: ${NEXT_PUBLIC_ADSENSE_LAYOUT_GRADE:-}
+        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-}
     container_name: piwdex2-app
     restart: unless-stopped
     # Porta interna constante (3000), externa por variavel.
