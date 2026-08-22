@@ -66,11 +66,13 @@ const TOOLS = [
   {
     href: "/hunt",
     name: "Hunt",
-    desc: "Rota de caça por XP, ouro e efetividade — usando o melhor golpe CONTRA o alvo.",
+    desc:
+      "Todo alvo do jogo medido contra o SEU pokémon, pelos dois lados do combate: XP/h, " +
+      "ouro/h e risco reais — e a rota de níveis até a meta.",
     icon: Radar,
     arte: "hunt",
     cor: "var(--color-t-hunt)",
-    ready: false,
+    ready: true,
   },
   {
     href: "/breed",

@@ -1,5 +1,6 @@
 import type { HowToProps } from "@/components/ui";
 import { IV_MAX } from "@/lib/stats";
+import { SIM_IV, WILD_HP_MULT } from "@/lib/combat";
 import {
   QUALITY_DIFF_MAX,
   QUALITY_MAX_NORMAL,
@@ -167,6 +168,78 @@ export const COMO_USAR_BREED: Omit<HowToProps, "tint"> = {
       Leitura de IV larga não é defeito da ferramenta, é falta de informação no stat da
       tela: em nível baixo, meia unidade de stat vale dezenas de IV. Subir o pai de nível
       antes de decidir é o que fecha a faixa.
+    </>,
+  ],
+};
+
+/** Hunt: onde caçar agora e a rota até um nível. */
+export const COMO_USAR_HUNT: Omit<HowToProps, "tint"> = {
+  resumo:
+    "Mede todo alvo do jogo contra o SEU pokémon — pelos dois lados do combate — e diz onde ele rende mais e até onde dá pra encarar.",
+  passos: [
+    {
+      titulo: "Escolha o seu pokémon",
+      texto:
+        "Não existe 'a melhor hunt do jogo': existe a melhor hunt PRA ELE. A espécie define os golpes, e é o golpe contra o tipo do alvo que decide a velocidade de abate.",
+    },
+    {
+      titulo: "Copie nível, quality e os stats",
+      texto: (
+        <>
+          Os stats são opcionais: em branco, a simulação usa IV {SIM_IV} nos seis, que é a
+          média do jogo. Preenchidos, a leitura de IV é a MESMA da calculadora — as duas
+          telas não podem discordar sobre o mesmo pokémon.
+        </>
+      ),
+    },
+    {
+      titulo: "Ajuste o cenário e mande calcular",
+      texto:
+        "Golpes de TM mudam a conta inteira (todo golpe de poder 600 do jogo é TM), VIP soma 50% de XP, o tipo do dia multiplica o loot só nos alvos daquele tipo e a captura desconta o preço das bolas. Fechado o cenário, o botão simula os 342 alvos — mexer nos campos depois disso não muda o resultado sozinho: ele passa a dizer RECALCULAR.",
+    },
+    {
+      titulo: "Leia a rota primeiro",
+      texto:
+        "Ela é a resposta da pergunta mais comum: até onde eu subo e caçando o quê. Cada faixa traz a hunt, os dois lados do combate e quantas horas ela custa — e o topo soma o tempo e o ouro da subida inteira.",
+    },
+    {
+      titulo: "Leia as DUAS colunas de combate",
+      texto:
+        "'Você bate' é metade da história. A vantagem elemental vale pros dois lados: um alvo que você bate x2.5 pode te bater x2.5 de volta e te derrubar no primeiro golpe. Por isso toda linha traz o risco junto.",
+    },
+    {
+      titulo: "Abra 'todas as hunts' pra comparar",
+      texto:
+        "A segunda aba é o catálogo inteiro medido contra o seu pokémon, uma linha por alvo. Ordene pelo cabeçalho: XP/h pra subir, ouro/h pra farmar, abates/h pra velocidade, efetividade pra achar onde o seu golpe é super efetivo. Clicar de novo inverte a ordem, e clicar na linha abre a ficha da hunt.",
+    },
+    {
+      titulo: "Ligue a captura se você caça pra vender",
+      texto:
+        "O jogo gasta uma bola por abate, capturando ou não. Com a captura ligada, o ouro/h já desconta o custo das bolas — e a ficha da hunt mostra quantos abates uma captura custa e quando a bola cara torra mais do que a venda devolve.",
+    },
+  ],
+  bomSaber: [
+    <>
+      O rendimento aqui é EFETIVO: se a hunt te derruba, o tempo parado no desmaio e na
+      Joy já saiu do XP/h antes da lista ser ordenada. Hunt que te mata não ganha de hunt
+      que rende.
+    </>,
+    <>
+      Na hunt o selvagem tem {WILD_HP_MULT}x o HP normal e bate mais forte — é regra do
+      jogo, não peso inventado aqui.
+    </>,
+    <>
+      O jogo não publica a fórmula de dano nem a de captura. Tudo nesta tela é estimativa
+      calibrada contra medições reais: serve pra COMPARAR hunts e dar a ordem de grandeza,
+      não como número exato.
+    </>,
+    <>
+      A chance de captura sai de uma lei derivada do valor de venda, com erro mediano de
+      ~1,9x. Ela ordena alvos bem; o número de bolas é aproximação.
+    </>,
+    <>
+      A rota não evolui ninguém: evoluir reseta o nível e não re-rola IV nem quality, então
+      o pokémon que você escolheu é o pokémon do começo ao fim.
     </>,
   ],
 };

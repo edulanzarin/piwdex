@@ -17,7 +17,7 @@ const LINKS = [
   { href: "/dex", label: "Pokedex" },
   { href: "/itens", label: "Itens" },
   { href: "/calc", label: "Calculadora" },
-  { href: "/hunt", label: "Hunt", soon: true },
+  { href: "/hunt", label: "Hunt" },
   { href: "/breed", label: "Breeding" },
   { href: "/meta", label: "Meta", soon: true },
 ];
