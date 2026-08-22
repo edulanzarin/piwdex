@@ -7,6 +7,7 @@ import { unpackMon, type PackedMon } from "@/lib/meta-data";
 import { buildMetaSearch, parseMetaState, type MetaState } from "@/lib/meta-url";
 import { Field, FieldRow, Note, Panel, Segmented, Tabs } from "@/components/ui";
 import { IconTm } from "@/components/game-icons";
+import { ListOrdered, Shapes, Swords } from "lucide-react";
 import { MetaTier } from "@/components/meta-tier";
 import { MetaProfile } from "@/components/meta-profile";
 import { MetaDuel } from "@/components/meta-duel";
@@ -65,9 +66,14 @@ export function MetaTool({ mons: packed }: { mons: PackedMon[] }) {
         value={s.view}
         onChange={(view) => patch({ view })}
         items={[
-          { value: "tiers", label: "Tier list", count: jogaveis.length },
-          { value: "duelo", label: "Duelo" },
-          { value: "tipos", label: "Tipos" },
+          {
+            value: "tiers",
+            label: "Tier list",
+            icon: <ListOrdered size={14} strokeWidth={2.25} />,
+            count: jogaveis.length,
+          },
+          { value: "duelo", label: "Duelo", icon: <Swords size={14} strokeWidth={2.25} /> },
+          { value: "tipos", label: "Tipos", icon: <Shapes size={14} strokeWidth={2.25} /> },
         ]}
       />
 

@@ -12,6 +12,7 @@ import { animatedSpriteUrl, spriteUrl } from "@/lib/sprites";
 import { TYPE_COLOR } from "@/lib/typing";
 import { STAT_LABEL, STAT_SHORT, TYPE_LABEL, compact } from "@/lib/labels";
 import { TYPE_DAY_BONUS } from "@/lib/boost";
+import { Route, Rows3 } from "lucide-react";
 import type { HuntPayload } from "@/lib/hunt-data";
 import {
   EMPTY_HUNT,
@@ -498,8 +499,16 @@ export function HuntTool({ payload }: { payload: HuntPayload }) {
             value={s.view}
             onChange={(view) => patch({ view, page: 0 })}
             items={[
-              { value: "rota", label: "Rota de treino" },
-              { value: "ranking", label: "Todas as hunts" },
+              {
+                value: "rota",
+                label: "Rota de treino",
+                icon: <Route size={14} strokeWidth={2.25} />,
+              },
+              {
+                value: "ranking",
+                label: "Todas as hunts",
+                icon: <Rows3 size={14} strokeWidth={2.25} />,
+              },
             ]}
           />
 

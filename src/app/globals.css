@@ -492,6 +492,11 @@
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+    /* O ATRASO tambem, e este e o que faltava. Zerar so a duracao deixa a
+       entrada em cascata (`--d` no heroi, `--i` no grid) parada no primeiro
+       quadro pelo tempo do atraso — ou seja, meio segundo de tela em branco pra
+       exatamente quem pediu pra nao ver movimento. */
+    animation-delay: 0ms !important;
   }
 
   /* EXCECAO, e ela e ESTREITA: quem indica PROGRESSO continua se mexendo, so

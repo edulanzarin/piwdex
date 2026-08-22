@@ -36,12 +36,16 @@ export function Empty({
   arte?: ArteVazio;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-3 px-6 py-14 text-center">
+    <div className="anim-rise flex flex-col items-center justify-center gap-3 px-6 py-14 text-center">
+      {/* A arte flutua. Estado vazio e a unica tela sem nada acontecendo, e uma
+          tela parada com uma figura parada no meio le como CARREGANDO — que e a
+          informacao errada: nao ha o que esperar, ha o que fazer. O movimento
+          lento diz que a tela esta viva e que a bola esta com quem le. */}
       <Sprite
         src={ARTE[arte]}
         alt=""
         size={72}
-        className="opacity-80"
+        className="anim-float opacity-80"
         fallback={<Pokeball size={40} className="text-line-strong" />}
       />
       <p className="pix text-[13px] text-text-dim">{title}</p>

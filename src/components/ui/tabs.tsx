@@ -3,11 +3,22 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
 
-/** Abas. A aba ATIVA e marcada por barra de acento + texto forte — nunca so por
- *  cor, que some pra quem nao distingue matiz. */
+/**
+ * Abas. A aba ATIVA e marcada por barra de acento + texto forte — nunca so por
+ * cor, que some pra quem nao distingue matiz.
+ *
+ * O `icon` nao e enfeite: "Rota de treino" e "Todas as hunts" tem o mesmo
+ * comprimento, a mesma caixa alta e o mesmo tom, e o olho tem de LER as duas pra
+ * saber em qual esta. Com a silhueta na frente, a aba se acha antes da palavra.
+ * Ele fica no componente, e nao dentro do `label`, pra o vao e a escala serem os
+ * mesmos em toda aba do site — icone metido no rotulo vira um alinhamento
+ * diferente por chamador.
+ */
 export interface TabItem<T extends string> {
   value: T;
   label: ReactNode;
+  /** glifo de 14px antes do rotulo */
+  icon?: ReactNode;
   count?: number;
   disabled?: boolean;
 }
@@ -36,13 +47,24 @@ export function Tabs<T extends string>({
             disabled={t.disabled}
             onClick={() => onChange(t.value)}
             className={cn(
-              "pix relative flex shrink-0 items-center gap-1.5 px-3 py-2 text-[12px] transition-colors",
+              "pix group/aba relative flex shrink-0 items-center gap-1.5 px-3 py-2 text-[12px] transition-colors",
               // no dedo a aba ganha altura de alvo; no mouse segue rente ao trilho
               "pointer-coarse:min-h-11 pointer-coarse:px-4",
               "disabled:pointer-events-none disabled:opacity-40",
               on ? "text-accent" : "text-text-mute hover:text-text-dim",
             )}
           >
+            {t.icon ? (
+              <span
+                aria-hidden="true"
+                className={cn(
+                  "flex shrink-0 transition-transform duration-150 ease-out",
+                  on ? "scale-110" : "group-hover/aba:-translate-y-px",
+                )}
+              >
+                {t.icon}
+              </span>
+            ) : null}
             {t.label}
             {t.count != null ? (
               <span className={cn("text-[11px] tabular", on ? "text-accent/70" : "text-text-mute")}>
