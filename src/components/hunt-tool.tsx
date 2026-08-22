@@ -42,6 +42,8 @@ import {
   Checkbox,
   Tabs,
   Tooltip,
+  IconExemplo,
+  IconLimpar,
 } from "@/components/ui";
 import { TypeBadge, TypeIcon } from "@/components/type-icon";
 import { IconGem, IconLevel, IconScale, IconTm, IconTarget, STAT_ICONS } from "@/components/game-icons";
@@ -196,7 +198,7 @@ export function HuntTool({ payload }: { payload: HuntPayload }) {
         title={<span className="flex items-center gap-2"><IconScale size={16} />O seu pokémon</span>}
         actions={
           <>
-            <Button size="sm" variant="ghost" onClick={preencherExemplo}>
+            <Button size="sm" variant="ghost" onClick={preencherExemplo} iconLeft={<IconExemplo size={15} />}>
               preencher exemplo
             </Button>
             <Button
@@ -204,6 +206,7 @@ export function HuntTool({ payload }: { payload: HuntPayload }) {
               variant="ghost"
               onClick={() => { setS({ ...EMPTY_HUNT, view: s.view }); setPedido(null); setAplicada(null); }}
               disabled={s.id == null && !temStats}
+              iconLeft={<IconLimpar size={15} />}
             >
               limpar
             </Button>
@@ -425,7 +428,7 @@ export function HuntTool({ payload }: { payload: HuntPayload }) {
             title="Escolha o seu pokémon e mande calcular"
             hint="A melhor caçada depende de quem está batendo, então a conta só começa depois que você escolher o pokémon."
             action={
-              <Button variant="primary" onClick={preencherExemplo}>
+              <Button variant="primary" onClick={preencherExemplo} iconLeft={<IconExemplo size={16} />}>
                 preencher exemplo
               </Button>
             }

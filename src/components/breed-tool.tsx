@@ -40,6 +40,7 @@ import {
   FieldLabel,
   IconCheck,
   IconClose,
+  IconLimpar,
   IconLink,
   IconStar,
   Note,
@@ -262,6 +263,7 @@ export function BreedTool({ especies }: { especies: BreedSpecies[] }) {
               variant="ghost"
               onClick={() => setS({ ...EMPTY_BREED, mode: s.mode, double: s.double })}
               disabled={!monA && !monB}
+              iconLeft={<IconLimpar size={15} />}
             >
               limpar
             </Button>
@@ -477,7 +479,13 @@ function PainelPai({
           {doador ? <Chip size="xs" tone="accent">doa o IV</Chip> : null}
         </span>
         <div className="flex items-center gap-1.5">
-          <Button size="sm" variant="ghost" onClick={onSave} disabled={!podeSalvar}>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={onSave}
+            disabled={!podeSalvar}
+            iconLeft={<IconStar size={15} />}
+          >
             salvar
           </Button>
           <Button
@@ -485,6 +493,7 @@ function PainelPai({
             variant="ghost"
             onClick={() => onChange({ ...EMPTY_PARENT, ivs: [...EMPTY_PARENT.ivs], stats: [...EMPTY_PARENT.stats] })}
             disabled={estado.id == null}
+            iconLeft={<IconLimpar size={15} />}
           >
             limpar
           </Button>

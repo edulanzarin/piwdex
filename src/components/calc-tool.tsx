@@ -21,6 +21,8 @@ import {
   IconChevronRight,
   IconLink,
   IconCheck,
+  IconExemplo,
+  IconLimpar,
   Note,
   NumberField,
   Panel,
@@ -142,7 +144,7 @@ export function CalcTool({ especies }: { especies: CalcSpecies[] }) {
         title={<span className="flex items-center gap-2"><IconScale size={16} />O pokémon</span>}
         actions={
           <>
-            <Button size="sm" variant="ghost" onClick={preencherExemplo}>
+            <Button size="sm" variant="ghost" onClick={preencherExemplo} iconLeft={<IconExemplo size={15} />}>
               preencher exemplo
             </Button>
             <Button
@@ -150,6 +152,7 @@ export function CalcTool({ especies }: { especies: CalcSpecies[] }) {
               variant="ghost"
               onClick={() => setS(EMPTY_CALC)}
               disabled={s.id == null && !temStats}
+              iconLeft={<IconLimpar size={15} />}
             >
               limpar
             </Button>
@@ -245,7 +248,7 @@ export function CalcTool({ especies }: { especies: CalcSpecies[] }) {
                 : "Sem a espécie não há base pra comparar."
             }
             action={
-              <Button variant="primary" onClick={preencherExemplo}>
+              <Button variant="primary" onClick={preencherExemplo} iconLeft={<IconExemplo size={16} />}>
                 preencher exemplo
               </Button>
             }

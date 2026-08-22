@@ -15,6 +15,7 @@
 import {
   ArrowLeftRight,
   Check,
+  Eraser,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -33,6 +34,7 @@ import {
   Sparkles,
   Star,
   ArrowUpDown,
+  Wand2,
   X,
   Zap,
   type LucideIcon,
@@ -86,3 +88,9 @@ export const IconBolt = wrap(Zap, "IconBolt");
 export const IconCoin = wrap(Coins, "IconCoin");
 export const IconPin = wrap(MapPin, "IconPin");
 export const IconEvolve = wrap(Sparkles, "IconEvolve");
+/* As duas acoes que TODA ferramenta tem no cabecalho. Elas eram texto puro no
+   meio de uma fila de botoes com glifo, e por isso liam como link solto em vez
+   de acao. A varinha e a borracha sao o par que se le sem legenda: uma preenche
+   sozinha, a outra apaga. */
+export const IconExemplo = wrap(Wand2, "IconExemplo");
+export const IconLimpar = wrap(Eraser, "IconLimpar");
