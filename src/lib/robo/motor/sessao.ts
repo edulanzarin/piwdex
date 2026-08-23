@@ -1479,7 +1479,7 @@ export class SessaoJogo extends EventEmitter {
       };
 
       if (this.cfg.comprarBola || this.cfg.comprarPocao || this.cfg.comprarRevive) {
-        recados.push(...(await rodarCompras(this.tokens, this.cfg, this.bolas, this.inventario, trocar)));
+        recados.push(...(await rodarCompras(this.tokens, this.cfg, this.bolas, trocar)));
       }
       if (this.cfg.venderDrop) {
         recados.push(...(await rodarVendaDrops(this.tokens, this.cfg, trocar)));

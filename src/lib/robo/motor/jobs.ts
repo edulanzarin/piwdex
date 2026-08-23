@@ -9,6 +9,7 @@ import {
   lerMochila,
   venderItens,
   venderPokes,
+  type ItemMochila,
   type Loja,
 } from "@/lib/robo/jogo/loja";
 import type { BolaEstoque } from "@/lib/robo/motor/tipos";
@@ -55,18 +56,36 @@ export interface Recado {
 
 const ouroTxt = (n: number) => n.toLocaleString("pt-BR");
 
-/** Quantos itens de uma categoria do catalogo ha na mochila. */
-async function estoquePorCategoria(
-  inventario: Map<number, number>,
-  categoria: string,
-): Promise<{ total: number; ids: Set<number> }> {
+/** As duas categorias que a reposicao conhece. */
+export type Consumivel = "heal" | "revive";
+
+/**
+ * A bolsa separada por categoria do CATALOGO do jogo.
+ *
+ * A categoria sai do catalogo e nao do campo `category` do depot porque o depot
+ * cai pra "loot" quando o campo falta — e uma pocao contada como loot vira
+ * estoque zero, que e exatamente a leitura que dispara compra.
+ *
+ * `null` quando o catalogo nao respondeu, e a distincao e o ponto: "nao tem
+ * pocao" e "nao sei quantas pocoes tem" nao podem virar a mesma compra.
+ */
+export async function separarConsumivel(
+  itens: ItemMochila[],
+): Promise<Record<Consumivel, ItemMochila[]> | null> {
   const d = await fetchSource().catch(() => null);
-  if (!d) return { total: 0, ids: new Set() };
-  const ids = new Set(d.items.filter((i) => i.category === categoria).map((i) => i.id));
-  let total = 0;
-  for (const [id, qtd] of inventario) if (ids.has(id)) total += qtd;
-  return { total, ids };
+  if (!d) return null;
+  const categoria = new Map(d.items.map((i) => [i.id, i.category]));
+  const out: Record<Consumivel, ItemMochila[]> = { heal: [], revive: [] };
+  for (const i of itens) {
+    if (i.quantidade <= 0) continue;
+    const c = categoria.get(i.id);
+    if (c === "heal" || c === "revive") out[c].push(i);
+  }
+  return out;
 }
+
+export const somar = (itens: ItemMochila[]): number =>
+  itens.reduce((s, i) => s + i.quantidade, 0);
 
 /** A opcao mais barata da loja dentro de uma categoria. */
 function maisBarato(loja: Loja, categoria: string): { id: number; nome: string; preco: number } | null {
@@ -92,7 +111,6 @@ export async function rodarCompras(
   tokens: Tokens,
   cfg: ConfigAuto,
   bolas: BolaEstoque[],
-  inventario: Map<number, number>,
   aoTrocarTokens: (t: Tokens) => Promise<void>,
 ): Promise<Recado[]> {
   const r = await lerLoja(tokens);
@@ -147,46 +165,73 @@ export async function rodarCompras(
   // Sao mais caros que bola e gastam bem mais devagar (a pocao so entra no HP
   // baixo, o revive so quando desmaia), entao os pisos sao menores de proposito:
   // um alvo alto aqui drena o ouro sem ganho nenhum de cacada.
-  for (const alvoCfg of [
-    { liga: cfg.comprarPocao, cat: "heal", piso: cfg.pisoPocao, alvo: cfg.alvoPocao, id: cfg.pocaoId, rotulo: "poção" },
-    { liga: cfg.comprarRevive, cat: "revive", piso: cfg.pisoRevive, alvo: cfg.alvoRevive, id: cfg.reviveId, rotulo: "revive" },
-  ]) {
-    if (!alvoCfg.liga) continue;
-    const { total } = await estoquePorCategoria(inventario, alvoCfg.cat);
-    if (total > alvoCfg.piso) continue;
-
-    const item =
-      (alvoCfg.id ? loja.itens.find((i) => i.id === alvoCfg.id) : null) ?? maisBarato(loja, alvoCfg.cat);
-    if (!item) {
-      recados.push({ ok: false, tipo: "compra", texto: `sem ${alvoCfg.rotulo} à venda na loja`, ouro: 0 });
-      continue;
+  //
+  // O estoque e lido AQUI, por REST, e nao herdado do frame `inventory` do
+  // socket. O frame e mais fresco, mas ele nasce vazio a cada conexao e e
+  // limpo quando ela cai — e bolsa vazia le como "zero pocoes", que e piso
+  // furado, que e compra. Uma conta com 400 pocoes comprava 100 a cada minuto
+  // enquanto o socket nao mandasse o primeiro `inventory`.
+  if (cfg.comprarPocao || cfg.comprarRevive) {
+    const bolsa = await lerMochila(t);
+    const separado = bolsa ? await separarConsumivel(bolsa.itens) : null;
+    if (bolsa) {
+      t = bolsa.tokens;
+      if (bolsa.mudou) await aoTrocarTokens(t);
     }
-    const falta = alvoCfg.alvo - total;
-    const cabe = item.preco > 0 ? Math.floor(disponivel / item.preco) : 0;
-    const qtd = Math.max(0, Math.min(falta, cabe));
-    if (qtd <= 0) {
+    // Nao saber quanto tem e razao pra NAO comprar. Comprar assim mesmo e o
+    // mesmo erro de antes com outro nome.
+    if (!separado) {
       recados.push({
-        ok: false, tipo: "compra",
-        texto: `sem dólares para repor ${item.nome}`,
-        detalhe: `precisa de ${ouroTxt(item.preco * falta)}, disponível ${ouroTxt(disponivel)}`,
+        ok: false,
+        tipo: "compra",
+        texto: "não consegui conferir a bolsa",
+        detalhe: "a reposição de poção e revive fica de fora desta rodada",
         ouro: 0,
       });
-      continue;
+      return recados;
     }
-    const c = await comprarItem(t, item.id, qtd);
-    t = c.tokens;
-    if (c.mudou) await aoTrocarTokens(t);
-    const custo = item.preco * qtd;
-    if (c.ok) disponivel -= custo;
-    recados.push({
-      ok: c.ok,
-      tipo: "compra",
-      texto: c.ok ? `${qtd}x ${item.nome}` : `não comprou ${item.nome}`,
-      detalhe: c.motivo,
-      ouro: c.ok ? custo : 0,
-      pocoes: c.ok && alvoCfg.cat === "heal" ? qtd : 0,
-      revives: c.ok && alvoCfg.cat === "revive" ? qtd : 0,
-    });
+
+    for (const alvoCfg of [
+      { liga: cfg.comprarPocao, cat: "heal" as const, piso: cfg.pisoPocao, alvo: cfg.alvoPocao, id: cfg.pocaoId, rotulo: "poção" },
+      { liga: cfg.comprarRevive, cat: "revive" as const, piso: cfg.pisoRevive, alvo: cfg.alvoRevive, id: cfg.reviveId, rotulo: "revive" },
+    ]) {
+      if (!alvoCfg.liga) continue;
+      const total = somar(separado[alvoCfg.cat]);
+      if (total > alvoCfg.piso) continue;
+
+      const item =
+        (alvoCfg.id ? loja.itens.find((i) => i.id === alvoCfg.id) : null) ?? maisBarato(loja, alvoCfg.cat);
+      if (!item) {
+        recados.push({ ok: false, tipo: "compra", texto: `sem ${alvoCfg.rotulo} à venda na loja`, ouro: 0 });
+        continue;
+      }
+      const falta = alvoCfg.alvo - total;
+      const cabe = item.preco > 0 ? Math.floor(disponivel / item.preco) : 0;
+      const qtd = Math.max(0, Math.min(falta, cabe));
+      if (qtd <= 0) {
+        recados.push({
+          ok: false, tipo: "compra",
+          texto: `sem dólares para repor ${item.nome}`,
+          detalhe: `precisa de ${ouroTxt(item.preco * falta)}, disponível ${ouroTxt(disponivel)}`,
+          ouro: 0,
+        });
+        continue;
+      }
+      const c = await comprarItem(t, item.id, qtd);
+      t = c.tokens;
+      if (c.mudou) await aoTrocarTokens(t);
+      const custo = item.preco * qtd;
+      if (c.ok) disponivel -= custo;
+      recados.push({
+        ok: c.ok,
+        tipo: "compra",
+        texto: c.ok ? `${qtd}x ${item.nome}` : `não comprou ${item.nome}`,
+        detalhe: c.motivo,
+        ouro: c.ok ? custo : 0,
+        pocoes: c.ok && alvoCfg.cat === "heal" ? qtd : 0,
+        revives: c.ok && alvoCfg.cat === "revive" ? qtd : 0,
+      });
+    }
   }
 
   return recados;
