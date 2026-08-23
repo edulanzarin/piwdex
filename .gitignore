@@ -15,3 +15,7 @@ docs/*.har
 # snapshot derivado, `src/data/piwdex.json`, e esse SIM e versionado.
 # O historico de despejos do v1 continua na tag v1.0.0.
 data/raw/
+
+# Captura crua do WebSocket do jogo (tools/probe-ws.mjs). Tem o estado da conta
+# — pokemon, ouro, inventario — e as vezes o token na URL da conexao. Fica local.
+tools/captura/
