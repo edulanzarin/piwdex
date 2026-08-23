@@ -4,7 +4,6 @@ import type { Metadata } from "next";
 import { cn } from "@/lib/cn";
 import { chanceToPct, getData } from "@/lib/data";
 import { getDexPayload } from "@/lib/dex-data";
-import { agora, fecharPiso } from "@/lib/pacing";
 import { buildEntry, rolesOf } from "@/lib/dex";
 import { resumoDaEspecie } from "@/lib/prosa";
 import { JsonLd, trilha } from "@/lib/jsonld";
@@ -48,8 +47,29 @@ import {
   num,
 } from "@/lib/labels";
 
-// Dinamica de proposito — o frescor mora no source.ts. Ver src/app/page.tsx.
-export const dynamic = "force-dynamic";
+// As ~910 fichas sao CACHEAVEIS, e isso e o maior ganho tecnico do site.
+//
+// Elas eram `force-dynamic`, entao todo rastreio batia na origem e renderizava do
+// zero. O sitemap anuncia ~910 URLs: um rastreamento completo era ~910 renders
+// para um conteudo que so muda quando o JOGO publica patch — talvez uma vez por
+// semana. Isso queima orcamento de rastreio, que e a coisa que decide quantas das
+// suas paginas o buscador se da ao trabalho de reler.
+//
+// `force-static` + `revalidate`: a pagina e gerada na primeira visita e servida do
+// cache por uma hora. Nao ha selo de frescor nesta tela (so nas de catalogo), entao
+// cachear nao faz nenhuma parte dela mentir — o que ela afirma sobre a especie
+// continua verdade ate o proximo patch.
+//
+// **`dynamicParams` fica LIGADO** (o padrao) de proposito: sem `generateStaticParams`,
+// nada e pre-renderizado no build. Pre-renderizar as 910 no build custaria o build
+// inteiro e a maior parte delas nunca e visitada. Assim cada ficha paga um render na
+// primeira visita e fica barata pra sempre depois.
+//
+// O piso de carregamento saiu junto, e tinha de sair por dois motivos. Ele le o
+// User-Agent via `headers()`, que e API de request e sozinha ja impede o cache; e
+// pagina cacheada nao tem tela de carregamento pra justificar o atraso.
+export const dynamic = "force-static";
+export const revalidate = 3600;
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -89,7 +109,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function CreaturePage({ params }: Props) {
-  const t0 = agora();
   const { id } = await params;
   const db = await getData();
   const c = db.getCreature(Number(id));
@@ -133,8 +152,6 @@ export default async function CreaturePage({ params }: Props) {
   // calculadora depois compara contra o pokemon real do jogador.
   const perfect = projectAll(e.stats, [32, 32, 32, 32, 32, 32], 100, 1);
 
-
-  await fecharPiso(t0);
 
   return (
     <div className="flex flex-col gap-4">
