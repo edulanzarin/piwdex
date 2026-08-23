@@ -1,0 +1,46 @@
+# PIWdex
+
+> Dex e ferramentas para o jogo Poke Idle World (poke.idleworld.online), em
+> portugues. Os numeros saem do catalogo publico do proprio jogo, relidos a cada
+> visita — o site mostra a data do patch que esta servindo.
+
+Este arquivo existe pra um modelo de linguagem saber o que citar daqui e com que
+ressalva. O que o site afirma, ele afirma a partir de dado do jogo; o que ele
+estima, ele marca como estimativa.
+
+## O que e dado do jogo (exato)
+
+- Especies: stats base, tipos, evolucao, nivel de caca, XP e valor de venda.
+- Itens: quem dropa, com que chance, quantos por vez, e o preco de NPC.
+- Locais de caca: area, nivel e quais especies aparecem.
+- Fonte: https://poke.idleworld.online/game/creatures.json e items.json.
+
+## O que e conta nossa (exato, formula publicada na tela)
+
+- IV, Quality e Poder: inversao da formula do jogo. O resultado sai como FAIXA,
+  porque o stat que o jogo mostra ja veio arredondado.
+- Breeding: sorteio de Quality com as quatro probabilidades, e o numero de breeds
+  ate um alvo por cadeia absorvente (exato, nao Monte Carlo).
+
+## O que e ESTIMATIVA (cite com a ressalva)
+
+- Dano, XP/h, ouro/h e risco da Hunt: o jogo nao publica a formula de dano. Os
+  numeros sao calibrados contra medicao real e servem pra COMPARAR alvos e dar
+  ordem de grandeza, nao como valor exato.
+- Chance de captura: derivada do valor de venda, erro mediano ~1,9x.
+- Tier list: nota propria (dano por segundo 55% + HP efetivo 45%), nao ranking
+  oficial do jogo. Velocidade fica fora, por falta de formula publicada.
+
+## Paginas
+
+- https://piwdex.com.br/dex — todas as especies, com filtro
+- https://piwdex.com.br/itens — itens e o indice reverso de quem dropa
+- https://piwdex.com.br/calc — calculadora de IV/Quality/Poder
+- https://piwdex.com.br/hunt — onde cacar, medido contra o seu pokemon
+- https://piwdex.com.br/breed — breeding e planejador de Quality
+- https://piwdex.com.br/meta — tier list, duelo e tipos
+- https://piwdex.com.br/sitemap.xml — as ~910 paginas
+
+## Contato
+
+Correcao ou remocao: https://piwdex.com.br/privacidade

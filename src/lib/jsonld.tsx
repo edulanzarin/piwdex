@@ -43,6 +43,50 @@ export function trilha(degraus: Degrau[]) {
   };
 }
 
+/**
+ * O site, pro buscador saber QUE COISA ele e.
+ *
+ * `WebSite` e `Organization` descrevem a entidade, e nao uma pagina — e por isso
+ * que eles moram no layout e valem pro site inteiro. Servem pra duas coisas
+ * concretas: o buscador passar a mostrar "PIWdex" como nome do site no resultado
+ * (em vez de derivar do dominio), e as duas entidades se ligarem, o que ajuda a
+ * ferramenta a entender que este site FALA SOBRE um jogo especifico.
+ *
+ * O `about` e a parte que interessa pra mira: ele diz, em marcacao, que o assunto
+ * deste site e o VideoGame "Poke Idle World". Isso nao e promessa a mais — e
+ * exatamente o que a home afirma em texto, na manchete.
+ *
+ * Continua valendo a regra do topo: nada aqui promete o que a tela nao mostra.
+ * Sem `aggregateRating`, sem `Offer`, sem `SearchAction` (descontinuado).
+ */
+export function siteDoJogo() {
+  const org = {
+    "@type": "Organization",
+    "@id": `${SITE_URL}/#org`,
+    name: "PIWdex",
+    url: SITE_URL,
+  };
+  return {
+    "@context": "https://schema.org",
+    "@graph": [
+      org,
+      {
+        "@type": "WebSite",
+        "@id": `${SITE_URL}/#site`,
+        name: "PIWdex",
+        url: SITE_URL,
+        inLanguage: "pt-BR",
+        publisher: { "@id": `${SITE_URL}/#org` },
+        about: {
+          "@type": "VideoGame",
+          name: "Poke Idle World",
+          url: "https://poke.idleworld.online",
+        },
+      },
+    ],
+  };
+}
+
 /** O `<script>` do JSON-LD. Vai no corpo da pagina e nao no `generateMetadata`:
  *  a Metadata API do Next nao emite script, entao tentar por la falha calado. */
 export function JsonLd({ dado }: { dado: object }) {

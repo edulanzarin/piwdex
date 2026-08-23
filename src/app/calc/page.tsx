@@ -9,7 +9,7 @@ import { HeroFerramenta, HeroMarca } from "@/components/hero-ferramenta";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/calc" },
-  title: "Calculadora de IV, Quality e Poder",
+  title: "Calculadora de IV do Poke Idle World — Quality e Poder",
   description:
     "Estima o IV de um pokémon do Poke Idle World a partir dos stats, do nível e " +
     "da quality, e projeta os stats e o poder em qualquer nível.",

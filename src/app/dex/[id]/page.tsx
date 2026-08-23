@@ -63,9 +63,20 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   // ser a versao boa de nada.
   if (!c) return { title: "Pokémon não encontrado" };
   return {
-    // O titulo carrega a PERGUNTA, nao so o nome: quem procura digita "onde
-    // pegar", "stats", "drop" — e o nome sozinho nao encosta em nenhuma delas.
-    title: `${c.name} — stats, drops e onde pegar`,
+    // O titulo carrega a PERGUNTA e o JOGO, nao so o nome.
+    //
+    // A pergunta ja estava aqui: quem procura digita "onde pegar", "stats",
+    // "drop", e o nome sozinho nao encosta em nenhuma delas. O que faltava era o
+    // nome do jogo — e ele estava no `og:title` logo abaixo, que e o lugar
+    // errado. OpenGraph pinta card de rede social; quem o buscador casa com a
+    // consulta e o `<title>`. Alguem que digita "bulbasaur poke idle world" via
+    // uma pagina cujo titulo nao dizia "poke idle world" em lugar nenhum.
+    //
+    // `absolute` desliga o sufixo " · PIWdex" do layout de proposito: com o nome
+    // do jogo dentro, o titulo ja bate em 56 caracteres, e o buscador corta perto
+    // de 60. Entre gastar os ultimos caracteres com uma marca que ainda nao
+    // significa nada pra ninguem ou com o termo que a pessoa digitou, e o termo.
+    title: { absolute: `${c.name} no Poke Idle World — onde pegar, stats e drops` },
     description: resumoDaEspecie(c, db).descricao,
     alternates: { canonical: `/dex/${c.pokeId}` },
     openGraph: {

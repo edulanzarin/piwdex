@@ -61,7 +61,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const item = db.getItem(Number(id));
   if (!item) return { title: "Item não encontrado" };
   return {
-    title: `${item.name} — onde farmar e quanto vale`,
+    // Mesma correcao da ficha de especie: o nome do jogo sai do `og:title` e
+    // entra no `<title>`, que e o que a busca le. Ver o comentario la.
+    title: { absolute: `${item.name} no Poke Idle World — onde farmar e quanto vale` },
     description: resumoDoItem(item, db).descricao,
     alternates: { canonical: `/itens/${item.id}` },
     openGraph: {

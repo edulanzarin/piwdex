@@ -9,7 +9,7 @@ import { HeroFerramenta, HeroMarca } from "@/components/hero-ferramenta";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/breed" },
-  title: "Breeding: o par, o ovo e quantos faltam",
+  title: "Breeding no Poke Idle World — o par, o ovo e o custo",
   description:
     "Simula o ovo do Poke Idle World: valida o par, mostra o sorteio de Quality, o IV " +
     "que o filho herda e o custo — e calcula quantos breeds faltam até a Quality alvo.",

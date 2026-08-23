@@ -9,7 +9,7 @@ import { HeroFerramenta, HeroMarca } from "@/components/hero-ferramenta";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/hunt" },
-  title: "Onde caçar: rota de treino e XP por hora",
+  title: "Onde caçar no Poke Idle World — rota de treino e XP/h",
   description:
     "Onde caçar no Poke Idle World com o SEU pokémon: todo alvo do jogo medido pelos dois " +
     "lados do combate — XP/h, ouro/h e risco reais — e a rota de níveis até a meta.",

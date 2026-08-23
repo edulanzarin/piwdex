@@ -9,7 +9,9 @@ import { HeroFerramenta, HeroMarca } from "@/components/hero-ferramenta";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/meta" },
-  title: "Tier list, duelo e tipos",
+  // "tier list poke idle world" e busca de intencao clara, e o titulo nao
+  // encostava no nome do jogo.
+  title: "Tier list do Poke Idle World — duelo e tipos",
   description:
     "Quem presta no Poke Idle World: tier list por nota (dano por segundo e HP efetivo, " +
     "não poder de golpe), duelo entre dois pokémon com nível e quality, e o panorama " +

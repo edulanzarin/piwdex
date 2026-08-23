@@ -5,7 +5,11 @@ import { SiteNav } from "@/components/site-nav";
 import { SiteFooter } from "@/components/site-footer";
 import { ApoioFlutuante } from "@/components/apoio";
 import { ADSENSE_CLIENT, temAnuncios } from "@/lib/ads";
+
+/** Token da meta de verificacao do Search Console. Vazio = a meta nao sai. */
+const GOOGLE_VERIFICACAO = process.env.NEXT_PUBLIC_GOOGLE_VERIFICACAO?.trim() ?? "";
 import { SITE_URL } from "@/lib/site";
+import { JsonLd, siteDoJogo } from "@/lib/jsonld";
 import { Anuncio } from "@/components/anuncio";
 import "./globals.css";
 
@@ -64,7 +68,22 @@ export const metadata: Metadata = {
       "tier list — direto do catálogo do Poke Idle World.",
   },
   twitter: { card: "summary_large_image" },
-  ...(temAnuncios() ? { other: { "google-adsense-account": ADSENSE_CLIENT } } : {}),
+  /**
+   * Verificacao do Search Console e do AdSense, as duas por variavel.
+   *
+   * Sem o Search Console o site esta no ar no escuro: nao da pra submeter o
+   * sitemap, nem ver que consulta traz gente, nem descobrir que uma pagina caiu
+   * do indice. E o unico instrumento que responde "meu SEO funcionou?" — todo o
+   * resto e teoria.
+   *
+   * A propriedade se verifica de dois jeitos, e os dois estao cobertos: a meta
+   * abaixo (basta colar o token no ambiente) ou o registro DNS, que nem precisa
+   * de deploy. O que nao existe e adivinhar o token, entao ele e configuracao.
+   */
+  other: {
+    ...(temAnuncios() ? { "google-adsense-account": ADSENSE_CLIENT } : {}),
+    ...(GOOGLE_VERIFICACAO ? { "google-site-verification": GOOGLE_VERIFICACAO } : {}),
+  },
 };
 
 export const viewport: Viewport = {
@@ -100,6 +119,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         >
           Pular para o conteúdo
         </a>
+        {/* Quem e este site, uma vez so pro site inteiro. Vai no corpo e nao no
+            `generateMetadata`: a Metadata API do Next nao emite `<script>`, e
+            tentar por la falha calado. */}
+        <JsonLd dado={siteDoJogo()} />
         <SiteNav />
         {/* ANTES do conteudo, e nao no fim do documento: a ordem do DOM e a ordem
             do Tab. Depois do rodape, chegar no X do balao exigia atravessar a
