@@ -9,6 +9,7 @@ import { CONFIG_PADRAO, type ConfigAuto } from "@/lib/robo/motor/tipos";
 import { BarraTopo } from "@/components/robo/painel-estado";
 import { AbaCacada } from "@/components/robo/painel-cacada";
 import { AbaAutomacao } from "@/components/robo/painel-automacao";
+import { AbaLoja } from "@/components/robo/painel-loja";
 import { AbaChat } from "@/components/robo/painel-chat";
 import { AbaConta } from "@/components/robo/painel-conta";
 import { AbaRegistro } from "@/components/robo/painel-registro";
@@ -37,7 +38,7 @@ export interface HuntOpcao {
   area: string;
 }
 
-type Aba = "conta" | "cacada" | "automacao" | "chat" | "registro";
+type Aba = "conta" | "cacada" | "automacao" | "loja" | "chat" | "registro";
 
 function Numero({
   rotulo,
@@ -258,6 +259,7 @@ export function PainelTool({
           { value: "conta", label: "Conta" },
           { value: "cacada", label: "Caçada" },
           { value: "automacao", label: "Automação" },
+          { value: "loja", label: "Loja" },
           { value: "chat", label: "Chat", count: naoLidas || undefined },
           { value: "registro", label: "Registro", count: eventosNovos || undefined },
         ]}
@@ -276,8 +278,9 @@ export function PainelTool({
           onConfig={mudarConfig}
         />
       ) : null}
-      {aba === "automacao" ? (
-        <AbaAutomacao estado={estado} config={config} onConfig={mudarConfig} erro={null} />
+      {aba === "automacao" ? <AbaAutomacao estado={estado} /> : null}
+      {aba === "loja" ? (
+        <AbaLoja estado={estado} config={config} onConfig={mudarConfig} />
       ) : null}
       <PokeModal ficha={ficha} onFechar={() => setFicha(null)} />
 

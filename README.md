@@ -55,6 +55,21 @@ Os trabalhos:
 | Chat | le os tres canais e manda mensagem pelo mesmo socket (nada sai sozinho) |
 | Subir de nivel | escolhe o alvo e troca de hunt sozinho ate o nivel pedido |
 
+No cockpit esses trabalhos moram em DUAS abas, e a linha entre elas e quem
+executa. **Automacao** e o Auto-Helper: captura, pocao e revive automaticos, que
+rodam no servidor do JOGO — o robo so liga o interruptor, e quando nao pega o
+motivo e o VIP de la. **Loja** e o balcao: repor consumivel, vender drop, vender
+pokemon, tudo chamada REST nossa e tudo mexendo em ouro. Numa aba so, a decisao
+de quanto gastar ficava a tres rolagens da de quanto se recebe, que e a unica
+comparacao que essa tela precisa permitir.
+
+A reposicao nunca compra sem CONFERIR a bolsa. O estoque de pocao e revive e
+lido por REST na hora da decisao, e nao herdado do frame `inventory` do socket:
+o frame nasce vazio a cada conexao, bolsa vazia le como "zero pocoes", zero fura
+qualquer piso — e uma conta com 400 pocoes comprava 100 a cada minuto enquanto o
+socket nao mandasse o primeiro frame. Nao saber quanto tem e razao pra nao
+comprar.
+
 Comprar e vender vao por REST, e por isso podem acontecer com a cacada correndo:
 REST nao disputa a sessao. Tudo que MUTA a conta em campo sai pelo socket ja
 aberto — abrir um segundo derrubaria a propria cacada.

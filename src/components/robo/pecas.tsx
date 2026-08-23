@@ -274,3 +274,40 @@ export function BolaChip({
     </span>
   );
 }
+
+/**
+ * Uma seção de configuração.
+ *
+ * Usa o cabeçalho do `Panel`, como as fichas da dex — o `<h2>` solto dentro do
+ * corpo deixava o painel do robô liso ao lado delas. Mora aqui, e não na aba que
+ * a inventou, porque automação e loja desenham a mesma caixa: a cópia começaria
+ * igual e terminaria com dois títulos de tamanhos diferentes.
+ */
+export function Secao({
+  titulo,
+  icone,
+  hint,
+  children,
+  acao,
+}: {
+  titulo: string;
+  icone?: ReactNode;
+  hint?: string;
+  children: ReactNode;
+  acao?: ReactNode;
+}) {
+  return (
+    <Panel
+      title={
+        <span className="flex items-center gap-2">
+          {icone}
+          {titulo}
+        </span>
+      }
+      actions={acao}
+    >
+      {hint ? <p className="mb-3 max-w-prose text-[12px] text-text-mute">{hint}</p> : null}
+      <div className="flex flex-col gap-3">{children}</div>
+    </Panel>
+  );
+}
