@@ -374,7 +374,7 @@ export function HuntTool({ payload }: { payload: HuntPayload }) {
                   boxed
                   checked={s.cap}
                   onChange={(e) => patch({ cap: e.currentTarget.checked, page: 0 })}
-                  label="mostrar a conta de captura"
+                  label="estimar a captura"
                 />
               </Field>
 
@@ -417,10 +417,10 @@ export function HuntTool({ payload }: { payload: HuntPayload }) {
             ) : null}
             {s.cap ? (
               <Note className="mt-3">
-                A captura é ESTIMATIVA e não entra no ouro que ordena as listas. Ela sai de
-                uma lei ajustada por valor de venda, com erro mediano de ~1,9x, e numa sessão
-                medida de 738 abates errou por 5,7. O que a coluna dá é ordem de grandeza e o
-                ponto em que a bola se paga.
+                A captura entra como coluna ao lado, e não no ouro por hora: a lei que estima
+                ela erra por ~1,9x na mediana, e numa sessão medida de 738 abates errou por
+                5,7. Junto dela vai o ponto em que a bola se paga, que sai só do preço da bola
+                e do valor de venda e você confere numa hunt.
               </Note>
             ) : null}
           </div>
