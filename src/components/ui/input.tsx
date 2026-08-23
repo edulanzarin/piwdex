@@ -84,6 +84,15 @@ export interface NumberFieldProps extends Omit<InputProps, "value" | "onChange" 
   step?: number;
   /** valor assumido quando o campo fica vazio e perde o foco */
   fallback?: number;
+  /**
+   * Milhar separado no proprio campo, pra numero que passa de seis digitos.
+   *
+   * "10000000" nao se le, se conta com o dedo, e conferir se sao sete ou oito zeros
+   * e trabalho que o campo devia fazer. Ligar isso troca o `type="number"` por texto:
+   * input numerico do navegador recusa "10.000.000" e devolve string vazia. Em troca,
+   * o campo passa a aceitar so digito inteiro — que e o caso de ouro, XP e abate.
+   */
+  grouped?: boolean;
 }
 
 export function NumberField({
@@ -93,6 +102,7 @@ export function NumberField({
   max,
   step,
   fallback,
+  grouped = false,
   ...props
 }: NumberFieldProps) {
   // null = espelhando o valor de fora; string = o usuario esta digitando
@@ -100,7 +110,9 @@ export function NumberField({
 
   // Interface em portugues, entao "1,8" tem de valer tanto quanto "1.8" — o
   // separador decimal daqui e a virgula, e o teclado do celular manda a virgula.
-  const ler = (t: string): number => Number(t.replace(",", "."));
+  // Agrupado, o ponto e separador de MILHAR e nao decimal: sai fora antes de ler.
+  const ler = (t: string): number =>
+    grouped ? Number(t.replace(/\D/g, "")) : Number(t.replace(",", "."));
 
   const fechar = () => {
     const n = ler(rascunho ?? "");
@@ -114,17 +126,22 @@ export function NumberField({
 
   return (
     <Input
-      type="number"
+      type={grouped ? "text" : "number"}
       inputMode={step != null && step < 1 ? "decimal" : "numeric"}
-      min={min}
-      max={max}
-      step={step}
-      value={rascunho ?? String(value)}
+      min={grouped ? undefined : min}
+      max={grouped ? undefined : max}
+      step={grouped ? undefined : step}
+      value={rascunho ?? (grouped ? value.toLocaleString("pt-BR") : String(value))}
       onChange={(e) => {
-        setRascunho(e.target.value);
-        const n = ler(e.target.value);
+        const bruto = e.target.value;
+        // Agrupado, o milhar volta a cada tecla: sem isso o separador so apareceria
+        // no blur e o campo passaria a digitacao inteira sem o que ele promete.
+        const n = ler(bruto);
+        const mostrar =
+          grouped && bruto.trim() !== "" && Number.isFinite(n) ? n.toLocaleString("pt-BR") : bruto;
+        setRascunho(mostrar);
         // propaga so o que ja e numero — sem apertar limite, que e o trabalho do blur
-        if (e.target.value.trim() !== "" && Number.isFinite(n)) onChange(n);
+        if (bruto.trim() !== "" && Number.isFinite(n)) onChange(n);
       }}
       onBlur={fechar}
       onKeyDown={(e) => {
