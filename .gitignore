@@ -6,6 +6,11 @@ build/
 next-env.d.ts
 .env
 .env.local
+# Qualquer variante: copia, backup, por-ambiente. A regra estreita so cobria dois
+# nomes exatos, e um `.env.bak-v1` — backup do .env com os segredos dentro —
+# entrou num commit em ago/2026 por causa disso.
+.env.*
+!.env.example
 .DS_Store
 npm-debug.log*
 docs/*.har
