@@ -1,12 +1,54 @@
 # Deploy no Railway
 
-O que colar no **Raw Editor** da aba *Variables* do serviço, e as armadilhas que
-não aparecem no painel.
+O que colar no **Raw Editor** da aba *Variables* de cada serviço, e as armadilhas
+que não aparecem no painel.
+
+## São DOIS serviços, a partir do mesmo repositório
+
+| Serviço | Domínio | `PIW_ROLE` | Banco |
+|---|---|---|---|
+| `piwdex-app` | `piwdex.com.br` | `site` | não usa |
+| `piwdex-bot` | `bot.piwdex.com.br` | `bot` | sim |
+
+Os dois apontam pro mesmo repo e pro mesmo `Dockerfile`. O que os diferencia é a
+variável `PIW_ROLE` e o domínio.
+
+**Configure Watch Paths no serviço do robô.** É o ponto inteiro da separação: o
+robô segura um WebSocket por usuário e morre a cada deploy, então ele não pode
+redeployar junto com cada ajuste de SEO da dex. Sem Watch Paths, um push que só
+mexe em `src/app/(site)/` derruba a caçada de todo mundo, e o robô volta pro
+problema que motivou o subdomínio.
+
+No `piwdex-bot`, restrinja a:
+
+```
+src/app/(robo)/**
+src/app/api/robo/**
+src/app/api/auth/**
+src/lib/robo/**
+src/components/robo/**
+src/instrumentation.ts
+src/proxy.ts
+db/**
+Dockerfile
+package.json
+```
+
+E deixe o `piwdex-app` sem restrição (ele *deve* publicar a cada mudança).
+
+**Trave `numReplicas: 1` no robô.** Já está no `railway.json`, e aqui ele deixa
+de ser detalhe: o estado vivo (sessão, freio de login) é por processo, e duas
+réplicas religariam as mesmas sessões e disputariam a mesma conexão do outro
+lado — que aceita uma só. O sintoma sai como "fui chutado", não como "tem dois
+de mim".
+
+**Pré-deploy no robô:** `node db/migrate.mjs`. No serviço da dex, nenhum — ela
+não tem banco, e um pré-deploy que falha impede a promoção do deploy em silêncio.
 
 ## O que o código de fato lê
 
-Cinco variáveis, e só. Todo o resto (`PORT`, `HOSTNAME`, `NODE_ENV`,
-`NEXT_TELEMETRY_DISABLED`) já é responsabilidade do `Dockerfile`.
+No serviço da **dex**, cinco variáveis. Todo o resto (`PORT`, `HOSTNAME`,
+`NODE_ENV`, `NEXT_TELEMETRY_DISABLED`) já é responsabilidade do `Dockerfile`.
 
 | variável | quando é lida | se faltar |
 |---|---|---|
@@ -18,6 +60,43 @@ Cinco variáveis, e só. Todo o resto (`PORT`, `HOSTNAME`, `NODE_ENV`,
 
 `PIW_TOKEN` aparece no código mas é do `scripts/ingest.mjs`, que roda na máquina
 do Eduardo. **Não** vai pro Railway.
+
+No serviço do **robô**, mais estas:
+
+| variável | quando é lida | se faltar |
+|---|---|---|
+| `PIW_ROLE` | runtime | vale `site` — **o robô não sobe** |
+| `DATABASE_URL` | runtime | nada funciona (login, vínculo, robô) |
+| `AUTH_SECRET` | runtime | o cookie de sessão não é assinado |
+| `SESSION_SECRET` | runtime | os tokens do jogo não cifram/decifram |
+| `AUTH_URL` | runtime | o Auth.js monta callback pro host errado |
+| `NEXT_PUBLIC_BOT_URL` | **build** e runtime | cai em `https://bot.piwdex.com.br` |
+| `MP_ACCESS_TOKEN` | runtime | a tela diz que o pagamento está fora do ar |
+| `MP_WEBHOOK_SECRET` | runtime | o webhook aceita sem conferir assinatura |
+| `MP_PRECO` | runtime | R$ 15,90 |
+
+**`SESSION_SECRET` é a chave dos tokens do jogo.** Trocá-la invalida TODO vínculo
+existente — o AES-GCM não decifra, o código trata como "sem vínculo", e cada
+assinante precisa conectar de novo. Ela não é rotacionável de graça.
+
+### Variáveis do serviço do robô
+
+```json
+{
+  "PIW_ROLE": "bot",
+  "PORT": "3000",
+  "NEXT_PUBLIC_SITE_URL": "https://piwdex.com.br",
+  "NEXT_PUBLIC_BOT_URL": "https://bot.piwdex.com.br",
+  "AUTH_URL": "https://bot.piwdex.com.br",
+  "DATABASE_URL": "${{Postgres.DATABASE_PRIVATE_URL}}",
+  "AUTH_SECRET": "",
+  "SESSION_SECRET": "",
+  "MP_ACCESS_TOKEN": "",
+  "MP_WEBHOOK_SECRET": ""
+}
+```
+
+Gere cada segredo com `openssl rand -base64 48`.
 
 ## 1. Agora: site no ar, sem anúncio
 

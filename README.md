@@ -17,8 +17,23 @@ nivel 40".
 | Ficha da especie (stats, fraquezas, golpes, drops, evolucao, spots) | pronta |
 | Itens com indice reverso (10 filtros, ficha com quem dropa) | pronto |
 | Calculadora de IV/Quality/Poder | pronta |
-| Rota de hunt / Breeding / Meta | a fazer |
-| Robo (area logada) | a portar do piwdex |
+| Rota de hunt / Breeding / Meta | prontos |
+| Robo (area logada, em bot.piwdex.com.br) | nucleo pronto |
+
+## Dois enderecos, uma imagem
+
+O piwdex publica **a dex em `piwdex.com.br`** e **o robo em
+`bot.piwdex.com.br`**, a partir do mesmo codigo. Quem decide o papel do processo
+e `PIW_ROLE` (`site` | `bot` | `ambos`), e o `src/proxy.ts` roteia por host.
+
+A separacao existe por uma razao so, e ela e cara: o robo segura um WebSocket por
+usuario, e WebSocket morre inteiro a cada deploy. Enquanto os dois dividiam um
+servico, cada publicacao da dex derrubava a cacada de todo mundo — e o log nao
+acusava nada, porque um processo novo escreve "Ready" igual ao que rodava ha
+horas. Servicos separados = cadencias de deploy separadas.
+
+`PIW_ROLE` ausente em producao vale `site`: esquecer a variavel deixa a dex
+intacta e o robo apagado.
 
 ## Rodar
 
@@ -26,6 +41,17 @@ nivel 40".
 npm install
 npm run dev          # http://localhost:4071
 PORT=3000 npm run dev   # outra porta, sem criar script novo
+```
+
+Em desenvolvimento o papel padrao e `ambos`: o mesmo servidor atende
+`localhost:4071` (dex) e `bot.localhost:4071` (robo). O navegador resolve
+`bot.localhost` sozinho, sem mexer em `/etc/hosts`.
+
+O robo precisa de banco:
+
+```bash
+docker compose up -d db
+npm run db:migrate
 ```
 
 Producao:
@@ -63,6 +89,13 @@ src/
     ui/           PRIMITIVAS — botao, campo, select, modal, faixa, ...
     *.tsx         componentes de dominio (card, filtros, navegacao)
   lib/
+    robo/         A AREA LOGADA (so o servico do robo usa)
+      papel.ts    qual host este processo atende
+      auth.ts     login do site (Auth.js sobre SQL puro)
+      sessao.ts   os dois portoes: logado, e assinante
+      vinculo.ts  a conta do JOGO por usuario (tokens cifrados)
+      jogo/       falar com o jogo: token, REST, WebSocket, shard
+      motor/      a sessao de cacada viva + o estado desejado
     source.ts     fonte do catalogo: ETag, cache, fallback
     data.ts       derivacoes (indice reverso de drop, spots, evolucao)
     dex.ts        motor da dex: o que se pode perguntar e como ordenar
@@ -87,11 +120,15 @@ Duas regras que valem em todo arquivo:
 
 ## Convencoes
 
-Slug `piwdex2` governa o nome de tudo (`piwdex2-app`, `piwdex2-db`, rede
-`piwdex2-net`). Porta interna constante (3000), externa por variavel. Par de
-portas reservado: **4071** (app) / **5071** (banco).
+Slug `piwdex2` governa o nome de tudo (`piwdex2-app`, `piwdex2-bot`,
+`piwdex2-db`, rede `piwdex2-net`). Porta interna constante (3000), externa por
+variavel. O projeto tem **duas** portas de app e um banco: **4071** (dex),
+**4072** (robo), **5071** (banco).
 
 ## Aviso
 
-Projeto de fa. Sem vinculo com os autores do Poke Idle World. Todo acesso ao
-jogo e de LEITURA.
+Projeto de fa. Sem vinculo com os autores do Poke Idle World.
+
+A camada publica (dex, itens, calculadoras) e 100% de LEITURA. O robo, por
+definicao, nao e: ele age na conta do proprio usuario, com a credencial que o
+proprio usuario forneceu, e so enquanto ele o mantem ligado.
