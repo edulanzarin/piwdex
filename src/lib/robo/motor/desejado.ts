@@ -23,6 +23,8 @@ export interface Desejado {
   slug: string | null;
   ultimoStatus: string;
   ultimoErro: string | null;
+  /** o que as automacoes ja fizeram, pra contagem sobreviver ao restart */
+  placar: unknown;
 }
 
 interface Linha {
@@ -32,6 +34,7 @@ interface Linha {
   slug: string | null;
   last_status: string;
   last_error: string | null;
+  placar: unknown;
 }
 
 const daLinha = (l: Linha): Desejado => ({
@@ -40,6 +43,7 @@ const daLinha = (l: Linha): Desejado => ({
   slug: l.slug,
   ultimoStatus: l.last_status,
   ultimoErro: l.last_error,
+  placar: l.placar,
 });
 
 export async function lerDesejado(userId: string): Promise<Desejado | null> {
@@ -76,6 +80,20 @@ export async function salvarDesejado(
        slug       = CASE WHEN $5 THEN $4 ELSE robot_sessions.slug END,
        updated_at = now()`,
     [userId, patch.ligado ?? null, patch.modo ?? null, patch.slug ?? null, "slug" in patch],
+  );
+}
+
+/**
+ * Grava o placar das automacoes.
+ *
+ * Fire-and-forget, como o status: perder uma atualizacao de contador custa um
+ * numero; parar a cacada por causa do banco custa a noite inteira.
+ */
+export async function salvarPlacar(userId: string, placar: unknown): Promise<void> {
+  await query(
+    `INSERT INTO robot_sessions (user_id, placar) VALUES ($1, $2)
+     ON CONFLICT (user_id) DO UPDATE SET placar = $2, updated_at = now()`,
+    [userId, JSON.stringify(placar)],
   );
 }
 

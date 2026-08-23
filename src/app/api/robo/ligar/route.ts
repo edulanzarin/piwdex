@@ -5,6 +5,7 @@ import { lerPokes } from "@/lib/robo/jogo/ws";
 import { sessaoDe } from "@/lib/robo/motor/sessao";
 import { salvarDesejado } from "@/lib/robo/motor/desejado";
 import { lerConfig } from "@/lib/robo/motor/config";
+import { lerDesejado } from "@/lib/robo/motor/desejado";
 import type { Tokens } from "@/lib/robo/jogo/auth";
 
 export const runtime = "nodejs";
@@ -42,8 +43,14 @@ export async function POST() {
   await salvarDesejado(usuario.id, { ligado: true });
 
   const persistir = (t: Tokens) => atualizarTokens(usuario.id, t);
-  const cfg = await lerConfig(usuario.id).catch(() => undefined);
-  sessaoDe(usuario.id).segurar(usuario.id, v.tokens, shard, persistir, cfg, v.nomeJogador);
+  const [cfg, d] = await Promise.all([
+    lerConfig(usuario.id).catch(() => undefined),
+    lerDesejado(usuario.id).catch(() => null),
+  ]);
+  sessaoDe(usuario.id).segurar(
+    usuario.id, v.tokens, shard, persistir, cfg, v.nomeJogador,
+    d?.placar as never,
+  );
 
   return NextResponse.json({ ok: true });
 }

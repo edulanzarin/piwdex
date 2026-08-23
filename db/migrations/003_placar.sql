@@ -1,0 +1,15 @@
+-- O placar das automacoes sobrevive ao processo.
+--
+-- O analyzer e do JOGO e zera junto com a sessao de jogo: nada a fazer, o numero
+-- e dele. O placar e NOSSO — quantas bolas o robo repos, quanto vendeu, quanto
+-- gastou — e ele estava so em memoria. Um deploy, um restart ou uma queda
+-- apagavam a conta inteira do dia, e quem olhava a tela via "nesta sessao" voltar
+-- pro zero sem nada ter acontecido.
+--
+-- Fica junto do estado desejado porque e a mesma pergunta ("o que o robo esta
+-- fazendo por mim"), e porque assim o boot le tudo numa consulta so.
+--
+-- shape: {"itensVendidos":int,"ouroVendas":int,"pokesVendidos":int,"ouroPokes":int,
+--         "bolasCompradas":int,"pocoesCompradas":int,"revivesComprados":int,
+--         "ouroCompras":int,"desde":epoch_ms}
+ALTER TABLE robot_sessions ADD COLUMN IF NOT EXISTS placar jsonb;

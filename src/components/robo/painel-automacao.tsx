@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button, Checkbox, Empty, Loading, Note, NumberField, Panel, Select, Sprite, Switch } from "@/components/ui";
 import { compact, TIER_LABEL } from "@/lib/labels";
 import { spriteUrl } from "@/lib/sprites";
@@ -152,9 +152,23 @@ export function AbaAutomacao({
 }: {
   estado: EstadoHunt;
   config: ConfigAuto;
-  onConfig: (patch: Partial<ConfigAuto>) => Promise<void>;
+  onConfig: (cfg: ConfigAuto) => Promise<void>;
   erro: string | null;
 }) {
+  /**
+   * Rascunho.
+   *
+   * Antes, cada clique gravava e passava a valer na hora — inclusive um "vender
+   * o que o box acumula" ligado por engano, que destrói pokémon e não desfaz. A
+   * tela agora acumula a mudança e só age quando alguém confirma.
+   *
+   * A automação do JOGO (Auto-Helper) entra no mesmo rascunho, mesmo indo por
+   * outra rota: para quem mexe, é tudo "as configurações do robô", e ter metade
+   * salvando sozinha seria a pior das duas regras.
+   */
+  const [rascunho, setRascunho] = useState<ConfigAuto>(config);
+  const [autoRascunho, setAutoRascunho] = useState<EstadoAuto | null>(null);
+  const [salvando, setSalvando] = useState(false);
   const [loja, setLoja] = useState<Loja | null>(null);
   const [mochila, setMochila] = useState<ItemMochila[]>([]);
   const [carregando, setCarregando] = useState(true);
@@ -169,6 +183,14 @@ export function AbaAutomacao({
   useEffect(() => {
     if (estado.auto) setAuto(estado.auto);
   }, [estado.auto]);
+
+  // O salvo mudou por fora (outra aba, o servidor corrigiu um valor): o rascunho
+  // acompanha, MENOS quando há edição pendente — sobrescrever ali apagaria o que
+  // a pessoa está digitando.
+  const sujoRef = useRef(false);
+  useEffect(() => {
+    if (!sujoRef.current) setRascunho(config);
+  }, [config]);
   useEffect(() => {
     if (estado.bolas.length) setBolas(estado.bolas);
   }, [estado.bolas]);
@@ -193,6 +215,35 @@ export function AbaAutomacao({
       vivo = false;
     };
   }, []);
+
+  /** Uma mudança entra no rascunho. Nada sai daqui para o servidor. */
+  const mudar = useCallback((patch: Partial<ConfigAuto>) => {
+    setRascunho((r) => ({ ...r, ...patch }));
+  }, []);
+
+  const mudarAutoLocal = useCallback((patch: Partial<EstadoAuto>) => {
+    setAutoRascunho((a) => ({ ...(a ?? auto)!, ...patch }));
+  }, [auto]);
+
+  const autoAtual = autoRascunho ?? auto;
+
+  /** O que mudou na automação do JOGO — só isso vai para lá. */
+  const patchAuto = useMemo(() => {
+    if (!autoRascunho || !auto) return {};
+    const campos: (keyof EstadoAuto)[] = [
+      "autoCatch", "autoCatchBallId", "autoCatchShiny", "autoCatchShinyBallId",
+      "autoPotion", "autoPotionThreshold", "autoRevive",
+    ];
+    const out: Record<string, number | boolean> = {};
+    for (const c of campos) {
+      if (autoRascunho[c] !== auto[c]) out[c] = autoRascunho[c] as number | boolean;
+    }
+    return out;
+  }, [autoRascunho, auto]);
+
+  const sujo =
+    JSON.stringify(rascunho) !== JSON.stringify(config) || Object.keys(patchAuto).length > 0;
+  sujoRef.current = sujo;
 
   const mudarAuto = useCallback(async (patch: Partial<Record<string, number | boolean>>) => {
     setSalvandoAuto(true);
@@ -227,6 +278,24 @@ export function AbaAutomacao({
    * as bolas da LOJA, porque só se pode comprar o que está lá. Usar o catálogo da
    * loja para as duas coisas escondia a Idle Ball da captura automática.
    */
+  async function salvar() {
+    setSalvando(true);
+    setRecado(null);
+    try {
+      if (Object.keys(patchAuto).length) await mudarAuto(patchAuto);
+      if (JSON.stringify(rascunho) !== JSON.stringify(config)) await onConfig(rascunho);
+      setAutoRascunho(null);
+    } finally {
+      setSalvando(false);
+    }
+  }
+
+  function descartar() {
+    setRascunho(config);
+    setAutoRascunho(null);
+    setRecado(null);
+  }
+
   /**
    * A prévia da subida, sem ligar nada.
    *
@@ -259,6 +328,31 @@ export function AbaAutomacao({
   }, [config.autoRota, config.nivelAlvo, estado.rota.length]);
 
   const rota = estado.rota.length ? estado.rota : (previa?.passos ?? []);
+
+  /**
+   * Onde a subida está.
+   *
+   * O nível sozinho não responde "falta muito?": a curva de XP é acelerada, então
+   * metade dos níveis não é metade do tempo. O que a barra mede é NÍVEL, e as
+   * horas ao lado vêm somadas das faixas que ainda faltam — que é onde a curva
+   * já está embutida.
+   */
+  const progresso = (() => {
+    const nivel = estado.nivelLider;
+    if (!rota.length || nivel == null) return null;
+    const inicio = rota[0].de;
+    const alvo = rascunho.nivelAlvo;
+    if (alvo <= inicio) return null;
+    const feito = Math.max(0, Math.min(1, (nivel - inicio) / (alvo - inicio)));
+    const faltam = rota
+      .filter((p) => p.ate > nivel)
+      .reduce((soma, p) => {
+        // A faixa em curso conta só o pedaço que sobrou dela.
+        const parte = p.de >= nivel ? 1 : (p.ate - nivel) / (p.ate - p.de);
+        return soma + p.horas * parte;
+      }, 0);
+    return { nivel, inicio, alvo, feito, faltam };
+  })();
   const horasRota = estado.rota.length
     ? null
     : previa?.passos.length
@@ -329,11 +423,11 @@ export function AbaAutomacao({
             titulo="Automação do jogo"
             hint="Captura, poção e revive automáticos rodam no servidor do jogo. O robô liga o interruptor e mantém a bolsa cheia."
           >
-            {!auto ? (
+            {!autoAtual ? (
               <Note tone="warn">Não consegui ler a configuração do jogo. Reconecte a conta.</Note>
             ) : (
               <>
-                {!auto.vipNoJogo ? (
+                {!autoAtual.vipNoJogo ? (
                   <Note tone="warn">
                     A captura automática é recurso VIP do jogo, e esta conta não tem. O interruptor
                     abaixo não vai pegar até o VIP entrar lá.
@@ -343,16 +437,16 @@ export function AbaAutomacao({
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div className="flex flex-col gap-2 border border-line bg-bg-soft p-3">
                     <Switch
-                      checked={auto.autoCatch}
+                      checked={autoAtual.autoCatch}
                       disabled={salvandoAuto}
-                      onChange={(e) => void mudarAuto({ autoCatch: e.currentTarget.checked })}
+                      onChange={(e) => mudarAutoLocal({ autoCatch: e.currentTarget.checked })}
                       label="capturar sozinho"
                       hint="o jogo joga a bola nos corpos da fila"
                     />
-                    {auto.autoCatch ? (
+                    {autoAtual.autoCatch ? (
                       <Select
-                        value={String(auto.autoCatchBallId || "")}
-                        onChange={(v) => void mudarAuto({ autoCatchBallId: Number(v) })}
+                        value={String(autoAtual.autoCatchBallId || "")}
+                        onChange={(v) => mudarAutoLocal({ autoCatchBallId: Number(v) })}
                         options={bolasDaConta}
                         placeholder="escolha a bola"
                         disabled={salvandoAuto}
@@ -362,16 +456,16 @@ export function AbaAutomacao({
 
                   <div className="flex flex-col gap-2 border border-line bg-bg-soft p-3">
                     <Switch
-                      checked={auto.autoCatchShiny}
+                      checked={autoAtual.autoCatchShiny}
                       disabled={salvandoAuto}
-                      onChange={(e) => void mudarAuto({ autoCatchShiny: e.currentTarget.checked })}
+                      onChange={(e) => mudarAutoLocal({ autoCatchShiny: e.currentTarget.checked })}
                       label="bola separada para shiny"
                       hint="gasta a bola boa só no que vale"
                     />
-                    {auto.autoCatchShiny ? (
+                    {autoAtual.autoCatchShiny ? (
                       <Select
-                        value={String(auto.autoCatchShinyBallId || "")}
-                        onChange={(v) => void mudarAuto({ autoCatchShinyBallId: Number(v) })}
+                        value={String(autoAtual.autoCatchShinyBallId || "")}
+                        onChange={(v) => mudarAutoLocal({ autoCatchShinyBallId: Number(v) })}
                         options={bolasDaConta}
                         placeholder="escolha a bola"
                         disabled={salvandoAuto}
@@ -381,19 +475,19 @@ export function AbaAutomacao({
 
                   <div className="flex flex-col gap-2 border border-line bg-bg-soft p-3">
                     <Switch
-                      checked={auto.autoPotion}
+                      checked={autoAtual.autoPotion}
                       disabled={salvandoAuto}
-                      onChange={(e) => void mudarAuto({ autoPotion: e.currentTarget.checked })}
+                      onChange={(e) => mudarAutoLocal({ autoPotion: e.currentTarget.checked })}
                       label="usar poção sozinho"
                       hint="antes de desmaiar, que custa a caçada inteira"
                     />
-                    {auto.autoPotion ? (
+                    {autoAtual.autoPotion ? (
                       <label className="flex items-end gap-2">
                         <span className="flex min-w-0 flex-1 flex-col gap-1">
                           <span className="pix text-[10px] text-text-mute">usa abaixo de</span>
                           <NumberField
-                            value={auto.autoPotionThreshold}
-                            onChange={(n) => void mudarAuto({ autoPotionThreshold: n })}
+                            value={autoAtual.autoPotionThreshold}
+                            onChange={(n) => mudarAutoLocal({ autoPotionThreshold: n })}
                             min={0}
                             max={100}
                           />
@@ -405,9 +499,9 @@ export function AbaAutomacao({
 
                   <div className="flex flex-col gap-2 border border-line bg-bg-soft p-3">
                     <Switch
-                      checked={auto.autoRevive}
+                      checked={autoAtual.autoRevive}
                       disabled={salvandoAuto}
-                      onChange={(e) => void mudarAuto({ autoRevive: e.currentTarget.checked })}
+                      onChange={(e) => mudarAutoLocal({ autoRevive: e.currentTarget.checked })}
                       label="usar revive sozinho"
                       hint="o robô também levanta o líder por conta"
                     />
@@ -435,15 +529,15 @@ export function AbaAutomacao({
           >
             <div className="flex flex-wrap items-end gap-3">
               <Switch
-                checked={config.autoRota}
-                onChange={(e) => void onConfig({ autoRota: e.currentTarget.checked })}
+                checked={rascunho.autoRota}
+                onChange={(e) => mudar({ autoRota: e.currentTarget.checked })}
                 label="subir sozinho até o nível"
               />
               <label className="flex flex-col gap-1">
                 <span className="pix text-[10px] text-text-mute">nível alvo</span>
                 <NumberField
-                  value={config.nivelAlvo}
-                  onChange={(n) => void onConfig({ nivelAlvo: n })}
+                  value={rascunho.nivelAlvo}
+                  onChange={(n) => mudar({ nivelAlvo: n })}
                   min={2}
                   max={1000}
                   className="w-28"
@@ -451,7 +545,7 @@ export function AbaAutomacao({
               </label>
             </div>
 
-            {config.autoRota ? (
+            {rascunho.autoRota ? (
               rota.length === 0 ? (
                 <Note tone={previa?.erro === "sem_lider" ? "warn" : "muted"}>
                   {previa?.erro === "sem_lider"
@@ -464,20 +558,55 @@ export function AbaAutomacao({
                 </Note>
               ) : (
                 <>
-                  <Note>
-                    {horasRota
-                      ? `Prévia: cerca de ${horasRota < 1 ? "menos de uma hora" : `${Math.round(horasRota)}h`} de caçada. `
-                      : ""}
-                    A caçada para sozinha ao chegar no alvo. O robô continua segurando a sessão.
-                  </Note>
+                  {progresso ? (
+                    <div className="border border-line bg-bg-soft p-3">
+                      <div className="flex flex-wrap items-baseline justify-between gap-2">
+                        <span className="pix text-[11px] text-text-mute">
+                          nível {progresso.nivel} de {progresso.alvo}
+                        </span>
+                        <span className="text-[12px] tabular text-text-dim">
+                          {estado.rotaConcluida
+                            ? "meta alcançada"
+                            : progresso.faltam < 1
+                              ? "falta menos de uma hora"
+                              : `faltam ~${Math.round(progresso.faltam)}h`}
+                        </span>
+                      </div>
+                      <span className="mt-2 flex h-1.5 w-full overflow-hidden bg-surface-3" aria-hidden="true">
+                        <span
+                          style={{
+                            width: `${progresso.feito * 100}%`,
+                            backgroundColor: estado.rotaConcluida ? "var(--color-ok)" : COR,
+                          }}
+                        />
+                      </span>
+                      <p className="mt-1.5 text-[11px] text-text-mute">
+                        {Math.round(progresso.feito * 100)}% do caminho, desde o nível {progresso.inicio}.
+                        {estado.passoAtual ? ` Agora em ${estado.passoAtual.alvo}.` : ""}
+                      </p>
+                    </div>
+                  ) : (
+                    <Note>
+                      {horasRota
+                        ? `Prévia: cerca de ${horasRota < 1 ? "menos de uma hora" : `${Math.round(horasRota)}h`} de caçada. `
+                        : ""}
+                      A caçada para sozinha ao chegar no alvo. O robô continua segurando a sessão.
+                    </Note>
+                  )}
                   <ul className="flex max-h-[260px] flex-col gap-1 overflow-y-auto">
                     {rota.map((p) => {
                       const atual = estado.passoAtual?.slug === p.slug && estado.passoAtual?.de === p.de;
+                      const passou = estado.nivelLider != null && estado.nivelLider >= p.ate;
                       return (
                         <li
                           key={`${p.de}-${p.slug}`}
                           className="flex items-center gap-2 border border-line bg-bg-soft px-2 py-1.5"
-                          style={atual ? { borderColor: "color-mix(in srgb, var(--color-t-robo) 55%, transparent)" } : undefined}
+                          style={{
+                            ...(atual
+                              ? { borderColor: "color-mix(in srgb, var(--color-t-robo) 55%, transparent)" }
+                              : {}),
+                            ...(passou ? { opacity: 0.45 } : {}),
+                          }}
                         >
                           <Sprite src={spriteUrl(p.speciesId)} alt="" size={24} />
                           <span className="pix w-16 shrink-0 text-[10px] text-text-mute">
@@ -519,42 +648,42 @@ export function AbaAutomacao({
                 titulo="bolas"
                 unidade="un"
                 estoque={estoqueBolas ? compact(estoqueBolas) : undefined}
-                ligado={config.comprarBola}
-                onLigar={(v) => void onConfig({ comprarBola: v })}
-                piso={config.pisoBola}
-                alvo={config.alvoBola}
-                onPiso={(n) => void onConfig({ pisoBola: n })}
-                onAlvo={(n) => void onConfig({ alvoBola: n })}
-                itemId={config.bolaId}
-                onItem={(n) => void onConfig({ bolaId: n })}
+                ligado={rascunho.comprarBola}
+                onLigar={(v) => mudar({ comprarBola: v })}
+                piso={rascunho.pisoBola}
+                alvo={rascunho.alvoBola}
+                onPiso={(n) => mudar({ pisoBola: n })}
+                onAlvo={(n) => mudar({ alvoBola: n })}
+                itemId={rascunho.bolaId}
+                onItem={(n) => mudar({ bolaId: n })}
                 opcoes={bolasDaLoja}
                 rotuloPadrao="a mais barata da loja"
               />
               <Consumivel
                 titulo="poções"
                 unidade="un"
-                ligado={config.comprarPocao}
-                onLigar={(v) => void onConfig({ comprarPocao: v })}
-                piso={config.pisoPocao}
-                alvo={config.alvoPocao}
-                onPiso={(n) => void onConfig({ pisoPocao: n })}
-                onAlvo={(n) => void onConfig({ alvoPocao: n })}
-                itemId={config.pocaoId}
-                onItem={(n) => void onConfig({ pocaoId: n })}
+                ligado={rascunho.comprarPocao}
+                onLigar={(v) => mudar({ comprarPocao: v })}
+                piso={rascunho.pisoPocao}
+                alvo={rascunho.alvoPocao}
+                onPiso={(n) => mudar({ pisoPocao: n })}
+                onAlvo={(n) => mudar({ alvoPocao: n })}
+                itemId={rascunho.pocaoId}
+                onItem={(n) => mudar({ pocaoId: n })}
                 opcoes={pocoes.map(comIcone)}
                 rotuloPadrao="a mais barata da loja"
               />
               <Consumivel
                 titulo="revives"
                 unidade="un"
-                ligado={config.comprarRevive}
-                onLigar={(v) => void onConfig({ comprarRevive: v })}
-                piso={config.pisoRevive}
-                alvo={config.alvoRevive}
-                onPiso={(n) => void onConfig({ pisoRevive: n })}
-                onAlvo={(n) => void onConfig({ alvoRevive: n })}
-                itemId={config.reviveId}
-                onItem={(n) => void onConfig({ reviveId: n })}
+                ligado={rascunho.comprarRevive}
+                onLigar={(v) => mudar({ comprarRevive: v })}
+                piso={rascunho.pisoRevive}
+                alvo={rascunho.alvoRevive}
+                onPiso={(n) => mudar({ pisoRevive: n })}
+                onAlvo={(n) => mudar({ alvoRevive: n })}
+                itemId={rascunho.reviveId}
+                onItem={(n) => mudar({ reviveId: n })}
                 opcoes={revives.map(comIcone)}
                 rotuloPadrao="o mais barato da loja"
               />
@@ -564,8 +693,8 @@ export function AbaAutomacao({
               <label className="flex flex-col gap-1">
                 <span className="pix text-[10px] text-text-mute">gasto máximo por rodada</span>
                 <NumberField
-                  value={config.tetoOuro}
-                  onChange={(n) => void onConfig({ tetoOuro: n })}
+                  value={rascunho.tetoOuro}
+                  onChange={(n) => mudar({ tetoOuro: n })}
                   min={0}
                   max={100000000}
                   grouped
@@ -591,15 +720,15 @@ export function AbaAutomacao({
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => void onConfig({ dropIds: mochila.map((i) => i.id) })}
+                    onClick={() => mudar({ dropIds: mochila.map((i) => i.id) })}
                   >
                     marcar tudo
                   </Button>
                   <Button
                     variant="ghost"
                     size="sm"
-                    disabled={!config.dropIds.length}
-                    onClick={() => void onConfig({ dropIds: [], venderDrop: false })}
+                    disabled={!rascunho.dropIds.length}
+                    onClick={() => mudar({ dropIds: [], venderDrop: false })}
                   >
                     limpar
                   </Button>
@@ -608,13 +737,13 @@ export function AbaAutomacao({
             }
           >
             <Switch
-              checked={config.venderDrop}
-              disabled={!config.dropIds.length}
-              onChange={(e) => void onConfig({ venderDrop: e.currentTarget.checked })}
+              checked={rascunho.venderDrop}
+              disabled={!rascunho.dropIds.length}
+              onChange={(e) => mudar({ venderDrop: e.currentTarget.checked })}
               label="vender os itens marcados"
               hint={
-                config.dropIds.length
-                  ? `${config.dropIds.length} marcados · ${compact(rendeMarcado)} de ouro parado na mochila`
+                rascunho.dropIds.length
+                  ? `${rascunho.dropIds.length} marcados · ${compact(rendeMarcado)} de ouro parado na mochila`
                   : "marque pelo menos um item abaixo"
               }
             />
@@ -624,7 +753,7 @@ export function AbaAutomacao({
             ) : (
               <ul className="grid max-h-[300px] gap-1 overflow-y-auto sm:grid-cols-2">
                 {mochila.map((i) => {
-                  const marcado = config.dropIds.includes(i.id);
+                  const marcado = rascunho.dropIds.includes(i.id);
                   return (
                     <li
                       key={i.id}
@@ -634,10 +763,10 @@ export function AbaAutomacao({
                       <Checkbox
                         checked={marcado}
                         onChange={() =>
-                          void onConfig({
+                          mudar({
                             dropIds: marcado
-                              ? config.dropIds.filter((x) => x !== i.id)
-                              : [...config.dropIds, i.id],
+                              ? rascunho.dropIds.filter((x) => x !== i.id)
+                              : [...rascunho.dropIds, i.id],
                           })
                         }
                       />
@@ -664,11 +793,11 @@ export function AbaAutomacao({
             }
           >
             <Switch
-              checked={config.venderPoke}
-              onChange={(e) => void onConfig({ venderPoke: e.currentTarget.checked })}
+              checked={rascunho.venderPoke}
+              onChange={(e) => mudar({ venderPoke: e.currentTarget.checked })}
               label="vender o que o box acumula"
             />
-            {config.venderPoke ? (
+            {rascunho.venderPoke ? (
               <>
                 <Note tone="warn">
                   Com isto ligado, o robô vende sozinho todo pokémon do box abaixo dos limites. Confira
@@ -677,8 +806,8 @@ export function AbaAutomacao({
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div className="border border-line bg-bg-soft p-3">
                     <Switch
-                      checked={config.manterShiny}
-                      onChange={(e) => void onConfig({ manterShiny: e.currentTarget.checked })}
+                      checked={rascunho.manterShiny}
+                      onChange={(e) => mudar({ manterShiny: e.currentTarget.checked })}
                       label="nunca vender shiny"
                     />
                   </div>
@@ -688,8 +817,8 @@ export function AbaAutomacao({
                   <label className="flex flex-col gap-1 border border-line bg-bg-soft p-3">
                     <span className="pix text-[10px] text-text-mute">fica com qualidade a partir de</span>
                     <Select
-                      value={qualityTier(config.qualidadeMinima)}
-                      onChange={(t) => void onConfig({ qualidadeMinima: TIER_MIN[t] })}
+                      value={qualityTier(rascunho.qualidadeMinima)}
+                      onChange={(t) => mudar({ qualidadeMinima: TIER_MIN[t] })}
                       options={TIER_ORDER.filter((t) => t !== "WEAK").map((t) => ({
                         value: t,
                         label: TIER_LABEL[t],
@@ -710,8 +839,8 @@ export function AbaAutomacao({
                   <label className="flex flex-col gap-1 border border-line bg-bg-soft p-3">
                     <span className="pix text-[10px] text-text-mute">fica com IV a partir de</span>
                     <NumberField
-                      value={config.ivMinimo}
-                      onChange={(n) => void onConfig({ ivMinimo: n })}
+                      value={rascunho.ivMinimo}
+                      onChange={(n) => mudar({ ivMinimo: n })}
                       min={0}
                       max={186}
                     />
@@ -719,8 +848,8 @@ export function AbaAutomacao({
                   <label className="flex flex-col gap-1 border border-line bg-bg-soft p-3">
                     <span className="pix text-[10px] text-text-mute">fica com nível a partir de</span>
                     <NumberField
-                      value={config.nivelMinimo}
-                      onChange={(n) => void onConfig({ nivelMinimo: n })}
+                      value={rascunho.nivelMinimo}
+                      onChange={(n) => mudar({ nivelMinimo: n })}
                       min={1}
                       max={1000}
                     />
@@ -732,18 +861,33 @@ export function AbaAutomacao({
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-3">
-        <Button
-          variant="outline"
-          disabled={!estado.conectado}
-          onClick={() => void fetch("/api/robo/agora", { method: "POST" })}
-        >
-          rodar as automações agora
+      {/* A barra de salvar gruda no rodapé porque as seções são altas: a mudança
+          acontece no topo e a confirmação não pode ficar a uma rolagem dela. */}
+      <div className="sticky bottom-0 z-10 -mx-1 flex flex-wrap items-center gap-3 border-t border-line bg-bg/95 px-1 py-3 backdrop-blur">
+        <Button variant="primary" disabled={!sujo || salvando} onClick={() => void salvar()}>
+          {salvando ? "salvando…" : "salvar alterações"}
         </Button>
-        <span className="text-[12px] text-text-mute">
-          {estado.conectado
-            ? "Roda uma vez, sem esperar a varredura de minuto."
-            : "Ligue o robô para poder testar."}
+        <Button variant="ghost" disabled={!sujo || salvando} onClick={descartar}>
+          descartar
+        </Button>
+        <span className="text-[12px]" style={{ color: sujo ? "var(--color-warn)" : "var(--color-text-mute)" }}>
+          {sujo ? "Há alterações que ainda não foram aplicadas." : "Tudo salvo."}
+        </span>
+        <span className="ml-auto flex items-center gap-3">
+          <Button
+            variant="outline"
+            disabled={!estado.conectado || sujo}
+            onClick={() => void fetch("/api/robo/agora", { method: "POST" })}
+          >
+            rodar agora
+          </Button>
+          <span className="text-[12px] text-text-mute">
+            {!estado.conectado
+              ? "Ligue o robô para testar."
+              : sujo
+                ? "Salve antes de testar."
+                : "Roda uma vez, sem esperar o minuto."}
+          </span>
         </span>
       </div>
     </div>

@@ -5,6 +5,7 @@ import {
   comprarItem,
   lerCadeados,
   lerLoja,
+  ehConsumivel,
   lerMochila,
   venderItens,
   venderPokes,
@@ -223,7 +224,14 @@ export async function rodarVendaDrops(
   const permitidos = new Set(cfg.dropIds);
 
   const lote = mochila.itens.filter(
-    (i) => i.quantidade > 0 && permitidos.has(i.id) && !travados.has(i.id),
+    (i) =>
+      i.quantidade > 0 &&
+      permitidos.has(i.id) &&
+      !travados.has(i.id) &&
+      // Cinto e suspensorio: a tela ja nao oferece consumivel pra marcar, e uma
+      // lista salva ANTES desta regra pode carregar um id de pocao. O motor e o
+      // ultimo lugar onde isso ainda da pra barrar.
+      !ehConsumivel(i.categoria),
   );
   if (!lote.length) return [];
 

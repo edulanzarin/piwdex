@@ -1,8 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Button, Empty, Loading, Note, Panel, SearchInput, Sprite } from "@/components/ui";
-import { compact, num } from "@/lib/labels";
+import { Button, Empty, Loading, Note, Panel, SearchInput, Segmented, Sprite } from "@/components/ui";
+import { compact, num, TIER_LABEL } from "@/lib/labels";
+import { qualityTier, TIER_COLOR } from "@/lib/rarity";
+import { spriteUrl } from "@/lib/sprites";
+import type { ActivePoke } from "@/lib/robo/jogo/pokes";
 import type { BolaEstoque, Perfil } from "@/lib/robo/motor/tipos";
 
 /**
@@ -21,6 +24,20 @@ interface ItemMochila {
   precoNpc: number;
   categoria: string;
 }
+
+interface Meu extends ActivePoke {
+  vendavel: boolean;
+}
+
+type Ordem = "qualidade" | "iv" | "nivel" | "valor" | "nome";
+
+const ORDENAR: Record<Ordem, (a: Meu, b: Meu) => number> = {
+  qualidade: (a, b) => b.quality - a.quality || b.ivTotal - a.ivTotal,
+  iv: (a, b) => b.ivTotal - a.ivTotal || b.quality - a.quality,
+  nivel: (a, b) => b.level - a.level || b.ivTotal - a.ivTotal,
+  valor: (a, b) => b.sellValue - a.sellValue,
+  nome: (a, b) => a.name.localeCompare(b.name, "pt-BR"),
+};
 
 const CATEGORIA: Record<string, string> = {
   loot: "drop",
@@ -53,7 +70,12 @@ function data(iso: string | null): string {
 export function AbaConta() {
   const [perfil, setPerfil] = useState<Perfil | null>(null);
   const [bolas, setBolas] = useState<BolaEstoque[]>([]);
+  const [consumiveis, setConsumiveis] = useState<ItemMochila[]>([]);
   const [mochila, setMochila] = useState<ItemMochila[]>([]);
+  const [pokemons, setPokemons] = useState<Meu[]>([]);
+  const [boxVivo, setBoxVivo] = useState(false);
+  const [ordem, setOrdem] = useState<Ordem>("qualidade");
+  const [buscaPoke, setBuscaPoke] = useState("");
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   const [busca, setBusca] = useState("");
@@ -63,7 +85,15 @@ export function AbaConta() {
     setErro(null);
     const res = await fetch("/api/robo/conta").catch(() => null);
     const j = (await res?.json().catch(() => null)) as
-      | { perfil?: Perfil; bolas?: BolaEstoque[]; mochila?: ItemMochila[]; erro?: string }
+      | {
+          perfil?: Perfil;
+          bolas?: BolaEstoque[];
+          consumiveis?: ItemMochila[];
+          mochila?: ItemMochila[];
+          pokemons?: Meu[];
+          boxVivo?: boolean;
+          erro?: string;
+        }
       | null;
     if (!res?.ok) {
       setErro(
@@ -76,7 +106,10 @@ export function AbaConta() {
     }
     setPerfil(j?.perfil ?? null);
     setBolas(j?.bolas ?? []);
+    setConsumiveis(j?.consumiveis ?? []);
     setMochila(j?.mochila ?? []);
+    setPokemons(j?.pokemons ?? []);
+    setBoxVivo(!!j?.boxVivo);
     setCarregando(false);
   }, []);
 
@@ -135,9 +168,25 @@ export function AbaConta() {
       </Panel>
 
       <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,340px)_minmax(0,1fr)]">
-        {/* ---- bolsa ---- */}
+        {/* ---- bolsa: o que a caçada GASTA ---- */}
         <Panel className="p-4">
-          <h2 className="pix text-[13px] text-text-dim">Bolsa</h2>
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="pix text-[13px] text-text-dim">Bolsa</h2>
+            <span className="pix text-[11px] text-text-mute">bolas, poções, revives</span>
+          </div>
+
+          {consumiveis.length > 0 ? (
+            <ul className="mt-3 flex flex-col gap-1">
+              {consumiveis.map((i) => (
+                <li key={i.id} className="flex items-center gap-2 border border-line bg-bg-soft px-2 py-1.5">
+                  {i.icone ? <Sprite src={i.icone} alt="" size={22} /> : null}
+                  <span className="min-w-0 flex-1 truncate text-[13px] text-text">{i.nome}</span>
+                  <span className="shrink-0 text-[12px] tabular text-text-dim">{compact(i.quantidade)}</span>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+
           {bolas.length === 0 ? (
             <Empty title="Sem bolas" hint="O catálogo chega junto com a conta." />
           ) : (
@@ -208,6 +257,112 @@ export function AbaConta() {
           )}
         </Panel>
       </div>
+
+      {/* ---- todos os pokémons ---- */}
+      <Panel className="p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="min-w-0">
+            <h2 className="pix text-[13px] text-text-dim">Pokémons</h2>
+            <p className="mt-1 text-[12px] text-text-mute">
+              {pokemons.length
+                ? `${pokemons.filter((p) => p.team).length} no time · ${pokemons.filter((p) => !p.team).length} no box`
+                : "Time e box."}
+            </p>
+          </div>
+          <Segmented
+            value={ordem}
+            onChange={setOrdem}
+            size="sm"
+            options={[
+              { value: "qualidade", label: "qualidade" },
+              { value: "iv", label: "IV" },
+              { value: "nivel", label: "nível" },
+              { value: "valor", label: "valor" },
+              { value: "nome", label: "nome" },
+            ]}
+          />
+        </div>
+
+        <div className="mt-3">
+          <SearchInput
+            value={buscaPoke}
+            onChange={(e) => setBuscaPoke(e.currentTarget.value)}
+            placeholder="filtrar pokémon…"
+          />
+        </div>
+
+        {!boxVivo ? (
+          <Note className="mt-3">
+            O box só existe com a sessão do jogo aberta. Ligue o robô para ver a coleção inteira.
+          </Note>
+        ) : null}
+
+        {(() => {
+          const t = buscaPoke.trim().toLowerCase();
+          const lista = pokemons
+            .filter((p) => !t || p.name.toLowerCase().includes(t))
+            .sort(ORDENAR[ordem]);
+          if (!lista.length) {
+            return (
+              <Empty
+                title={pokemons.length ? "Nada com esse nome" : "Nenhum pokémon carregado"}
+                hint={pokemons.length ? undefined : "Ligue o robô para ler a coleção."}
+              />
+            );
+          }
+          return (
+            <ul className="mt-3 grid max-h-[560px] gap-1 overflow-y-auto lg:grid-cols-2">
+              {lista.map((p) => {
+                const tier = qualityTier(p.quality);
+                return (
+                  <li
+                    key={p.id}
+                    className="flex items-center gap-3 border border-line bg-bg-soft p-2"
+                    style={
+                      p.leader
+                        ? { borderColor: "color-mix(in srgb, var(--color-t-robo) 45%, transparent)" }
+                        : p.vendavel
+                          ? { borderColor: "color-mix(in srgb, var(--color-danger) 40%, transparent)" }
+                          : undefined
+                    }
+                  >
+                    <Sprite src={spriteUrl(p.speciesId, p.shiny)} alt="" size={32} />
+                    <div className="min-w-0 flex-1">
+                      <p className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[13px] text-text">
+                        <span className="truncate">{p.name}</span>
+                        <span className="pix text-[10px] text-text-mute">nv {p.level}</span>
+                        {p.leader ? (
+                          <span className="pix text-[10px]" style={{ color: "var(--color-t-robo)" }}>
+                            líder
+                          </span>
+                        ) : p.team ? (
+                          <span className="pix text-[10px] text-text-mute">time</span>
+                        ) : null}
+                        {p.shiny ? <span className="pix text-[10px] text-warn">shiny</span> : null}
+                        {p.locked ? <span className="pix text-[10px] text-text-mute">cadeado</span> : null}
+                      </p>
+                      <p className="mt-0.5 flex flex-wrap items-center gap-x-3 text-[11px] tabular text-text-mute">
+                        <span className="pix text-[10px]" style={{ color: TIER_COLOR[tier] }}>
+                          {TIER_LABEL[tier]}
+                        </span>
+                        <span>IV {p.ivTotal}</span>
+                        <span>poder {compact(p.power)}</span>
+                        <span>vale {compact(p.sellValue)}</span>
+                        <span>
+                          {num(p.hp, 0)}/{num(p.maxHp, 0)}
+                        </span>
+                      </p>
+                    </div>
+                    {p.vendavel ? (
+                      <span className="pix shrink-0 text-[10px] text-danger">sai na venda</span>
+                    ) : null}
+                  </li>
+                );
+              })}
+            </ul>
+          );
+        })()}
+      </Panel>
     </div>
   );
 }

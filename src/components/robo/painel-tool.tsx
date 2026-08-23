@@ -36,7 +36,7 @@ export interface HuntOpcao {
   area: string;
 }
 
-type Aba = "cacada" | "automacao" | "conta" | "chat" | "registro";
+type Aba = "conta" | "cacada" | "automacao" | "chat" | "registro";
 
 function Numero({
   rotulo,
@@ -72,6 +72,7 @@ export function PainelTool({
   vinculo,
   nomeJogador,
   configInicial,
+  estadoInicial,
 }: {
   hunts: HuntOpcao[];
   slugInicial: string | null;
@@ -79,10 +80,11 @@ export function PainelTool({
   vinculo: "active" | "expired" | "blocked" | null;
   nomeJogador: string | null;
   configInicial: ConfigAuto;
+  estadoInicial: EstadoHunt;
 }) {
-  const [estado, setEstado] = useState<EstadoHunt>(estadoParado);
+  const [estado, setEstado] = useState<EstadoHunt>(estadoInicial ?? estadoParado());
   const [slug, setSlug] = useState(slugInicial ?? "");
-  const [aba, setAba] = useState<Aba>("cacada");
+  const [aba, setAba] = useState<Aba>("conta");
   const [ocupado, setOcupado] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [config, setConfig] = useState<ConfigAuto>(configInicial ?? CONFIG_PADRAO);
@@ -137,20 +139,15 @@ export function PainelTool({
 
   /** Salva a config e adota o que VOLTOU: a normalizacao do servidor corrige
    *  alvo abaixo do piso, e mostrar o valor enviado esconderia a correcao. */
-  const mudarConfig = useCallback(
-    async (patch: Partial<ConfigAuto>) => {
-      const otimista = { ...config, ...patch };
-      setConfig(otimista);
-      const res = await fetch("/api/robo/config", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(otimista),
-      }).catch(() => null);
-      const j = (await res?.json().catch(() => null)) as { config?: ConfigAuto } | null;
-      if (j?.config) setConfig(j.config);
-    },
-    [config],
-  );
+  const mudarConfig = useCallback(async (cfg: ConfigAuto) => {
+    const res = await fetch("/api/robo/config", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(cfg),
+    }).catch(() => null);
+    const j = (await res?.json().catch(() => null)) as { config?: ConfigAuto } | null;
+    setConfig(j?.config ?? cfg);
+  }, []);
 
   if (!temVinculo) {
     return (
@@ -296,9 +293,9 @@ export function PainelTool({
         value={aba}
         onChange={setAba}
         items={[
+          { value: "conta", label: "Conta" },
           { value: "cacada", label: "Caçada" },
           { value: "automacao", label: "Automação" },
-          { value: "conta", label: "Conta" },
           { value: "chat", label: "Chat", count: estado.chat.length || undefined },
           { value: "registro", label: "Registro" },
         ]}

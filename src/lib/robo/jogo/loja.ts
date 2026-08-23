@@ -123,6 +123,18 @@ export async function lerCadeados(
   };
 }
 
+/**
+ * O que NUNCA entra na venda de drop.
+ *
+ * Pocao, revive e bola sao ferramenta de trabalho: o robo compra esses itens
+ * numa aba e venderia na outra, e a conta ficaria sem cura no meio da cacada por
+ * causa de um clique em "marcar tudo". Drop e o que a cacada PRODUZ; consumivel e
+ * o que ela GASTA, e as duas coisas nao podem morar na mesma lista.
+ */
+const CONSUMIVEL = new Set(["heal", "revive", "ball", "balls", "potion"]);
+
+export const ehConsumivel = (categoria: string): boolean => CONSUMIVEL.has(categoria.toLowerCase());
+
 export interface Escrita<T = unknown> {
   ok: boolean;
   status: number;

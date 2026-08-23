@@ -1,20 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { Button, Empty, Loading, Modal, Note, Panel, SearchInput, Segmented, Sprite } from "@/components/ui";
+import { Button, Empty, Note, Panel, Sprite } from "@/components/ui";
 import { compact, num, TIER_LABEL } from "@/lib/labels";
 import { qualityTier, TIER_COLOR } from "@/lib/rarity";
 import { spriteUrl } from "@/lib/sprites";
 import { xpProgress } from "@/lib/xp";
-import type { ActivePoke } from "@/lib/robo/jogo/pokes";
 import type { EstadoHunt, Evento } from "@/lib/robo/motor/tipos";
-
-interface NoBox extends ActivePoke {
-  /** a venda automatica levaria este, com a config de agora */
-  vendavel: boolean;
-}
-
-type Ordem = "qualidade" | "iv" | "nivel" | "valor" | "nome";
 
 /** A aba da caçada: quem luta, o que está na fila, o que acabou de acontecer. */
 
@@ -82,149 +73,6 @@ const LINHA: Record<Evento["tipo"], { texto: string; cor: string }> = {
   aviso: { texto: "falhou", cor: "var(--color-danger)" },
 };
 
-/**
- * O box, sob demanda.
- *
- * Fora do stream de estado de propósito: são centenas de bichos, e empurrar isso
- * uma vez por segundo por SSE seria pagar banda contínua por um dado que só esta
- * janela abre.
- *
- * A marca de "vendável" vem do servidor, calculada pela mesma função que o motor
- * usa para decidir. Recalcular aqui seria uma segunda implementação da regra, e
- * a tela passaria a mentir sobre o que o robô vai fazer.
- */
-function ModalBox({
-  aberto,
-  onFechar,
-  ocupado,
-  comandar,
-}: {
-  aberto: boolean;
-  onFechar: () => void;
-  ocupado: boolean;
-  comandar: (rota: string, corpo?: unknown) => Promise<void>;
-}) {
-  const [box, setBox] = useState<NoBox[] | null>(null);
-  const [busca, setBusca] = useState("");
-  const [ordem, setOrdem] = useState<Ordem>("qualidade");
-
-  const carregar = useCallback(async () => {
-    const j = (await fetch("/api/robo/box")
-      .then((r) => (r.ok ? r.json() : null))
-      .catch(() => null)) as { box?: NoBox[] } | null;
-    setBox(j?.box ?? []);
-  }, []);
-
-  useEffect(() => {
-    if (aberto) void carregar();
-  }, [aberto, carregar]);
-
-  const termo = busca.trim().toLowerCase();
-  const ordenar: Record<Ordem, (a: NoBox, b: NoBox) => number> = {
-    qualidade: (a, b) => b.quality - a.quality || b.ivTotal - a.ivTotal,
-    iv: (a, b) => b.ivTotal - a.ivTotal || b.quality - a.quality,
-    nivel: (a, b) => b.level - a.level || b.ivTotal - a.ivTotal,
-    valor: (a, b) => b.sellValue - a.sellValue,
-    nome: (a, b) => a.name.localeCompare(b.name, "pt-BR"),
-  };
-  const lista = (box ?? [])
-    .filter((p) => !termo || p.name.toLowerCase().includes(termo))
-    .sort(ordenar[ordem]);
-  const marcados = (box ?? []).filter((p) => p.vendavel).length;
-
-  return (
-    <Modal open={aberto} onClose={onFechar} title="Box" eyebrow="fora do time" size="lg">
-      {!box ? (
-        <Loading />
-      ) : (
-        <div className="flex flex-col gap-3">
-          <div className="flex flex-wrap items-center gap-3">
-            <SearchInput
-              value={busca}
-              onChange={(e) => setBusca(e.currentTarget.value)}
-              placeholder="filtrar por nome…"
-              className="min-w-0 flex-1"
-            />
-            <Segmented
-              value={ordem}
-              onChange={setOrdem}
-              size="sm"
-              options={[
-                { value: "qualidade", label: "qualidade" },
-                { value: "iv", label: "IV" },
-                { value: "nivel", label: "nível" },
-                { value: "valor", label: "valor" },
-                { value: "nome", label: "nome" },
-              ]}
-            />
-            <Button variant="outline" size="sm" onClick={() => void carregar()}>
-              atualizar
-            </Button>
-          </div>
-          <p className="text-[12px] text-text-mute">
-            {box.length} no box{lista.length !== box.length ? ` · ${lista.length} no filtro` : ""}.
-          </p>
-
-          {marcados > 0 ? (
-            <Note tone="warn">
-              {marcados} {marcados === 1 ? "está marcado" : "estão marcados"} para a venda automática
-              com a configuração de agora.
-            </Note>
-          ) : null}
-
-          {lista.length === 0 ? (
-            <Empty
-              title={box.length ? "Nada com esse nome" : "Box vazio"}
-              hint={box.length ? undefined : "Ligue o robô: a lista chega no primeiro ciclo da sessão."}
-            />
-          ) : (
-            <ul className="flex max-h-[440px] flex-col gap-1 overflow-y-auto">
-              {lista.map((p) => (
-                <li
-                  key={p.id}
-                  className="flex items-center gap-3 border border-line bg-bg-soft p-2"
-                  style={p.vendavel ? { borderColor: "color-mix(in srgb, var(--color-danger) 40%, transparent)" } : undefined}
-                >
-                  <Sprite src={spriteUrl(p.speciesId, p.shiny)} alt="" size={32} />
-                  <div className="min-w-0 flex-1">
-                    <p className="flex items-center gap-2 truncate text-[13px] text-text">
-                      {p.name}
-                      <span className="pix text-[10px] text-text-mute">nv {p.level}</span>
-                      {p.shiny ? <span className="pix text-[10px] text-warn">shiny</span> : null}
-                      {p.locked ? <span className="pix text-[10px] text-text-mute">cadeado</span> : null}
-                    </p>
-                    <p className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] tabular text-text-mute">
-                      <Qualidade quality={p.quality} />
-                      <span>IV {p.ivTotal}</span>
-                      <span>poder {compact(p.power)}</span>
-                      <span>vale {compact(p.sellValue)}</span>
-                      <span>{num(p.hp, 0)}/{num(p.maxHp, 0)} de vida</span>
-                    </p>
-                  </div>
-                  {p.vendavel ? (
-                    <span className="pix shrink-0 text-[10px] text-danger">sai na venda</span>
-                  ) : null}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    disabled={ocupado}
-                    onClick={async () => {
-                      await comandar("mover", { pokeId: p.id, dir: "withdraw" });
-                      void carregar();
-                    }}
-                  >
-                    pro time
-                  </Button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
-    </Modal>
-  );
-}
-
 export function AbaCacada({
   estado,
   ocupado,
@@ -234,35 +82,18 @@ export function AbaCacada({
   ocupado: boolean;
   comandar: (rota: string, corpo?: unknown) => Promise<void>;
 }) {
-  const [boxAberto, setBoxAberto] = useState(false);
   const drops = estado.analyzer?.drops ?? [];
 
   return (
     <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-      <ModalBox
-        aberto={boxAberto}
-        onFechar={() => setBoxAberto(false)}
-        ocupado={ocupado}
-        comandar={comandar}
-      />
       {/* ---- o time ---- */}
       <div className="flex flex-col gap-4">
         <Panel className="p-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h2 className="pix text-[13px] text-text-dim">Time</h2>
-            <div className="flex shrink-0 gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                disabled={!estado.conectado}
-                onClick={() => setBoxAberto(true)}
-              >
-                box ({estado.noBox})
-              </Button>
-              <Button variant="outline" size="sm" disabled={ocupado} onClick={() => void comandar("curar")}>
-                curar na Joy
-              </Button>
-            </div>
+            <Button variant="outline" size="sm" disabled={ocupado} onClick={() => void comandar("curar")}>
+              curar na Joy
+            </Button>
           </div>
 
           {estado.caido ? (

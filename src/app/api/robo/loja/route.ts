@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { exigirUsuarioApi } from "@/lib/robo/sessao";
-import { lerLoja, lerMochila } from "@/lib/robo/jogo/loja";
+import { ehConsumivel, lerLoja, lerMochila } from "@/lib/robo/jogo/loja";
 import { atualizarTokens, lerVinculo } from "@/lib/robo/vinculo";
 
 export const runtime = "nodejs";
@@ -26,10 +26,14 @@ export async function GET() {
 
   return NextResponse.json({
     loja: loja.loja,
+    // So DROP. Pocao, revive e bola ficam de fora: sao o que a cacada gasta, e
+    // oferecer os dois na mesma lista de venda e como a bolsa fica vazia por um
+    // clique em "marcar tudo".
+    //
     // Ordenado pelo que rende mais: a decisao de "o que deixo o robo vender" e
     // sobre o que enche a mochila, e o topo da lista e onde ela se resolve.
     mochila: (mochila?.itens ?? [])
-      .filter((i) => i.quantidade > 0)
+      .filter((i) => i.quantidade > 0 && !ehConsumivel(i.categoria))
       .sort((a, b) => b.quantidade * b.precoNpc - a.quantidade * a.precoNpc),
   });
 }

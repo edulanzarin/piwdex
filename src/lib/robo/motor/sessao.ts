@@ -24,7 +24,7 @@ import {
   type StatusSessao,
 } from "@/lib/robo/motor/tipos";
 import { marcarBloqueado, marcarVencido, salvarShard, salvarTime } from "@/lib/robo/vinculo";
-import { salvarStatus } from "@/lib/robo/motor/desejado";
+import { salvarPlacar, salvarStatus } from "@/lib/robo/motor/desejado";
 import { CONFIG_PADRAO, type ConfigAuto } from "@/lib/robo/motor/config";
 import { rodarCompras, rodarVendaDrops, rodarVendaPokes, type Recado } from "@/lib/robo/motor/jobs";
 import { registrarEvento } from "@/lib/robo/motor/eventos";
@@ -346,6 +346,7 @@ export class SessaoJogo extends EventEmitter {
     aoTrocarTokens: (t: Tokens) => Promise<void>,
     cfg?: ConfigAuto,
     nomeJogador?: string | null,
+    placar?: Placar | null,
   ) {
     this.userId = userId;
     this.tokens = tokens;
@@ -357,6 +358,9 @@ export class SessaoJogo extends EventEmitter {
     this.shardErrado = 0;
     if (cfg) this.cfg = cfg;
     if (nomeJogador) this.meuNome = nomeJogador;
+    // O placar gravado so entra numa sessao que ainda nao contou nada: quem ja
+    // esta rodando tem o numero mais fresco em memoria.
+    if (placar && !this.ws) this.placar = { ...placarZero(), ...placar };
 
     if (!this.ws) {
       this.conectar();
@@ -433,10 +437,11 @@ export class SessaoJogo extends EventEmitter {
     aoTrocarTokens: (t: Tokens) => Promise<void>,
     cfg?: ConfigAuto,
     nomeJogador?: string | null,
+    placar?: Placar | null,
   ) {
     if (this.ws) return;
     this.slug = slug;
-    this.segurar(userId, tokens, shard, aoTrocarTokens, cfg, nomeJogador);
+    this.segurar(userId, tokens, shard, aoTrocarTokens, cfg, nomeJogador, placar);
   }
 
   /** A config mudou na tela: o motor passa a decidir por ela na proxima varredura. */
@@ -454,6 +459,8 @@ export class SessaoJogo extends EventEmitter {
    */
   parar() {
     this.ligado = false;
+    this.placar = placarZero();
+    if (this.userId) void salvarPlacar(this.userId, this.placar).catch(() => {});
     this.cancelarReconexao();
     if (this.ws && this.slug) this.enviar({ type: "leave-hunt" });
     this.slug = null;
@@ -1277,6 +1284,9 @@ export class SessaoJogo extends EventEmitter {
     }
     // Compra e venda mudam o ouro: pede o numero novo em vez de estimar.
     void this.lerPerfil();
+    // O placar e NOSSO, e um restart nao pode apaga-lo: o que o robo fez de
+    // madrugada e justamente o que ninguem viu acontecer.
+    if (this.userId) void salvarPlacar(this.userId, this.placar).catch(() => {});
   }
 
   // -------------------------------------------------------------------------
