@@ -178,6 +178,57 @@ export function Cartao({
   );
 }
 
+/**
+ * Uma linha de item: arte, nome, e um número à direita.
+ *
+ * O detalhe que ela existe para resolver é o **espaço reservado da arte**. Item
+ * sem ícone (a Master Ball do catálogo não tem) renderizava sem a caixa de
+ * 22px, e o nome dele começava 30px à esquerda dos vizinhos — uma lista de dez
+ * linhas alinhadas e uma torta. Slot vazio ocupa o mesmo lugar que slot cheio.
+ *
+ * Altura fixa pelo mesmo motivo: nome de duas linhas não pode empurrar a linha
+ * seguinte, senão duas listas lado a lado deixam de casar.
+ */
+export function LinhaItem({
+  icone,
+  nome,
+  detalhe,
+  valor,
+  abaixo,
+  tom,
+  className,
+}: {
+  icone?: string | null;
+  nome: ReactNode;
+  /** rótulo miúdo sob o nome (categoria, origem) */
+  detalhe?: ReactNode;
+  valor: ReactNode;
+  /** segunda linha do número, alinhada à direita */
+  abaixo?: ReactNode;
+  tom?: string;
+  className?: string;
+}) {
+  return (
+    <li className={cn("flex h-12 items-center gap-2 border border-line bg-bg-soft px-2", className)}>
+      {icone ? (
+        <Sprite src={icone} alt="" size={22} />
+      ) : (
+        <span className="h-[22px] w-[22px] shrink-0 border border-line/70" aria-hidden="true" />
+      )}
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-[13px] text-text">{nome}</span>
+        {detalhe ? <span className="pix block text-[10px] text-text-mute">{detalhe}</span> : null}
+      </span>
+      <span className="shrink-0 text-right">
+        <span className="block text-[13px] tabular" style={{ color: tom ?? "var(--color-text-dim)" }}>
+          {valor}
+        </span>
+        {abaixo ? <span className="block text-[11px] tabular text-text-mute">{abaixo}</span> : null}
+      </span>
+    </li>
+  );
+}
+
 /** Uma bola do jogo com a contagem — some quando o estoque zera pra sobrar
  *  espaço, mas fica em vermelho quando a bola é a que o auto-catch usa. */
 export function BolaChip({

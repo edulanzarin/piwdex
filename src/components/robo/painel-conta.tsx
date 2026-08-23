@@ -7,7 +7,7 @@ import { qualityTier, TIER_COLOR } from "@/lib/rarity";
 import { spriteUrl } from "@/lib/sprites";
 import type { ActivePoke } from "@/lib/robo/jogo/pokes";
 import { Pokeball } from "@/components/ui/pokeball";
-import { ICONE, TOM } from "@/components/robo/pecas";
+import { ICONE, LinhaItem, TOM } from "@/components/robo/pecas";
 import { fichaDaConta, type FichaPoke } from "@/components/robo/poke-modal";
 import type { BolaEstoque, Perfil } from "@/lib/robo/motor/tipos";
 
@@ -193,61 +193,65 @@ export function AbaConta({ onFicha }: { onFicha: (f: FichaPoke) => void }) {
         )}
       </Panel>
 
-      <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,340px)_minmax(0,1fr)]">
+      {/* Sem `items-start`: em grade, o padrão é ESTICAR, e era o `items-start`
+          que deixava a bolsa terminando um palmo acima da mochila. */}
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,340px)_minmax(0,1fr)]">
         {/* ---- bolsa: o que a caçada GASTA ---- */}
-        <Panel className="p-4">
-          <div className="flex items-center justify-between gap-3">
+        <Panel className="flex flex-col p-4">
+          <div className="flex shrink-0 items-center justify-between gap-3">
             <h2 className="pix text-[13px] text-text-dim">Bolsa</h2>
             <span className="pix text-[11px] text-text-mute">bolas, poções, revives</span>
           </div>
 
-          {consumiveis.length > 0 ? (
-            <ul className="mt-3 flex flex-col gap-1">
-              {consumiveis.map((i) => (
-                <li key={i.id} className="flex items-center gap-2 border border-line bg-bg-soft px-2 py-1.5">
-                  {i.icone ? <Sprite src={i.icone} alt="" size={22} /> : null}
-                  <span className="min-w-0 flex-1 truncate text-[13px] text-text">{i.nome}</span>
-                  <span className="shrink-0 text-[12px] tabular text-text-dim">{compact(i.quantidade)}</span>
-                </li>
-              ))}
-            </ul>
-          ) : null}
-
-          {bolas.length === 0 ? (
-            <Empty title="Sem bolas" hint="O catálogo chega junto com a conta." />
-          ) : (
-            <ul className="mt-3 flex flex-col gap-1">
-              {[...bolas]
-                .sort((a, b) => Number(b.infinita) - Number(a.infinita) || b.quantidade - a.quantidade)
-                .map((b) => (
-                  <li
-                    key={b.id}
-                    className="flex items-center gap-2 border border-line bg-bg-soft px-2 py-1.5"
-                  >
-                    {b.icone ? <Sprite src={b.icone} alt="" size={22} /> : null}
-                    <span className="min-w-0 flex-1 truncate text-[13px] text-text">{b.nome}</span>
-                    <span
-                      className="shrink-0 text-[12px] tabular"
-                      style={{ color: b.infinita ? "var(--color-neon)" : b.quantidade ? "var(--color-text-dim)" : "var(--color-danger)" }}
-                    >
-                      {b.infinita ? "∞" : compact(b.quantidade)}
-                    </span>
-                  </li>
+          <div className="mt-3 min-h-0 flex-1 overflow-y-auto">
+            {consumiveis.length === 0 && bolas.length === 0 ? (
+              <Empty title="Bolsa vazia" hint="O catálogo chega junto com a conta." />
+            ) : (
+              <ul className="flex flex-col gap-1">
+                {consumiveis.map((i) => (
+                  <LinhaItem
+                    key={`i${i.id}`}
+                    icone={i.icone}
+                    nome={i.nome}
+                    detalhe={CATEGORIA[i.categoria] ?? i.categoria}
+                    valor={compact(i.quantidade)}
+                  />
                 ))}
-            </ul>
-          )}
+                {[...bolas]
+                  .sort(
+                    (a, b) => Number(b.infinita) - Number(a.infinita) || b.quantidade - a.quantidade,
+                  )
+                  .map((b) => (
+                    <LinhaItem
+                      key={`b${b.id}`}
+                      icone={b.icone}
+                      nome={b.nome}
+                      detalhe="bola"
+                      valor={b.infinita ? "∞" : compact(b.quantidade)}
+                      tom={
+                        b.infinita
+                          ? TOM.diamante
+                          : b.quantidade
+                            ? "var(--color-text-dim)"
+                            : TOM.perigo
+                      }
+                    />
+                  ))}
+              </ul>
+            )}
+          </div>
         </Panel>
 
         {/* ---- mochila ---- */}
-        <Panel className="p-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
+        <Panel className="flex flex-col p-4">
+          <div className="flex shrink-0 flex-wrap items-center justify-between gap-3">
             <h2 className="pix text-[13px] text-text-dim">Mochila</h2>
             <span className="pix text-[11px] text-text-mute">
               {mochila.length} tipos · {compact(valorParado)} em dólares parados
             </span>
           </div>
 
-          <div className="mt-3">
+          <div className="mt-3 shrink-0">
             <SearchInput
               value={busca}
               onChange={(e) => setBusca(e.currentTarget.value)}
@@ -255,32 +259,27 @@ export function AbaConta({ onFicha }: { onFicha: (f: FichaPoke) => void }) {
             />
           </div>
 
-          {itens.length === 0 ? (
-            <Empty
-              title={mochila.length ? "Nada com esse nome" : "Mochila vazia"}
-              hint={mochila.length ? undefined : "Os drops aparecem depois dos primeiros abates."}
-            />
-          ) : (
-            <ul className="mt-3 grid max-h-[480px] gap-1 overflow-y-auto sm:grid-cols-2">
-              {itens.map((i) => (
-                <li key={i.id} className="flex items-center gap-2 border border-line bg-bg-soft px-2 py-1.5">
-                  {i.icone ? <Sprite src={i.icone} alt="" size={22} /> : null}
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[13px] text-text">{i.nome}</span>
-                    <span className="pix text-[10px] text-text-mute">
-                      {CATEGORIA[i.categoria] ?? i.categoria}
-                    </span>
-                  </span>
-                  <span className="shrink-0 text-right">
-                    <span className="block text-[13px] tabular text-text-dim">{compact(i.quantidade)}x</span>
-                    <span className="block text-[11px] tabular text-text-mute">
-                      {compact(i.quantidade * i.precoNpc)}
-                    </span>
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
+          <div className="mt-3 min-h-0 flex-1 overflow-y-auto">
+            {itens.length === 0 ? (
+              <Empty
+                title={mochila.length ? "Nada com esse nome" : "Mochila vazia"}
+                hint={mochila.length ? undefined : "Os drops aparecem depois dos primeiros abates."}
+              />
+            ) : (
+              <ul className="grid content-start gap-1 sm:grid-cols-2">
+                {itens.map((i) => (
+                  <LinhaItem
+                    key={i.id}
+                    icone={i.icone}
+                    nome={i.nome}
+                    detalhe={CATEGORIA[i.categoria] ?? i.categoria}
+                    valor={`${compact(i.quantidade)}x`}
+                    abaixo={compact(i.quantidade * i.precoNpc)}
+                  />
+                ))}
+              </ul>
+            )}
+          </div>
         </Panel>
       </div>
 
