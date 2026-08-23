@@ -1,18 +1,29 @@
-import { Panel } from "@/components/ui";
+import type { Metadata } from "next";
+import { Note, Panel } from "@/components/ui";
+import { exigirUsuario } from "@/lib/robo/sessao";
+
+export const metadata: Metadata = { title: "Painel" };
 
 /**
  * O painel — a tela que o subdominio abre.
  *
- * Placeholder do chassi: o roteamento por host ja funciona, o motor ainda nao
- * existe. Ela e substituida quando a camada de conta entrar.
+ * Ainda e a casca: a conta ja existe e o portao ja fecha, mas o motor entra nas
+ * proximas camadas.
  */
-export default function Painel() {
+export default async function Painel() {
+  const u = await exigirUsuario();
+
   return (
     <Panel className="mx-auto mt-8 max-w-xl p-6">
-      <h1 className="pix text-[18px] text-[var(--color-t-robo)]">Painel do robô</h1>
+      <h1 className="pix text-[18px] text-[var(--color-t-robo)]">Painel</h1>
       <p className="mt-3 text-[14px] leading-relaxed text-text-dim">
-        O subdomínio já está de pé. O motor entra nas próximas camadas.
+        Olá, {u.nome ?? u.email}.
       </p>
+      <Note className="mt-4">
+        {u.vip
+          ? "Assinatura ativa. Falta conectar a conta do jogo."
+          : "Sem assinatura ativa — o robô só liga depois dela."}
+      </Note>
     </Panel>
   );
 }

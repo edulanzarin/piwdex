@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { RoboNav } from "@/components/robo/nav";
+import { usuarioAtual } from "@/lib/robo/sessao";
 import { RoboFooter } from "@/components/robo/footer";
 
 /**
@@ -20,7 +21,11 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false, nocache: true },
 };
 
-export default function LayoutRobo({ children }: { children: React.ReactNode }) {
+export default async function LayoutRobo({ children }: { children: React.ReactNode }) {
+  // A sessao e lida AQUI e desce como prop: a barra e componente de cliente e
+  // nao pode ler cookie, e um `fetch` de sessao a partir dela piscaria a versao
+  // deslogada em toda navegacao.
+  const u = await usuarioAtual();
   return (
     <>
       <a
@@ -31,7 +36,7 @@ export default function LayoutRobo({ children }: { children: React.ReactNode }) 
       >
         Pular para o conteúdo
       </a>
-      <RoboNav />
+      <RoboNav nome={u ? (u.nome ?? u.email) : undefined} />
       <main id="painel" className="mx-auto w-full max-w-[1400px] flex-1 px-3 pb-16 pt-4 sm:px-5">
         {children}
       </main>
