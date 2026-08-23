@@ -2,9 +2,20 @@
 # reservado 4071 (app) / 5071 (banco) — registrado em [[Uma faixa de portas por
 # projeto]] no Brain.
 #
-# O banco AINDA NAO SOBE: a camada publica (dex, itens, calculadoras) nao tem
-# estado. O servico fica comentado com a porta ja reservada pra quando o robo
-# for portado — reservar a porta e barato, subir um Postgres ocioso nao e.
+# ## Por que sao DOIS servicos de app
+#
+# O mesmo codigo publica dois enderecos: a dex em `piwdex.com.br` e o robo em
+# `bot.piwdex.com.br`. Nao e organizacao — o robo segura um WebSocket por
+# usuario, e WebSocket morre inteiro a cada deploy. Enquanto os dois dividiam um
+# servico so, cada publicacao da dex derrubava a cacada de todo mundo (a licao
+# esta no Brain como [[Processo que guarda conexao viva nao tolera deploy
+# frequente]]). Servicos separados = cadencias de deploy separadas.
+#
+# A mesma IMAGEM serve os dois: quem decide o papel e `PIW_ROLE`. Duas imagens
+# significariam dois builds do mesmo codigo e a chance permanente de a dex e o
+# robo rodarem versoes diferentes das primitivas que compartilham.
+#
+# O robo publica na 4072 — o projeto tem duas portas de app e um banco so.
 
 services:
   app:
@@ -18,6 +29,7 @@ services:
         NEXT_PUBLIC_ADSENSE_SLOT_RODAPE: ${NEXT_PUBLIC_ADSENSE_SLOT_RODAPE:-}
         NEXT_PUBLIC_ADSENSE_LAYOUT_GRADE: ${NEXT_PUBLIC_ADSENSE_LAYOUT_GRADE:-}
         NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-}
+        NEXT_PUBLIC_BOT_URL: ${NEXT_PUBLIC_BOT_URL:-}
         NEXT_PUBLIC_GOOGLE_VERIFICACAO: ${NEXT_PUBLIC_GOOGLE_VERIFICACAO:-}
     container_name: piwdex2-app
     restart: unless-stopped
@@ -25,30 +37,85 @@ services:
     ports: ["${APP_PORT:-4071}:3000"]
     environment:
       NODE_ENV: production
+      PIW_ROLE: site
     networks: [piwdex2-net]
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:3000/"]
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
       interval: 30s
       timeout: 5s
       retries: 3
       start_period: 20s
 
-  # db:
-  #   image: postgres:17-alpine
-  #   container_name: piwdex2-db
-  #   restart: unless-stopped
-  #   ports: ["${DB_PORT:-5071}:5432"]
-  #   environment:
-  #     POSTGRES_USER: ${POSTGRES_USER:-piwdex2}
-  #     POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina no .env}
-  #     POSTGRES_DB: ${POSTGRES_DB:-piwdex2}
-  #   volumes: [piwdex2-db-data:/var/lib/postgresql/data]
-  #   networks: [piwdex2-net]
+  bot:
+    # Mesma imagem que o `app` — o compose reaproveita o build acima porque o
+    # contexto e o Dockerfile sao os mesmos.
+    build:
+      context: .
+      args:
+        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-}
+        NEXT_PUBLIC_BOT_URL: ${NEXT_PUBLIC_BOT_URL:-}
+    container_name: piwdex2-bot
+    restart: unless-stopped
+    ports: ["${BOT_PORT:-4072}:3000"]
+    environment:
+      NODE_ENV: production
+      PIW_ROLE: bot
+      # Rede interna do compose: nome de servico + porta interna, nunca a porta
+      # publicada.
+      DATABASE_URL: postgres://${POSTGRES_USER:-piwdex2}:${POSTGRES_PASSWORD:?defina no .env}@piwdex2-db:5432/${POSTGRES_DB:-piwdex2}
+      AUTH_SECRET: ${AUTH_SECRET:?defina no .env}
+      SESSION_SECRET: ${SESSION_SECRET:?defina no .env}
+      AUTH_URL: ${AUTH_URL:-}
+      MP_ACCESS_TOKEN: ${MP_ACCESS_TOKEN:-}
+      MP_WEBHOOK_SECRET: ${MP_WEBHOOK_SECRET:-}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks: [piwdex2-net]
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  # As migrations rodam em container proprio, com a MESMA imagem do app: elas
+  # precisam existir antes de o app aceitar a primeira requisicao, e um script
+  # que o app roda no boot nao da essa garantia com duas replicas.
+  migrate:
+    build:
+      context: .
+    container_name: piwdex2-migrate
+    command: ["node", "db/migrate.mjs"]
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-piwdex2}:${POSTGRES_PASSWORD:?defina no .env}@piwdex2-db:5432/${POSTGRES_DB:-piwdex2}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks: [piwdex2-net]
+    restart: "no"
+
+  db:
+    image: postgres:17-alpine
+    container_name: piwdex2-db
+    restart: unless-stopped
+    ports: ["${DB_PORT:-5071}:5432"]
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-piwdex2}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina no .env}
+      POSTGRES_DB: ${POSTGRES_DB:-piwdex2}
+    volumes: [piwdex2-db-data:/var/lib/postgresql/data]
+    networks: [piwdex2-net]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-piwdex2} -d ${POSTGRES_DB:-piwdex2}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
 
 networks:
   piwdex2-net:
     name: piwdex2-net
 
-# volumes:
-#   piwdex2-db-data:
-#     name: piwdex2-db-data
+volumes:
+  piwdex2-db-data:
+    name: piwdex2-db-data

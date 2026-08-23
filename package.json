@@ -9,6 +9,7 @@
     "build": "next build",
     "start": "next start -p ${PORT:-4071}",
     "typecheck": "tsc --noEmit",
+    "db:migrate": "node db/migrate.mjs",
     "lint": "next lint",
     "ingest": "node scripts/ingest.mjs",
     "bake:sprites": "node scripts/bake-sprites.mjs",
