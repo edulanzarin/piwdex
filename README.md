@@ -53,12 +53,23 @@ Os trabalhos:
 | Vender pokemon | so o que passa por todos os vetos (time, lider, inicial, cadeado, shiny, IV, nivel) |
 | Automacao do jogo | liga o Auto-Helper (auto-catch, auto-potion, auto-revive) e escolhe as bolas |
 | Chat | le os tres canais e manda mensagem pelo mesmo socket (nada sai sozinho) |
+| Subir de nivel | escolhe o alvo e troca de hunt sozinho ate o nivel pedido |
 
 Comprar e vender vao por REST, e por isso podem acontecer com a cacada correndo:
 REST nao disputa a sessao. Tudo que MUTA a conta em campo sai pelo socket ja
 aberto — abrir um segundo derrubaria a propria cacada.
 
 Nenhuma automacao nasce ligada.
+
+### A cacada automatica reusa o motor da dex
+
+Ela nao tem calculo proprio: chama o mesmo `buildRoute` que a ferramenta publica
+de rota usa pra responder "quem cacar do 40 ao 80", com dano, ameaca e XP/h nivel
+a nivel. O que a camada do robo acrescenta e o **slug** — o motor raciocina em
+especie (`pokeId`) e o `enter-hunt` quer o ponto no mapa.
+
+Escrever uma segunda versao aqui daria duas respostas pra mesma pergunta, e a do
+robo seria a que ninguem revisa.
 
 ### Quando ele para de tentar
 
