@@ -3,15 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button, Checkbox, Empty, Loading, Note, NumberField, Panel, Select, Sprite, Switch } from "@/components/ui";
 import { compact, TIER_LABEL } from "@/lib/labels";
-import { spriteUrl } from "@/lib/sprites";
 import { qualityTier, TIER_COLOR, TIER_MIN, TIER_ORDER } from "@/lib/rarity";
-import type {
-  BolaEstoque,
-  ConfigAuto,
-  EstadoAuto,
-  EstadoHunt,
-  PassoRota,
-} from "@/lib/robo/motor/tipos";
+import type { BolaEstoque, ConfigAuto, EstadoAuto, EstadoHunt } from "@/lib/robo/motor/tipos";
 
 /**
  * A aba que transforma "uma conexão aberta numa hunt" em robô.
@@ -176,7 +169,6 @@ export function AbaAutomacao({
   const [bolas, setBolas] = useState<BolaEstoque[]>(estado.bolas);
   const [salvandoAuto, setSalvandoAuto] = useState(false);
   const [recado, setRecado] = useState<string | null>(null);
-  const [previa, setPrevia] = useState<{ passos: PassoRota[]; horas: number; erro?: string } | null>(null);
 
   // O frame `autohelper` chega pela sessão e é mais fresco que o GET: quando ele
   // vier, ele manda.
@@ -295,69 +287,6 @@ export function AbaAutomacao({
     setAutoRascunho(null);
     setRecado(null);
   }
-
-  /**
-   * A prévia da subida, sem ligar nada.
-   *
-   * Decidir se concorda com a rota depois de ligá-la é a ordem errada para algo
-   * que joga sozinho por horas. O plano sai do mesmo motor; quando a sessão está
-   * viva, o plano DELA manda (é o que o robô vai de fato executar).
-   */
-  useEffect(() => {
-    if (!config.autoRota || estado.rota.length) {
-      setPrevia(null);
-      return;
-    }
-    let vivo = true;
-    const t = setTimeout(async () => {
-      const res = await fetch(`/api/robo/rota?alvo=${config.nivelAlvo}`).catch(() => null);
-      const j = (await res?.json().catch(() => null)) as
-        | { passos?: PassoRota[]; horas?: number; erro?: string }
-        | null;
-      if (!vivo) return;
-      setPrevia(
-        res?.ok && j?.passos
-          ? { passos: j.passos, horas: j.horas ?? 0 }
-          : { passos: [], horas: 0, erro: j?.erro ?? "sem_rota" },
-      );
-    }, 400); // o nível alvo muda dígito a dígito; sem a espera, um plano por tecla
-    return () => {
-      vivo = false;
-      clearTimeout(t);
-    };
-  }, [config.autoRota, config.nivelAlvo, estado.rota.length]);
-
-  const rota = estado.rota.length ? estado.rota : (previa?.passos ?? []);
-
-  /**
-   * Onde a subida está.
-   *
-   * O nível sozinho não responde "falta muito?": a curva de XP é acelerada, então
-   * metade dos níveis não é metade do tempo. O que a barra mede é NÍVEL, e as
-   * horas ao lado vêm somadas das faixas que ainda faltam — que é onde a curva
-   * já está embutida.
-   */
-  const progresso = (() => {
-    const nivel = estado.nivelLider;
-    if (!rota.length || nivel == null) return null;
-    const inicio = rota[0].de;
-    const alvo = rascunho.nivelAlvo;
-    if (alvo <= inicio) return null;
-    const feito = Math.max(0, Math.min(1, (nivel - inicio) / (alvo - inicio)));
-    const faltam = rota
-      .filter((p) => p.ate > nivel)
-      .reduce((soma, p) => {
-        // A faixa em curso conta só o pedaço que sobrou dela.
-        const parte = p.de >= nivel ? 1 : (p.ate - nivel) / (p.ate - p.de);
-        return soma + p.horas * parte;
-      }, 0);
-    return { nivel, inicio, alvo, feito, faltam };
-  })();
-  const horasRota = estado.rota.length
-    ? null
-    : previa?.passos.length
-      ? previa.horas
-      : null;
 
   const bolasDaConta = (bolas.length ? bolas : estado.bolas).map((b) => ({
     value: String(b.id),
@@ -508,128 +437,6 @@ export function AbaAutomacao({
                 </div>
               </>
             )}
-          </Secao>
-
-          {/* ---------------- caçada automática ---------------- */}
-          <Secao
-            titulo="Caçada automática"
-            hint="O robô escolhe o alvo e troca de hunt sozinho conforme o líder sobe, pelo mesmo cálculo da ferramenta de rota."
-            acao={
-              estado.rotaConcluida ? (
-                <span className="pix shrink-0 text-[11px]" style={{ color: "var(--color-ok)" }}>
-                  meta alcançada
-                </span>
-              ) : estado.passoAtual ? (
-                <span className="pix shrink-0 text-[11px] text-text-mute">
-                  {estado.passoAtual.alvo} · nv {estado.passoAtual.de}–{estado.passoAtual.ate}
-                </span>
-              ) : undefined
-            }
-          >
-            <div className="flex flex-wrap items-end gap-3">
-              <Switch
-                checked={rascunho.autoRota}
-                onChange={(e) => mudar({ autoRota: e.currentTarget.checked })}
-                label="subir sozinho até o nível"
-              />
-              <label className="flex flex-col gap-1">
-                <span className="pix text-[10px] text-text-mute">nível alvo</span>
-                <NumberField
-                  value={rascunho.nivelAlvo}
-                  onChange={(n) => mudar({ nivelAlvo: n })}
-                  min={2}
-                  max={1000}
-                  className="w-28"
-                />
-              </label>
-            </div>
-
-            {rascunho.autoRota ? (
-              rota.length === 0 ? (
-                <Note tone={previa?.erro === "sem_lider" ? "warn" : "muted"}>
-                  {previa?.erro === "sem_lider"
-                    ? "Não sei qual é o seu líder ainda. Ligue o robô uma vez para eu ler o time."
-                    : previa?.erro === "ja_passou"
-                      ? "O líder já passou desse nível. Escolha um alvo mais alto."
-                      : previa?.erro
-                        ? "Não consegui montar uma rota para este líder."
-                        : "Montando a subida…"}
-                </Note>
-              ) : (
-                <>
-                  {progresso ? (
-                    <div className="border border-line bg-bg-soft p-3">
-                      <div className="flex flex-wrap items-baseline justify-between gap-2">
-                        <span className="pix text-[11px] text-text-mute">
-                          nível {progresso.nivel} de {progresso.alvo}
-                        </span>
-                        <span className="text-[12px] tabular text-text-dim">
-                          {estado.rotaConcluida
-                            ? "meta alcançada"
-                            : progresso.faltam < 1
-                              ? "falta menos de uma hora"
-                              : `faltam ~${Math.round(progresso.faltam)}h`}
-                        </span>
-                      </div>
-                      <span className="mt-2 flex h-1.5 w-full overflow-hidden bg-surface-3" aria-hidden="true">
-                        <span
-                          style={{
-                            width: `${progresso.feito * 100}%`,
-                            backgroundColor: estado.rotaConcluida ? "var(--color-ok)" : COR,
-                          }}
-                        />
-                      </span>
-                      <p className="mt-1.5 text-[11px] text-text-mute">
-                        {Math.round(progresso.feito * 100)}% do caminho, desde o nível {progresso.inicio}.
-                        {estado.passoAtual ? ` Agora em ${estado.passoAtual.alvo}.` : ""}
-                      </p>
-                    </div>
-                  ) : (
-                    <Note>
-                      {horasRota
-                        ? `Prévia: cerca de ${horasRota < 1 ? "menos de uma hora" : `${Math.round(horasRota)}h`} de caçada. `
-                        : ""}
-                      A caçada para sozinha ao chegar no alvo. O robô continua segurando a sessão.
-                    </Note>
-                  )}
-                  <ul className="flex max-h-[260px] flex-col gap-1 overflow-y-auto">
-                    {rota.map((p) => {
-                      const atual = estado.passoAtual?.slug === p.slug && estado.passoAtual?.de === p.de;
-                      const passou = estado.nivelLider != null && estado.nivelLider >= p.ate;
-                      return (
-                        <li
-                          key={`${p.de}-${p.slug}`}
-                          className="flex items-center gap-2 border border-line bg-bg-soft px-2 py-1.5"
-                          style={{
-                            ...(atual
-                              ? { borderColor: "color-mix(in srgb, var(--color-t-robo) 55%, transparent)" }
-                              : {}),
-                            ...(passou ? { opacity: 0.45 } : {}),
-                          }}
-                        >
-                          <Sprite src={spriteUrl(p.speciesId)} alt="" size={24} />
-                          <span className="pix w-16 shrink-0 text-[10px] text-text-mute">
-                            {p.de}–{p.ate}
-                          </span>
-                          <span className="min-w-0 flex-1 truncate text-[13px] text-text">{p.alvo}</span>
-                          {p.risco !== "safe" ? (
-                            <span
-                              className="pix shrink-0 text-[10px]"
-                              style={{ color: p.risco === "deadly" ? "var(--color-danger)" : "var(--color-warn)" }}
-                            >
-                              {p.risco === "deadly" ? "letal" : "arriscado"}
-                            </span>
-                          ) : null}
-                          <span className="shrink-0 text-[11px] tabular text-text-mute">
-                            {compact(p.xpH)} xp/h
-                          </span>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </>
-              )
-            ) : null}
           </Secao>
 
           {/* ---------------- reposição ---------------- */}
@@ -875,10 +682,10 @@ export function AbaAutomacao({
       {/* A barra de salvar gruda no rodapé porque as seções são altas: a mudança
           acontece no topo e a confirmação não pode ficar a uma rolagem dela. */}
       <div className="sticky bottom-0 z-10 -mx-1 flex flex-wrap items-center gap-3 border-t border-line bg-bg/95 px-1 py-3 backdrop-blur">
-        <Button variant="primary" disabled={!sujo || salvando} onClick={() => void salvar()}>
+        <Button size="lg" variant="primary" disabled={!sujo || salvando} onClick={() => void salvar()}>
           {salvando ? "salvando…" : "salvar alterações"}
         </Button>
-        <Button variant="ghost" disabled={!sujo || salvando} onClick={descartar}>
+        <Button size="lg" variant="ghost" disabled={!sujo || salvando} onClick={descartar}>
           descartar
         </Button>
         <span className="text-[12px]" style={{ color: sujo ? "var(--color-warn)" : "var(--color-text-mute)" }}>
@@ -886,6 +693,7 @@ export function AbaAutomacao({
         </span>
         <span className="ml-auto flex items-center gap-3">
           <Button
+            size="lg"
             variant="outline"
             disabled={!estado.conectado || sujo}
             onClick={() => void fetch("/api/robo/agora", { method: "POST" })}

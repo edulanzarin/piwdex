@@ -1,4 +1,4 @@
-import { query } from "@/lib/robo/db";
+import { query, queryOne } from "@/lib/robo/db";
 
 /**
  * O que o robo fez — gravado, e nao so emitido.
@@ -14,7 +14,8 @@ import { query } from "@/lib/robo/db";
  */
 
 export type TipoEvento =
-  | "shiny" // capturou um shiny
+  | "shiny" // VOCE capturou um shiny
+  | "shiny-mundo" // outro jogador capturou (frame `shiny-global`)
   | "venda-item" // vendeu drop
   | "venda-poke" // vendeu pokemon
   | "compra" // repos consumivel
@@ -30,6 +31,7 @@ export interface EventoRobo {
   titulo: string;
   corpo: string | null;
   dado: Record<string, unknown> | null;
+  lido: boolean;
   em: string;
 }
 
@@ -39,6 +41,7 @@ interface Linha {
   title: string;
   body: string | null;
   data: Record<string, unknown> | null;
+  read_at: string | null;
   criado_em: string;
 }
 
@@ -83,10 +86,10 @@ export async function registrarEvento(
 
 export async function listarEventos(userId: string, limite = 60): Promise<EventoRobo[]> {
   const linhas = await query<Linha>(
-    `SELECT id, kind, title, body, data, criado_em
+    `SELECT id, kind, title, body, data, read_at, criado_em
        FROM robot_events WHERE user_id = $1
       ORDER BY criado_em DESC LIMIT $2`,
-    [userId, Math.max(1, Math.min(200, limite))],
+    [userId, Math.max(1, Math.min(300, limite))],
   ).catch(() => []);
   return linhas.map((l) => ({
     id: l.id,
@@ -94,6 +97,29 @@ export async function listarEventos(userId: string, limite = 60): Promise<Evento
     titulo: l.title,
     corpo: l.body,
     dado: l.data,
+    lido: l.read_at != null,
     em: l.criado_em,
   }));
+}
+
+/**
+ * Quantos ainda nao foram vistos.
+ *
+ * Consulta propria, e nao `listarEventos().filter()`: o painel pergunta isso de
+ * minuto em minuto so pra pintar um numero na aba, e trazer trezentas linhas pra
+ * contar uma seria pagar a lista inteira por um inteiro.
+ */
+export async function contarNaoLidos(userId: string): Promise<number> {
+  const l = await queryOne<{ n: string }>(
+    `SELECT count(*)::text AS n FROM robot_events WHERE user_id = $1 AND read_at IS NULL`,
+    [userId],
+  ).catch(() => null);
+  return Number(l?.n ?? 0);
+}
+
+/** Marca tudo como visto. Abrir o registro E ter lido. */
+export async function marcarLidos(userId: string): Promise<void> {
+  await query(`UPDATE robot_events SET read_at = now() WHERE user_id = $1 AND read_at IS NULL`, [
+    userId,
+  ]).catch(() => {});
 }

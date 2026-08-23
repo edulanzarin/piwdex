@@ -20,6 +20,7 @@ import {
   type NaFila,
   type PassoRota,
   type Perfil,
+  type Recomendacao,
   type Placar,
   type StatusSessao,
 } from "@/lib/robo/motor/tipos";
@@ -29,6 +30,7 @@ import { CONFIG_PADRAO, type ConfigAuto } from "@/lib/robo/motor/config";
 import { rodarCompras, rodarVendaDrops, rodarVendaPokes, type Recado } from "@/lib/robo/motor/jobs";
 import { registrarEvento } from "@/lib/robo/motor/eventos";
 import { passoDoNivel, planejarRota } from "@/lib/robo/motor/rota";
+import { melhores } from "@/lib/robo/motor/objetivo";
 import { fetchSource } from "@/lib/source";
 import { itemIconUrl } from "@/lib/sprites";
 
@@ -155,6 +157,8 @@ const FILA_NO_ESTADO = 60;
 /** Anti-flood do chat do JOGO (~1 msg/min). Barrar aqui evita gastar a janela
  *  do servidor com uma mensagem que ele vai recusar. */
 const CHAT_COOLDOWN_MS = 60_000;
+/** De quanto em quanto o objetivo de dolares refaz a conta do melhor par. */
+const RECALCULO_MS = 10 * 60_000;
 
 /**
  * O que cada codigo de fechamento significa, e o que fazer com ele.
@@ -214,6 +218,9 @@ export class SessaoJogo extends EventEmitter {
   private iconePorItem = new Map<number, string>();
   private iconeVersao: string | null = null;
 
+  /** ver `anotarDesconhecido` */
+  private desconhecidos = new Map<string, { chaves: string[]; amostra: string; em: number }>();
+
   private chat: Mensagem[] = [];
   private chatIds = new Set<string>();
   private chatTextos = new Map<string, number>();
@@ -227,6 +234,8 @@ export class SessaoJogo extends EventEmitter {
   private nivelTreinador: number | null = null;
   private nivelLider: number | null = null;
 
+  private recomendacoes: Recomendacao[] = [];
+  private recalculadoEm = 0;
   private rota: PassoRota[] = [];
   private rotaConcluida = false;
   private rotaPlanejadaPara: string | null = null;
@@ -308,6 +317,7 @@ export class SessaoJogo extends EventEmitter {
       noBox: this.box.length,
 
       perfil: this.perfil,
+      recomendacoes: this.recomendacoes,
       rota: this.rota,
       passoAtual: this.nivelLider != null ? passoDoNivel(this.rota, this.nivelLider) : null,
       rotaConcluida: this.rotaConcluida,
@@ -543,11 +553,14 @@ export class SessaoJogo extends EventEmitter {
     }
 
     this.enviar({ type: "send", channel: canal, body: t });
+    // O eco chega pelo mesmo caminho de todo o resto do chat, e o chat do jogo e
+    // um lugar movimentado: seis segundos era pouco, e "o jogo nao confirmou"
+    // saia numa mensagem que tinha entrado.
     const veredito = await new Promise<"ok" | "recusado" | "silencio">((resolve) => {
       const prazo = setTimeout(() => {
         this.chatPendente = null;
         resolve("silencio");
-      }, 6_000);
+      }, 15_000);
       this.chatPendente = {
         texto: t,
         resolver: (r) => {
@@ -564,7 +577,22 @@ export class SessaoJogo extends EventEmitter {
       this.emitir();
       return { ok: true };
     }
-    return { ok: false, motivo: veredito === "recusado" ? "recusado" : "sem_eco" };
+    if (veredito === "recusado") return { ok: false, motivo: "recusado" };
+
+    /**
+     * Sem eco NAO e sem envio.
+     *
+     * O silencio tem duas causas indistinguiveis daqui: o eco demorou mais que o
+     * prazo, ou o jogo engoliu a mensagem. Tratar as duas como falha convidava a
+     * mandar de novo — e mandar de novo, num canal com anti-flood de um minuto,
+     * ou duplica a mensagem ou queima a janela.
+     *
+     * Entao o cooldown ARMA mesmo assim, e a resposta diz que nao deu pra
+     * confirmar. Quem le decide; o robo nao reenvia por conta.
+     */
+    this.chatEnviadoEm = Date.now();
+    this.emitir();
+    return { ok: false, motivo: "sem_eco" };
   }
 
   /** Roda as automacoes AGORA, a pedido da tela. */
@@ -900,10 +928,28 @@ export class SessaoJogo extends EventEmitter {
         this.pegarChat(m);
         break;
 
+      case "shiny-global": {
+        // Shiny de OUTRO jogador. Nao e o seu, mas e a coisa mais rara que passa
+        // por este socket, e o registro e onde ela sobrevive.
+        const quem = String(m.playerName ?? m.fromName ?? m.name ?? "alguém");
+        const oque = String(m.speciesName ?? m.species ?? "um shiny");
+        if (this.userId) {
+          void registrarEvento(this.userId, {
+            tipo: "shiny-mundo",
+            titulo: `${quem} capturou ${oque} shiny`,
+            dado: { quem, especie: oque },
+          });
+        }
+        break;
+      }
+
       case "joy-healed":
         // O ack nao prova nada: quem confirma e o HP na proxima lista.
         this.enviar({ type: "pokes-get" });
         break;
+
+      default:
+        this.anotarDesconhecido(m);
     }
   }
 
@@ -1035,6 +1081,36 @@ export class SessaoJogo extends EventEmitter {
       .catch(() => { /* segue com o mapa anterior */ });
     if (!this.iconePorItem.size) return a;
     return { ...a, drops: a.drops.map((d) => ({ ...d, icone: this.iconePorItem.get(d.itemId) })) };
+  }
+
+  /**
+   * Frames que o motor ainda nao entende.
+   *
+   * Existe por uma pergunta concreta em aberto: o jogo TEM mensagem privada, e o
+   * formato dela nao esta em nenhuma captura que eu tenha. Adivinhar o nome do
+   * frame seria escrever codigo contra uma suposicao; guardar o que passa por
+   * aqui e o unico jeito de descobrir sem tomar a sessao do jogador so pra
+   * espiar.
+   *
+   * Guarda a FORMA (tipo e chaves) e uma amostra curta. Nada de varredura
+   * continua: cada tipo entra uma vez.
+   */
+  private anotarDesconhecido(m: Record<string, unknown>) {
+    const tipo = String(m.type ?? "?");
+    if (!tipo || this.desconhecidos.has(tipo)) return;
+    let amostra = "";
+    try {
+      amostra = JSON.stringify(m).slice(0, 500);
+    } catch {
+      amostra = tipo;
+    }
+    this.desconhecidos.set(tipo, { chaves: Object.keys(m), amostra, em: Date.now() });
+    console.info(`[robo] frame desconhecido "${tipo}": ${Object.keys(m).join(", ")}`);
+  }
+
+  /** Os frames desconhecidos vistos nesta sessao. Lidos pela rota de sondagem. */
+  framesDesconhecidos() {
+    return [...this.desconhecidos].map(([tipo, v]) => ({ tipo, ...v }));
   }
 
   private registrar(e: Evento) {
@@ -1174,22 +1250,102 @@ export class SessaoJogo extends EventEmitter {
    * chegar no mesmo plano.
    */
   private async cuidarDaRota(): Promise<void> {
-    if (!this.cfg.autoRota || !this.ws) return;
-    const lider = this.time.find((p) => p.leader) ?? this.time[0];
-    if (!lider) return;
+    if (!this.ws) return;
+    if (this.cfg.objetivo === "dolares") return this.perseguirDolares();
+    if (this.cfg.objetivo === "nivel") return this.perseguirNivel();
+  }
 
-    const assinatura = `${lider.id}|${this.cfg.nivelAlvo}`;
+  /**
+   * "Quero mais dinheiro": escolhe o melhor par do time e vai.
+   *
+   * Reavalia de tempos em tempos, e nao a cada frame: a recomendacao so muda
+   * quando o time sobe de nivel, e recalcular 6 pokemons contra 340 alvos a cada
+   * `pokes` seria queimar CPU pra chegar na mesma resposta.
+   *
+   * Troca de LIDER junto com a cacada. Sao a mesma decisao — o melhor par e um
+   * par —, e trocar so a hunt deixaria o pokemon errado no campo certo.
+   */
+  private async perseguirDolares(): Promise<void> {
+    const agora = Date.now();
+    if (agora - this.recalculadoEm < RECALCULO_MS && this.recomendacoes.length) {
+      return this.aplicarRecomendacao();
+    }
+    if (!this.time.length) return;
+    this.recalculadoEm = agora;
+    try {
+      this.recomendacoes = await melhores(this.time, "dolares", { vip: this.perfil?.vip });
+      this.emitir();
+      this.aplicarRecomendacao();
+    } catch (e) {
+      console.error("[robo] objetivo de dolares falhou:", e);
+    }
+  }
+
+  /** Poe o par recomendado no ar, se ele ja nao estiver. */
+  private aplicarRecomendacao() {
+    const alvo = this.recomendacoes[0];
+    if (!alvo || !this.ws) return;
+    const agora = Date.now();
+    // Mesmo anti-oscilacao da rota: a fronteira entre dois pares pode empatar, e
+    // trocar de campo a cada 20s nao caca nada.
+    if (agora - this.rotaTrocandoEm < 60_000) return;
+
+    const lider = this.time.find((p) => p.leader);
+    const trocarLider = lider?.id !== alvo.pokeId;
+    const trocarHunt = this.slug !== alvo.slug;
+    if (!trocarLider && !trocarHunt) return;
+
+    this.rotaTrocandoEm = agora;
+    if (trocarLider) {
+      this.enviar({ type: "poke-summon", pokeId: alvo.pokeId });
+      setTimeout(() => this.enviar({ type: "pokes-get" }), 500);
+    }
+    this.registrar({
+      em: agora, tipo: "aviso",
+      especie: `objetivo: ${alvo.nome} caçando ${alvo.alvo} (${Math.round(alvo.goldH).toLocaleString("pt-BR")}/h)`,
+      shiny: false, xp: 0, loot: [],
+    });
+    if (trocarHunt) this.cacar(alvo.slug, true);
+  }
+
+  /**
+   * "Sobe este pokemon ate o nivel N": planeja a subida e troca de hunt sozinho.
+   *
+   * O calculo e o MESMO `buildRoute` da ferramenta publica de rota. O robo nao
+   * ganha uma segunda opiniao sobre onde cacar — ele ganha as pernas pra
+   * executar a que ja existe.
+   *
+   * Replaneja quando o ALVO muda, e nao a cada nivel: a rota ja e calculada
+   * nivel a nivel ate a meta.
+   */
+  private async perseguirNivel(): Promise<void> {
+    const escolhido = this.cfg.pokeAlvo
+      ? this.time.find((p) => p.id === this.cfg.pokeAlvo)
+      : null;
+    const alvo = escolhido ?? this.time.find((p) => p.leader) ?? this.time[0];
+    if (!alvo) return;
+
+    // O pokemon a subir tem que ser quem esta cacando: XP vai pro lider.
+    if (!alvo.leader) {
+      const agora = Date.now();
+      if (agora - this.rotaTrocandoEm >= 60_000) {
+        this.rotaTrocandoEm = agora;
+        this.enviar({ type: "poke-summon", pokeId: alvo.id });
+        setTimeout(() => this.enviar({ type: "pokes-get" }), 500);
+      }
+      return;
+    }
+
+    const assinatura = `${alvo.id}|${this.cfg.nivelAlvo}`;
     if (this.rotaPlanejadaPara !== assinatura) {
       this.rotaPlanejadaPara = assinatura;
       this.rota = [];
       this.rotaConcluida = false;
-      const plano = await planejarRota(lider, this.cfg.nivelAlvo, { vip: this.perfil?.vip });
-      if (this.rotaPlanejadaPara !== assinatura) return; // o lider trocou no meio
+      const plano = await planejarRota(alvo, this.cfg.nivelAlvo, { vip: this.perfil?.vip });
+      if (this.rotaPlanejadaPara !== assinatura) return; // o alvo trocou no meio
       if (!plano) {
-        // Sem plano: ou o lider ja passou do alvo, ou a especie nao tem alvo
-        // alcancavel. Os dois casos param a rota — insistir so trocaria de hunt
-        // a esmo.
-        this.rotaConcluida = lider.level >= this.cfg.nivelAlvo;
+        // Sem plano: ou ja passou do alvo, ou a especie nao tem alvo alcancavel.
+        this.rotaConcluida = alvo.level >= this.cfg.nivelAlvo;
         this.emitir();
         return;
       }
@@ -1197,40 +1353,37 @@ export class SessaoJogo extends EventEmitter {
       this.emitir();
     }
 
-    if (lider.level >= this.cfg.nivelAlvo) {
+    if (alvo.level >= this.cfg.nivelAlvo) {
       if (!this.rotaConcluida) {
         this.rotaConcluida = true;
         this.registrar({
-          em: Date.now(), tipo: "aviso", especie: `${lider.name} chegou ao nível ${lider.level}`,
+          em: Date.now(), tipo: "aviso", especie: `${alvo.name} chegou ao nível ${alvo.level}`,
           shiny: false, xp: 0, loot: [],
         });
         if (this.userId) {
           void registrarEvento(this.userId, {
             tipo: "meta",
-            titulo: `${lider.name} chegou ao nível ${this.cfg.nivelAlvo}`,
+            titulo: `${alvo.name} chegou ao nível ${this.cfg.nivelAlvo}`,
             corpo: "A caçada automática terminou. O robô segue segurando a sessão.",
           });
         }
-        // Chegou na meta: sai do campo e NAO escolhe outra hunt. Continuar cacando
-        // depois do alvo seria o robo decidindo por conta o que fazer com o tempo
-        // do dono.
+        // Chegou na meta: sai do campo e NAO escolhe outra hunt. Seguir cacando
+        // depois do alvo seria o robo decidindo por conta o que fazer com o
+        // tempo do dono.
         this.pararCacada();
       }
       return;
     }
 
-    const passo = passoDoNivel(this.rota, lider.level);
+    const passo = passoDoNivel(this.rota, alvo.level);
     if (!passo || passo.slug === this.slug) return;
-    // Anti-oscilacao: o `pokes` chega a cada 20s e o nivel pode empatar na
-    // fronteira de duas faixas. Uma troca por minuto e teto de sobra pra uma rota
-    // que muda de alvo a cada varios niveis.
     const agora = Date.now();
     if (agora - this.rotaTrocandoEm < 60_000) return;
     this.rotaTrocandoEm = agora;
 
     this.registrar({
-      em: Date.now(), tipo: "aviso",
-      especie: `rota: nível ${lider.level}, agora em ${passo.alvo}`,
+      em: agora, tipo: "aviso",
+      especie: `rota: nível ${alvo.level}, agora em ${passo.alvo}`,
       shiny: false, xp: 0, loot: [],
     });
     this.cacar(passo.slug, true);

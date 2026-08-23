@@ -143,6 +143,21 @@ export interface PassoRota {
   risco: "safe" | "risky" | "deadly";
 }
 
+/** Um par recomendado: com qual dos MEUS pokemons, e onde. */
+export interface Recomendacao {
+  /** cuid do individuo no time */
+  pokeId: string;
+  nome: string;
+  speciesId: number;
+  level: number;
+  slug: string;
+  alvo: string;
+  alvoSpeciesId: number;
+  goldH: number;
+  xpH: number;
+  risco: "safe" | "risky" | "deadly";
+}
+
 /**
  * A conta do jogo, inteira.
  *
@@ -264,6 +279,9 @@ export interface EstadoHunt {
   /** a conta inteira, do REST (nao disputa a sessao) */
   perfil: Perfil | null;
 
+  /** o que o objetivo `dolares` recomenda agora, do melhor pro pior */
+  recomendacoes: Recomendacao[];
+
   /** a subida planejada, quando a cacada automatica esta ligada */
   rota: PassoRota[];
   /** a faixa que esta correndo agora */
@@ -327,8 +345,21 @@ export interface ConfigAuto {
   manterEspecies: number[];
 
   // --- cacada automatica ---
-  /** o robo escolhe a hunt e troca sozinho conforme o lider sobe */
-  autoRota: boolean;
+  /**
+   * O que o robo deve perseguir.
+   *
+   *   nenhum   so caca onde mandarem;
+   *   dolares  escolhe o par (pokemon do time x cacada) que mais paga, e
+   *            reavalia conforme o time sobe;
+   *   nivel    sobe UM pokemon ate `nivelAlvo`, trocando de hunt pela rota.
+   *
+   * Sao objetivos, e nao interruptores independentes, porque disputam a mesma
+   * coisa: quem e o lider e em que campo ele esta. Dois ligados ao mesmo tempo
+   * brigariam pelo mesmo comando a cada varredura.
+   */
+  objetivo: "nenhum" | "dolares" | "nivel";
+  /** o cuid do pokemon a subir, no objetivo `nivel`. Vazio = o lider de agora. */
+  pokeAlvo: string | null;
   /** ate que nivel subir. Chegou la, a cacada para. */
   nivelAlvo: number;
 }
@@ -361,7 +392,8 @@ export const CONFIG_PADRAO: ConfigAuto = {
   nivelMinimo: 30,
   manterEspecies: [],
 
-  autoRota: false,
+  objetivo: "nenhum",
+  pokeAlvo: null,
   nivelAlvo: 100,
 };
 
@@ -417,7 +449,9 @@ export function normalizarConfig(bruto: unknown): ConfigAuto {
     nivelMinimo: inteiro(c.nivelMinimo, p.nivelMinimo, 1, 1000),
     manterEspecies: idsDe(c.manterEspecies),
 
-    autoRota: Boolean(c.autoRota),
+    objetivo:
+      c.objetivo === "dolares" || c.objetivo === "nivel" ? c.objetivo : "nenhum",
+    pokeAlvo: typeof c.pokeAlvo === "string" && c.pokeAlvo ? c.pokeAlvo : null,
     nivelAlvo: inteiro(c.nivelAlvo, p.nivelAlvo, 2, 1000),
   };
 
@@ -476,7 +510,7 @@ export function estadoParado(): EstadoHunt {
     fechamento: null, explicacao: null, conectado: false, campoVivo: false,
     reconexoes: 0, shard: null,
     ouro: null, nivelTreinador: null, nivelLider: null, bolas: [], auto: null, noBox: 0,
-    perfil: null, rota: [], passoAtual: null, rotaConcluida: false,
+    perfil: null, recomendacoes: [], rota: [], passoAtual: null, rotaConcluida: false,
     chatLiberadoEm: null,
     placar: placarZero(),
   };

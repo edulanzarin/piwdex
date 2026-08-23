@@ -120,6 +120,7 @@ export function AbaChat({
   const [texto, setTexto] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [recado, setRecado] = useState<string | null>(null);
+  const [aviso, setAviso] = useState<string | null>(null);
   const [agora, setAgora] = useState(() => Date.now());
   const fim = useRef<HTMLDivElement | null>(null);
 
@@ -157,6 +158,7 @@ export function AbaChat({
     if (!podeFalar) return;
     setEnviando(true);
     setRecado(null);
+    setAviso(null);
     try {
       const res = await fetch("/api/robo/chat", {
         method: "POST",
@@ -167,8 +169,20 @@ export function AbaChat({
         setTexto("");
         return;
       }
-      const j = (await res.json().catch(() => ({}))) as { erro?: string };
-      setRecado(MOTIVO[j.erro ?? ""] ?? "não consegui mandar");
+      const j = (await res.json().catch(() => ({}))) as { erro?: string; esperaMs?: number };
+      if (j.erro === "sem_eco") {
+        // Não é erro: é "não deu para confirmar". O texto some do campo porque a
+        // mensagem provavelmente entrou, e reescrevê-la seria o caminho para
+        // mandar duas.
+        setTexto("");
+        setAviso("Mandei, mas o jogo não devolveu o eco. Confira acima antes de repetir.");
+        return;
+      }
+      setRecado(
+        j.erro === "espera" && j.esperaMs
+          ? `Falta ${Math.ceil(j.esperaMs / 1000)}s para o jogo aceitar a próxima.`
+          : (MOTIVO[j.erro ?? ""] ?? "não consegui mandar"),
+      );
     } catch {
       setRecado("não consegui falar com o servidor");
     } finally {
@@ -251,7 +265,7 @@ export function AbaChat({
         )}
       </div>
 
-      <div className="mt-3 flex flex-wrap items-center gap-2">
+      <div className="mt-3 flex flex-wrap items-stretch gap-2">
         <span className="flex shrink-0 items-center gap-2">
           <span className="pix text-[10px] text-text-mute">falar em</span>
           <Select
@@ -271,7 +285,7 @@ export function AbaChat({
           disabled={!estado.conectado || enviando}
           className="min-w-0 flex-1"
         />
-        <Button variant="primary" disabled={!podeFalar} onClick={() => void mandar()}>
+        <Button size="lg" variant="primary" disabled={!podeFalar} onClick={() => void mandar()}>
           {esperaMs ? `${espera}s` : "mandar"}
         </Button>
       </div>
@@ -282,7 +296,10 @@ export function AbaChat({
           : `${texto.length}/${MAX} caracteres. Nada sai daqui sozinho.`}
       </p>
 
-      <div aria-live="polite">{recado ? <Note tone="danger" className="mt-2">{recado}</Note> : null}</div>
+      <div aria-live="polite">
+        {recado ? <Note tone="danger" className="mt-2">{recado}</Note> : null}
+        {aviso ? <Note tone="warn" className="mt-2">{aviso}</Note> : null}
+      </div>
     </Panel>
   );
 }
@@ -292,6 +309,5 @@ const MOTIVO: Record<string, string> = {
   vazio: "escreva alguma coisa antes de mandar",
   espera: "o jogo aceita cerca de uma mensagem por minuto",
   recusado: "o jogo recusou essa mensagem",
-  sem_eco: "o jogo não confirmou o envio; pode ter entrado mesmo assim",
   ocupado: "ainda estou mandando a anterior",
 };

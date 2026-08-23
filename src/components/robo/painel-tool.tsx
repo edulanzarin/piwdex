@@ -107,6 +107,13 @@ export function PainelTool({
    * junto com ele.
    */
   const [lidoAte, setLidoAte] = useState(() => Date.now());
+  /**
+   * Quantos eventos gravados ainda não foram vistos.
+   *
+   * Vem do banco, e não de um contador de memória: o registro sobrevive ao
+   * restart, e um "não lido" que zera a cada recarga é ruído, não aviso.
+   */
+  const [eventosNovos, setEventosNovos] = useState(0);
   const fonte = useRef<EventSource | null>(null);
 
   useEffect(() => {
@@ -140,6 +147,19 @@ export function PainelTool({
     const t = setInterval(() => setAgora(Date.now()), 1000);
     return () => clearInterval(t);
   }, []);
+
+  useEffect(() => {
+    if (!temVinculo) return;
+    const ler = () =>
+      fetch("/api/robo/eventos?so=contagem")
+        .then((r) => (r.ok ? r.json() : null))
+        .then((j: { naoLidos?: number } | null) => setEventosNovos(j?.naoLidos ?? 0))
+        .catch(() => {});
+    void ler();
+    // Um minuto: o registro guarda o que aconteceu, não o que está acontecendo.
+    const t = setInterval(ler, 60_000);
+    return () => clearInterval(t);
+  }, [temVinculo]);
 
   // Estar NA aba do chat já é ter lido: a contagem zera enquanto ela está aberta.
   useEffect(() => {
@@ -225,7 +245,7 @@ export function PainelTool({
           { value: "cacada", label: "Caçada" },
           { value: "automacao", label: "Automação" },
           { value: "chat", label: "Chat", count: naoLidas || undefined },
-          { value: "registro", label: "Registro" },
+          { value: "registro", label: "Registro", count: eventosNovos || undefined },
         ]}
       />
 
@@ -238,6 +258,8 @@ export function PainelTool({
           slug={slug}
           setSlug={setSlug}
           onFicha={setFicha}
+          config={config}
+          onConfig={mudarConfig}
         />
       ) : null}
       {aba === "automacao" ? (
@@ -249,7 +271,7 @@ export function PainelTool({
       {aba === "chat" ? (
         <AbaChat estado={estado} chat={chat} lidoAte={lidoAte} onFicha={setFicha} />
       ) : null}
-      {aba === "registro" ? <AbaRegistro /> : null}
+      {aba === "registro" ? <AbaRegistro onLido={() => setEventosNovos(0)} /> : null}
     </div>
   );
 }

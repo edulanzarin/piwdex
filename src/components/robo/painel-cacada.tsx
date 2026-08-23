@@ -9,7 +9,8 @@ import { spriteUrl } from "@/lib/sprites";
 import { xpProgress } from "@/lib/xp";
 import { Cartao, ICONE, Medidor, TOM, Valor } from "@/components/robo/pecas";
 import { fichaDaConta, type FichaPoke } from "@/components/robo/poke-modal";
-import type { EstadoHunt, Evento } from "@/lib/robo/motor/tipos";
+import { PainelObjetivo } from "@/components/robo/painel-objetivo";
+import type { ConfigAuto, EstadoHunt, Evento } from "@/lib/robo/motor/tipos";
 import type { HuntOpcao } from "@/components/robo/painel-tool";
 
 /**
@@ -124,6 +125,8 @@ export function AbaCacada({
   slug,
   setSlug,
   onFicha,
+  config,
+  onConfig,
 }: {
   estado: EstadoHunt;
   ocupado: boolean;
@@ -132,6 +135,8 @@ export function AbaCacada({
   slug: string;
   setSlug: Dispatch<SetStateAction<string>>;
   onFicha: (f: FichaPoke) => void;
+  config: ConfigAuto;
+  onConfig: (cfg: ConfigAuto) => Promise<void>;
 }) {
   const a = estado.analyzer;
   const p = estado.placar;
@@ -167,6 +172,7 @@ export function AbaCacada({
           </div>
         </div>
         <Button
+          size="lg"
           variant={estado.slug ? "outline" : "primary"}
           disabled={ocupado || !slug || !estado.conectado || estado.slug === slug}
           onClick={() => void comandar("cacar", { slug })}
@@ -174,7 +180,7 @@ export function AbaCacada({
           {estado.slug ? "trocar de caçada" : "começar a caçar"}
         </Button>
         {estado.slug ? (
-          <Button variant="danger" disabled={ocupado} onClick={() => void comandar("cacar", {})}>
+          <Button size="lg" variant="danger" disabled={ocupado} onClick={() => void comandar("cacar", {})}>
             parar a caçada
           </Button>
         ) : null}
@@ -182,6 +188,9 @@ export function AbaCacada({
           <span className="pb-2 text-[12px] text-warn">Ligue o robô no topo para poder caçar.</span>
         ) : null}
       </div>
+
+      {/* ---- o objetivo ---- */}
+      <PainelObjetivo estado={estado} config={config} onConfig={onConfig} />
 
       {/* ---- os números desta caçada ---- */}
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-8">
