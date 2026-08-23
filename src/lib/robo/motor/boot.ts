@@ -2,6 +2,7 @@ import { listarLigados, type Desejado } from "@/lib/robo/motor/desejado";
 import { atualizarTokens, lerVinculo, salvarShard } from "@/lib/robo/vinculo";
 import { lerPokes } from "@/lib/robo/jogo/ws";
 import { sessaoDe } from "@/lib/robo/motor/sessao";
+import { lerConfig } from "@/lib/robo/motor/config";
 import type { Tokens } from "@/lib/robo/jogo/auth";
 
 /**
@@ -33,7 +34,11 @@ async function retomarUma(userId: string, d: Desejado): Promise<void> {
   }
 
   const persistir = (t: Tokens) => atualizarTokens(userId, t);
-  sessaoDe(userId).retomar(userId, v.tokens, shard, d.slug, persistir);
+  // A config vem junto: retomar sem ela deixaria as automacoes desligadas ate
+  // alguem abrir a tela — e "ninguem abre a tela" e exatamente a condicao em que
+  // o robo trabalha.
+  const cfg = await lerConfig(userId).catch(() => undefined);
+  sessaoDe(userId).retomar(userId, v.tokens, shard, d.slug, persistir, cfg);
 }
 
 /**

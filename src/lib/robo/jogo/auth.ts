@@ -206,3 +206,50 @@ export async function pedirAoJogo(path: string, tokens: Tokens): Promise<Respost
   }
   return { res, tokens: t, mudou };
 }
+
+/**
+ * POST autenticado. Mesmo retry-em-401 do GET.
+ *
+ * `Origin` e `Referer` nao sao enfeite: as rotas de mutacao do jogo (loja,
+ * auto-helper) sao chamadas do navegador, e mandar o par mantem a requisicao
+ * indistinguivel da que o proprio cliente faz. Sem isso o jogo pode recusar por
+ * um motivo que nao tem nada a ver com o token.
+ */
+export async function enviarAoJogo(
+  path: string,
+  tokens: Tokens,
+  corpo?: unknown,
+  metodo: "POST" | "PATCH" | "PUT" = "POST",
+): Promise<RespostaJogo> {
+  let t = tokens;
+  let mudou = false;
+  const opcoes = (): RequestInit => ({
+    method: metodo,
+    headers: {
+      ...cabecalhos(t),
+      "Content-Type": "application/json",
+      Origin: GAME_HOST,
+      Referer: `${GAME_HOST}/play`,
+    },
+    body: corpo != null ? JSON.stringify(corpo) : undefined,
+    cache: "no-store",
+  });
+  let res = await fetch(`${GAME_HOST}${path}`, opcoes());
+  if (res.status === 401 && t.refresh) {
+    const novo = await renovarTokens(t);
+    if (novo) {
+      t = novo;
+      mudou = true;
+      res = await fetch(`${GAME_HOST}${path}`, opcoes());
+    }
+  }
+  return { res, tokens: t, mudou };
+}
+
+/** A frase da recusa, quando o jogo manda uma. Serve pra tela dizer POR QUE a
+ *  compra ou a venda nao aconteceu, em vez de um "não deu certo" generico. */
+export function frasedoJogo(dado: unknown): string | null {
+  const o = dado as { error?: unknown; message?: unknown } | null;
+  const m = o && (typeof o.error === "string" ? o.error : typeof o.message === "string" ? o.message : null);
+  return m && m.length <= 200 ? m : null;
+}

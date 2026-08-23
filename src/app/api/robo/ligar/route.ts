@@ -4,6 +4,7 @@ import { atualizarTokens, lerVinculo, salvarShard } from "@/lib/robo/vinculo";
 import { lerPokes } from "@/lib/robo/jogo/ws";
 import { sessaoDe } from "@/lib/robo/motor/sessao";
 import { salvarDesejado } from "@/lib/robo/motor/desejado";
+import { lerConfig } from "@/lib/robo/motor/config";
 import { fetchSource } from "@/lib/source";
 import type { Tokens } from "@/lib/robo/jogo/auth";
 
@@ -52,7 +53,8 @@ export async function POST(req: Request) {
   await salvarDesejado(usuario.id, { ligado: true, slug });
 
   const persistir = (t: Tokens) => atualizarTokens(usuario.id, t);
-  sessaoDe(usuario.id).comecar(usuario.id, v.tokens, shard, slug, persistir);
+  const cfg = await lerConfig(usuario.id).catch(() => undefined);
+  sessaoDe(usuario.id).comecar(usuario.id, v.tokens, shard, slug, persistir, cfg);
 
   return NextResponse.json({ ok: true, slug });
 }
