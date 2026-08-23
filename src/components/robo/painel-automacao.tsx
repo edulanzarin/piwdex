@@ -842,7 +842,7 @@ export function AbaAutomacao({
                       value={rascunho.ivMinimo}
                       onChange={(n) => mudar({ ivMinimo: n })}
                       min={0}
-                      max={186}
+                      max={192}
                     />
                   </label>
                   <label className="flex flex-col gap-1 border border-line bg-bg-soft p-3">

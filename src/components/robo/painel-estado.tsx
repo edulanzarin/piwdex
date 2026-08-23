@@ -1,7 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { Note } from "@/components/ui";
+import { Button, Note, Panel, Sprite } from "@/components/ui";
+import { Pokeball } from "@/components/ui/pokeball";
+import { compact } from "@/lib/labels";
+import { spriteUrl } from "@/lib/sprites";
+import { xpProgress } from "@/lib/xp";
+import { BolaChip, ICONE, Medidor, TOM } from "@/components/robo/pecas";
 import type { EstadoHunt, StatusSessao } from "@/lib/robo/motor/tipos";
 
 /**
@@ -136,60 +141,167 @@ export function Diagnostico({
   return null;
 }
 
-/** A linha de status: bolinha, frase, onde, ha quanto tempo, shard. */
-export function LinhaStatus({
+/**
+ * A barra do topo: o que o robô está fazendo, agora.
+ *
+ * Ela fica em TODA aba, então só entra aqui o que vale em todas: o estado da
+ * sessão, quem está lutando, e a conta. O seletor de caçada saiu — ele é
+ * assunto de uma aba só, e ocupava o topo inteiro para quem estava mexendo em
+ * automação ou lendo o chat.
+ */
+export function BarraTopo({
   estado,
   agora,
   nomeJogador,
   vinculo,
+  ocupado,
+  comandar,
+  onAbrirLider,
 }: {
   estado: EstadoHunt;
   agora: number;
   nomeJogador: string | null;
   vinculo: "active" | "expired" | "blocked" | null;
+  ocupado: boolean;
+  comandar: (rota: string, corpo?: unknown) => Promise<void>;
+  onAbrirLider: () => void;
 }) {
-  // A mesma correcao do `Diagnostico`: "parado" ao lado de um aviso vermelho de
+  // A mesma correção do `Diagnostico`: "parado" ao lado de um aviso vermelho de
   // token vencido seria a tela se contradizendo.
   const status =
     estado.status === "parado" && vinculo && vinculo !== "active"
-      ? vinculo === "expired" ? "vencido" : "bloqueado"
+      ? vinculo === "expired"
+        ? "vencido"
+        : "bloqueado"
       : estado.status;
   const r = ROTULO[status];
   const contando = estado.status === "rodando" || estado.status === "conectando";
+  const lider = estado.time.find((p) => p.leader) ?? estado.time[0] ?? null;
+  const xp = lider ? xpProgress(lider.level, lider.xp) : null;
+
   return (
-    <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px]">
-      <span className="pix text-[11px]" style={{ color: r.cor }}>
-        ● {r.texto}
-      </span>
-      {estado.slug ? <span className="text-text-mute">em {estado.slug}</span> : null}
-      {estado.desdeMs && contando ? (
-        <span className="text-text-mute">há {duracao(agora - estado.desdeMs)}</span>
-      ) : null}
-      {estado.campoVivo ? <span className="text-ok">campo ativo</span> : null}
-      {estado.reconectando && estado.proximaTentativaEm ? (
-        <span className="text-warn">
-          tentando de novo em {Math.max(0, Math.ceil((estado.proximaTentativaEm - agora) / 1000))}s
-        </span>
-      ) : null}
-      {estado.explicacao && estado.status === "conectando" ? (
-        <span className="text-text-mute">{estado.explicacao}</span>
-      ) : null}
-      <span className="ml-auto flex items-center gap-3 text-text-mute">
-        {estado.shard ? <span className="tabular">shard {estado.shard}</span> : null}
-        {estado.reconexoes > 0 ? (
-          <span className="tabular" title="reconexões desde que foi ligado">
-            {estado.reconexoes} religadas
-          </span>
+    <Panel className="p-3 sm:p-4">
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
+        {/* ---- quem está lutando ---- */}
+        {lider ? (
+          <button
+            type="button"
+            onClick={onAbrirLider}
+            className="flex min-w-0 items-center gap-3 border border-line bg-bg-soft px-2.5 py-2 text-left transition-colors hover:border-line-strong"
+            title="ver a ficha completa"
+          >
+            <Sprite src={spriteUrl(lider.speciesId, lider.shiny)} alt="" size={40} />
+            <span className="flex min-w-0 flex-col gap-1">
+              <span className="flex items-center gap-2">
+                <b className="truncate text-[14px] text-text">{lider.name}</b>
+                <span className="pix text-[10px] text-text-mute">nv {lider.level}</span>
+                {lider.shiny ? <span className="pix text-[10px] text-warn">shiny</span> : null}
+              </span>
+              <span className="flex w-40 flex-col gap-0.5">
+                <Medidor
+                  valor={lider.hp}
+                  max={lider.maxHp}
+                  compacto
+                  cor={
+                    lider.maxHp > 0 && lider.hp / lider.maxHp < 0.3
+                      ? "var(--color-danger)"
+                      : "var(--color-ok)"
+                  }
+                />
+                {xp?.pct != null ? <Medidor valor={xp.pct} max={1} compacto tom="xp" /> : null}
+              </span>
+            </span>
+          </button>
         ) : null}
-        {nomeJogador ? (
-          <span className="text-text-dim">
-            {nomeJogador}
-            {estado.nivelTreinador != null ? (
-              <span className="ml-1.5 tabular text-text-mute">nv {estado.nivelTreinador}</span>
+
+        {/* ---- o que está acontecendo ---- */}
+        <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+          <span className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px]">
+            <b className="pix text-[12px]" style={{ color: r.cor }}>
+              ● {r.texto}
+            </b>
+            {estado.slug ? (
+              <span className="text-text-dim">
+                em <b className="text-text">{estado.slug}</b>
+              </span>
+            ) : null}
+            {estado.desdeMs && contando ? (
+              <span className="text-text-mute">há {duracao(agora - estado.desdeMs)}</span>
+            ) : null}
+            {estado.campoVivo ? (
+              <span className="flex items-center gap-1 text-ok">
+                <Pokeball size={12} spinning />
+                campo ativo
+              </span>
+            ) : null}
+            {estado.reconectando && estado.proximaTentativaEm ? (
+              <span className="text-warn">
+                tentando de novo em{" "}
+                {Math.max(0, Math.ceil((estado.proximaTentativaEm - agora) / 1000))}s
+              </span>
             ) : null}
           </span>
-        ) : null}
-      </span>
-    </div>
+
+          <span className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] text-text-mute">
+            {nomeJogador ? (
+              <span className="flex items-center gap-1.5">
+                <b className="text-text-dim">{nomeJogador}</b>
+                {estado.nivelTreinador != null ? (
+                  <span className="tabular">nv {estado.nivelTreinador}</span>
+                ) : null}
+              </span>
+            ) : null}
+            {estado.perfil ? (
+              <>
+                <span className="flex items-center gap-1 tabular" style={{ color: TOM.ouro }}>
+                  <ICONE.ouro size={13} />
+                  {compact(estado.perfil.gold)}
+                </span>
+                <span className="flex items-center gap-1 tabular" style={{ color: TOM.diamante }}>
+                  <ICONE.diamante size={13} />
+                  {compact(estado.perfil.diamantes)}
+                </span>
+              </>
+            ) : null}
+            {estado.bolas.length ? (
+              <span className="flex items-center gap-1.5">
+                {estado.bolas
+                  .filter((b) => b.infinita || b.quantidade > 0)
+                  .slice(0, 4)
+                  .map((b) => (
+                    <BolaChip
+                      key={b.id}
+                      nome={b.nome}
+                      icone={b.icone}
+                      quantidade={b.quantidade}
+                      infinita={b.infinita}
+                      ativa={estado.auto?.autoCatchBallId === b.id}
+                    />
+                  ))}
+              </span>
+            ) : null}
+            {estado.shard ? <span className="tabular">shard {estado.shard}</span> : null}
+            {estado.reconexoes > 0 ? (
+              <span className="tabular" title="reconexões desde que foi ligado">
+                {estado.reconexoes} religadas
+              </span>
+            ) : null}
+          </span>
+        </div>
+
+        {/* ---- o interruptor ---- */}
+        {estado.ligado ? (
+          <Button variant="danger" size="lg" disabled={ocupado} onClick={() => void comandar("parar")}>
+            desligar o robô
+          </Button>
+        ) : (
+          <Button variant="primary" size="lg" disabled={ocupado} onClick={() => void comandar("ligar")}>
+            ligar o robô
+          </Button>
+        )}
+      </div>
+
+      <Diagnostico estado={estado} vinculo={vinculo} />
+    </Panel>
   );
 }

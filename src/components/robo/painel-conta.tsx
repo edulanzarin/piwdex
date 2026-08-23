@@ -1,11 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { Button, Empty, Loading, Note, Panel, SearchInput, Segmented, Sprite } from "@/components/ui";
 import { compact, num, TIER_LABEL } from "@/lib/labels";
 import { qualityTier, TIER_COLOR } from "@/lib/rarity";
 import { spriteUrl } from "@/lib/sprites";
 import type { ActivePoke } from "@/lib/robo/jogo/pokes";
+import { Pokeball } from "@/components/ui/pokeball";
+import { ICONE, TOM } from "@/components/robo/pecas";
+import { fichaDaConta, type FichaPoke } from "@/components/robo/poke-modal";
 import type { BolaEstoque, Perfil } from "@/lib/robo/motor/tipos";
 
 /**
@@ -49,10 +52,23 @@ const CATEGORIA: Record<string, string> = {
   key: "chave",
 };
 
-function Dado({ rotulo, valor, tom }: { rotulo: string; valor: string; tom?: string }) {
+function Dado({
+  rotulo,
+  valor,
+  tom,
+  icone,
+}: {
+  rotulo: string;
+  valor: string;
+  tom?: string;
+  icone?: ReactNode;
+}) {
   return (
     <div className="border border-line bg-bg-soft p-2.5">
-      <p className="pix text-[10px] text-text-mute">{rotulo}</p>
+      <p className="pix flex items-center gap-1.5 text-[10px] text-text-mute">
+        {icone}
+        {rotulo}
+      </p>
       <p className="mt-1 text-[16px] leading-none font-bold tabular" style={{ color: tom ?? "var(--color-text)" }}>
         {valor}
       </p>
@@ -67,7 +83,7 @@ function data(iso: string | null): string {
   return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
-export function AbaConta() {
+export function AbaConta({ onFicha }: { onFicha: (f: FichaPoke) => void }) {
   const [perfil, setPerfil] = useState<Perfil | null>(null);
   const [bolas, setBolas] = useState<BolaEstoque[]>([]);
   const [consumiveis, setConsumiveis] = useState<ItemMochila[]>([]);
@@ -148,12 +164,22 @@ export function AbaConta() {
           <Empty title="Conta não carregou" hint="Reconecte a conta do jogo." />
         ) : (
           <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
-            <Dado rotulo="Nível" valor={String(perfil.level)} />
-            <Dado rotulo="Ouro" valor={compact(perfil.gold)} tom="var(--color-warn)" />
-            <Dado rotulo="Diamantes" valor={compact(perfil.diamantes)} tom="var(--color-neon)" />
-            <Dado rotulo="Capturas" valor={compact(perfil.capturas)} />
-            <Dado rotulo="Bolsa" valor={compact(totalBolas)} />
-            <Dado rotulo="Mochila" valor={compact(valorParado)} tom="var(--color-ok)" />
+            <Dado rotulo="Nível" valor={String(perfil.level)} icone={<ICONE.nivel size={12} />} />
+            <Dado rotulo="Ouro" valor={compact(perfil.gold)} tom={TOM.ouro} icone={<ICONE.ouro size={12} />} />
+            <Dado
+              rotulo="Diamantes"
+              valor={compact(perfil.diamantes)}
+              tom={TOM.diamante}
+              icone={<ICONE.diamante size={12} />}
+            />
+            <Dado rotulo="Capturas" valor={compact(perfil.capturas)} icone={<Pokeball size={12} />} />
+            <Dado rotulo="Bolsa" valor={compact(totalBolas)} icone={<Pokeball size={12} />} />
+            <Dado
+              rotulo="Mochila"
+              valor={compact(valorParado)}
+              tom={TOM.vida}
+              icone={<ICONE.ouro size={12} />}
+            />
             {perfil.sequencia != null ? (
               <Dado rotulo="Sequência" valor={`${perfil.sequencia} dias`} />
             ) : null}
@@ -317,7 +343,7 @@ export function AbaConta() {
                 return (
                   <li
                     key={p.id}
-                    className="flex items-center gap-3 border border-line bg-bg-soft p-2"
+                    className="flex items-center gap-3 border border-line bg-bg-soft p-2 transition-colors hover:border-line-strong"
                     style={
                       p.leader
                         ? { borderColor: "color-mix(in srgb, var(--color-t-robo) 45%, transparent)" }
@@ -326,6 +352,14 @@ export function AbaConta() {
                           : undefined
                     }
                   >
+                    <button
+                      type="button"
+                      onClick={() =>
+                        onFicha(fichaDaConta(p, p.team ? "no seu time" : "no seu box"))
+                      }
+                      className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                      title="ver a ficha completa"
+                    >
                     <Sprite src={spriteUrl(p.speciesId, p.shiny)} alt="" size={32} />
                     <div className="min-w-0 flex-1">
                       <p className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[13px] text-text">
@@ -353,6 +387,7 @@ export function AbaConta() {
                         </span>
                       </p>
                     </div>
+                    </button>
                     {p.vendavel ? (
                       <span className="pix shrink-0 text-[10px] text-danger">sai na venda</span>
                     ) : null}

@@ -30,6 +30,7 @@ import { rodarCompras, rodarVendaDrops, rodarVendaPokes, type Recado } from "@/l
 import { registrarEvento } from "@/lib/robo/motor/eventos";
 import { passoDoNivel, planejarRota } from "@/lib/robo/motor/rota";
 import { fetchSource } from "@/lib/source";
+import { itemIconUrl } from "@/lib/sprites";
 
 export * from "@/lib/robo/motor/tipos";
 
@@ -186,6 +187,12 @@ export class SessaoJogo extends EventEmitter {
   private inventario = new Map<number, number>();
   private bolas: BolaEstoque[] = [];
   private auto: EstadoAuto | null = null;
+
+  /** nome da especie -> id, alimentado pelo `pending`. Ver `Evento.speciesId`. */
+  private idPorNome = new Map<string, number>();
+  /** id do item -> icone, do catalogo publico (o analyzer manda so nome e qtd) */
+  private iconePorItem = new Map<number, string>();
+  private iconeVersao: string | null = null;
 
   private chat: Mensagem[] = [];
   private chatIds = new Set<string>();
@@ -694,7 +701,7 @@ export class SessaoJogo extends EventEmitter {
         } else if (this.analyzerBase && analyzerZerou(bruto, this.analyzerBase)) {
           this.analyzerBase = null; // o jogo reiniciou a contagem: larga a base
         }
-        this.analyzer = deltaAnalyzer(bruto, this.analyzerBase);
+        this.analyzer = this.comIcones(deltaAnalyzer(bruto, this.analyzerBase));
         this.emitir();
         break;
       }
@@ -716,8 +723,9 @@ export class SessaoJogo extends EventEmitter {
           // Testar aqui evita esperar os 20s do proximo `pokes`.
           if (m.leveledUp || (antes != null && this.nivelLider > antes)) void this.cuidarDaRota();
         }
+        const nome = String(m.speciesName ?? "?");
         this.registrar({
-          em: Date.now(), tipo: "kill", especie: String(m.speciesName ?? "?"),
+          em: Date.now(), tipo: "kill", especie: nome, speciesId: this.idPorNome.get(nome),
           shiny: Boolean(m.shiny), xp: Number(m.xpGained ?? 0), loot,
         });
         break;
@@ -745,7 +753,7 @@ export class SessaoJogo extends EventEmitter {
           const especie = String(m.speciesName ?? "?");
           const shiny = Boolean(m.shiny);
           this.registrar({
-            em: Date.now(), tipo: "captura", especie,
+            em: Date.now(), tipo: "captura", especie, speciesId: this.idPorNome.get(especie),
             shiny, xp: 0, loot: [], bola: String(m.ballName ?? ""),
           });
           if (shiny && this.userId) {
@@ -769,6 +777,7 @@ export class SessaoJogo extends EventEmitter {
             shiny: Boolean(p.shiny),
             em: Number(p.at ?? Date.now()),
           }));
+          for (const f of this.fila) if (f.nome && f.speciesId) this.idPorNome.set(f.nome, f.speciesId);
           this.emitir();
         }
         break;
@@ -947,6 +956,29 @@ export class SessaoJogo extends EventEmitter {
       if (p && this.guardarMensagem(p)) pegou = true;
     }
     if (pegou) this.emitir();
+  }
+
+  /**
+   * Cola o icone em cada drop.
+   *
+   * O analyzer manda `itemId`, nome e quantidade, e nenhuma arte. O catalogo
+   * publico do jogo — que a dex ja carrega e mantem fresco por ETag — tem o
+   * icone, e casar os dois aqui evita que a tela peca item por item.
+   *
+   * Fora do caminho, como o conjunto de Revives: a resposta desta chamada usa o
+   * mapa que a ANTERIOR carregou. Um `fetch` no meio do frame do analyzer
+   * atrasaria o painel por causa de arte.
+   */
+  private comIcones(a: Analyzer): Analyzer {
+    void fetchSource()
+      .then((d) => {
+        if (this.iconeVersao === d.version) return;
+        this.iconePorItem = new Map(d.items.map((i) => [i.id, itemIconUrl(i)]));
+        this.iconeVersao = d.version;
+      })
+      .catch(() => { /* segue com o mapa anterior */ });
+    if (!this.iconePorItem.size) return a;
+    return { ...a, drops: a.drops.map((d) => ({ ...d, icone: this.iconePorItem.get(d.itemId) })) };
   }
 
   private registrar(e: Evento) {
@@ -1514,6 +1546,7 @@ export class SessaoJogo extends EventEmitter {
     this.inventario.clear();
     this.fila = [];
     this.chat = [];
+    this.idPorNome.clear();
     this.chatIds.clear();
     this.chatTextos.clear();
     this.chatPendente = null;

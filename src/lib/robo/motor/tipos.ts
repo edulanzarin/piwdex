@@ -31,7 +31,8 @@ export interface Analyzer {
   goldPerHour: number;
   xpPerHour: number;
   killsPerHour: number;
-  drops: { itemId: number; name: string; qty: number; gold: number }[];
+  /** `icone` nao vem do jogo: o motor resolve pelo catalogo (ver `sessao.ts`) */
+  drops: { itemId: number; name: string; qty: number; gold: number; icone?: string }[];
 }
 
 /** Os campos ACUMULATIVOS — os unicos de que faz sentido tirar delta. */
@@ -44,6 +45,14 @@ export interface Evento {
   em: number;
   tipo: "kill" | "captura" | "compra" | "venda" | "cura" | "aviso";
   especie: string;
+  /**
+   * O numero da especie, pra tela poder desenhar o bicho.
+   *
+   * O frame `field-kill` manda o NOME e mais nada. O id chega pelo `pending`
+   * (a fila de captura traz nome e especie juntos), que enche a cada abate — o
+   * motor casa os dois e o feed deixa de ser uma lista de texto.
+   */
+  speciesId?: number;
   shiny: boolean;
   xp: number;
   loot: { itemId: number; name: string; qty: number }[];
@@ -304,7 +313,7 @@ export interface ConfigAuto {
   // --- venda de pokemon ---
   venderPoke: boolean;
   manterShiny: boolean;
-  /** IV total (0..186 no jogo) a partir do qual o bicho FICA */
+  /** IV total (0..192: sao 32 por atributo) a partir do qual o bicho FICA */
   ivMinimo: number;
   /**
    * Qualidade a partir da qual o bicho FICA.
@@ -402,7 +411,7 @@ export function normalizarConfig(bruto: unknown): ConfigAuto {
 
     venderPoke: Boolean(c.venderPoke),
     manterShiny: c.manterShiny === undefined ? p.manterShiny : Boolean(c.manterShiny),
-    ivMinimo: inteiro(c.ivMinimo, p.ivMinimo, 0, 186),
+    ivMinimo: inteiro(c.ivMinimo, p.ivMinimo, 0, 192),
     qualidadeMinima:
       typeof c.qualidadeMinima === "number" && Number.isFinite(c.qualidadeMinima)
         ? Math.max(0, Math.min(10, c.qualidadeMinima))
