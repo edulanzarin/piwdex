@@ -1,0 +1,12 @@
+{
+  "_leia": [
+    "Copie este arquivo para tools/contas.local.json e preencha. O .local NAO vai pro git.",
+    "Onde achar: no jogo aberto, DevTools -> Application -> Local Storage -> chave 'pokeweb:tokens'.",
+    "Cole o valor inteiro em 'colado' que a sonda extrai os dois JWT sozinha.",
+    "REGRA: a conta que voce usa pra jogar NAO entra aqui. So conta de teste."
+  ],
+  "cobaia": {
+    "colado": "",
+    "nota": "conta de teste — nao abrir no navegador enquanto a sonda roda"
+  }
+}

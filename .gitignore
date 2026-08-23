@@ -19,3 +19,7 @@ data/raw/
 # Captura crua do WebSocket do jogo (tools/probe-ws.mjs). Tem o estado da conta
 # — pokemon, ouro, inventario — e as vezes o token na URL da conexao. Fica local.
 tools/captura/
+
+# Tokens de conta do jogo. Sao CREDENCIAL: quem tem o access joga como voce.
+# O .exemplo e versionado (e um molde vazio); o .local nunca.
+tools/contas.local.json

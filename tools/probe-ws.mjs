@@ -6,8 +6,10 @@
 // em base64. Um cliente Node conectando direto nao tem nenhum desses problemas — ele
 // ve todo frame desde o primeiro, e grava so o que interessa.
 //
-//   export WS_TOKEN='<access JWT do localStorage pokeweb:tokens>'
-//   node tools/probe-ws.mjs                    # 60s, so escuta (read-only)
+//   node tools/probe-ws.mjs --conta cobaia     # le tools/contas.local.json
+//   export WS_TOKEN='<access JWT>' && node tools/probe-ws.mjs   # ou pelo ambiente
+//
+//   node tools/probe-ws.mjs --conta cobaia      # 60s, so escuta (read-only)
 //   node tools/probe-ws.mjs --secs 180         # escuta mais tempo
 //   node tools/probe-ws.mjs --hunt ledian      # ENTRA no campo (muta!) e pega o stream
 //   node tools/probe-ws.mjs --shard 47         # pula a descoberta
@@ -23,7 +25,7 @@
 // terminal.
 
 import crypto from "node:crypto";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync, readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 
 const HOST = "poke.idleworld.online";
@@ -39,9 +41,47 @@ const arg = (nome, padrao = null) => {
       : padrao;
 };
 
-const TOKEN = process.env.WS_TOKEN;
+/**
+ * De onde sai o token.
+ *
+ * Prioridade: `--conta <nome>` lendo `tools/contas.local.json`, senao `WS_TOKEN` do
+ * ambiente. O arquivo existe pra o token NAO passar pela linha de comando: `export
+ * WS_TOKEN=...` fica no historico do shell, aparece em `ps` enquanto o processo roda,
+ * e vaza em qualquer print de terminal. Um access token e credencial completa — quem
+ * tem ele joga como voce.
+ *
+ * O arquivo aceita o valor CRU do localStorage (`pokeweb:tokens`) no campo `colado`:
+ * a extracao dos dois JWT e o mesmo parse que o v1 ja fazia, e evita a etapa manual
+ * em que se erra o recorte.
+ */
+const JWT_RE = /[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/g;
+
+function tokensDaConta(nome) {
+  const caminho = join(process.cwd(), "tools", "contas.local.json");
+  if (!existsSync(caminho)) {
+    console.error(`Nao achei ${caminho}.`);
+    console.error("Copie tools/contas.exemplo.json pra tools/contas.local.json e preencha.");
+    process.exit(1);
+  }
+  const todas = JSON.parse(readFileSync(caminho, "utf8"));
+  const c = todas[nome];
+  if (!c) {
+    const nomes = Object.keys(todas).filter((k) => !k.startsWith("_"));
+    console.error(`Conta "${nome}" nao esta no arquivo. Tem: ${nomes.join(", ") || "(nenhuma)"}`);
+    process.exit(1);
+  }
+  const jwts = String(c.colado ?? "").match(JWT_RE);
+  if (!jwts?.length) {
+    console.error(`A conta "${nome}" esta sem token — o campo "colado" precisa do valor de pokeweb:tokens.`);
+    process.exit(1);
+  }
+  return jwts[0];
+}
+
+const CONTA = typeof arg("conta") === "string" ? arg("conta") : null;
+const TOKEN = CONTA ? tokensDaConta(CONTA) : process.env.WS_TOKEN;
 if (!TOKEN) {
-  console.error("Falta WS_TOKEN. Pegue em localStorage['pokeweb:tokens'] no jogo.");
+  console.error("Sem token. Use --conta <nome> (tools/contas.local.json) ou WS_TOKEN no ambiente.");
   process.exit(1);
 }
 
