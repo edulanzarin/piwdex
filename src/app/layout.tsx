@@ -1,17 +1,19 @@
 import type { Metadata, Viewport } from "next";
 import { Oxanium } from "next/font/google";
-import Script from "next/script";
-import { SiteNav } from "@/components/site-nav";
-import { SiteFooter } from "@/components/site-footer";
-import { ApoioFlutuante } from "@/components/apoio";
-import { ADSENSE_CLIENT, temAnuncios } from "@/lib/ads";
-
-/** Token da meta de verificacao do Search Console. Vazio = a meta nao sai. */
-const GOOGLE_VERIFICACAO = process.env.NEXT_PUBLIC_GOOGLE_VERIFICACAO?.trim() ?? "";
 import { SITE_URL } from "@/lib/site";
-import { JsonLd, siteDoJogo } from "@/lib/jsonld";
-import { Anuncio } from "@/components/anuncio";
 import "./globals.css";
+
+/**
+ * O layout RAIZ — e so o documento.
+ *
+ * Ele emagreceu quando o robo voltou: a moldura da dex (navegacao, anuncio,
+ * rodape) desceu pro `(site)/layout.tsx`, porque o robo e servido pelo mesmo
+ * codigo e nao pode herdar nenhuma das tres. O que sobra aqui e o que vale pros
+ * DOIS: a lingua, a fonte, o tema escuro e o endereco base dos metadados.
+ *
+ * Os grupos `(site)` e `(robo)` nao aparecem em URL nenhuma — parenteses no nome
+ * da pasta e organizacao, nao caminho. Nenhum endereco da dex mudou.
+ */
 
 /**
  * Uma fonte so: **Oxanium**, nos pesos 400/500/600/700.
@@ -34,56 +36,26 @@ import "./globals.css";
  * O `tabular-nums` do CSS nao salva ninguem aqui: nenhuma das seis publica a
  * feature, entao ou a fonte ja nasce com o digito fixo, ou nao ha o que ligar.
  */
-const quantico = Oxanium({
+const oxanium = Oxanium({
   weight: ["400", "500", "600", "700"],
   subsets: ["latin", "latin-ext"],
   variable: "--font-ui",
   display: "swap",
 });
 
-
 export const metadata: Metadata = {
   // `metadataBase` e a base de TODA URL relativa que o Next escreve — og:image,
   // canonical, alternates. Sem ela o Next emite caminho relativo e nenhum
-  // rastreador resolve; e o pre-requisito dos dois blocos abaixo.
+  // rastreador resolve; e o pre-requisito de tudo que as duas areas declaram.
   metadataBase: new URL(SITE_URL),
   title: {
     default: "PIWdex — dex e ferramentas de Poke Idle World",
     template: "%s · PIWdex",
   },
-  description:
-    "Pokédex completa do Poke Idle World: filtro por tipo, raridade, fraqueza, " +
-    "drop e faixa de nível, com stats, golpes, locais de caça e índice reverso de itens.",
   applicationName: "PIWdex",
   // CANONICAL NAO ENTRA AQUI. Metadata de layout e HERDADA: um canonical fixo no
   // topo colapsaria as 918 fichas numa URL so, que e a unica forma de esta
   // passada PERDER busca em vez de ganhar. Cada rota declara a sua.
-  openGraph: {
-    type: "website",
-    siteName: "PIWdex",
-    locale: "pt_BR",
-    title: "PIWdex — dex e ferramentas de Poke Idle World",
-    description:
-      "Stats, drops com a chance real, onde farmar cada item, rota de caça e " +
-      "tier list — direto do catálogo do Poke Idle World.",
-  },
-  twitter: { card: "summary_large_image" },
-  /**
-   * Verificacao do Search Console e do AdSense, as duas por variavel.
-   *
-   * Sem o Search Console o site esta no ar no escuro: nao da pra submeter o
-   * sitemap, nem ver que consulta traz gente, nem descobrir que uma pagina caiu
-   * do indice. E o unico instrumento que responde "meu SEO funcionou?" — todo o
-   * resto e teoria.
-   *
-   * A propriedade se verifica de dois jeitos, e os dois estao cobertos: a meta
-   * abaixo (basta colar o token no ambiente) ou o registro DNS, que nem precisa
-   * de deploy. O que nao existe e adivinhar o token, entao ele e configuracao.
-   */
-  other: {
-    ...(temAnuncios() ? { "google-adsense-account": ADSENSE_CLIENT } : {}),
-    ...(GOOGLE_VERIFICACAO ? { "google-site-verification": GOOGLE_VERIFICACAO } : {}),
-  },
 };
 
 export const viewport: Viewport = {
@@ -93,56 +65,10 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pt-BR" className={quantico.variable}>
-      {/* flex-col + `main` que cresce: o rodape encosta no fim da JANELA quando a
+    <html lang="pt-BR" className={oxanium.variable}>
+      {/* flex-col + filho que cresce: o rodape encosta no fim da JANELA quando a
           pagina e curta, em vez de subir e deixar uma faixa de fundo embaixo dele. */}
-      <body className="flex min-h-dvh flex-col antialiased">
-        {/* O script do AdSense so entra quando existe conta: sem id, a pagina nao
-            carrega um kilobyte de terceiro nem abre conexao pra rede de anuncio.
-            `afterInteractive` porque ele nao pode disputar a rede com o catalogo,
-            que e o que a pessoa veio buscar. */}
-        {temAnuncios() ? (
-          <Script
-            id="adsense"
-            strategy="afterInteractive"
-            crossOrigin="anonymous"
-            src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT}`}
-          />
-        ) : null}
-        {/* Pular pro conteudo: quem navega por teclado nao deve atravessar o
-            trilho de filtro inteiro pra chegar na lista. */}
-        <a
-          href="#conteudo"
-          className="pix sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-200
-                     focus:rounded-pix focus:border focus:border-accent focus:bg-surface-3
-                     focus:px-3 focus:py-2 focus:text-[12px] focus:text-accent"
-        >
-          Pular para o conteúdo
-        </a>
-        {/* Quem e este site, uma vez so pro site inteiro. Vai no corpo e nao no
-            `generateMetadata`: a Metadata API do Next nao emite `<script>`, e
-            tentar por la falha calado. */}
-        <JsonLd dado={siteDoJogo()} />
-        <SiteNav />
-        {/* ANTES do conteudo, e nao no fim do documento: a ordem do DOM e a ordem
-            do Tab. Depois do rodape, chegar no X do balao exigia atravessar a
-            pagina inteira — e ao chegar la o rodape entrava em cena e o balao
-            sumia, entao ele era literalmente inalcancavel pelo teclado. Aqui ele
-            fica a dois Tabs da navegacao, e quem so quer o conteudo tem o "pular
-            para o conteudo" como primeiro elemento da pagina. */}
-        <ApoioFlutuante />
-        <main id="conteudo" className="mx-auto w-full max-w-[1600px] flex-1 px-3 pb-16 pt-4 sm:px-5">
-          {children}
-        </main>
-        {/* A faixa antes do rodape: e o unico lugar FIXO do site. Nada de anuncio
-            dentro de painel de ferramenta — ali o numero ao lado e resultado de
-            calculo, e anuncio colado em dado e o jeito mais rapido de fazer a
-            pessoa clicar sem querer (e de perder a conta por isso). */}
-        <div className="mx-auto w-full max-w-5xl px-3 sm:px-5">
-          <Anuncio lugar="rodape" minH={100} rotulo />
-        </div>
-        <SiteFooter />
-      </body>
+      <body className="flex min-h-dvh flex-col antialiased">{children}</body>
     </html>
   );
 }

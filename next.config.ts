@@ -1,5 +1,14 @@
 import type { NextConfig } from "next";
 
+/**
+ * O endereco do robo, repetido aqui porque `next.config.ts` e carregado antes de
+ * qualquer alias de modulo existir — importar de `@/lib/robo/papel` nao resolve.
+ * Mesma leitura, mesmo padrao, mesmo `||` (variavel em branco nao e variavel
+ * ausente).
+ */
+const BOT_URL = (process.env.NEXT_PUBLIC_BOT_URL?.trim() || "https://bot.piwdex.com.br")
+  .replace(/\/$/, "");
+
 const nextConfig: NextConfig = {
   // Imagem standalone pro Docker (chassi do Brain).
   output: "standalone",
@@ -23,19 +32,19 @@ const nextConfig: NextConfig = {
         permanent: true,
       },
 
-      // 2. O cockpit do robo. Ele nao existe mais nesta versao, e as rotas dele
-      //    estao salvas no proprio jogo, no Discord e no favorito de quem usava.
-      //    Mandar essa gente pra um 404 e a pior despedida possivel; a home pelo
-      //    menos mostra o que o site passou a ser.
+      // 2. O cockpit do robo. As rotas dele estao salvas no proprio jogo, no
+      //    Discord e no favorito de quem usava, e agora tem pra onde ir: o robo
+      //    voltou, noutro endereco. Estes quatro redirects sao a ponte entre o
+      //    nome antigo (`/vip`, `/bot-app`, aqui no apex) e o novo.
       //
-      //    TEMPORARIO (307), e a escolha e deliberada: `permanent` ensina o
-      //    navegador e o buscador a nunca mais pedir a rota original, e o robo
-      //    esta parqueado, nao enterrado — o Eduardo ainda vai decidir o que
-      //    fazer com ele. Redirect permanente e caro de desfazer; este nao e.
-      { source: "/vip", destination: "/", permanent: false },
-      { source: "/vip/:path*", destination: "/", permanent: false },
-      { source: "/bot-app", destination: "/", permanent: false },
-      { source: "/bot-app/:path*", destination: "/", permanent: false },
+      //    Segue TEMPORARIO (307) por enquanto. `permanent` ensina navegador e
+      //    buscador a nunca mais pedir a rota original — e caro de desfazer, e
+      //    so vale a pena depois que o subdominio estiver no ar e estavel. A
+      //    troca pra 308 e uma palavra neste arquivo.
+      { source: "/vip", destination: `${BOT_URL}/painel`, permanent: false },
+      { source: "/vip/:path*", destination: `${BOT_URL}/painel`, permanent: false },
+      { source: "/bot-app", destination: `${BOT_URL}/painel`, permanent: false },
+      { source: "/bot-app/:path*", destination: `${BOT_URL}/painel`, permanent: false },
     ];
   },
 

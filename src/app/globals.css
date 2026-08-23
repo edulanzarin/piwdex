@@ -82,6 +82,12 @@
   --color-t-breed: #f472b6;
   --color-t-meta: #2ee6d6;
 
+  /* O robo nao e uma setima ferramenta da dex — ele mora noutro dominio, e
+     atras de login. Ganha cor propria pelo mesmo motivo que as outras tem:
+     reconhecer onde se esta antes de ler o titulo. Violeta porque e o unico
+     matiz que ainda nao carrega significado nesta paleta. */
+  --color-t-robo: #a78bfa;
+
   /* ---- raio: ZERO ----
      Canto reto em tudo que e chrome, por escolha do Eduardo. Nao e so gosto —
      casa com a fonte quadrada e com o pixel dos sprites; canto arredondado
