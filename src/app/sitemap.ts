@@ -2,6 +2,7 @@ import type { MetadataRoute } from "next";
 import { getData } from "@/lib/data";
 import { SITE_URL } from "@/lib/site";
 import { TODOS_SLUGS } from "@/lib/tipo-url";
+import { TODOS_SLUGS_RARIDADE } from "@/lib/raridade-url";
 
 /**
  * O mapa do site.
@@ -41,10 +42,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.7,
   }));
 
+  const raridades: MetadataRoute.Sitemap = TODOS_SLUGS_RARIDADE.map((slug) => ({
+    url: `${SITE_URL}/dex/raridade/${slug}`,
+    lastModified: quando,
+    changeFrequency: "weekly" as const,
+    priority: 0.7,
+  }));
+
   const fichas: MetadataRoute.Sitemap = [
     ...db.creatures.map((c) => ({ url: `${SITE_URL}/dex/${c.pokeId}`, lastModified: quando, priority: 0.6 })),
     ...db.items.map((i) => ({ url: `${SITE_URL}/itens/${i.id}`, lastModified: quando, priority: 0.4 })),
   ];
 
-  return [...telas.map((t) => ({ ...t, lastModified: quando })), ...hubs, ...fichas];
+  return [...telas.map((t) => ({ ...t, lastModified: quando })), ...hubs, ...raridades, ...fichas];
 }

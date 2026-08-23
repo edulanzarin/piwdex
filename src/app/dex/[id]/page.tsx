@@ -24,6 +24,7 @@ import {
 } from "@/components/ui";
 import { TypeBadge, TypeMultChip } from "@/components/type-icon";
 import { caminhoDoTipo } from "@/lib/tipo-url";
+import { caminhoDaRaridade } from "@/lib/raridade-url";
 import {
   CategoryIcon,
   IconAtk,
@@ -207,9 +208,16 @@ export default async function CreaturePage({ params }: Props) {
                 <TypeBadge type={c.type2} />
               </Link>
             ) : null}
-            <Chip tint={RARITY_COLOR[c.rarity]} icon={<IconGem size={14} />}>
-              {RARITY_LABEL[c.rarity]}
-            </Chip>
+            {/* Mesma logica do selo de tipo: o chip de raridade leva ao hub
+                dela. Cada ficha passa a ter DUAS saidas pra outras fichas. */}
+            <Link
+              href={caminhoDaRaridade(c.rarity)}
+              aria-label={`Ver todos os pokémon ${RARITY_LABEL[c.rarity].toLowerCase()}`}
+            >
+              <Chip tint={RARITY_COLOR[c.rarity]} icon={<IconGem size={14} />}>
+                {RARITY_LABEL[c.rarity]}
+              </Chip>
+            </Link>
             {roles.map((r) => (
               <Chip key={r}>{ROLE_LABEL[r] ?? r}</Chip>
             ))}
