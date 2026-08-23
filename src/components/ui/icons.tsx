@@ -22,6 +22,8 @@ import {
   ChevronUp,
   Coins,
   DollarSign,
+  MessageSquare,
+  ScrollText,
   Filter,
   Info,
   LayoutGrid,
@@ -90,6 +92,8 @@ export const IconCoin = wrap(Coins, "IconCoin");
 /** A moeda do Poke Idle World e DOLAR, e nao ouro. O icone acompanha o nome:
  *  moeda generica ao lado do rotulo "dolares" faz o olho ler outra grandeza. */
 export const IconDollar = wrap(DollarSign, "IconDollar");
+export const IconChat = wrap(MessageSquare, "IconChat");
+export const IconRegistro = wrap(ScrollText, "IconRegistro");
 export const IconPin = wrap(MapPin, "IconPin");
 export const IconEvolve = wrap(Sparkles, "IconEvolve");
 /* As duas acoes que TODA ferramenta tem no cabecalho. Elas eram texto puro no

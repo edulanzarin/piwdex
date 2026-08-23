@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button, Empty, Loading, Panel, Segmented, SearchInput } from "@/components/ui";
+import { IconRegistro } from "@/components/ui/icons";
 import { TOM } from "@/components/robo/pecas";
 import type { EventoRobo, TipoEvento } from "@/lib/robo/motor/eventos";
 
@@ -102,12 +103,15 @@ export function AbaRegistro({ onLido }: { onLido?: () => void }) {
   if (!eventos) return <Loading />;
 
   return (
-    <Panel className="p-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="min-w-0">
-          <h2 className="pix text-[13px] text-text-dim">Registro</h2>
-          <p className="mt-1 text-[12px] text-text-mute">Últimos 14 dias.</p>
-        </div>
+    <Panel
+      title={
+        <span className="flex items-center gap-2">
+          <IconRegistro size={14} />
+          Registro
+          <span className="text-[11px] text-text-mute">últimos 14 dias</span>
+        </span>
+      }
+      actions={
         <span className="flex items-center gap-2">
           <Segmented
             value={grupo}
@@ -122,9 +126,9 @@ export function AbaRegistro({ onLido }: { onLido?: () => void }) {
             atualizar
           </Button>
         </span>
-      </div>
-
-      <div className="mt-3">
+      }
+    >
+      <div>
         <SearchInput
           value={busca}
           onChange={(e) => setBusca(e.currentTarget.value)}

@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button, Checkbox, Empty, Loading, Note, NumberField, Panel, Select, Sprite, Switch } from "@/components/ui";
+import { Pokeball } from "@/components/ui/pokeball";
+import { ICONE } from "@/components/robo/pecas";
 import { compact, TIER_LABEL } from "@/lib/labels";
 import { qualityTier, TIER_COLOR, TIER_MIN, TIER_ORDER } from "@/lib/rarity";
 import type { BolaEstoque, ConfigAuto, EstadoAuto, EstadoHunt } from "@/lib/robo/motor/tipos";
@@ -37,27 +39,33 @@ interface Loja {
   itens: { id: number; nome: string; preco: number; icone: string; categoria: string }[];
 }
 
+/** Uma seção da automação. Usa o cabeçalho do `Panel`, como as fichas da dex —
+ *  o `<h2>` solto dentro do corpo deixava o painel do robô liso ao lado delas. */
 function Secao({
   titulo,
+  icone,
   hint,
   children,
   acao,
 }: {
   titulo: string;
+  icone?: React.ReactNode;
   hint?: string;
   children: React.ReactNode;
   acao?: React.ReactNode;
 }) {
   return (
-    <Panel className="p-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h2 className="pix text-[13px] text-text-dim">{titulo}</h2>
-          {hint ? <p className="mt-1 max-w-prose text-[12px] text-text-mute">{hint}</p> : null}
-        </div>
-        {acao}
-      </div>
-      <div className="mt-4 flex flex-col gap-3">{children}</div>
+    <Panel
+      title={
+        <span className="flex items-center gap-2">
+          {icone}
+          {titulo}
+        </span>
+      }
+      actions={acao}
+    >
+      {hint ? <p className="mb-3 max-w-prose text-[12px] text-text-mute">{hint}</p> : null}
+      <div className="flex flex-col gap-3">{children}</div>
     </Panel>
   );
 }
@@ -356,6 +364,7 @@ export function AbaAutomacao({
           {/* ---------------- automação do jogo ---------------- */}
           <Secao
             titulo="Automação do jogo"
+            icone={<Pokeball size={14} />}
             hint="Captura, poção e revive automáticos rodam no servidor do jogo. O robô liga o interruptor e mantém a bolsa cheia."
           >
             {!autoAtual ? (
@@ -452,6 +461,7 @@ export function AbaAutomacao({
           {/* ---------------- reposição ---------------- */}
           <Secao
             titulo="Reposição"
+            icone={<ICONE.ouro size={14} />}
             hint="Bola zerada trava a fila de captura do jogo. Uma caçada boa queima centenas por hora."
             acao={
               <span className="pix text-[11px]" style={{ color: estoqueBolas ? "var(--color-text-mute)" : "var(--color-danger)" }}>
@@ -529,6 +539,7 @@ export function AbaAutomacao({
           {/* ---------------- venda de drop ---------------- */}
           <Secao
             titulo="Venda de drop"
+            icone={<ICONE.ouro size={14} />}
             hint="Marque o que pode sair. O que não estiver marcado fica na mochila, inclusive item que o jogo lançar depois."
             acao={
               mochila.length ? (
@@ -614,6 +625,7 @@ export function AbaAutomacao({
           {/* ---------------- venda de pokémon ---------------- */}
           <Secao
             titulo="Venda de pokémon"
+            icone={<Pokeball size={14} />}
             hint="Vender é irreversível. O robô só vende o que passa por todos os filtros, e nunca toca no time, no líder, no inicial nem no que está cadeado."
             acao={
               <span className="pix shrink-0 text-[11px] text-text-mute">

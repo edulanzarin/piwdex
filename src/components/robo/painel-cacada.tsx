@@ -1,7 +1,7 @@
 "use client";
 
 import type { Dispatch, SetStateAction } from "react";
-import { Button, Combobox, Empty, Note, Sprite } from "@/components/ui";
+import { Button, Empty, Note, Sprite } from "@/components/ui";
 import { Pokeball } from "@/components/ui/pokeball";
 import { compact, num, TIER_LABEL } from "@/lib/labels";
 import { qualityTier, TIER_COLOR } from "@/lib/rarity";
@@ -141,70 +141,26 @@ export function AbaCacada({
   const a = estado.analyzer;
   const p = estado.placar;
   const drops = a?.drops ?? [];
-  const opcoes = hunts.map((h) => ({
-    value: h.slug,
-    label: `${h.nome} · nv ${h.level}`,
-    keywords: `${h.slug} ${h.area}`,
-  }));
   const estoqueBolas = estado.bolas.reduce((s, b) => (b.infinita ? s : s + b.quantidade), 0);
   // O saldo do analyzer conta só o que a caçada rendeu. As automações movem ouro
   // por fora dela, então somar as duas coisas é o único número que responde
   // "estou ganhando dinheiro?".
   const liquido = (a?.balance ?? 0) + p.ouroVendas + p.ouroPokes - p.ouroCompras;
   const ouroDrops = drops.reduce((soma, d) => soma + d.gold, 0);
-  const noPiloto = config.objetivo !== "nenhum";
 
   return (
     <div className="flex flex-col gap-4">
-      {/* ---- comando da caçada ----
-           Com objetivo ligado, quem escolhe é o robô: os controles ficam
-           desabilitados em vez de aceitarem uma ordem que a próxima reavaliação
-           desfaria em segundos. */}
-      <div className="flex flex-wrap items-end gap-3 border border-line bg-surface p-3">
-        <div className="min-w-0 flex-1 basis-72">
-          <p className="pix flex items-center gap-1.5 text-[11px] text-text-mute">
-            <Pokeball size={12} />
-            Onde caçar
-          </p>
-          <div className="mt-1">
-            <Combobox
-              value={slug}
-              onChange={(v) => setSlug(String(v))}
-              options={opcoes}
-              placeholder="Escolha onde caçar…"
-              disabled={noPiloto}
-            />
-          </div>
-        </div>
-        {noPiloto ? (
-          <span className="flex h-10 items-center gap-2 text-[12px] text-text-dim">
-            <ICONE.abates size={14} />
-            O objetivo está no comando. Volte para <b>manual</b> para escolher você.
-          </span>
-        ) : (
-          <>
-            <Button
-              size="lg"
-              variant={estado.slug ? "outline" : "primary"}
-              disabled={ocupado || !slug || !estado.conectado || estado.slug === slug}
-              onClick={() => void comandar("cacar", { slug })}
-            >
-              {estado.slug ? "trocar de caçada" : "começar a caçar"}
-            </Button>
-            {estado.slug ? (
-              <Button size="lg" variant="danger" disabled={ocupado} onClick={() => void comandar("cacar", {})}>
-                parar a caçada
-              </Button>
-            ) : null}
-            {!estado.conectado ? (
-              <span className="pb-2 text-[12px] text-warn">Ligue o robô no topo para poder caçar.</span>
-            ) : null}
-          </>
-        )}
-      </div>
-
       {/* ---- o objetivo ---- */}
-      <PainelObjetivo estado={estado} config={config} onConfig={onConfig} />
+      <PainelObjetivo
+        estado={estado}
+        config={config}
+        onConfig={onConfig}
+        hunts={hunts}
+        slug={slug}
+        setSlug={setSlug}
+        ocupado={ocupado}
+        comandar={comandar}
+      />
 
       {/* ---- os números desta caçada ---- */}
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-8">
@@ -276,6 +232,7 @@ export function AbaCacada({
       <div className="grid gap-4 lg:grid-cols-2">
         <Cartao
           titulo="Time"
+          icone={<Pokeball size={14} />}
           altura={ALTURA}
           acao={
             <Button variant="outline" size="sm" disabled={ocupado} onClick={() => void comandar("curar")}>
@@ -302,6 +259,7 @@ export function AbaCacada({
 
         <Cartao
           titulo="Ao vivo"
+          icone={<ICONE.abates size={14} />}
           altura={ALTURA}
           acao={
             estado.campoVivo ? (
@@ -368,6 +326,7 @@ export function AbaCacada({
 
         <Cartao
           titulo="Fila de captura"
+          icone={<Pokeball size={14} />}
           altura={ALTURA}
           acao={<span className="pix text-[11px] text-text-mute">{estado.fila.length} corpos</span>}
         >
@@ -396,6 +355,7 @@ export function AbaCacada({
 
         <Cartao
           titulo="Drops desta caçada"
+          icone={<ICONE.ouro size={14} />}
           altura={ALTURA}
           acao={
             drops.length ? (

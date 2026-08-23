@@ -142,12 +142,18 @@ export function Medidor({
 /**
  * Um painel de altura FIXA com corpo que rola.
  *
- * Os quatro cartões da caçada cresciam cada um por conta, e a coluna da direita
- * terminava um metro acima da esquerda. Altura fixa alinha; a rolagem interna é
- * o que permite fixá-la sem cortar conteúdo.
+ * Ele NÃO desenha o próprio cabeçalho: usa o `title`/`actions` do `Panel`, que é
+ * o que dá a barra com a linha divisória e o vidro do resto do site. Eu vinha
+ * escrevendo um `<h2>` solto dentro do corpo — o painel do robô ficava liso ao
+ * lado das fichas da dex, e a diferença era eu não usar o que a primitiva já
+ * fazia.
+ *
+ * O que ele acrescenta ao `Panel` é a altura: os cartões da caçada cresciam cada
+ * um por conta e as duas colunas terminavam em alturas diferentes.
  */
 export function Cartao({
   titulo,
+  icone,
   acao,
   altura = 320,
   children,
@@ -155,25 +161,28 @@ export function Cartao({
   bodyClassName,
 }: {
   titulo: ReactNode;
+  /** o marcador da grandeza, do lado do nome — como nas fichas da dex */
+  icone?: ReactNode;
   acao?: ReactNode;
-  /** `0` = cresce com o conteúdo (use quando o máximo é conhecido e pequeno) */
+  /** `0` = cresce com o conteúdo (quando o máximo é conhecido e pequeno) */
   altura?: number;
   children: ReactNode;
   className?: string;
   bodyClassName?: string;
 }) {
   return (
-    <Panel className={cn("flex flex-col p-4", className)}>
-      <div className="flex shrink-0 flex-wrap items-center justify-between gap-2">
-        <h2 className="pix text-[13px] text-text-dim">{titulo}</h2>
-        {acao}
-      </div>
-      <div
-        className={cn("mt-3 min-h-0 flex-1", altura ? "overflow-y-auto" : "", bodyClassName)}
-        style={altura ? { height: altura } : undefined}
-      >
-        {children}
-      </div>
+    <Panel
+      className={cn("flex flex-col", className)}
+      title={
+        <span className="flex items-center gap-2">
+          {icone}
+          {titulo}
+        </span>
+      }
+      actions={acao}
+      bodyClassName={cn("min-h-0 flex-1", altura ? "overflow-y-auto" : "", bodyClassName)}
+    >
+      <div style={altura ? { height: altura } : undefined}>{children}</div>
     </Panel>
   );
 }

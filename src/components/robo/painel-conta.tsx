@@ -7,6 +7,7 @@ import { qualityTier, TIER_COLOR } from "@/lib/rarity";
 import { spriteUrl } from "@/lib/sprites";
 import type { ActivePoke } from "@/lib/robo/jogo/pokes";
 import { Pokeball } from "@/components/ui/pokeball";
+import { IconBag } from "@/components/game-icons";
 import { ICONE, LinhaItem, TOM } from "@/components/robo/pecas";
 import { fichaDaConta, type FichaPoke } from "@/components/robo/poke-modal";
 import type { BolaEstoque, Perfil } from "@/lib/robo/motor/tipos";
@@ -144,21 +145,24 @@ export function AbaConta({ onFicha }: { onFicha: (f: FichaPoke) => void }) {
     <div className="flex flex-col gap-4">
       {erro ? <Note tone="danger">{erro}</Note> : null}
 
-      <Panel className="p-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="min-w-0">
-            <h2 className="pix text-[13px] text-text-dim">
-              {perfil?.nome ?? "Treinador"}
-              {perfil?.vip ? <span className="ml-2 text-warn">VIP</span> : null}
-            </h2>
-            {perfil?.vip && perfil.vipAte ? (
-              <p className="mt-1 text-[12px] text-text-mute">VIP até {data(perfil.vipAte)}.</p>
+      <Panel
+        title={
+          <span className="flex items-center gap-2">
+            <ICONE.nivel size={14} />
+            {perfil?.nome ?? "Treinador"}
+            {perfil?.vip ? (
+              <span className="pix text-[10px] text-warn">
+                VIP{perfil.vipAte ? ` até ${data(perfil.vipAte)}` : ""}
+              </span>
             ) : null}
-          </div>
+          </span>
+        }
+        actions={
           <Button variant="outline" size="sm" onClick={() => void carregar()} disabled={carregando}>
             atualizar
           </Button>
-        </div>
+        }
+      >
 
         {!perfil ? (
           <Empty title="Conta não carregou" hint="Reconecte a conta do jogo." />
@@ -197,13 +201,18 @@ export function AbaConta({ onFicha }: { onFicha: (f: FichaPoke) => void }) {
           que deixava a bolsa terminando um palmo acima da mochila. */}
       <div className="grid gap-4 lg:grid-cols-[minmax(0,340px)_minmax(0,1fr)]">
         {/* ---- bolsa: o que a caçada GASTA ---- */}
-        <Panel className="flex flex-col p-4">
-          <div className="flex shrink-0 items-center justify-between gap-3">
-            <h2 className="pix text-[13px] text-text-dim">Bolsa</h2>
-            <span className="pix text-[11px] text-text-mute">bolas, poções, revives</span>
-          </div>
-
-          <div className="mt-3 min-h-0 flex-1 overflow-y-auto">
+        <Panel
+          className="flex flex-col"
+          bodyClassName="flex min-h-0 flex-1 flex-col"
+          title={
+            <span className="flex items-center gap-2">
+              <IconBag size={14} />
+              Bolsa
+            </span>
+          }
+          actions={<span className="pix text-[11px] text-text-mute">bolas, poções, revives</span>}
+        >
+          <div className="min-h-0 flex-1 overflow-y-auto">
             {consumiveis.length === 0 && bolas.length === 0 ? (
               <Empty title="Bolsa vazia" hint="O catálogo chega junto com a conta." />
             ) : (
@@ -243,15 +252,22 @@ export function AbaConta({ onFicha }: { onFicha: (f: FichaPoke) => void }) {
         </Panel>
 
         {/* ---- mochila ---- */}
-        <Panel className="flex flex-col p-4">
-          <div className="flex shrink-0 flex-wrap items-center justify-between gap-3">
-            <h2 className="pix text-[13px] text-text-dim">Mochila</h2>
+        <Panel
+          className="flex flex-col"
+          bodyClassName="flex min-h-0 flex-1 flex-col"
+          title={
+            <span className="flex items-center gap-2">
+              <ICONE.ouro size={14} />
+              Mochila
+            </span>
+          }
+          actions={
             <span className="pix text-[11px] text-text-mute">
               {mochila.length} tipos · {compact(valorParado)} em dólares parados
             </span>
-          </div>
-
-          <div className="mt-3 shrink-0">
+          }
+        >
+          <div className="shrink-0">
             <SearchInput
               value={busca}
               onChange={(e) => setBusca(e.currentTarget.value)}
@@ -284,16 +300,19 @@ export function AbaConta({ onFicha }: { onFicha: (f: FichaPoke) => void }) {
       </div>
 
       {/* ---- todos os pokémons ---- */}
-      <Panel className="p-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="min-w-0">
-            <h2 className="pix text-[13px] text-text-dim">Pokémons</h2>
-            <p className="mt-1 text-[12px] text-text-mute">
+      <Panel
+        title={
+          <span className="flex items-center gap-2">
+            <Pokeball size={14} />
+            Pokémons
+            <span className="text-[11px] text-text-mute">
               {pokemons.length
                 ? `${pokemons.filter((p) => p.team).length} no time · ${pokemons.filter((p) => !p.team).length} no box`
-                : "Time e box."}
-            </p>
-          </div>
+                : ""}
+            </span>
+          </span>
+        }
+        actions={
           <Segmented
             value={ordem}
             onChange={setOrdem}
@@ -306,9 +325,9 @@ export function AbaConta({ onFicha }: { onFicha: (f: FichaPoke) => void }) {
               { value: "nome", label: "nome" },
             ]}
           />
-        </div>
-
-        <div className="mt-3">
+        }
+      >
+        <div>
           <SearchInput
             value={buscaPoke}
             onChange={(e) => setBuscaPoke(e.currentTarget.value)}

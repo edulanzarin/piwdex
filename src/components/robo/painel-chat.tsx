@@ -7,6 +7,7 @@ import { qualityTier, TIER_COLOR } from "@/lib/rarity";
 import { TOM } from "@/components/robo/pecas";
 import { fichaDoChat, type FichaPoke } from "@/components/robo/poke-modal";
 import { lerMensagemDoChat, type ItemDoChat, type PokeDoChat } from "@/lib/robo/chat-links";
+import { IconChat } from "@/components/ui/icons";
 import { CANAIS, CANAL_ROTULO, type Canal, type EstadoHunt, type Mensagem } from "@/lib/robo/motor/tipos";
 
 /**
@@ -191,12 +192,15 @@ export function AbaChat({
   }
 
   return (
-    <Panel className="p-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="pix text-[13px] text-text-dim">
+    <Panel
+      title={
+        <span className="flex items-center gap-2">
+          <IconChat size={14} />
           Chat do jogo
-          <span className="ml-2 text-[11px] text-text-mute">{chat.length} guardadas</span>
-        </h2>
+          <span className="text-[11px] text-text-mute">{chat.length} guardadas</span>
+        </span>
+      }
+      actions={
         <span className="flex items-center gap-2">
           <span className="pix text-[10px] text-text-mute">lendo</span>
           <Segmented
@@ -212,8 +216,8 @@ export function AbaChat({
             ]}
           />
         </span>
-      </div>
-
+      }
+    >
       {!estado.conectado ? (
         <Note className="mt-3">O chat chega pela sessão do jogo. Ligue o robô para ler e falar.</Note>
       ) : null}
