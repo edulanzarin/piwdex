@@ -21,6 +21,13 @@
 //
 // A lei de captura e ajuste empirico com erro mediano de ~1,9x (ver `catch-law.ts`):
 // serve pra ORDENAR alvos e dar a ordem de grandeza do custo, nao como numero exato.
+//
+// **E por isso ela NAO entra no ouro que ordena.** Uma sessao medida no jogo (738
+// abates em Furious Scyther, Ultra Ball) fez 1 captura onde a lei previa 5,7 — e como
+// a bola e cobrada em todo abate, o termo inteiro trocou de sinal: a tela prometia
+// +194k/h de captura onde a sessao entregou -30k/h. O loot da mesma sessao bateu drop
+// a drop (414 previsto contra 444 medido). Numero fraco nao decide ordem ao lado de
+// numero verificado: `perKill` e so loot, e a captura vira coluna informativa.
 
 import { ballByKey, type Ball } from "./balls";
 import { CHANCE_MAX, TYPE_DAY_BONUS } from "./boost";
@@ -100,7 +107,11 @@ export interface HuntEntrada {
   pool: MovePool;
   vip: boolean;
   day: PokeType | "";
-  /** contar a captura no ouro */
+  /** bonus de XP que a ferramenta nao conhece (evento, boost, streak), em % */
+  xpPct: number;
+  /** o mesmo para o loot, em % */
+  lootPct: number;
+  /** mostrar a conta de captura */
   cap: boolean;
   ball: string;
 }
@@ -123,11 +134,12 @@ export interface TargetEconomy {
   /** ouro do loot por abate, ja com o Tipo do Dia onde ele vale */
   loot: number;
   dayHit: boolean;
-  /** XP por abate no cenario: o Tipo do Dia paga aqui tambem, e aqui nao ha teto */
+  /** XP por abate no cenario, com todos os bonus que valem nele */
   xp: number;
   /** null quando o alvo nao tem valor de venda: a lei nao tem como estimar */
   catch: CatchEconomy | null;
-  /** o que o alvo paga por abate no total — e o numero que vira ouro/h */
+  /** o que o alvo paga por abate — e o numero que vira ouro/h e ordena a lista.
+   *  So loot: a captura fica fora de proposito (ver o cabecalho). */
   perKill: number;
 }
 
@@ -138,21 +150,43 @@ export interface EconomyOptions {
   dayPct?: number;
   drops: PackedDrops;
   ballKey: string;
-  /** contar a captura no ouro (o jogo gasta uma bola por abate) */
-  withCatch: boolean;
+  vip: boolean;
+  /** bonus de XP de fora do modelo (evento, boost, streak), em % */
+  xpPct: number;
+  /** o mesmo para o loot, em % */
+  lootPct: number;
 }
+
+/** Quanto o VIP paga de XP. Entra SOMANDO com as outras fontes, nao multiplicando. */
+export const VIP_XP_BONUS = 0.5;
+
+/**
+ * As fontes de bonus SOMAM entre si e o total multiplica — o mesmo empilhamento que o
+ * jogo mostra no breakdown de ganho (base + streak + boost + vip + event + mentor +
+ * typeDay), ja documentado em `boost.ts` para o loot.
+ *
+ * O XP nao seguia essa regra: o motor multiplicava VIP pelo dia (1,5 x 1,2 = 1,8) onde o
+ * jogo soma (1 + 0,5 + 0,2 = 1,7). Medido numa sessao real de 738 abates em Furious
+ * Scyther com evento de XP ligado, o XP por abate saiu 2,617x o do catalogo: o
+ * empilhamento somado erra 0,6% e o multiplicado erra 37,6%.
+ */
+const somaBonus = (...fracoes: number[]): number => fracoes.reduce((a, f) => a + f, 1);
 
 /** Quanto cada alvo paga por abate, no cenario escolhido. */
 export function economyOf(targets: HuntTarget[], o: EconomyOptions): Map<number, TargetEconomy> {
   const ball = ballByKey(o.ballKey) ?? ballByKey("poke")!;
   const pct = o.dayPct ?? TYPE_DAY_BONUS;
+  const evXp = o.xpPct / 100;
+  const evLoot = o.lootPct / 100;
+  const vip = o.vip ? VIP_XP_BONUS : 0;
   const out = new Map<number, TargetEconomy>();
 
   for (const t of targets) {
     const dayHit = dayHits(o.day, t.t1, t.t2);
-    // Sem Tipo do Dia o ouro ja veio pronto do servidor; com ele a conta e refeita
-    // drop a drop, porque o teto de chance engole parte do bonus.
-    const loot = dayHit ? goldUnder(o.drops[t.pokeId], 1 + pct) : t.goldEV;
+    // Multiplicador de loot do alvo. Sem bonus nenhum o ouro ja veio pronto do servidor;
+    // com bonus a conta e refeita drop a drop, porque o teto de chance engole parte dele.
+    const lootMult = somaBonus(dayHit ? pct : 0, evLoot);
+    const loot = lootMult === 1 ? t.goldEV : goldUnder(o.drops[t.pokeId], lootMult);
 
     let economy: CatchEconomy | null = null;
     if (t.sell > 0) {
@@ -172,9 +206,10 @@ export function economyOf(targets: HuntTarget[], o: EconomyOptions): Map<number,
     out.set(t.pokeId, {
       loot,
       dayHit,
-      xp: dayHit ? t.xp * (1 + pct) : t.xp,
+      // No XP nao ha teto, entao o multiplicador vai inteiro no valor por abate.
+      xp: t.xp * somaBonus(vip, dayHit ? pct : 0, evXp),
       catch: economy,
-      perKill: loot + (o.withCatch ? economy?.net ?? 0 : 0),
+      perKill: loot,
     });
   }
   return out;
@@ -182,8 +217,8 @@ export function economyOf(targets: HuntTarget[], o: EconomyOptions): Map<number,
 
 /** Os alvos com `goldEV` e `xp` trocados pelo que o alvo paga por abate NESTE cenario.
  *  O motor de combate multiplica os dois campos pelos KOs/h efetivos, entao trocar aqui
- *  faz o ouro/h e o XP/h ja sairem com o Tipo do Dia e a captura dentro — sem que o
- *  motor precise conhecer nenhum dos dois. */
+ *  faz o ouro/h e o XP/h ja sairem completos: Tipo do Dia, VIP e evento entram todos por
+ *  aqui, e o motor nao conhece nenhum deles. */
 export const withEconomy = (targets: HuntTarget[], econ: Map<number, TargetEconomy>): HuntTarget[] =>
   targets.map((t) => {
     const e = econ.get(t.pokeId);
@@ -207,7 +242,6 @@ export interface RankOptions {
   level: number;
   ivs: number[];
   quality: number;
-  vip: boolean;
   pool: MovePool;
 }
 
@@ -216,7 +250,7 @@ export interface RankOptions {
 export function rankHunts(fighter: Species, o: RankOptions): HuntRow[] {
   const rows: HuntRow[] = [];
   for (const t of o.targets) {
-    const est = estimateHunt(fighter, o.level, o.ivs, o.quality, t, o.movesOf(t.pokeId), o.vip, o.pool);
+    const est = estimateHunt(fighter, o.level, o.ivs, o.quality, t, o.movesOf(t.pokeId), o.pool);
     const econ = o.econ.get(t.pokeId);
     if (!est || !econ) continue;
     rows.push({ target: t, est, econ });

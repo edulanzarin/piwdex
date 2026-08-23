@@ -85,9 +85,11 @@ export function HuntRoute({
         day: entrada.day,
         drops: payload.drops,
         ballKey: entrada.ball,
-        withCatch: entrada.cap,
+        vip: entrada.vip,
+        xpPct: entrada.xpPct,
+        lootPct: entrada.lootPct,
       }),
-    [payload.targets, payload.drops, entrada.day, entrada.ball, entrada.cap],
+    [payload.targets, payload.drops, entrada.day, entrada.ball, entrada.vip, entrada.xpPct, entrada.lootPct],
   );
 
   const rota = useMemo(() => {
@@ -100,7 +102,6 @@ export function HuntRoute({
       movesOf,
       entrada.quality,
       ivs,
-      entrada.vip,
       entrada.pool,
     );
   }, [alvoValido, fighter, entrada, state.target, payload.targets, econ, movesOf, ivs]);

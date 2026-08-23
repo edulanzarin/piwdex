@@ -42,8 +42,12 @@ export interface HuntState {
   stats: number[];
   pool: MovePool;
   vip: boolean;
+  /** bonus de XP que a ferramenta nao conhece (evento, boost, streak), em % */
+  xpPct: number;
+  /** o mesmo para o loot, em % */
+  lootPct: number;
   view: HuntView;
-  /** contar a captura no ouro (o jogo gasta uma bola por abate) */
+  /** mostrar a conta de captura. Ela nao entra no ouro que ordena — ver `hunt.ts` */
   cap: boolean;
   /** chave da bola usada na conta de captura */
   ball: string;
@@ -71,6 +75,8 @@ export const EMPTY_HUNT: HuntState = {
   stats: [0, 0, 0, 0, 0, 0],
   pool: "natural",
   vip: false,
+  xpPct: 0,
+  lootPct: 0,
   view: "rota",
   cap: false,
   ball: "poke",
@@ -114,6 +120,8 @@ export function parseHuntState(sp: URLSearchParams): HuntState {
     stats: Array.from({ length: 6 }, (_, i) => Math.max(0, num(raw[i] ?? null, 0))),
     pool: oneOf(sp.get("golpes"), POOLS, EMPTY_HUNT.pool),
     vip: sp.get("vip") === "1",
+    xpPct: Math.max(0, num(sp.get("bxp"), 0)),
+    lootPct: Math.max(0, num(sp.get("bloot"), 0)),
     view: oneOf(sp.get("v"), VIEWS, EMPTY_HUNT.view),
     cap: sp.get("cap") === "1",
     ball: huntBall(sp.get("bola")),
@@ -141,6 +149,8 @@ export function buildHuntSearch(s: HuntState): string {
   if (s.stats.some((v) => v > 0)) p.set("s", s.stats.join("-"));
   put("golpes", s.pool, EMPTY_HUNT.pool);
   put("vip", s.vip, false);
+  put("bxp", s.xpPct, 0);
+  put("bloot", s.lootPct, 0);
   put("v", s.view, EMPTY_HUNT.view);
   put("cap", s.cap, false);
   put("bola", s.ball, EMPTY_HUNT.ball);

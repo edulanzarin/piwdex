@@ -103,9 +103,11 @@ export function HuntRanking({
         day: entrada.day,
         drops: payload.drops,
         ballKey: entrada.ball,
-        withCatch: entrada.cap,
+        vip: entrada.vip,
+        xpPct: entrada.xpPct,
+        lootPct: entrada.lootPct,
       }),
-    [payload.targets, payload.drops, entrada.day, entrada.ball, entrada.cap],
+    [payload.targets, payload.drops, entrada.day, entrada.ball, entrada.vip, entrada.xpPct, entrada.lootPct],
   );
 
   const rows = useMemo(
@@ -117,10 +119,9 @@ export function HuntRanking({
         level: entrada.level,
         ivs,
         quality: entrada.quality,
-        vip: entrada.vip,
         pool: entrada.pool,
       }),
-    [fighter, payload.targets, econ, movesOf, entrada.level, ivs, entrada.quality, entrada.vip, entrada.pool],
+    [fighter, payload.targets, econ, movesOf, entrada.level, ivs, entrada.quality, entrada.pool],
   );
 
   const filtradas = useMemo(
@@ -165,7 +166,7 @@ export function HuntRanking({
     { key: "eff", label: "Seu golpe" },
     { key: "kos", label: "Abates/h", align: "right", title: "Já descontando o tempo parado por desmaio" },
     { key: "xp", label: "XP/h", align: "right" },
-    { key: "gold", label: entrada.cap ? "Ouro/h + captura" : "Ouro/h", align: "right" },
+    { key: "gold", label: "Ouro/h", title: "Só o loot: a estimativa de captura não entra no que ordena", align: "right" },
     { key: "risk", label: "Risco", title: "Quantos abates a vida cheia aguenta nesta hunt" },
   ];
 
@@ -345,7 +346,7 @@ export function HuntRanking({
         confiável; o valor absoluto é ordem de grandeza.
       </Note>
 
-      <Detalhe row={aberto} cap={entrada.cap} tint={tint} teto={teto} onClose={() => setAberto(null)} />
+      <Detalhe row={aberto} tint={tint} teto={teto} onClose={() => setAberto(null)} />
     </div>
   );
 }
@@ -441,13 +442,11 @@ function Linha({ r, onOpen }: { r: HuntRow; onOpen: () => void }) {
  *  "por que" — qual golpe, quanto se toma de volta, o que a bola custa. */
 function Detalhe({
   row,
-  cap,
   tint,
   teto,
   onClose,
 }: {
   row: HuntRow | null;
-  cap: boolean;
   tint: string;
   /** o maior valor de cada grandeza na lista — a regua das barras */
   teto: { kos: number; xp: number; gold: number };
@@ -507,7 +506,7 @@ function Detalhe({
             footLeft={`${t.xp.toLocaleString("pt-BR")} por abate`}
           />
           <StatTile
-            label={cap ? "Ouro/h + captura" : "Ouro por hora"}
+            label="Ouro por hora (loot)"
             icon={<IconCoin size={14} />}
             value={perHourLabel(est.goldH)}
             ratio={Math.min(1, Math.max(0, est.goldH) / teto.gold)}
@@ -597,10 +596,12 @@ function Detalhe({
               </div>
               <p className="text-[13px] leading-relaxed text-text-dim">
                 Com {c.ball.name} ({c.ball.priceGold} de ouro cada) contra um pokémon que vende por{" "}
-                {t.sell.toLocaleString("pt-BR")}.{" "}
-                {c.net >= 0
-                  ? "Capturar paga mais do que as bolas custam."
-                  : "As bolas custam mais do que a venda devolve — aqui a captura é prejuízo."}
+                {t.sell.toLocaleString("pt-BR")}, a captura só paga a bola a partir de{" "}
+                <strong className="font-semibold text-text">
+                  1 em {Math.round(t.sell / Math.max(1, c.ball.priceGold ?? 1)).toLocaleString("pt-BR")}
+                </strong>
+                . Esse limite é aritmética; a chance ao lado dele é estimativa, e é ela que
+                erra — por isso a captura não entra no ouro/h que ordena a lista.
               </p>
             </>
           ) : (

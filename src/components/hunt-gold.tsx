@@ -54,8 +54,12 @@ import { TypeBadge, TypeIcon } from "@/components/type-icon";
  *  - **O ouro/h e efetivo.** Se a hunt te derruba, o tempo parado na Joy ja saiu
  *    dele. Spot letal (voce cai antes de dois abates) fica de fora: farm que exige
  *    babysitting nao e farm.
- *  - **A captura entra LIQUIDA** quando ligada la em cima: o que o pokemon vende
- *    menos o que as bolas custam, contando a bola gasta em cada abate que falhou.
+ *  - **A captura NAO entra no ouro/h.** Ela e estimada por uma lei ajustada por valor
+ *    de venda, com erro mediano de ~1,9x, e numa sessao medida de 738 abates errou por
+ *    5,7 — o suficiente pra trocar o sinal do termo (a tela prometia +194k/h onde a
+ *    sessao entregou -30k/h, porque a bola e cobrada em todo abate). O loot da mesma
+ *    sessao bateu drop a drop. Entao o loot ordena e a captura fica ao lado, com o
+ *    ponto em que a bola se paga, que e uma afirmacao que se confere numa sessao.
  */
 
 /** Metas que quase todo mundo digita — o campo continua livre pro resto. */
@@ -92,9 +96,11 @@ export function HuntGold({
         day: entrada.day,
         drops: payload.drops,
         ballKey: entrada.ball,
-        withCatch: entrada.cap,
+        vip: entrada.vip,
+        xpPct: entrada.xpPct,
+        lootPct: entrada.lootPct,
       }),
-    [payload.targets, payload.drops, entrada.day, entrada.ball, entrada.cap],
+    [payload.targets, payload.drops, entrada.day, entrada.ball, entrada.vip, entrada.xpPct, entrada.lootPct],
   );
 
   const rows = useMemo(
@@ -106,12 +112,11 @@ export function HuntGold({
         level: entrada.level,
         ivs,
         quality: entrada.quality,
-        vip: entrada.vip,
         pool: entrada.pool,
       })
         .filter((r) => r.est.threat.risk !== "deadly" && r.est.goldH > 0)
         .sort((a, b) => b.est.goldH - a.est.goldH),
-    [fighter, payload.targets, econ, movesOf, entrada.level, ivs, entrada.quality, entrada.vip, entrada.pool],
+    [fighter, payload.targets, econ, movesOf, entrada.level, ivs, entrada.quality, entrada.pool],
   );
 
   const melhor = rows[0] ?? null;
@@ -186,9 +191,10 @@ export function HuntGold({
       ) : null}
 
       <Note flush icon={<IconInfo size={15} />}>
-        Spot letal fica fora desta lista: farm que precisa de você olhando rende zero na
-        prática. O ouro por hora já desconta o tempo parado na Joy. A captura, quando
-        ligada, entra líquida: cada abate gasta uma bola, capturando ou não.
+        O ouro por hora é só o loot, a preço de NPC, e já desconta o tempo parado na Joy.
+        Spot letal fica fora: farm que precisa de você olhando rende zero na prática. A
+        captura aparece ao lado como estimativa e não decide a ordem, porque a lei que
+        estima ela erra por bem mais do que o loot.
       </Note>
     </div>
   );
@@ -210,10 +216,12 @@ function Destaque({
   const est = row.est;
   const th = est.threat;
   const c = row.econ.catch;
-  const lootH = row.econ.loot * est.kosH;
   // Tres estados diferentes, e nenhum e "zero": captura desligada, captura ligada num
   // alvo que o jogo nao compra (a lei nao tem como estimar) e captura valendo.
   const capH = cap && c ? c.net * est.kosH : null;
+  // Onde a captura empata com a bola. E o unico numero desta caixa que nao depende da
+  // lei: sai so do preco da bola e do valor de venda, e uma sessao confere.
+  const empate = c && (c.ball.priceGold ?? 0) > 0 ? t.sell / (c.ball.priceGold ?? 1) : null;
 
   return (
     <Panel bodyClassName="flex flex-col gap-4">
@@ -254,15 +262,14 @@ function Destaque({
         </span>
 
         <span className="ml-auto flex items-baseline gap-1.5">
-          <span className="pix text-[11px] text-text-mute">ouro/h</span>
+          <span className="pix text-[11px] text-text-mute">ouro/h no loot</span>
           <span className="text-[26px] leading-none font-bold text-warn tabular">
             {perHourLabel(est.goldH)}
           </span>
         </span>
       </div>
 
-      {/* De onde o ouro vem. Sem esta linha, um spot cujo ouro e 90% venda de pokemon
-          parece um spot de loot — e a conta muda inteira se a bola subir de preco. */}
+      {/* Os três números verificados, e a captura ao lado marcada como estimativa. */}
       <div className="grid gap-px overflow-hidden border border-line bg-line sm:grid-cols-4">
         {[
           {
@@ -272,16 +279,22 @@ function Destaque({
             tone: "text-text",
           },
           {
-            label: row.econ.dayHit ? "loot (com o dia)" : "loot",
-            value: perHourLabel(lootH),
-            foot: `${Math.round(row.econ.loot).toLocaleString("pt-BR")} por abate`,
+            label: row.econ.dayHit ? "loot por abate (com o dia)" : "loot por abate",
+            value: Math.round(row.econ.loot).toLocaleString("pt-BR"),
+            foot: "preço de NPC",
             tone: "text-warn",
+          },
+          {
+            label: "XP/h de graça",
+            value: perHourLabel(est.xpH),
+            foot: "sobe enquanto você farma",
+            tone: "text-ok",
           },
           capH != null && c
             ? {
-                label: "captura, líquida",
+                label: "captura · estimativa",
                 value: perHourLabel(capH),
-                foot: `${Math.round(c.tries).toLocaleString("pt-BR")} abates por captura`,
+                foot: `1 em ${Math.round(c.tries).toLocaleString("pt-BR")}${empate ? ` · paga a bola em 1 em ${Math.round(empate).toLocaleString("pt-BR")}` : ""}`,
                 tone: capH >= 0 ? "text-ok" : "text-danger",
               }
             : {
@@ -290,12 +303,6 @@ function Destaque({
                 foot: cap ? "o jogo não compra este" : "desligada no cenário",
                 tone: "text-text-mute",
               },
-          {
-            label: "XP/h de graça",
-            value: perHourLabel(est.xpH),
-            foot: "sobe enquanto você farma",
-            tone: "text-ok",
-          },
         ].map((k) => (
           <div key={k.label} className="bg-surface px-3 py-2.5">
             <dd className={cn("text-[18px] leading-none font-semibold tabular", k.tone)}>{k.value}</dd>
@@ -356,14 +363,16 @@ function Linha({ r, pos, cap, melhor }: { r: HuntRow; pos: number; cap: boolean;
         </span>
       </span>
 
-      <span className="hidden w-40 shrink-0 flex-col gap-0.5 text-right sm:flex">
+      <span className="hidden w-44 shrink-0 flex-col gap-0.5 text-right sm:flex">
         <span className="text-[12px] text-text-mute tabular">
-          loot {perHourLabel(r.econ.loot * est.kosH)}
+          {Math.round(r.econ.loot).toLocaleString("pt-BR")} por abate
         </span>
         {cap && c ? (
-          <span className={cn("text-[12px] tabular", c.net >= 0 ? "text-text-mute" : "text-danger")}>
-            captura {perHourLabel(c.net * est.kosH)}
-          </span>
+          <Tooltip content="Estimativa, e ela fica fora do que ordena esta lista.">
+            <span className={cn("text-[12px] tabular", c.net >= 0 ? "text-text-mute" : "text-danger")}>
+              captura ~{perHourLabel(c.net * est.kosH)}
+            </span>
+          </Tooltip>
         ) : null}
       </span>
 

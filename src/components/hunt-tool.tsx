@@ -46,7 +46,7 @@ import {
   IconLimpar,
 } from "@/components/ui";
 import { TypeBadge, TypeIcon } from "@/components/type-icon";
-import { IconGem, IconLevel, IconScale, IconTm, IconTarget, STAT_ICONS } from "@/components/game-icons";
+import { IconGem, IconLevel, IconLoot, IconScale, IconTm, IconTarget, IconXp, STAT_ICONS } from "@/components/game-icons";
 import { HuntGold } from "@/components/hunt-gold";
 import { HuntRanking } from "@/components/hunt-ranking";
 import { HuntRoute } from "@/components/hunt-route";
@@ -95,7 +95,8 @@ type Entrada = HuntEntrada;
 const entradaDe = (s: HuntState): Entrada | null =>
   s.id == null
     ? null
-    : { id: s.id, level: s.level, quality: s.quality, stats: s.stats, pool: s.pool, vip: s.vip, day: s.day, cap: s.cap, ball: s.ball };
+    : { id: s.id, level: s.level, quality: s.quality, stats: s.stats, pool: s.pool, vip: s.vip,
+        day: s.day, xpPct: s.xpPct, lootPct: s.lootPct, cap: s.cap, ball: s.ball };
 
 const mesmaEntrada = (a: Entrada | null, b: Entrada | null): boolean =>
   JSON.stringify(a) === JSON.stringify(b);
@@ -345,12 +346,35 @@ export function HuntTool({ payload }: { payload: HuntPayload }) {
                 />
               </Field>
 
+              {/* O que a ferramenta nao tem como saber: evento de servidor, boost da
+                  loja, trilha de streak. Sem campo, o XP/h saia curto e ninguem
+                  descobria por que — numa sessao medida, 0,66x do real. */}
+              <Field label="XP extra (%)" icon={<IconXp size={14} />} className="w-32">
+                <NumberField
+                  min={0}
+                  fallback={0}
+                  value={s.xpPct}
+                  onChange={(xpPct) => patch({ xpPct, page: 0 })}
+                  className="text-center text-[15px]"
+                />
+              </Field>
+
+              <Field label="Loot extra (%)" icon={<IconLoot size={14} />} className="w-32">
+                <NumberField
+                  min={0}
+                  fallback={0}
+                  value={s.lootPct}
+                  onChange={(lootPct) => patch({ lootPct, page: 0 })}
+                  className="text-center text-[15px]"
+                />
+              </Field>
+
               <Field>
                 <Checkbox
                   boxed
                   checked={s.cap}
                   onChange={(e) => patch({ cap: e.currentTarget.checked, page: 0 })}
-                  label="contar a captura no ouro"
+                  label="mostrar a conta de captura"
                 />
               </Field>
 
@@ -384,11 +408,19 @@ export function HuntTool({ payload }: { payload: HuntPayload }) {
                 drop, não somada no total.
               </Note>
             ) : null}
+            {s.xpPct > 0 || s.lootPct > 0 ? (
+              <Note className="mt-3">
+                As fontes de bônus somam entre si e o total multiplica, como o jogo mostra no
+                detalhamento de ganho. Um evento de XP dobrado é 100 aqui, e com VIP e o tipo
+                do dia o XP por abate sai 2,7 vezes o do catálogo.
+              </Note>
+            ) : null}
             {s.cap ? (
               <Note className="mt-3">
-                O jogo gasta uma bola por abate, capturando ou não — então a captura entra
-                LÍQUIDA: o que o pokémon vende menos o que as bolas custam. Em alvo barato com
-                bola cara o número fica negativo, e isso é resposta, não erro.
+                A captura é ESTIMATIVA e não entra no ouro que ordena as listas. Ela sai de
+                uma lei ajustada por valor de venda, com erro mediano de ~1,9x, e numa sessão
+                medida de 738 abates errou por 5,7. O que a coluna dá é ordem de grandeza e o
+                ponto em que a bola se paga.
               </Note>
             ) : null}
           </div>

@@ -158,7 +158,7 @@ export interface HuntEstimate {
    *  box inteiro empatar. Quem calibra a reta precisa deste valor. */
   dps: number;
   kosH: number; // KOs/h EFETIVO (ja descontando o tempo parado por desmaio)
-  xpH: number; // XP/h efetivo (com VIP se ligado)
+  xpH: number; // XP/h efetivo — `e.xp` ja chega com os bonus do cenario (ver `hunt.ts`)
   goldH: number; // ouro/h efetivo (loot)
   threat: Threat; // o que essa hunt faz com voce
 }
@@ -322,7 +322,6 @@ export function estimateHunt(
   quality: number,
   e: EnemyCombat,
   enemyMoves: Move[],
-  vip: boolean,
   pool: MovePool = "natural",
   fs: FighterStats = fighterStats(species, level, ivs, quality),
 ): HuntEstimate | null {
@@ -341,7 +340,7 @@ export function estimateHunt(
     ttkS: Math.round(ttkS * 10) / 10,
     dps: bm.total,
     kosH,
-    xpH: e.xp * kosH * (vip ? 1.5 : 1),
+    xpH: e.xp * kosH,
     goldH: e.goldEV * kosH,
     threat,
   };
@@ -386,7 +385,6 @@ function scanHunts(
   quality: number,
   enemies: EnemyCombat[],
   movesOf: MovesOf,
-  vip: boolean,
   skip: ((e: EnemyCombat) => boolean) | undefined,
   pool: MovePool,
   keep?: EnemyCombat,
@@ -400,7 +398,7 @@ function scanHunts(
   for (const e of enemies) {
     if (e.huntLevel > reach) continue;
     if (skip?.(e)) continue;
-    const est = estimateHunt(species, level, ivs, quality, e, movesOf(e.pokeId), vip, pool, fs);
+    const est = estimateHunt(species, level, ivs, quality, e, movesOf(e.pokeId), pool, fs);
     if (e === keep) {
       keepSeen = true;
       keepEst = est;
@@ -457,7 +455,6 @@ export function buildRoute(
   movesOf: MovesOf,
   quality: number,
   ivs: number[],
-  vip = false,
   pool: MovePool = "natural",
 ): RouteStep[] {
   const steps: RouteStep[] = [];
@@ -501,7 +498,7 @@ export function buildRoute(
     // a varredura ja passa pelo alvo da faixa atual, entao pede a conta dele de carona
     // (`keepEst`) em vez de refazer o `estimateHunt` logo abaixo.
     const { pick: p, keepEst, keepSeen } = scanHunts(
-      species, lvl, ivs, quality, enemies, movesOf, vip, undefined, pool, last?.enemy,
+      species, lvl, ivs, quality, enemies, movesOf, undefined, pool, last?.enemy,
     );
     if (!p) {
       if (semAlvo === 0) semAlvoDesde = lvl;
@@ -514,7 +511,7 @@ export function buildRoute(
       // dele ainda precisa ser feita a parte, senao a faixa quebraria so por isso.
       const curEst = keepSeen
         ? keepEst
-        : estimateHunt(species, lvl, ivs, quality, last.enemy, movesOf(last.enemy.pokeId), vip, pool);
+        : estimateHunt(species, lvl, ivs, quality, last.enemy, movesOf(last.enemy.pokeId), pool);
       const curSafe = curEst != null && (curEst.threat.risk !== "deadly" || p.est.threat.risk === "deadly");
       if (curEst && curSafe && p.est.xpH <= curEst.xpH * SWITCH_MARGIN) {
         cobrar(last, lvl, curEst);
