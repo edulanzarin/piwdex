@@ -18,7 +18,7 @@ nivel 40".
 | Itens com indice reverso (10 filtros, ficha com quem dropa) | pronto |
 | Calculadora de IV/Quality/Poder | pronta |
 | Rota de hunt / Breeding / Meta | prontos |
-| Robo (area logada, em bot.piwdex.com.br) | nucleo pronto |
+| Robo (area logada, em bot.piwdex.com.br) | pronto |
 
 ## Dois enderecos, uma imagem
 
@@ -34,6 +34,42 @@ horas. Servicos separados = cadencias de deploy separadas.
 
 `PIW_ROLE` ausente em producao vale `site`: esquecer a variavel deixa a dex
 intacta e o robo apagado.
+
+## O que o robo faz
+
+Ele SEGURA a sessao de jogo (o WebSocket **e** a sessao, e o jogo aceita uma por
+conta) e, em cima dela, roda os trabalhos:
+
+| Trabalho | Como |
+|---|---|
+| Cacar | `enter-hunt` + poll do analyzer; kills, capturas e fila de captura ao vivo |
+| Levantar o lider | Revive da bolsa em campo; sem Revive, sai do campo e usa a Joy |
+| Repor consumivel | bola, pocao e revive, por piso/alvo, com teto de gasto |
+| Vender drop | lista BRANCA de itens, respeitando o cadeado do jogador |
+| Vender pokemon | so o que passa por todos os vetos (time, lider, inicial, cadeado, shiny, IV, nivel) |
+| Automacao do jogo | liga o Auto-Helper (auto-catch, auto-potion, auto-revive) e escolhe as bolas |
+
+Comprar e vender vao por REST, e por isso podem acontecer com a cacada correndo:
+REST nao disputa a sessao. Tudo que MUTA a conta em campo sai pelo socket ja
+aberto — abrir um segundo derrubaria a propria cacada.
+
+Nenhuma automacao nasce ligada.
+
+### Quando ele para de tentar
+
+O codigo com que o jogo fecha o WebSocket e a informacao mais importante que o
+motor recebe, e cada um pede o oposto do outro:
+
+| Fechamento | O que o motor faz |
+|---|---|
+| `4003 wrong-shard` | redescobre o shard por sondagem paralela e reconecta |
+| `4001 unauthorized` | renova o par; recusado de novo, PARA e marca o vinculo `expired` |
+| `4004` | recusa de conta: terminal |
+| queda comum | backoff exponencial ate 60s |
+
+Ignorar esse codigo (o desenho antigo) produzia um robo que reconecta pra sempre
+sem nunca cacar, e uma tela que so sabia dizer "sessão perdida". O painel hoje
+mostra o codigo cru, a frase do jogo e a acao que resolve.
 
 ## Rodar
 
