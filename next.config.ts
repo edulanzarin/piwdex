@@ -1,13 +1,22 @@
 import type { NextConfig } from "next";
 
 /**
- * O endereco do robo, repetido aqui porque `next.config.ts` e carregado antes de
- * qualquer alias de modulo existir — importar de `@/lib/robo/papel` nao resolve.
- * Mesma leitura, mesmo padrao, mesmo `||` (variavel em branco nao e variavel
- * ausente).
+ * Pra onde mandar quem pede as rotas antigas do robo.
+ *
+ * Aqui a variavel NAO tem padrao, e a diferenca em relacao ao resto do projeto e
+ * deliberada: `NEXT_PUBLIC_BOT_URL` presente e o que declara "o subdominio do
+ * robo existe e responde". Enquanto ele nao existir, mandar `/vip` pra la
+ * trocaria um redirect que funciona (a home) por um dominio que nao resolve — e
+ * essas rotas estao salvas no jogo, no Discord e no favorito de quem usava.
+ *
+ * Ligar o robo pra esse publico e, entao, um ato: preencher a variavel no
+ * servico da dex. Nao ha commit a fazer depois.
+ *
+ * Repetido aqui, e nao importado de `@/lib/robo/papel`, porque `next.config.ts`
+ * carrega antes de qualquer alias de modulo existir.
  */
-const BOT_URL = (process.env.NEXT_PUBLIC_BOT_URL?.trim() || "https://bot.piwdex.com.br")
-  .replace(/\/$/, "");
+const BOT_URL = process.env.NEXT_PUBLIC_BOT_URL?.trim().replace(/\/$/, "") || "";
+const DESTINO_ROBO = BOT_URL ? `${BOT_URL}/painel` : "/";
 
 const nextConfig: NextConfig = {
   // Imagem standalone pro Docker (chassi do Brain).
@@ -33,18 +42,20 @@ const nextConfig: NextConfig = {
       },
 
       // 2. O cockpit do robo. As rotas dele estao salvas no proprio jogo, no
-      //    Discord e no favorito de quem usava, e agora tem pra onde ir: o robo
-      //    voltou, noutro endereco. Estes quatro redirects sao a ponte entre o
-      //    nome antigo (`/vip`, `/bot-app`, aqui no apex) e o novo.
+      //    Discord e no favorito de quem usava. Estes quatro redirects sao a
+      //    ponte entre o nome antigo (`/vip`, `/bot-app`, aqui no apex) e o
+      //    novo — assim que o subdominio existir (ver `DESTINO_ROBO` acima).
+      //    Ate la eles seguem caindo na home, que pelo menos mostra o que o
+      //    site passou a ser.
       //
       //    Segue TEMPORARIO (307) por enquanto. `permanent` ensina navegador e
       //    buscador a nunca mais pedir a rota original — e caro de desfazer, e
       //    so vale a pena depois que o subdominio estiver no ar e estavel. A
       //    troca pra 308 e uma palavra neste arquivo.
-      { source: "/vip", destination: `${BOT_URL}/painel`, permanent: false },
-      { source: "/vip/:path*", destination: `${BOT_URL}/painel`, permanent: false },
-      { source: "/bot-app", destination: `${BOT_URL}/painel`, permanent: false },
-      { source: "/bot-app/:path*", destination: `${BOT_URL}/painel`, permanent: false },
+      { source: "/vip", destination: DESTINO_ROBO, permanent: false },
+      { source: "/vip/:path*", destination: DESTINO_ROBO, permanent: false },
+      { source: "/bot-app", destination: DESTINO_ROBO, permanent: false },
+      { source: "/bot-app/:path*", destination: DESTINO_ROBO, permanent: false },
     ];
   },
 
