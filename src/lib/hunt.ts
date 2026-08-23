@@ -7,10 +7,12 @@
 //  1. **O que conta como ganho.** XP, ouro do loot, ou ouro contando a captura.
 //     Sao ordens diferentes: a hunt que mais paga em drop raramente e a que mais
 //     paga em pokemon vendido.
-//  2. **O Tipo do Dia.** Ele MULTIPLICA a chance de cada drop e a chance tem teto
-//     (`boost.ts`), entao o bonus tem que ser refeito drop a drop. Aplicar "+20%
-//     no ouro total" e o erro que o teto desmente: um drop que ja nasce em 95%
-//     converte 5% do bonus, nao 20%.
+//  2. **O Tipo do Dia.** Ele paga nas DUAS moedas, e com regra diferente em cada
+//     uma. No XP e limpo: +20% em cima do XP por abate, sem teto. No loot ele
+//     MULTIPLICA a chance de cada drop e a chance tem teto (`boost.ts`), entao o
+//     bonus tem que ser refeito drop a drop. Aplicar "+20% no ouro total" e o erro
+//     que o teto desmente: um drop que ja nasce em 95% converte 5% do bonus, nao
+//     20%. Por isso o mesmo dia rende o bonus inteiro em XP e so um pedaco em ouro.
 //  3. **A bola.** Capturar nao e de graça: o jogo gasta uma bola por abate e a
 //     chance por abate e pequena. Bola melhor sobe a chance E o custo — e em alvo
 //     barato ela chega a torrar mais ouro do que a captura devolve. Por isso a
@@ -121,6 +123,8 @@ export interface TargetEconomy {
   /** ouro do loot por abate, ja com o Tipo do Dia onde ele vale */
   loot: number;
   dayHit: boolean;
+  /** XP por abate no cenario: o Tipo do Dia paga aqui tambem, e aqui nao ha teto */
+  xp: number;
   /** null quando o alvo nao tem valor de venda: a lei nao tem como estimar */
   catch: CatchEconomy | null;
   /** o que o alvo paga por abate no total — e o numero que vira ouro/h */
@@ -168,6 +172,7 @@ export function economyOf(targets: HuntTarget[], o: EconomyOptions): Map<number,
     out.set(t.pokeId, {
       loot,
       dayHit,
+      xp: dayHit ? t.xp * (1 + pct) : t.xp,
       catch: economy,
       perKill: loot + (o.withCatch ? economy?.net ?? 0 : 0),
     });
@@ -175,14 +180,15 @@ export function economyOf(targets: HuntTarget[], o: EconomyOptions): Map<number,
   return out;
 }
 
-/** Os alvos com o `goldEV` trocado pelo ouro TOTAL por abate. O motor de combate
- *  multiplica esse campo pelos KOs/h efetivos, entao trocar aqui faz o ouro/h (e a
- *  rota por ouro) ja sairem com o Tipo do Dia e a captura dentro — sem que o motor
- *  precise conhecer nenhum dos dois. */
+/** Os alvos com `goldEV` e `xp` trocados pelo que o alvo paga por abate NESTE cenario.
+ *  O motor de combate multiplica os dois campos pelos KOs/h efetivos, entao trocar aqui
+ *  faz o ouro/h e o XP/h ja sairem com o Tipo do Dia e a captura dentro — sem que o
+ *  motor precise conhecer nenhum dos dois. */
 export const withEconomy = (targets: HuntTarget[], econ: Map<number, TargetEconomy>): HuntTarget[] =>
   targets.map((t) => {
     const e = econ.get(t.pokeId);
-    return e && e.perKill !== t.goldEV ? { ...t, goldEV: e.perKill } : t;
+    if (!e || (e.perKill === t.goldEV && e.xp === t.xp)) return t;
+    return { ...t, goldEV: e.perKill, xp: e.xp };
   });
 
 // ------------------------------------------------------------------ ranking
