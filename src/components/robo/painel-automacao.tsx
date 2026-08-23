@@ -105,7 +105,13 @@ function Consumivel({
       style={ligado ? { borderColor: "color-mix(in srgb, var(--color-t-robo) 45%, transparent)" } : undefined}
     >
       <div className="flex items-center justify-between gap-2">
-        <Switch checked={ligado} onChange={(e) => onLigar(e.currentTarget.checked)} label={titulo} />
+        <Switch
+          block
+          checked={ligado}
+          onChange={(e) => onLigar(e.currentTarget.checked)}
+          label={titulo}
+          className="min-w-0 flex-1"
+        />
         {estoque ? <span className="pix shrink-0 text-[10px] text-text-mute">{estoque}</span> : null}
       </div>
 
@@ -369,6 +375,7 @@ export function AbaAutomacao({
                 <div className="grid items-stretch gap-3 sm:grid-cols-2">
                   <div className="flex flex-col justify-between gap-2 border border-line bg-bg-soft p-3">
                     <Switch
+                      block
                       checked={autoAtual.autoCatch}
                       disabled={salvandoAuto}
                       onChange={(e) => mudarAutoLocal({ autoCatch: e.currentTarget.checked })}
@@ -387,6 +394,7 @@ export function AbaAutomacao({
 
                   <div className="flex flex-col justify-between gap-2 border border-line bg-bg-soft p-3">
                     <Switch
+                      block
                       checked={autoAtual.autoCatchShiny}
                       disabled={salvandoAuto}
                       onChange={(e) => mudarAutoLocal({ autoCatchShiny: e.currentTarget.checked })}
@@ -405,6 +413,7 @@ export function AbaAutomacao({
 
                   <div className="flex flex-col justify-between gap-2 border border-line bg-bg-soft p-3">
                     <Switch
+                      block
                       checked={autoAtual.autoPotion}
                       disabled={salvandoAuto}
                       onChange={(e) => mudarAutoLocal({ autoPotion: e.currentTarget.checked })}
@@ -428,6 +437,7 @@ export function AbaAutomacao({
 
                   <div className="flex flex-col justify-between gap-2 border border-line bg-bg-soft p-3">
                     <Switch
+                      block
                       checked={autoAtual.autoRevive}
                       disabled={salvandoAuto}
                       onChange={(e) => mudarAutoLocal({ autoRevive: e.currentTarget.checked })}
@@ -543,6 +553,7 @@ export function AbaAutomacao({
             }
           >
             <Switch
+              block
               checked={rascunho.venderDrop}
               disabled={!rascunho.dropIds.length}
               onChange={(e) => mudar({ venderDrop: e.currentTarget.checked })}
@@ -611,6 +622,7 @@ export function AbaAutomacao({
             }
           >
             <Switch
+              block
               checked={rascunho.venderPoke}
               onChange={(e) => mudar({ venderPoke: e.currentTarget.checked })}
               label="vender o que o box acumula"
@@ -624,6 +636,7 @@ export function AbaAutomacao({
                 <div className="grid items-stretch gap-3 sm:grid-cols-2">
                   <div className="flex items-center border border-line bg-bg-soft p-3">
                     <Switch
+                      block
                       checked={rascunho.manterShiny}
                       onChange={(e) => mudar({ manterShiny: e.currentTarget.checked })}
                       label="nunca vender shiny"

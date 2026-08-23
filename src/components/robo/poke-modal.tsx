@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Loading, Modal, Note, Sprite } from "@/components/ui";
+import { Chip, Loading, Modal, Note, Segments, Sprite } from "@/components/ui";
 import { TypeBadge } from "@/components/type-icon";
 import { compact, num, STAT_SHORT, TIER_LABEL } from "@/lib/labels";
 import { qualityTier, TIER_COLOR } from "@/lib/rarity";
@@ -64,14 +64,6 @@ function veredito(pct: number): { texto: string; cor: string } {
   if (pct >= 0.6) return { texto: "bom", cor: "var(--color-accent)" };
   if (pct >= 0.4) return { texto: "mediano", cor: "var(--color-warn)" };
   return { texto: "fraco", cor: "var(--color-danger)" };
-}
-
-function Barra({ razao, cor }: { razao: number; cor: string }) {
-  return (
-    <span className="flex h-1.5 w-full overflow-hidden bg-surface-3" aria-hidden="true">
-      <span style={{ width: `${Math.max(0, Math.min(1, razao)) * 100}%`, backgroundColor: cor }} />
-    </span>
-  );
 }
 
 export function PokeModal({
@@ -172,12 +164,12 @@ export function PokeModal({
                   {especie.t2 ? <TypeBadge type={especie.t2} /> : null}
                 </>
               ) : null}
-              <span
-                className="pix inline-flex h-6 items-center border px-2 text-[10px]"
-                style={{ color: TIER_COLOR[tier], borderColor: `color-mix(in srgb, ${TIER_COLOR[tier]} 45%, transparent)` }}
-              >
+              {/* `Chip` e nao uma caixa propria: ele nasce com a MESMA escada de
+                  altura do `TypeBadge` (h-7 no `sm`), e era essa a diferenca que
+                  deixava a raridade mais baixa que os tipos ao lado. */}
+              <Chip tint={TIER_COLOR[tier]}>
                 {TIER_LABEL[tier]} · {ficha.quality.toFixed(2)}x
-              </span>
+              </Chip>
             </span>
 
             <span className="flex flex-wrap items-center gap-x-5 gap-y-1 text-[13px]">
@@ -220,7 +212,7 @@ export function PokeModal({
               </span>
             </div>
             <span className="mt-2 block">
-              <Barra razao={pct} cor={v.cor} />
+              <Segments ratio={pct} tint={v.cor} segments={24} value={totalIv ?? 0} max={TOTAL_MAX} />
             </span>
             <p className="mt-1.5 text-[11px] text-text-mute">
               {Math.round(pct * 100)}% do IV máximo. Quality e IV são grandezas separadas: a quality
@@ -260,7 +252,7 @@ export function PokeModal({
                       {compact(valor)}
                     </b>
                     <span className="min-w-0 flex-1">
-                      <Barra razao={razao} cor={cor} />
+                      <Segments ratio={razao} tint={cor} segments={16} value={valor} max={maiorStat} />
                     </span>
                     <span className="w-16 shrink-0 text-right text-[11px] tabular" style={{ color: cor }}>
                       {iv != null ? `IV ${iv}/${IV_MAX}` : ""}

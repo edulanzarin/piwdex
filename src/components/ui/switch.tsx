@@ -15,16 +15,26 @@ import { cn } from "@/lib/cn";
 export interface SwitchProps extends Omit<InputHTMLAttributes<HTMLInputElement>, "type" | "size"> {
   label?: ReactNode;
   hint?: ReactNode;
+  /**
+   * Ocupa a largura toda.
+   *
+   * O padrao e encolher ate o rotulo, que e o certo numa fila de filtros. Numa
+   * GRADE de cartoes e o contrario: cada chave tem um rotulo de tamanho
+   * diferente, e encolher faz quatro caixas de quatro larguras. Aqui a coluna
+   * manda, nao o texto.
+   */
+  block?: boolean;
 }
 
-export function Switch({ label, hint, className, ...props }: SwitchProps) {
+export function Switch({ label, hint, block, className, ...props }: SwitchProps) {
   return (
     <label
       className={cn(
         // `w-auto self-start`: a casca dos campos nasce com `width: 100%`, e o switch
         // carrega o proprio rotulo — esticado, ele vira uma faixa vazia atras do texto.
         // O `self-start` e o que segura de verdade: em coluna flex o padrao estica.
-        "field w-auto self-start cursor-pointer select-none gap-2.5",
+        "field cursor-pointer select-none gap-2.5",
+        block ? "w-full" : "w-auto self-start",
         // com dica a caixa cresce (a altura fixa cortaria a segunda linha), mas o
         // piso continua sendo a altura de campo — a fila nao desalinha por causa dela
         hint ? "h-auto min-h-10 items-start py-2" : "items-center",
@@ -34,22 +44,31 @@ export function Switch({ label, hint, className, ...props }: SwitchProps) {
       )}
     >
       <input type="checkbox" className="peer sr-only" {...props} />
+      {/* A chave em si. Ela cresceu: a anterior tinha 8px de curso e um miolo de
+          10px, e a diferenca entre ligada e desligada dependia de enxergar dois
+          pixels de deslocamento. Agora o estado se le pela COR de fundo e pela
+          posicao, e o alvo de clique e a linha inteira. */}
       <span
         aria-hidden="true"
         className={cn(
-          "relative h-4 w-8 shrink-0 rounded-pix border border-line-strong bg-bg-soft transition-colors",
+          "relative h-5 w-10 shrink-0 rounded-pix border transition-colors",
+          "border-line-strong bg-surface-2",
           // com dica o texto tem duas linhas: a chave acompanha a PRIMEIRA delas
-          hint && "mt-1",
-          "peer-checked:border-accent peer-checked:bg-accent/30",
+          hint && "mt-0.5",
+          "peer-checked:border-accent peer-checked:bg-accent/35",
           "peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent",
-          "after:absolute after:top-[2px] after:left-[2px] after:h-[10px] after:w-[10px]",
+          "after:absolute after:top-[3px] after:left-[3px] after:h-[12px] after:w-[12px]",
           "after:bg-text-mute after:transition-all after:content-['']",
-          "peer-checked:after:left-[18px] peer-checked:after:bg-accent",
+          "peer-checked:after:left-[21px] peer-checked:after:bg-accent",
         )}
       />
       {(label || hint) && (
         <span className="min-w-0">
-          {label ? <span className="block text-[14px] text-text-dim group-has-[:checked]:text-text">{label}</span> : null}
+          {/* O rotulo ACENDE quando ligado: sem isso, uma grade de seis chaves
+              obriga a conferir seis miolos de 12px pra saber o que esta ativo. */}
+          {label ? (
+            <span className="block text-[14px] text-text-dim peer-checked:text-text">{label}</span>
+          ) : null}
           {hint ? <span className="block text-[13px] text-text-mute">{hint}</span> : null}
         </span>
       )}
