@@ -60,6 +60,22 @@ export function proxy(req: NextRequest) {
   // proprio favicon pro site.
   if (ehArquivoDeRaiz(pathname)) return NextResponse.next();
 
+  /**
+   * A sonda de vida responde em QUALQUER host, e antes de tudo.
+   *
+   * Ela nao e uma rota do produto — e o contrato com a plataforma. O
+   * orquestrador bate nela de dentro da rede, com um Host interno (o endereco do
+   * container, `healthcheck.railway.app`, o que for), e nunca com o dominio
+   * publico. Qualquer coisa que nao seja 2xx e lida como "fora do ar".
+   *
+   * Foi assim que o primeiro deploy do robo falhou: o proxy via um host
+   * desconhecido num processo `PIW_ROLE=bot`, concluia "isso e da dex" e
+   * respondia 307. A sonda tentava cinco vezes, recebia cinco redirecionamentos,
+   * e o Railway matava a replica — com build e deploy verdes, e nada no log do
+   * app, porque o app nunca chegou a ser chamado.
+   */
+  if (pathname === "/api/health") return NextResponse.next();
+
   const noBot = ehHostDoBot(req.headers.get("host"));
   const doRobo = ehCaminhoDoRobo(pathname);
 
