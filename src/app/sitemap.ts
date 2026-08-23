@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { getData } from "@/lib/data";
 import { SITE_URL } from "@/lib/site";
+import { TODOS_SLUGS } from "@/lib/tipo-url";
 
 /**
  * O mapa do site.
@@ -31,10 +32,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     })),
   ];
 
+  // Os hubs de tipo. Eles sao a camada do MEIO — a home leva neles, eles levam
+  // nas ~910 fichas —, e prioridade maior que a da folha diz exatamente isso.
+  const hubs: MetadataRoute.Sitemap = TODOS_SLUGS.map((slug) => ({
+    url: `${SITE_URL}/dex/tipo/${slug}`,
+    lastModified: quando,
+    changeFrequency: "weekly" as const,
+    priority: 0.7,
+  }));
+
   const fichas: MetadataRoute.Sitemap = [
     ...db.creatures.map((c) => ({ url: `${SITE_URL}/dex/${c.pokeId}`, lastModified: quando, priority: 0.6 })),
     ...db.items.map((i) => ({ url: `${SITE_URL}/itens/${i.id}`, lastModified: quando, priority: 0.4 })),
   ];
 
-  return [...telas.map((t) => ({ ...t, lastModified: quando })), ...fichas];
+  return [...telas.map((t) => ({ ...t, lastModified: quando })), ...hubs, ...fichas];
 }

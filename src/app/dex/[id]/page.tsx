@@ -23,6 +23,7 @@ import {
   Tooltip,
 } from "@/components/ui";
 import { TypeBadge, TypeMultChip } from "@/components/type-icon";
+import { caminhoDoTipo } from "@/lib/tipo-url";
 import {
   CategoryIcon,
   IconAtk,
@@ -42,6 +43,7 @@ import {
   RARITY_LABEL,
   ROLE_LABEL,
   STAT_LABEL,
+  TYPE_LABEL,
   compact as gold,
   multWord,
   num,
@@ -193,8 +195,18 @@ export default async function CreaturePage({ params }: Props) {
           <h1 className="text-[24px] leading-none font-semibold text-text">{c.name}</h1>
 
           <div className="flex flex-wrap items-center gap-1.5">
-            <TypeBadge type={c.type1} />
-            {c.type2 ? <TypeBadge type={c.type2} /> : null}
+            {/* O selo de tipo vira LINK pro hub daquele tipo.
+                Nao e enfeite de navegacao: e o que liga esta folha as outras
+                do mesmo tipo sem passar pela lista filtrada, e o que da ao
+                rastreador um caminho curto entre as ~910 fichas. */}
+            <Link href={caminhoDoTipo(c.type1)} aria-label={`Ver todos os pokémon de ${TYPE_LABEL[c.type1]}`}>
+              <TypeBadge type={c.type1} />
+            </Link>
+            {c.type2 ? (
+              <Link href={caminhoDoTipo(c.type2)} aria-label={`Ver todos os pokémon de ${TYPE_LABEL[c.type2]}`}>
+                <TypeBadge type={c.type2} />
+              </Link>
+            ) : null}
             <Chip tint={RARITY_COLOR[c.rarity]} icon={<IconGem size={14} />}>
               {RARITY_LABEL[c.rarity]}
             </Chip>
