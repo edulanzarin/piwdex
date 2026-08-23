@@ -1,19 +1,28 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Button, Combobox, Empty, Note, Panel, Sprite } from "@/components/ui";
-import { compact, num } from "@/lib/labels";
-import { spriteUrl } from "@/lib/sprites";
-import { estadoParado, type EstadoHunt, type StatusSessao } from "@/lib/robo/motor/tipos";
+import { Button, Combobox, Note, Panel, Tabs } from "@/components/ui";
+import { compact } from "@/lib/labels";
+import { estadoParado, type EstadoHunt } from "@/lib/robo/motor/tipos";
+import { CONFIG_PADRAO, type ConfigAuto } from "@/lib/robo/motor/tipos";
+import { Diagnostico, LinhaStatus } from "@/components/robo/painel-estado";
+import { AbaCacada } from "@/components/robo/painel-cacada";
+import { AbaAutomacao } from "@/components/robo/painel-automacao";
+import { AbaRegistro } from "@/components/robo/painel-registro";
 
 /**
  * O cockpit.
  *
- * Tudo aqui chega por UM stream (`/api/robo/estado`). A alternativa seria a tela
- * perguntar de tempos em tempos por analyzer, time, fila, vida e status — cinco
- * pollings cuja resposta quase sempre e "nada mudou". Quem sabe que mudou e o
- * servidor, entao e ele que fala.
+ * Tudo que muda sozinho chega por UM stream (`/api/robo/estado`). A alternativa
+ * seria a tela perguntar de tempos em tempos por analyzer, time, fila, vida,
+ * ouro e status: seis pollings cuja resposta quase sempre e "nada mudou". Quem
+ * sabe que mudou e o servidor, entao e ele que fala.
+ *
+ * O que NAO vem pelo stream vem por GET sob demanda, e a linha entre os dois e o
+ * tamanho: a lista da loja e o box tem centenas de itens e mudam de hora em
+ * hora. Empurrar isso uma vez por segundo seria pagar banda continua por dado
+ * parado.
  */
 
 const COR = "var(--color-t-robo)";
@@ -25,47 +34,32 @@ export interface HuntOpcao {
   area: string;
 }
 
-const ROTULO: Record<StatusSessao, { texto: string; cor: string }> = {
-  parado: { texto: "parado", cor: "var(--color-text-mute)" },
-  conectando: { texto: "conectando", cor: "var(--color-warn)" },
-  rodando: { texto: "caçando", cor: "var(--color-ok)" },
-  chutado: { texto: "sessão perdida", cor: "var(--color-warn)" },
-  erro: { texto: "erro", cor: "var(--color-danger)" },
-  bloqueado: { texto: "conta recusada", cor: "var(--color-danger)" },
-};
+type Aba = "cacada" | "automacao" | "registro";
 
-/** Duracao em h/min, sem virar cronometro de segundos: o numero muda a cada
- *  tique e ninguem le "1h 03min 47s" — le "cerca de uma hora". */
-function duracao(ms: number): string {
-  const s = Math.max(0, Math.floor(ms / 1000));
-  const h = Math.floor(s / 3600);
-  const m = Math.floor((s % 3600) / 60);
-  if (h > 0) return `${h}h ${String(m).padStart(2, "0")}min`;
-  if (m > 0) return `${m}min`;
-  return `${s}s`;
-}
-
-function Numero({ rotulo, valor, sufixo }: { rotulo: string; valor: string; sufixo?: string }) {
+function Numero({
+  rotulo,
+  valor,
+  sufixo,
+  tom,
+}: {
+  rotulo: string;
+  valor: string;
+  sufixo?: string;
+  tom?: string;
+}) {
   return (
     <div className="border border-line bg-bg-soft p-2.5">
       <p className="pix text-[11px] text-text-mute">{rotulo}</p>
       <p className="mt-1.5 flex items-baseline gap-1">
-        <span className="text-[20px] leading-none font-bold tabular text-text">{valor}</span>
+        <span
+          className="text-[20px] leading-none font-bold tabular"
+          style={{ color: tom ?? "var(--color-text)" }}
+        >
+          {valor}
+        </span>
         {sufixo ? <span className="pix text-[10px] text-text-mute">{sufixo}</span> : null}
       </p>
     </div>
-  );
-}
-
-function BarraVida({ hp, maxHp }: { hp: number; maxHp: number }) {
-  const razao = maxHp > 0 ? Math.max(0, Math.min(1, hp / maxHp)) : 0;
-  // A cor e degrau, e nao gradiente: "está no vermelho" é uma leitura de estado,
-  // e um gradiente contínuo obriga a comparar matizes pra saber em qual se está.
-  const cor = razao <= 0 ? "var(--color-danger)" : razao < 0.3 ? "var(--color-warn)" : "var(--color-ok)";
-  return (
-    <span className="flex h-1.5 w-full overflow-hidden bg-surface-3" aria-hidden="true">
-      <span style={{ width: `${razao * 100}%`, backgroundColor: cor }} />
-    </span>
   );
 }
 
@@ -73,17 +67,23 @@ export function PainelTool({
   hunts,
   slugInicial,
   temVinculo,
+  vinculo,
   nomeJogador,
+  configInicial,
 }: {
   hunts: HuntOpcao[];
   slugInicial: string | null;
   temVinculo: boolean;
+  vinculo: "active" | "expired" | "blocked" | null;
   nomeJogador: string | null;
+  configInicial: ConfigAuto;
 }) {
   const [estado, setEstado] = useState<EstadoHunt>(estadoParado);
   const [slug, setSlug] = useState(slugInicial ?? "");
+  const [aba, setAba] = useState<Aba>("cacada");
   const [ocupado, setOcupado] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
+  const [config, setConfig] = useState<ConfigAuto>(configInicial ?? CONFIG_PADRAO);
   // Um relogio proprio: o `desdeMs` nao muda, mas "há quanto tempo" muda sozinho.
   const [agora, setAgora] = useState(() => Date.now());
   const fonte = useRef<EventSource | null>(null);
@@ -113,7 +113,7 @@ export function PainelTool({
     return () => clearInterval(t);
   }, []);
 
-  async function comandar(rota: string, corpo?: unknown) {
+  const comandar = useCallback(async (rota: string, corpo?: unknown) => {
     setOcupado(true);
     setErro(null);
     try {
@@ -124,19 +124,38 @@ export function PainelTool({
       });
       if (!res.ok) {
         const j = (await res.json().catch(() => ({}))) as { erro?: string; motivo?: string };
-        setErro(j.motivo || j.erro || "não deu certo");
+        setErro(MENSAGEM[j.erro ?? ""] ?? j.motivo ?? j.erro ?? "não deu certo");
       }
     } catch {
       setErro("não consegui falar com o servidor");
     } finally {
       setOcupado(false);
     }
-  }
+  }, []);
+
+  /** Salva a config e adota o que VOLTOU: a normalizacao do servidor corrige
+   *  alvo abaixo do piso, e mostrar o valor enviado esconderia a correcao. */
+  const mudarConfig = useCallback(
+    async (patch: Partial<ConfigAuto>) => {
+      const otimista = { ...config, ...patch };
+      setConfig(otimista);
+      const res = await fetch("/api/robo/config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(otimista),
+      }).catch(() => null);
+      const j = (await res?.json().catch(() => null)) as { config?: ConfigAuto } | null;
+      if (j?.config) setConfig(j.config);
+    },
+    [config],
+  );
 
   if (!temVinculo) {
     return (
       <Panel className="mx-auto mt-8 max-w-lg p-6">
-        <h1 className="pix text-[17px]" style={{ color: COR }}>Painel</h1>
+        <h1 className="pix text-[17px]" style={{ color: COR }}>
+          Painel
+        </h1>
         <p className="mt-3 text-[14px] leading-relaxed text-text-dim">
           Falta ligar a sua conta do jogo. É uma vez só, e a senha não passa por aqui.
         </p>
@@ -152,16 +171,17 @@ export function PainelTool({
   }
 
   const a = estado.analyzer;
-  const rodando = estado.status === "rodando" || estado.status === "conectando";
-  const r = ROTULO[estado.status];
+  const p = estado.placar;
   const opcoes = hunts.map((h) => ({
     value: h.slug,
     label: `${h.nome} · nv ${h.level}`,
     keywords: `${h.slug} ${h.area}`,
   }));
+  const estoqueBolas = estado.bolas.reduce((s, b) => (b.infinita ? s : s + b.quantidade), 0);
+  const liquido = (a?.balance ?? 0) + p.ouroVendas + p.ouroPokes - p.ouroCompras;
 
   return (
-    <div className="mx-auto mt-4 flex w-full max-w-5xl flex-col gap-4">
+    <div className="mx-auto mt-4 flex w-full max-w-[1400px] flex-col gap-4">
       {/* ---- comando ---- */}
       <Panel className="p-4">
         <div className="flex flex-wrap items-end gap-3">
@@ -190,153 +210,99 @@ export function PainelTool({
               ligar o robô
             </Button>
           )}
-        </div>
-
-        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px]">
-          <span className="pix text-[11px]" style={{ color: r.cor }}>
-            ● {r.texto}
-          </span>
-          {estado.slug ? <span className="text-text-mute">em {estado.slug}</span> : null}
-          {estado.desdeMs && rodando ? (
-            <span className="text-text-mute">há {duracao(agora - estado.desdeMs)}</span>
+          {estado.ligado && slug && slug !== estado.slug ? (
+            <Button variant="outline" size="lg" disabled={ocupado} onClick={() => void comandar("ligar", { slug })}>
+              trocar de hunt
+            </Button>
           ) : null}
-          {estado.reconectando && estado.proximaTentativaEm ? (
-            <span className="text-warn">
-              tentando de novo em {Math.max(0, Math.ceil((estado.proximaTentativaEm - agora) / 1000))}s
-            </span>
-          ) : null}
-          {nomeJogador ? <span className="ml-auto text-text-mute">{nomeJogador}</span> : null}
         </div>
 
-        {estado.status === "bloqueado" ? (
-          <Note tone="danger" className="mt-3">
-            O jogo recusou esta conta{estado.motivoBloqueio ? `: “${estado.motivoBloqueio}”` : "."} O robô
-            parou, e insistir não resolve.
-          </Note>
-        ) : (
-          <Note className="mt-3">
-            Enquanto o robô está ligado, a sua aba do jogo fica de fora — o jogo aceita uma sessão por
-            conta. Desligue aqui antes de jogar no navegador.
-          </Note>
-        )}
+        <LinhaStatus estado={estado} agora={agora} nomeJogador={nomeJogador} vinculo={vinculo} />
+        <Diagnostico estado={estado} vinculo={vinculo} />
 
-        <div aria-live="polite">
-          {erro ? <Note tone="danger" className="mt-3">{erro}</Note> : null}
-        </div>
+        <div aria-live="polite">{erro ? <Note tone="danger" className="mt-3">{erro}</Note> : null}</div>
       </Panel>
 
       {/* ---- os numeros da sessao ---- */}
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-8">
         <Numero rotulo="Derrotados" valor={a ? compact(a.kills) : "—"} />
-        <Numero rotulo="Capturas" valor={a ? compact(a.captures) : "—"} sufixo={a?.shinyCaptures ? `${a.shinyCaptures} shiny` : undefined} />
+        <Numero
+          rotulo="Capturas"
+          valor={a ? compact(a.captures) : "—"}
+          sufixo={a?.shinyCaptures ? `${a.shinyCaptures} shiny` : undefined}
+        />
         <Numero rotulo="XP/h" valor={a ? compact(Math.round(a.xpPerHour)) : "—"} />
         <Numero rotulo="Ouro/h" valor={a ? compact(Math.round(a.goldPerHour)) : "—"} />
-        <Numero rotulo="Saldo" valor={a ? compact(Math.round(a.balance)) : "—"} sufixo="ouro" />
-        <Numero rotulo="Bolas" valor={a ? compact(a.ballsUsed) : "—"} sufixo="usadas" />
+        <Numero
+          rotulo="Saldo"
+          valor={a ? compact(Math.round(liquido)) : "—"}
+          sufixo="ouro"
+          tom={liquido < 0 ? "var(--color-danger)" : "var(--color-ok)"}
+        />
+        <Numero
+          rotulo="Bolsa"
+          valor={estoqueBolas ? compact(estoqueBolas) : "—"}
+          sufixo="bolas"
+          tom={estoqueBolas === 0 && estado.ligado ? "var(--color-danger)" : undefined}
+        />
+        <Numero rotulo="Ouro" valor={estado.ouro != null ? compact(estado.ouro) : "—"} />
+        <Numero
+          rotulo="Nível"
+          valor={estado.nivelLider != null ? String(estado.nivelLider) : "—"}
+          sufixo="líder"
+        />
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[1fr_1fr]">
-        {/* ---- o time ---- */}
-        <Panel className="p-4">
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="pix text-[13px] text-text-dim">Time</h2>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={ocupado}
-              onClick={() => void comandar("curar")}
-            >
-              curar na Joy
-            </Button>
-          </div>
-
-          {estado.caido ? (
-            <Note tone="warn" className="mt-3">
-              O líder desmaiou. O robô usa um Revive da bolsa; sem Revive, sai do campo, cura de graça
-              e volta sozinho.
-            </Note>
+      {/* O placar das automacoes so aparece quando ha o que contar: uma linha de
+          zeros ocuparia espaco pra dizer que nada aconteceu. */}
+      {p.ouroCompras || p.ouroVendas || p.ouroPokes ? (
+        <div className="flex flex-wrap gap-x-5 gap-y-1 border border-line bg-bg-soft px-3 py-2 text-[12px]">
+          <span className="pix text-[10px] text-text-mute">nesta sessão</span>
+          {p.bolasCompradas ? <span className="text-text-dim">{compact(p.bolasCompradas)} bolas repostas</span> : null}
+          {p.pocoesCompradas ? <span className="text-text-dim">{compact(p.pocoesCompradas)} poções</span> : null}
+          {p.revivesComprados ? <span className="text-text-dim">{compact(p.revivesComprados)} revives</span> : null}
+          {p.itensVendidos ? (
+            <span className="text-ok">
+              {compact(p.itensVendidos)} itens vendidos por {compact(p.ouroVendas)}
+            </span>
           ) : null}
+          {p.pokesVendidos ? (
+            <span className="text-ok">
+              {compact(p.pokesVendidos)} pokémons vendidos por {compact(p.ouroPokes)}
+            </span>
+          ) : null}
+          {p.ouroCompras ? <span className="text-warn">−{compact(p.ouroCompras)} em compras</span> : null}
+        </div>
+      ) : null}
 
-          {estado.time.length === 0 ? (
-            <Empty title="Time ainda não carregou" hint="Ele chega no primeiro ciclo da sessão." />
-          ) : (
-            <ul className="mt-3 flex flex-col gap-2">
-              {estado.time.map((p) => (
-                <li key={p.id} className="flex items-center gap-3 border border-line bg-bg-soft p-2">
-                  <Sprite src={spriteUrl(p.speciesId, p.shiny)} alt="" size={36} />
-                  <div className="min-w-0 flex-1">
-                    <p className="flex items-center gap-2 truncate text-[13px] text-text">
-                      {p.name}
-                      <span className="pix text-[10px] text-text-mute">nv {p.level}</span>
-                      {p.leader ? (
-                        <span className="pix text-[10px]" style={{ color: COR }}>líder</span>
-                      ) : null}
-                    </p>
-                    <span className="mt-1 flex items-center gap-2">
-                      <BarraVida hp={p.hp} maxHp={p.maxHp} />
-                      <span className="shrink-0 text-[11px] tabular text-text-mute">
-                        {num(p.hp, 0)}/{num(p.maxHp, 0)}
-                      </span>
-                    </span>
-                  </div>
-                  {!p.leader ? (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      disabled={ocupado}
-                      onClick={() => void comandar("lider", { pokeId: p.id })}
-                    >
-                      caçar
-                    </Button>
-                  ) : null}
-                </li>
-              ))}
-            </ul>
-          )}
-        </Panel>
+      <Tabs
+        value={aba}
+        onChange={setAba}
+        items={[
+          { value: "cacada", label: "Caçada" },
+          { value: "automacao", label: "Automação" },
+          { value: "registro", label: "Registro" },
+        ]}
+      />
 
-        {/* ---- o que esta acontecendo ---- */}
-        <Panel className="p-4">
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="pix text-[13px] text-text-dim">Ao vivo</h2>
-            {estado.fila.length ? (
-              <span className="pix text-[11px] text-text-mute">
-                {estado.fila.length} na fila de captura
-              </span>
-            ) : null}
-          </div>
-
-          {estado.eventos.length === 0 ? (
-            <Empty
-              title="Nada ainda"
-              hint={estado.ligado ? "Os primeiros abates aparecem em segundos." : "Ligue o robô numa hunt."}
-            />
-          ) : (
-            <ul className="mt-3 flex max-h-[420px] flex-col gap-1 overflow-y-auto">
-              {estado.eventos.map((e, i) => (
-                <li
-                  key={`${e.em}-${i}`}
-                  className="flex items-center gap-2 border-b border-line/60 py-1.5 text-[13px] last:border-0"
-                >
-                  <span
-                    className="pix shrink-0 text-[10px]"
-                    style={{ color: e.tipo === "captura" ? COR : "var(--color-text-mute)" }}
-                  >
-                    {e.tipo === "captura" ? "pegou" : "abateu"}
-                  </span>
-                  <span className="truncate text-text">
-                    {e.especie}
-                    {e.shiny ? <span className="ml-1 text-warn">shiny</span> : null}
-                  </span>
-                  <span className="ml-auto shrink-0 text-[11px] tabular text-text-mute">
-                    {e.xp > 0 ? `+${compact(e.xp)} xp` : (e.bola ?? "")}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Panel>
-      </div>
+      {aba === "cacada" ? <AbaCacada estado={estado} ocupado={ocupado} comandar={comandar} /> : null}
+      {aba === "automacao" ? (
+        <AbaAutomacao estado={estado} config={config} onConfig={mudarConfig} erro={null} />
+      ) : null}
+      {aba === "registro" ? <AbaRegistro /> : null}
     </div>
   );
 }
+
+/** As recusas das rotas, em portugues de gente. Sem isto a tela mostra o nome da
+ *  constante do servidor, que nao diz a ninguem o que fazer a seguir. */
+const MENSAGEM: Record<string, string> = {
+  sem_hunt: "escolha uma hunt primeiro",
+  hunt_desconhecida: "essa hunt não existe no catálogo do jogo",
+  sem_vinculo: "conecte a sua conta do jogo antes",
+  vinculo_vencido: "o token do jogo venceu: reconecte a conta",
+  conta_bloqueada: "o jogo recusou esta conta",
+  shard_nao_encontrado: "não achei o shard da conta no jogo; tente de novo em instantes",
+  sem_sessao: "ligue o robô primeiro",
+  assinatura_inativa: "a assinatura não está ativa",
+};

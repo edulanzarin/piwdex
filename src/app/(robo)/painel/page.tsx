@@ -3,6 +3,7 @@ import { PainelTool, type HuntOpcao } from "@/components/robo/painel-tool";
 import { exigirVip } from "@/lib/robo/sessao";
 import { lerVinculo } from "@/lib/robo/vinculo";
 import { lerDesejado } from "@/lib/robo/motor/desejado";
+import { lerConfig } from "@/lib/robo/motor/config";
 import { fetchSource } from "@/lib/source";
 
 export const metadata: Metadata = { title: "Painel" };
@@ -12,7 +13,12 @@ export const dynamic = "force-dynamic";
 
 export default async function Painel() {
   const u = await exigirVip();
-  const [v, d, fonte] = await Promise.all([lerVinculo(u.id), lerDesejado(u.id), fetchSource()]);
+  const [v, d, fonte, cfg] = await Promise.all([
+    lerVinculo(u.id),
+    lerDesejado(u.id),
+    fetchSource(),
+    lerConfig(u.id),
+  ]);
 
   const hunts: HuntOpcao[] = fonte.hunts
     .map((h) => ({ slug: h.slug, nome: h.name, level: h.level, area: h.area }))
@@ -22,10 +28,13 @@ export default async function Painel() {
     <PainelTool
       hunts={hunts}
       slugInicial={d?.slug ?? null}
-      // `blocked` continua sendo vinculo: a tela precisa poder EXPLICAR a recusa,
-      // e mandar essa pessoa pro "conecte sua conta" esconderia o motivo.
-      temVinculo={!!v && v.status !== "expired"}
+      // `expired` e `blocked` continuam sendo vinculo: a tela precisa poder
+      // EXPLICAR o que houve, e mandar essa pessoa pro "conecte sua conta"
+      // trocaria a instrucao exata por uma tela generica.
+      temVinculo={!!v}
+      vinculo={v?.status ?? null}
       nomeJogador={v?.nomeJogador ?? null}
+      configInicial={cfg}
     />
   );
 }
