@@ -152,10 +152,14 @@ export function AbaCacada({
   // "estou ganhando dinheiro?".
   const liquido = (a?.balance ?? 0) + p.ouroVendas + p.ouroPokes - p.ouroCompras;
   const ouroDrops = drops.reduce((soma, d) => soma + d.gold, 0);
+  const noPiloto = config.objetivo !== "nenhum";
 
   return (
     <div className="flex flex-col gap-4">
-      {/* ---- comando da caçada ---- */}
+      {/* ---- comando da caçada ----
+           Com objetivo ligado, quem escolhe é o robô: os controles ficam
+           desabilitados em vez de aceitarem uma ordem que a próxima reavaliação
+           desfaria em segundos. */}
       <div className="flex flex-wrap items-end gap-3 border border-line bg-surface p-3">
         <div className="min-w-0 flex-1 basis-72">
           <p className="pix flex items-center gap-1.5 text-[11px] text-text-mute">
@@ -168,25 +172,35 @@ export function AbaCacada({
               onChange={(v) => setSlug(String(v))}
               options={opcoes}
               placeholder="Escolha onde caçar…"
+              disabled={noPiloto}
             />
           </div>
         </div>
-        <Button
-          size="lg"
-          variant={estado.slug ? "outline" : "primary"}
-          disabled={ocupado || !slug || !estado.conectado || estado.slug === slug}
-          onClick={() => void comandar("cacar", { slug })}
-        >
-          {estado.slug ? "trocar de caçada" : "começar a caçar"}
-        </Button>
-        {estado.slug ? (
-          <Button size="lg" variant="danger" disabled={ocupado} onClick={() => void comandar("cacar", {})}>
-            parar a caçada
-          </Button>
-        ) : null}
-        {!estado.conectado ? (
-          <span className="pb-2 text-[12px] text-warn">Ligue o robô no topo para poder caçar.</span>
-        ) : null}
+        {noPiloto ? (
+          <span className="flex h-10 items-center gap-2 text-[12px] text-text-dim">
+            <ICONE.abates size={14} />
+            O objetivo está no comando. Volte para <b>manual</b> para escolher você.
+          </span>
+        ) : (
+          <>
+            <Button
+              size="lg"
+              variant={estado.slug ? "outline" : "primary"}
+              disabled={ocupado || !slug || !estado.conectado || estado.slug === slug}
+              onClick={() => void comandar("cacar", { slug })}
+            >
+              {estado.slug ? "trocar de caçada" : "começar a caçar"}
+            </Button>
+            {estado.slug ? (
+              <Button size="lg" variant="danger" disabled={ocupado} onClick={() => void comandar("cacar", {})}>
+                parar a caçada
+              </Button>
+            ) : null}
+            {!estado.conectado ? (
+              <span className="pb-2 text-[12px] text-warn">Ligue o robô no topo para poder caçar.</span>
+            ) : null}
+          </>
+        )}
       </div>
 
       {/* ---- o objetivo ---- */}

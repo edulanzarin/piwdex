@@ -161,6 +161,20 @@ export function PainelTool({
     return () => clearInterval(t);
   }, [temVinculo]);
 
+  /**
+   * O seletor acompanha a caçada que está NO AR.
+   *
+   * Com objetivo ligado quem escolhe é o robô, e o campo continuava mostrando o
+   * que a pessoa tinha digitado da última vez — ou vazio. Ler "escolha onde
+   * caçar" enquanto o bicho caça em outro lugar é a tela contradizendo o próprio
+   * feed de abates.
+   */
+  useEffect(() => {
+    if (estado.slug && estado.slug !== slug) setSlug(estado.slug);
+    // `estado.slug` só: sincronizar com o rascunho local prenderia a digitação.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [estado.slug]);
+
   // Estar NA aba do chat já é ter lido: a contagem zera enquanto ela está aberta.
   useEffect(() => {
     if (aba === "chat") setLidoAte(Date.now());

@@ -482,9 +482,34 @@ export class SessaoJogo extends EventEmitter {
     this.segurar(userId, tokens, shard, aoTrocarTokens, cfg, nomeJogador, placar);
   }
 
-  /** A config mudou na tela: o motor passa a decidir por ela na proxima varredura. */
+  /**
+   * A config mudou na tela. O motor age AGORA, e nao na proxima varredura.
+   *
+   * Escolher um objetivo e um comando, e comando nao espera: o `pokes` chega a
+   * cada 20s e a trava anti-oscilacao segura mais 60, entao trocar de objetivo
+   * podia levar um minuto e meio pra mudar alguma coisa na tela. Quem clicou
+   * lia isso como "nao fez nada".
+   *
+   * A trava de oscilacao existe pra decisao AUTOMATICA — pra o robo nao ficar
+   * pulando de campo quando dois alvos empatam. Ela nao se aplica a uma ordem
+   * explicita, entao muda de objetivo zera o relogio dela.
+   */
   usarConfig(cfg: ConfigAuto) {
+    const mudouObjetivo =
+      cfg.objetivo !== this.cfg.objetivo ||
+      cfg.pokeAlvo !== this.cfg.pokeAlvo ||
+      cfg.nivelAlvo !== this.cfg.nivelAlvo;
     this.cfg = cfg;
+    if (mudouObjetivo) {
+      this.rotaTrocandoEm = 0;
+      this.recalculadoEm = 0;
+      this.rotaPlanejadaPara = null;
+      this.rota = [];
+      this.rotaConcluida = false;
+      // Objetivo desligado no meio de uma cacada que ELE escolheu: a cacada
+      // continua. Desligar o piloto nao e pousar o aviao.
+      void this.cuidarDaRota();
+    }
     this.emitir();
   }
 
@@ -661,6 +686,9 @@ export class SessaoJogo extends EventEmitter {
       if (this.slug) this.entrarNoCampo(this.slug);
       this.rearmarTimers();
       void this.lerPerfil();
+      // Com objetivo ligado, o robo nao espera alguem abrir a tela pra decidir
+      // onde cacar: assim que o time chegar (`pokes`), ele escolhe e vai.
+      this.rotaTrocandoEm = 0;
     });
     ws.addEventListener("message", (ev: MessageEvent) => {
       if (minhaGeracao === this.geracao) this.aoReceber(ev);

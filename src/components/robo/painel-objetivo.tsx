@@ -80,6 +80,15 @@ export function PainelObjetivo({
   const [rota, setRota] = useState<PassoRota[] | null>(null);
   const [erroRota, setErroRota] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(false);
+  /**
+   * O nível fica em rascunho até alguém pedir.
+   *
+   * Buscar a cada tecla montava uma rota para "5", outra para "50" e outra para
+   * "500" — três planos, dois deles jogados fora, e a tela piscando entre eles
+   * enquanto se digita.
+   */
+  const [nivelRascunho, setNivelRascunho] = useState(String(config.nivelAlvo));
+  const [pedido, setPedido] = useState(0);
 
   const objetivo = config.objetivo;
   const alvoEscolhido =
@@ -110,12 +119,18 @@ export function PainelObjetivo({
 
   // A prévia da subida, pelo mesmo motivo.
   useEffect(() => {
+    setNivelRascunho(String(config.nivelAlvo));
+  }, [config.nivelAlvo]);
+
+  // Só busca quando pedem: `pedido` muda no clique, e é ele que dispara.
+  useEffect(() => {
     if (objetivo !== "nivel" || estado.rota.length) {
       setRota(null);
       return;
     }
     let vivo = true;
-    const t = setTimeout(async () => {
+    setCarregando(true);
+    void (async () => {
       const res = await fetch(`/api/robo/rota?alvo=${config.nivelAlvo}`).catch(() => null);
       const j = (await res?.json().catch(() => null)) as
         | { passos?: PassoRota[]; erro?: string }
@@ -123,12 +138,20 @@ export function PainelObjetivo({
       if (!vivo) return;
       setRota(j?.passos ?? []);
       setErroRota(res?.ok ? null : (j?.erro ?? "sem_rota"));
-    }, 400); // o nível alvo muda dígito a dígito; sem a espera, um plano por tecla
+      setCarregando(false);
+    })();
     return () => {
       vivo = false;
-      clearTimeout(t);
     };
-  }, [objetivo, config.nivelAlvo, config.pokeAlvo, estado.rota.length]);
+  }, [objetivo, config.nivelAlvo, config.pokeAlvo, estado.rota.length, pedido]);
+
+  const nivelPedido = Math.max(2, Math.min(1000, Number(nivelRascunho) || 0));
+  const sujo = nivelPedido !== config.nivelAlvo;
+
+  async function aplicarNivel() {
+    if (sujo) await onConfig({ ...config, nivelAlvo: nivelPedido });
+    else setPedido((n) => n + 1);
+  }
 
   const pares = estado.recomendacoes.length ? estado.recomendacoes : (previa ?? []);
   const passos = estado.rota.length ? estado.rota : (rota ?? []);
@@ -229,13 +252,22 @@ export function PainelObjetivo({
                 type="number"
                 min={2}
                 max={1000}
-                value={config.nivelAlvo}
-                onChange={(e) =>
-                  void onConfig({ ...config, nivelAlvo: Number(e.currentTarget.value) || 2 })
-                }
+                value={nivelRascunho}
+                onChange={(e) => setNivelRascunho(e.currentTarget.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") void aplicarNivel();
+                }}
                 className="field w-28 tabular"
               />
             </label>
+            <Button
+              size="lg"
+              variant={sujo ? "primary" : "outline"}
+              disabled={carregando}
+              onClick={() => void aplicarNivel()}
+            >
+              {sujo ? "montar a subida" : "refazer"}
+            </Button>
           </div>
 
           {progresso ? (
@@ -320,8 +352,15 @@ export function PainelObjetivo({
       {objetivo !== "nenhum" ? (
         <p className="mt-3 flex items-center gap-1.5 text-[11px] text-text-mute">
           <ICONE.abates size={12} />
-          Enquanto o objetivo está ligado, o seletor de caçada acima só vale até a próxima
-          reavaliação.
+          {estado.slug ? (
+            <>
+              Caçando em <b className="text-text-dim">{estado.slug}</b> por decisão do objetivo.
+            </>
+          ) : estado.conectado ? (
+            "Escolhendo o alvo…"
+          ) : (
+            "Ligue o robô no topo para o objetivo começar."
+          )}
         </p>
       ) : null}
     </Cartao>
