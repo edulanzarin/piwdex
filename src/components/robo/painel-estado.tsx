@@ -99,7 +99,7 @@ export function Diagnostico({
   // existe aqui: tudo verde, zero acontecendo.
   //
   // A carencia nao e enfeite: o primeiro frame `field` leva alguns segundos, e
-  // sem ela TODA conexao abriria com um aviso vermelho que se desmente sozinho.
+  // sem ela TODA cacada abriria com um aviso vermelho que se desmente sozinho.
   // Alarme que erra no comeco ensina a ignorar o alarme.
   const noAr = estado.desdeMs ? Date.now() - estado.desdeMs : 0;
   if (status === "rodando" && estado.slug && !estado.campoVivo && noAr > 20_000) {
@@ -111,16 +111,29 @@ export function Diagnostico({
     );
   }
 
+  // Sessão de pé e nenhuma caçada: é um estado LEGÍTIMO, não uma pendência. Dá
+  // para vender, repor e usar o chat assim.
   if (status === "rodando" && !estado.slug) {
-    return <Note className="mt-3">A sessão está segurada e nenhuma caçada está escolhida.</Note>;
+    return (
+      <Note className="mt-3">
+        A sessão do jogo é sua. Escolha uma caçada acima, ou use o robô só para vender, repor e
+        acompanhar o chat. A sua aba do jogo fica de fora enquanto isto durar.
+      </Note>
+    );
   }
 
-  return (
-    <Note className="mt-3">
-      Enquanto o robô está ligado, a sua aba do jogo fica de fora: o jogo aceita uma sessão por
-      conta. Desligue aqui antes de jogar no navegador.
-    </Note>
-  );
+  if (status === "parado") {
+    return (
+      <Note className="mt-3">
+        Ligar o robô toma a sessão de jogo desta conta: o jogo aceita uma por vez, e a sua aba fica
+        de fora até você desligar aqui.
+      </Note>
+    );
+  }
+
+  // Caçando e tudo em ordem: nada a dizer. Um aviso que nunca muda vira moldura,
+  // e moldura é o que faz o aviso seguinte passar batido.
+  return null;
 }
 
 /** A linha de status: bolinha, frase, onde, ha quanto tempo, shard. */
@@ -168,7 +181,14 @@ export function LinhaStatus({
             {estado.reconexoes} religadas
           </span>
         ) : null}
-        {nomeJogador ? <span className="text-text-dim">{nomeJogador}</span> : null}
+        {nomeJogador ? (
+          <span className="text-text-dim">
+            {nomeJogador}
+            {estado.nivelTreinador != null ? (
+              <span className="ml-1.5 tabular text-text-mute">nv {estado.nivelTreinador}</span>
+            ) : null}
+          </span>
+        ) : null}
       </span>
     </div>
   );

@@ -61,31 +61,77 @@ function Secao({
   );
 }
 
-/** Piso e alvo, na mesma linha, porque a decisão é a faixa e não os dois números. */
-function Faixa({
+/**
+ * Um consumível e as três decisões que ele carrega: repor ou não, entre que
+ * limites, e qual item.
+ *
+ * Cartão, e não uma pilha de campos soltos: os três consumíveis fazem a mesma
+ * pergunta, e empilhá-los verticalmente obrigava a rolar para comparar bola com
+ * poção. Lado a lado, a comparação é a leitura.
+ */
+function Consumivel({
+  titulo,
+  unidade,
+  ligado,
+  onLigar,
   piso,
   alvo,
   onPiso,
   onAlvo,
-  unidade,
+  itemId,
+  onItem,
+  opcoes,
+  rotuloPadrao,
+  estoque,
 }: {
+  titulo: string;
+  unidade: string;
+  ligado: boolean;
+  onLigar: (v: boolean) => void;
   piso: number;
   alvo: number;
   onPiso: (n: number) => void;
   onAlvo: (n: number) => void;
-  unidade: string;
+  itemId: number | null;
+  onItem: (n: number | null) => void;
+  opcoes: { value: string; label: string }[];
+  rotuloPadrao: string;
+  estoque?: string;
 }) {
   return (
-    <div className="flex flex-wrap items-end gap-3">
-      <label className="flex flex-col gap-1">
-        <span className="pix text-[10px] text-text-mute">abaixo de</span>
-        <NumberField value={piso} onChange={onPiso} min={0} max={100000} className="w-28" />
-      </label>
-      <label className="flex flex-col gap-1">
-        <span className="pix text-[10px] text-text-mute">repõe até</span>
-        <NumberField value={alvo} onChange={onAlvo} min={1} max={100000} className="w-28" />
-      </label>
-      <span className="pb-2 text-[12px] text-text-mute">{unidade}</span>
+    <div
+      className="flex flex-col gap-2 border border-line bg-bg-soft p-3 transition-colors"
+      style={ligado ? { borderColor: "color-mix(in srgb, var(--color-t-robo) 45%, transparent)" } : undefined}
+    >
+      <div className="flex items-center justify-between gap-2">
+        <Switch checked={ligado} onChange={(e) => onLigar(e.currentTarget.checked)} label={titulo} />
+        {estoque ? <span className="pix shrink-0 text-[10px] text-text-mute">{estoque}</span> : null}
+      </div>
+
+      {ligado ? (
+        <>
+          <div className="flex items-end gap-2">
+            <label className="flex min-w-0 flex-1 flex-col gap-1">
+              <span className="pix text-[10px] text-text-mute">abaixo de</span>
+              <NumberField value={piso} onChange={onPiso} min={0} max={100000} />
+            </label>
+            <span className="pb-2 text-[11px] text-text-mute">→</span>
+            <label className="flex min-w-0 flex-1 flex-col gap-1">
+              <span className="pix text-[10px] text-text-mute">repõe até</span>
+              <NumberField value={alvo} onChange={onAlvo} min={1} max={100000} />
+            </label>
+            <span className="pb-2 text-[11px] text-text-mute">{unidade}</span>
+          </div>
+          <label className="flex flex-col gap-1">
+            <span className="pix text-[10px] text-text-mute">qual</span>
+            <Select
+              value={String(itemId ?? "")}
+              onChange={(v) => onItem(v ? Number(v) : null)}
+              options={[{ value: "", label: rotuloPadrao }, ...opcoes]}
+            />
+          </label>
+        </>
+      ) : null}
     </div>
   );
 }
@@ -162,6 +208,11 @@ export function AbaAutomacao({
   const revives = (loja?.itens ?? []).filter((i) => i.categoria === "revive");
 
   const estoqueBolas = estado.bolas.reduce((s, b) => (b.infinita ? s : s + b.quantidade), 0);
+  // Quanto de ouro esta parado no que ja foi marcado: e o numero que responde
+  // "vale a pena ligar isso?", e sem ele a lista e so uma lista de nomes.
+  const rendeMarcado = mochila
+    .filter((i) => config.dropIds.includes(i.id))
+    .reduce((soma, i) => soma + i.quantidade * i.precoNpc, 0);
 
   if (carregando) return <Loading />;
 
@@ -170,292 +221,306 @@ export function AbaAutomacao({
       {erro ? <Note tone="danger">{erro}</Note> : null}
       {recado ? <Note tone="danger">{recado}</Note> : null}
 
-      {/* ------------------------------------------------------------------ */}
-      <Secao
-        titulo="Automação do jogo"
-        hint="Captura, poção e revive automáticos rodam no servidor do jogo. O robô só liga o interruptor e mantém a bolsa cheia."
-      >
-        {!auto ? (
-          <Note tone="warn">Não consegui ler a configuração do jogo. Reconecte a conta.</Note>
-        ) : (
-          <>
-            {!auto.vipNoJogo ? (
-              <Note tone="warn">
-                A captura automática é recurso VIP do jogo, e esta conta não tem. O interruptor abaixo
-                não vai pegar até o VIP entrar lá.
-              </Note>
-            ) : null}
+      {/* Duas colunas a partir de xl: as quatro seções são independentes, e
+          empilhadas obrigavam a rolar a tela inteira para comparar o que o robô
+          gasta com o que ele recolhe. */}
+      <div className="grid items-start gap-4 xl:grid-cols-2">
+        <div className="flex min-w-0 flex-col gap-4">
+          {/* ---------------- automação do jogo ---------------- */}
+          <Secao
+            titulo="Automação do jogo"
+            hint="Captura, poção e revive automáticos rodam no servidor do jogo. O robô liga o interruptor e mantém a bolsa cheia."
+          >
+            {!auto ? (
+              <Note tone="warn">Não consegui ler a configuração do jogo. Reconecte a conta.</Note>
+            ) : (
+              <>
+                {!auto.vipNoJogo ? (
+                  <Note tone="warn">
+                    A captura automática é recurso VIP do jogo, e esta conta não tem. O interruptor
+                    abaixo não vai pegar até o VIP entrar lá.
+                  </Note>
+                ) : null}
 
-            <Switch
-              checked={auto.autoCatch}
-              disabled={salvandoAuto}
-              onChange={(e) => void mudarAuto({ autoCatch: e.currentTarget.checked })}
-              label="capturar sozinho"
-              hint="o jogo joga a bola nos corpos da fila"
-            />
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="flex flex-col gap-2 border border-line bg-bg-soft p-3">
+                    <Switch
+                      checked={auto.autoCatch}
+                      disabled={salvandoAuto}
+                      onChange={(e) => void mudarAuto({ autoCatch: e.currentTarget.checked })}
+                      label="capturar sozinho"
+                      hint="o jogo joga a bola nos corpos da fila"
+                    />
+                    {auto.autoCatch ? (
+                      <Select
+                        value={String(auto.autoCatchBallId || "")}
+                        onChange={(v) => void mudarAuto({ autoCatchBallId: Number(v) })}
+                        options={bolasOpcoes}
+                        placeholder="escolha a bola"
+                        disabled={salvandoAuto}
+                      />
+                    ) : null}
+                  </div>
 
-            {auto.autoCatch ? (
-              <label className="flex max-w-sm flex-col gap-1">
-                <span className="pix text-[10px] text-text-mute">bola da captura</span>
-                <Select
-                  value={String(auto.autoCatchBallId || "")}
-                  onChange={(v) => void mudarAuto({ autoCatchBallId: Number(v) })}
-                  options={bolasOpcoes}
-                  placeholder="escolha a bola"
-                  disabled={salvandoAuto}
-                />
-              </label>
-            ) : null}
+                  <div className="flex flex-col gap-2 border border-line bg-bg-soft p-3">
+                    <Switch
+                      checked={auto.autoCatchShiny}
+                      disabled={salvandoAuto}
+                      onChange={(e) => void mudarAuto({ autoCatchShiny: e.currentTarget.checked })}
+                      label="bola separada para shiny"
+                      hint="gasta a bola boa só no que vale"
+                    />
+                    {auto.autoCatchShiny ? (
+                      <Select
+                        value={String(auto.autoCatchShinyBallId || "")}
+                        onChange={(v) => void mudarAuto({ autoCatchShinyBallId: Number(v) })}
+                        options={bolasOpcoes}
+                        placeholder="escolha a bola"
+                        disabled={salvandoAuto}
+                      />
+                    ) : null}
+                  </div>
 
-            <Switch
-              checked={auto.autoCatchShiny}
-              disabled={salvandoAuto}
-              onChange={(e) => void mudarAuto({ autoCatchShiny: e.currentTarget.checked })}
-              label="bola separada para shiny"
-              hint="gasta a bola boa só no que vale"
-            />
-            {auto.autoCatchShiny ? (
-              <label className="flex max-w-sm flex-col gap-1">
-                <span className="pix text-[10px] text-text-mute">bola do shiny</span>
-                <Select
-                  value={String(auto.autoCatchShinyBallId || "")}
-                  onChange={(v) => void mudarAuto({ autoCatchShinyBallId: Number(v) })}
-                  options={bolasOpcoes}
-                  placeholder="escolha a bola"
-                  disabled={salvandoAuto}
-                />
-              </label>
-            ) : null}
+                  <div className="flex flex-col gap-2 border border-line bg-bg-soft p-3">
+                    <Switch
+                      checked={auto.autoPotion}
+                      disabled={salvandoAuto}
+                      onChange={(e) => void mudarAuto({ autoPotion: e.currentTarget.checked })}
+                      label="usar poção sozinho"
+                      hint="antes de desmaiar, que custa a caçada inteira"
+                    />
+                    {auto.autoPotion ? (
+                      <label className="flex items-end gap-2">
+                        <span className="flex min-w-0 flex-1 flex-col gap-1">
+                          <span className="pix text-[10px] text-text-mute">usa abaixo de</span>
+                          <NumberField
+                            value={auto.autoPotionThreshold}
+                            onChange={(n) => void mudarAuto({ autoPotionThreshold: n })}
+                            min={0}
+                            max={100}
+                          />
+                        </span>
+                        <span className="pb-2 text-[11px] text-text-mute">% da vida</span>
+                      </label>
+                    ) : null}
+                  </div>
 
-            <Switch
-              checked={auto.autoPotion}
-              disabled={salvandoAuto}
-              onChange={(e) => void mudarAuto({ autoPotion: e.currentTarget.checked })}
-              label="usar poção sozinho"
-              hint="antes de desmaiar, que custa a caçada inteira"
-            />
-            {auto.autoPotion ? (
-              <label className="flex flex-col gap-1">
-                <span className="pix text-[10px] text-text-mute">usa quando a vida cair abaixo de</span>
-                <div className="flex items-center gap-2">
-                  <NumberField
-                    value={auto.autoPotionThreshold}
-                    onChange={(n) => void mudarAuto({ autoPotionThreshold: n })}
-                    min={0}
-                    max={100}
-                    className="w-24"
-                  />
-                  <span className="text-[12px] text-text-mute">% da vida</span>
+                  <div className="flex flex-col gap-2 border border-line bg-bg-soft p-3">
+                    <Switch
+                      checked={auto.autoRevive}
+                      disabled={salvandoAuto}
+                      onChange={(e) => void mudarAuto({ autoRevive: e.currentTarget.checked })}
+                      label="usar revive sozinho"
+                      hint="o robô também levanta o líder por conta"
+                    />
+                  </div>
                 </div>
-              </label>
-            ) : null}
+              </>
+            )}
+          </Secao>
 
-            <Switch
-              checked={auto.autoRevive}
-              disabled={salvandoAuto}
-              onChange={(e) => void mudarAuto({ autoRevive: e.currentTarget.checked })}
-              label="usar revive sozinho"
-              hint="o robô também levanta o líder por conta, com ou sem isto"
-            />
-          </>
-        )}
-      </Secao>
-
-      {/* ------------------------------------------------------------------ */}
-      <Secao
-        titulo="Reposição"
-        hint="Bola zerada trava a fila de captura do jogo. Uma caçada boa queima centenas por hora."
-        acao={
-          <span className="pix text-[11px] text-text-mute">
-            {estoqueBolas > 0 ? `${compact(estoqueBolas)} bolas na bolsa` : "bolsa sem bolas"}
-          </span>
-        }
-      >
-        <Switch
-          checked={config.comprarBola}
-          onChange={(e) => void onConfig({ comprarBola: e.currentTarget.checked })}
-          label="repor bolas"
-        />
-        {config.comprarBola ? (
-          <>
-            <Faixa
-              piso={config.pisoBola}
-              alvo={config.alvoBola}
-              onPiso={(n) => void onConfig({ pisoBola: n })}
-              onAlvo={(n) => void onConfig({ alvoBola: n })}
-              unidade="bolas"
-            />
-            <label className="flex max-w-sm flex-col gap-1">
-              <span className="pix text-[10px] text-text-mute">qual bola</span>
-              <Select
-                value={String(config.bolaId ?? "")}
-                onChange={(v) => void onConfig({ bolaId: v ? Number(v) : null })}
-                options={[{ value: "", label: "a mais barata da loja" }, ...bolasOpcoes]}
+          {/* ---------------- reposição ---------------- */}
+          <Secao
+            titulo="Reposição"
+            hint="Bola zerada trava a fila de captura do jogo. Uma caçada boa queima centenas por hora."
+            acao={
+              <span className="pix text-[11px]" style={{ color: estoqueBolas ? "var(--color-text-mute)" : "var(--color-danger)" }}>
+                {estoqueBolas > 0 ? `${compact(estoqueBolas)} bolas na bolsa` : "bolsa sem bolas"}
+              </span>
+            }
+          >
+            <div className="grid gap-3 sm:grid-cols-3">
+              <Consumivel
+                titulo="bolas"
+                unidade="un"
+                estoque={estoqueBolas ? compact(estoqueBolas) : undefined}
+                ligado={config.comprarBola}
+                onLigar={(v) => void onConfig({ comprarBola: v })}
+                piso={config.pisoBola}
+                alvo={config.alvoBola}
+                onPiso={(n) => void onConfig({ pisoBola: n })}
+                onAlvo={(n) => void onConfig({ alvoBola: n })}
+                itemId={config.bolaId}
+                onItem={(n) => void onConfig({ bolaId: n })}
+                opcoes={bolasOpcoes}
+                rotuloPadrao="a mais barata da loja"
               />
-            </label>
-          </>
-        ) : null}
-
-        <Switch
-          checked={config.comprarPocao}
-          onChange={(e) => void onConfig({ comprarPocao: e.currentTarget.checked })}
-          label="repor poções"
-        />
-        {config.comprarPocao ? (
-          <>
-            <Faixa
-              piso={config.pisoPocao}
-              alvo={config.alvoPocao}
-              onPiso={(n) => void onConfig({ pisoPocao: n })}
-              onAlvo={(n) => void onConfig({ alvoPocao: n })}
-              unidade="poções"
-            />
-            <label className="flex max-w-sm flex-col gap-1">
-              <span className="pix text-[10px] text-text-mute">qual poção</span>
-              <Select
-                value={String(config.pocaoId ?? "")}
-                onChange={(v) => void onConfig({ pocaoId: v ? Number(v) : null })}
-                options={[
-                  { value: "", label: "a mais barata da loja" },
-                  ...pocoes.map((i) => ({ value: String(i.id), label: `${i.nome} · ${compact(i.preco)} ouro` })),
-                ]}
+              <Consumivel
+                titulo="poções"
+                unidade="un"
+                ligado={config.comprarPocao}
+                onLigar={(v) => void onConfig({ comprarPocao: v })}
+                piso={config.pisoPocao}
+                alvo={config.alvoPocao}
+                onPiso={(n) => void onConfig({ pisoPocao: n })}
+                onAlvo={(n) => void onConfig({ alvoPocao: n })}
+                itemId={config.pocaoId}
+                onItem={(n) => void onConfig({ pocaoId: n })}
+                opcoes={pocoes.map((i) => ({ value: String(i.id), label: `${i.nome} · ${compact(i.preco)}` }))}
+                rotuloPadrao="a mais barata da loja"
               />
-            </label>
-          </>
-        ) : null}
-
-        <Switch
-          checked={config.comprarRevive}
-          onChange={(e) => void onConfig({ comprarRevive: e.currentTarget.checked })}
-          label="repor revives"
-        />
-        {config.comprarRevive ? (
-          <>
-            <Faixa
-              piso={config.pisoRevive}
-              alvo={config.alvoRevive}
-              onPiso={(n) => void onConfig({ pisoRevive: n })}
-              onAlvo={(n) => void onConfig({ alvoRevive: n })}
-              unidade="revives"
-            />
-            <label className="flex max-w-sm flex-col gap-1">
-              <span className="pix text-[10px] text-text-mute">qual revive</span>
-              <Select
-                value={String(config.reviveId ?? "")}
-                onChange={(v) => void onConfig({ reviveId: v ? Number(v) : null })}
-                options={[
-                  { value: "", label: "o mais barato da loja" },
-                  ...revives.map((i) => ({ value: String(i.id), label: `${i.nome} · ${compact(i.preco)} ouro` })),
-                ]}
+              <Consumivel
+                titulo="revives"
+                unidade="un"
+                ligado={config.comprarRevive}
+                onLigar={(v) => void onConfig({ comprarRevive: v })}
+                piso={config.pisoRevive}
+                alvo={config.alvoRevive}
+                onPiso={(n) => void onConfig({ pisoRevive: n })}
+                onAlvo={(n) => void onConfig({ alvoRevive: n })}
+                itemId={config.reviveId}
+                onItem={(n) => void onConfig({ reviveId: n })}
+                opcoes={revives.map((i) => ({ value: String(i.id), label: `${i.nome} · ${compact(i.preco)}` }))}
+                rotuloPadrao="o mais barato da loja"
               />
-            </label>
-          </>
-        ) : null}
-
-        <label className="flex max-w-xs flex-col gap-1 border-t border-line pt-3">
-          <span className="pix text-[10px] text-text-mute">gasto máximo por rodada</span>
-          <NumberField
-            value={config.tetoOuro}
-            onChange={(n) => void onConfig({ tetoOuro: n })}
-            min={0}
-            max={100000000}
-            grouped
-          />
-          <span className="text-[11px] text-text-mute">
-            O robô nunca gasta além disso de uma vez, mesmo com a conta cheia.
-          </span>
-        </label>
-      </Secao>
-
-      {/* ------------------------------------------------------------------ */}
-      <Secao
-        titulo="Venda de drop"
-        hint="Marque o que pode sair. O que não estiver marcado fica na mochila, inclusive item que o jogo lançar depois."
-      >
-        <Switch
-          checked={config.venderDrop}
-          disabled={!config.dropIds.length}
-          onChange={(e) => void onConfig({ venderDrop: e.currentTarget.checked })}
-          label="vender os itens marcados"
-          hint={config.dropIds.length ? undefined : "marque pelo menos um item abaixo"}
-        />
-
-        {mochila.length === 0 ? (
-          <Empty title="Mochila vazia" hint="Os drops aparecem aqui depois dos primeiros abates." />
-        ) : (
-          <ul className="grid max-h-[360px] gap-1 overflow-y-auto sm:grid-cols-2">
-            {mochila.map((i) => {
-              const marcado = config.dropIds.includes(i.id);
-              return (
-                <li key={i.id} className="flex items-center gap-2 border border-line bg-bg-soft px-2 py-1.5">
-                  <Checkbox
-                    checked={marcado}
-                    onChange={() =>
-                      void onConfig({
-                        dropIds: marcado
-                          ? config.dropIds.filter((x) => x !== i.id)
-                          : [...config.dropIds, i.id],
-                      })
-                    }
-                  />
-                  {i.icone ? <Sprite src={i.icone} alt="" size={20} /> : null}
-                  <span className="min-w-0 flex-1 truncate text-[13px] text-text">{i.nome}</span>
-                  <span className="shrink-0 text-[11px] tabular text-text-mute">
-                    {compact(i.quantidade)}x · {compact(i.quantidade * i.precoNpc)} ouro
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </Secao>
-
-      {/* ------------------------------------------------------------------ */}
-      <Secao
-        titulo="Venda de pokémon"
-        hint="Vender é irreversível. O robô só vende o que passa por todos os filtros abaixo, e nunca toca no time, no líder, no inicial nem no que está cadeado."
-      >
-        <Switch
-          checked={config.venderPoke}
-          onChange={(e) => void onConfig({ venderPoke: e.currentTarget.checked })}
-          label="vender o que o box acumula"
-        />
-        {config.venderPoke ? (
-          <>
-            <Note tone="warn">
-              Com isto ligado, o robô vende sozinho todo pokémon do box abaixo dos limites. Confira os
-              números antes de sair da tela.
-            </Note>
-            <Switch
-              checked={config.manterShiny}
-              onChange={(e) => void onConfig({ manterShiny: e.currentTarget.checked })}
-              label="nunca vender shiny"
-            />
-            <div className="flex flex-wrap items-end gap-3">
-              <label className="flex flex-col gap-1">
-                <span className="pix text-[10px] text-text-mute">fica com IV a partir de</span>
-                <NumberField
-                  value={config.ivMinimo}
-                  onChange={(n) => void onConfig({ ivMinimo: n })}
-                  min={0}
-                  max={186}
-                  className="w-28"
-                />
-              </label>
-              <label className="flex flex-col gap-1">
-                <span className="pix text-[10px] text-text-mute">fica com nível a partir de</span>
-                <NumberField
-                  value={config.nivelMinimo}
-                  onChange={(n) => void onConfig({ nivelMinimo: n })}
-                  min={1}
-                  max={1000}
-                  className="w-28"
-                />
-              </label>
             </div>
-          </>
-        ) : null}
-      </Secao>
+
+            <div className="flex flex-wrap items-end gap-3 border-t border-line pt-3">
+              <label className="flex flex-col gap-1">
+                <span className="pix text-[10px] text-text-mute">gasto máximo por rodada</span>
+                <NumberField
+                  value={config.tetoOuro}
+                  onChange={(n) => void onConfig({ tetoOuro: n })}
+                  min={0}
+                  max={100000000}
+                  grouped
+                  className="w-40"
+                />
+              </label>
+              <p className="max-w-xs pb-1 text-[11px] text-text-mute">
+                O robô nunca gasta além disso de uma vez, mesmo com a conta cheia.
+                {loja ? ` Você tem ${compact(loja.ouro)} de ouro.` : ""}
+              </p>
+            </div>
+          </Secao>
+        </div>
+
+        <div className="flex min-w-0 flex-col gap-4">
+          {/* ---------------- venda de drop ---------------- */}
+          <Secao
+            titulo="Venda de drop"
+            hint="Marque o que pode sair. O que não estiver marcado fica na mochila, inclusive item que o jogo lançar depois."
+            acao={
+              mochila.length ? (
+                <div className="flex shrink-0 gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => void onConfig({ dropIds: mochila.map((i) => i.id) })}
+                  >
+                    marcar tudo
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={!config.dropIds.length}
+                    onClick={() => void onConfig({ dropIds: [], venderDrop: false })}
+                  >
+                    limpar
+                  </Button>
+                </div>
+              ) : undefined
+            }
+          >
+            <Switch
+              checked={config.venderDrop}
+              disabled={!config.dropIds.length}
+              onChange={(e) => void onConfig({ venderDrop: e.currentTarget.checked })}
+              label="vender os itens marcados"
+              hint={
+                config.dropIds.length
+                  ? `${config.dropIds.length} marcados · ${compact(rendeMarcado)} de ouro parado na mochila`
+                  : "marque pelo menos um item abaixo"
+              }
+            />
+
+            {mochila.length === 0 ? (
+              <Empty title="Mochila vazia" hint="Os drops aparecem aqui depois dos primeiros abates." />
+            ) : (
+              <ul className="grid max-h-[300px] gap-1 overflow-y-auto sm:grid-cols-2">
+                {mochila.map((i) => {
+                  const marcado = config.dropIds.includes(i.id);
+                  return (
+                    <li
+                      key={i.id}
+                      className="flex items-center gap-2 border border-line bg-bg-soft px-2 py-1.5"
+                      style={marcado ? { borderColor: "color-mix(in srgb, var(--color-ok) 40%, transparent)" } : undefined}
+                    >
+                      <Checkbox
+                        checked={marcado}
+                        onChange={() =>
+                          void onConfig({
+                            dropIds: marcado
+                              ? config.dropIds.filter((x) => x !== i.id)
+                              : [...config.dropIds, i.id],
+                          })
+                        }
+                      />
+                      {i.icone ? <Sprite src={i.icone} alt="" size={20} /> : null}
+                      <span className="min-w-0 flex-1 truncate text-[13px] text-text">{i.nome}</span>
+                      <span className="shrink-0 text-[11px] tabular text-text-mute">
+                        {compact(i.quantidade)}x · {compact(i.quantidade * i.precoNpc)}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </Secao>
+
+          {/* ---------------- venda de pokémon ---------------- */}
+          <Secao
+            titulo="Venda de pokémon"
+            hint="Vender é irreversível. O robô só vende o que passa por todos os filtros, e nunca toca no time, no líder, no inicial nem no que está cadeado."
+            acao={
+              <span className="pix shrink-0 text-[11px] text-text-mute">
+                {estado.noBox} no box
+              </span>
+            }
+          >
+            <Switch
+              checked={config.venderPoke}
+              onChange={(e) => void onConfig({ venderPoke: e.currentTarget.checked })}
+              label="vender o que o box acumula"
+            />
+            {config.venderPoke ? (
+              <>
+                <Note tone="warn">
+                  Com isto ligado, o robô vende sozinho todo pokémon do box abaixo dos limites. Confira
+                  os números antes de sair da tela.
+                </Note>
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <div className="border border-line bg-bg-soft p-3">
+                    <Switch
+                      checked={config.manterShiny}
+                      onChange={(e) => void onConfig({ manterShiny: e.currentTarget.checked })}
+                      label="nunca vender shiny"
+                    />
+                  </div>
+                  <label className="flex flex-col gap-1 border border-line bg-bg-soft p-3">
+                    <span className="pix text-[10px] text-text-mute">fica com IV a partir de</span>
+                    <NumberField
+                      value={config.ivMinimo}
+                      onChange={(n) => void onConfig({ ivMinimo: n })}
+                      min={0}
+                      max={186}
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1 border border-line bg-bg-soft p-3">
+                    <span className="pix text-[10px] text-text-mute">fica com nível a partir de</span>
+                    <NumberField
+                      value={config.nivelMinimo}
+                      onChange={(n) => void onConfig({ nivelMinimo: n })}
+                      min={1}
+                      max={1000}
+                    />
+                  </label>
+                </div>
+              </>
+            ) : null}
+          </Secao>
+        </div>
+      </div>
 
       <div className="flex flex-wrap items-center gap-3">
         <Button

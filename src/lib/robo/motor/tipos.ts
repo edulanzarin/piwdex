@@ -68,6 +68,35 @@ export interface NaFila {
   em: number;
 }
 
+/**
+ * Uma mensagem do chat do jogo.
+ *
+ * O robo ja segura a sessao, entao o chat chega de graca: e o mesmo socket. O
+ * parser e tolerante a nome de campo porque o formato nao e documentado, e o
+ * que nao casar cai no ring de frames desconhecidos em vez de sumir.
+ */
+export interface Mensagem {
+  id?: string;
+  em: number;
+  de: string;
+  texto: string;
+  canal: string;
+  level?: number;
+  vip?: boolean;
+  admin?: boolean;
+  /** mensagem SUA, ecoada pelo jogo */
+  minha?: boolean;
+}
+
+export const CANAIS = ["world", "trade", "help"] as const;
+export type Canal = (typeof CANAIS)[number];
+
+export const CANAL_ROTULO: Record<string, string> = {
+  world: "mundo",
+  trade: "troca",
+  help: "ajuda",
+};
+
 /** O estoque de bolas, ao vivo (frame `balls`). */
 export interface BolaEstoque {
   id: number;
@@ -151,6 +180,14 @@ export interface EstadoHunt {
   heroHp: number | null;
   heroMaxHp: number | null;
   caido: boolean;
+  /**
+   * O usuario quer a SESSAO segurada. Diferente de estar cacando.
+   *
+   * Ligar o robo e tomar a sessao de jogo da conta; cacar e um trabalho que roda
+   * em cima dela, junto de vender, repor e falar no chat. Amarrar os dois
+   * obrigava a escolher uma hunt pra fazer qualquer outra coisa, e passava por
+   * desligar tudo pra trocar de cacada.
+   */
   ligado: boolean;
   reconectando: boolean;
   proximaTentativaEm: number | null;
@@ -177,6 +214,11 @@ export interface EstadoHunt {
   auto: EstadoAuto | null;
   /** quantos pokemons fora do time */
   noBox: number;
+
+  /** o chat do jogo, ultimas mensagens */
+  chat: Mensagem[];
+  /** quando o proximo envio de chat e aceito (anti-flood do jogo) */
+  chatLiberadoEm: number | null;
 
   placar: Placar;
 }
@@ -355,6 +397,7 @@ export function estadoParado(): EstadoHunt {
     fechamento: null, explicacao: null, conectado: false, campoVivo: false,
     reconexoes: 0, shard: null,
     ouro: null, nivelTreinador: null, nivelLider: null, bolas: [], auto: null, noBox: 0,
+    chat: [], chatLiberadoEm: null,
     placar: placarZero(),
   };
 }

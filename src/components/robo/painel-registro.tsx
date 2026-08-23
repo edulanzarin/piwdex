@@ -79,7 +79,9 @@ export function AbaRegistro() {
           hint="Shiny, venda, compra e recusa entram aqui e sobrevivem ao restart."
         />
       ) : (
-        <ul className="mt-3 flex flex-col">
+        /* Teto de altura com rolagem propria: sao ate 120 linhas, e sem isto a
+           pagina crescia sem fim e o resto do painel saia da tela. */
+        <ul className="mt-3 flex max-h-[560px] flex-col overflow-y-auto">
           {eventos.map((e) => (
             <li key={e.id} className="flex items-start gap-3 border-b border-line/60 py-2 last:border-0">
               <span

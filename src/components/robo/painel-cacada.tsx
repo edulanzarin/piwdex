@@ -1,9 +1,16 @@
 "use client";
 
-import { Button, Empty, Note, Panel, Sprite } from "@/components/ui";
+import { useCallback, useEffect, useState } from "react";
+import { Button, Empty, Loading, Modal, Note, Panel, SearchInput, Sprite } from "@/components/ui";
 import { compact, num } from "@/lib/labels";
 import { spriteUrl } from "@/lib/sprites";
+import type { ActivePoke } from "@/lib/robo/jogo/pokes";
 import type { EstadoHunt, Evento } from "@/lib/robo/motor/tipos";
+
+interface NoBox extends ActivePoke {
+  /** a venda automatica levaria este, com a config de agora */
+  vendavel: boolean;
+}
 
 /** A aba da caçada: quem luta, o que está na fila, o que acabou de acontecer. */
 
@@ -31,6 +38,124 @@ const LINHA: Record<Evento["tipo"], { texto: string; cor: string }> = {
   aviso: { texto: "falhou", cor: "var(--color-danger)" },
 };
 
+/**
+ * O box, sob demanda.
+ *
+ * Fora do stream de estado de propósito: são centenas de bichos, e empurrar isso
+ * uma vez por segundo por SSE seria pagar banda contínua por um dado que só esta
+ * janela abre.
+ *
+ * A marca de "vendável" vem do servidor, calculada pela mesma função que o motor
+ * usa para decidir. Recalcular aqui seria uma segunda implementação da regra, e
+ * a tela passaria a mentir sobre o que o robô vai fazer.
+ */
+function ModalBox({
+  aberto,
+  onFechar,
+  ocupado,
+  comandar,
+}: {
+  aberto: boolean;
+  onFechar: () => void;
+  ocupado: boolean;
+  comandar: (rota: string, corpo?: unknown) => Promise<void>;
+}) {
+  const [box, setBox] = useState<NoBox[] | null>(null);
+  const [busca, setBusca] = useState("");
+
+  const carregar = useCallback(async () => {
+    const j = (await fetch("/api/robo/box")
+      .then((r) => (r.ok ? r.json() : null))
+      .catch(() => null)) as { box?: NoBox[] } | null;
+    setBox(j?.box ?? []);
+  }, []);
+
+  useEffect(() => {
+    if (aberto) void carregar();
+  }, [aberto, carregar]);
+
+  const termo = busca.trim().toLowerCase();
+  const lista = (box ?? [])
+    .filter((p) => !termo || p.name.toLowerCase().includes(termo))
+    .sort((a, b) => b.ivTotal - a.ivTotal || b.level - a.level);
+  const marcados = (box ?? []).filter((p) => p.vendavel).length;
+
+  return (
+    <Modal open={aberto} onClose={onFechar} title="Box" eyebrow="fora do time" size="lg">
+      {!box ? (
+        <Loading />
+      ) : (
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <SearchInput
+              value={busca}
+              onChange={(e) => setBusca(e.currentTarget.value)}
+              placeholder="filtrar por nome…"
+              className="min-w-0 flex-1"
+            />
+            <Button variant="outline" size="sm" onClick={() => void carregar()}>
+              atualizar
+            </Button>
+          </div>
+
+          {marcados > 0 ? (
+            <Note tone="warn">
+              {marcados} {marcados === 1 ? "está marcado" : "estão marcados"} para a venda automática
+              com a configuração de agora.
+            </Note>
+          ) : null}
+
+          {lista.length === 0 ? (
+            <Empty
+              title={box.length ? "Nada com esse nome" : "Box vazio"}
+              hint={box.length ? undefined : "Ligue o robô: a lista chega no primeiro ciclo da sessão."}
+            />
+          ) : (
+            <ul className="flex max-h-[440px] flex-col gap-1 overflow-y-auto">
+              {lista.map((p) => (
+                <li
+                  key={p.id}
+                  className="flex items-center gap-3 border border-line bg-bg-soft p-2"
+                  style={p.vendavel ? { borderColor: "color-mix(in srgb, var(--color-danger) 40%, transparent)" } : undefined}
+                >
+                  <Sprite src={spriteUrl(p.speciesId, p.shiny)} alt="" size={32} />
+                  <div className="min-w-0 flex-1">
+                    <p className="flex items-center gap-2 truncate text-[13px] text-text">
+                      {p.name}
+                      <span className="pix text-[10px] text-text-mute">nv {p.level}</span>
+                      {p.shiny ? <span className="pix text-[10px] text-warn">shiny</span> : null}
+                      {p.locked ? <span className="pix text-[10px] text-text-mute">cadeado</span> : null}
+                    </p>
+                    <p className="mt-0.5 flex gap-3 text-[11px] tabular text-text-mute">
+                      <span>IV {p.ivTotal}</span>
+                      <span>poder {compact(p.power)}</span>
+                      <span>vale {compact(p.sellValue)}</span>
+                    </p>
+                  </div>
+                  {p.vendavel ? (
+                    <span className="pix shrink-0 text-[10px] text-danger">sai na venda</span>
+                  ) : null}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={ocupado}
+                    onClick={async () => {
+                      await comandar("mover", { pokeId: p.id, dir: "withdraw" });
+                      void carregar();
+                    }}
+                  >
+                    pro time
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+    </Modal>
+  );
+}
+
 export function AbaCacada({
   estado,
   ocupado,
@@ -40,16 +165,35 @@ export function AbaCacada({
   ocupado: boolean;
   comandar: (rota: string, corpo?: unknown) => Promise<void>;
 }) {
+  const [boxAberto, setBoxAberto] = useState(false);
+  const drops = estado.analyzer?.drops ?? [];
+
   return (
     <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+      <ModalBox
+        aberto={boxAberto}
+        onFechar={() => setBoxAberto(false)}
+        ocupado={ocupado}
+        comandar={comandar}
+      />
       {/* ---- o time ---- */}
       <div className="flex flex-col gap-4">
         <Panel className="p-4">
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <h2 className="pix text-[13px] text-text-dim">Time</h2>
-            <Button variant="outline" size="sm" disabled={ocupado} onClick={() => void comandar("curar")}>
-              curar na Joy
-            </Button>
+            <div className="flex shrink-0 gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={!estado.conectado}
+                onClick={() => setBoxAberto(true)}
+              >
+                box ({estado.noBox})
+              </Button>
+              <Button variant="outline" size="sm" disabled={ocupado} onClick={() => void comandar("curar")}>
+                curar na Joy
+              </Button>
+            </div>
           </div>
 
           {estado.caido ? (
@@ -85,25 +229,30 @@ export function AbaCacada({
                     </span>
                   </div>
                   {!p.leader ? (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      disabled={ocupado}
-                      onClick={() => void comandar("lider", { pokeId: p.id })}
-                    >
-                      caçar
-                    </Button>
+                    <span className="flex shrink-0 gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        disabled={ocupado}
+                        onClick={() => void comandar("lider", { pokeId: p.id })}
+                      >
+                        caçar
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        disabled={ocupado}
+                        onClick={() => void comandar("mover", { pokeId: p.id, dir: "store" })}
+                      >
+                        guardar
+                      </Button>
+                    </span>
                   ) : null}
                 </li>
               ))}
             </ul>
           )}
 
-          {estado.noBox > 0 ? (
-            <p className="mt-3 text-[12px] text-text-mute">
-              {estado.noBox} {estado.noBox === 1 ? "pokémon" : "pokémons"} no box.
-            </p>
-          ) : null}
         </Panel>
 
         {/* ---- a fila de captura ---- */}
@@ -136,6 +285,7 @@ export function AbaCacada({
       </div>
 
       {/* ---- o que esta acontecendo ---- */}
+      <div className="flex min-w-0 flex-col gap-4">
       <Panel className="p-4">
         <div className="flex items-center justify-between gap-3">
           <h2 className="pix text-[13px] text-text-dim">Ao vivo</h2>
@@ -180,6 +330,44 @@ export function AbaCacada({
           </ul>
         )}
       </Panel>
+
+      {/* ---- o que a caçada rendeu ----
+           O analyzer conta item a item com o preço do NPC junto. É a lista que
+           responde o que marcar na venda automática. */}
+      <Panel className="p-4">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="pix text-[13px] text-text-dim">Drops desta caçada</h2>
+          {drops.length ? (
+            <span className="pix text-[11px] text-text-mute">
+              {compact(drops.reduce((soma, d) => soma + d.gold, 0))} de ouro
+            </span>
+          ) : null}
+        </div>
+        {drops.length === 0 ? (
+          <Empty
+            title="Nada caiu ainda"
+            hint={estado.slug ? "O analyzer conta a partir do primeiro abate." : "Comece uma caçada."}
+          />
+        ) : (
+          <ul className="mt-3 flex max-h-[280px] flex-col gap-1 overflow-y-auto">
+            {[...drops]
+              .sort((a, b) => b.gold - a.gold)
+              .map((d) => (
+                <li
+                  key={d.itemId}
+                  className="flex items-center gap-2 border-b border-line/60 py-1.5 text-[13px] last:border-0"
+                >
+                  <span className="min-w-0 flex-1 truncate text-text">{d.name}</span>
+                  <span className="shrink-0 text-[11px] tabular text-text-mute">{compact(d.qty)}x</span>
+                  <span className="w-20 shrink-0 text-right text-[11px] tabular text-ok">
+                    {compact(d.gold)}
+                  </span>
+                </li>
+              ))}
+          </ul>
+        )}
+      </Panel>
+      </div>
     </div>
   );
 }

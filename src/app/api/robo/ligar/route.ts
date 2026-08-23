@@ -5,32 +5,21 @@ import { lerPokes } from "@/lib/robo/jogo/ws";
 import { sessaoDe } from "@/lib/robo/motor/sessao";
 import { salvarDesejado } from "@/lib/robo/motor/desejado";
 import { lerConfig } from "@/lib/robo/motor/config";
-import { fetchSource } from "@/lib/source";
 import type { Tokens } from "@/lib/robo/jogo/auth";
 
 export const runtime = "nodejs";
 
-/** Liga o robo numa hunt. */
-export async function POST(req: Request) {
+/**
+ * Liga o robo: toma a sessao de jogo da conta e segura.
+ *
+ * NAO pede hunt. Ligar e ganhar a sessao; cacar e um trabalho que roda em cima
+ * dela, junto de vender, repor e falar no chat — e vive na rota `/cacar`. Enquanto
+ * as duas coisas eram uma so, escolher uma cacada era pre-requisito pra usar
+ * qualquer outra funcao do robo.
+ */
+export async function POST() {
   const { usuario, resposta } = await exigirUsuarioApi({ vip: true });
   if (resposta) return resposta;
-
-  let slug = "";
-  try {
-    const b = (await req.json()) as { slug?: string };
-    slug = String(b?.slug ?? "").trim();
-  } catch {
-    /* corpo invalido */
-  }
-  if (!slug) return NextResponse.json({ erro: "sem_hunt" }, { status: 400 });
-
-  // O slug tem que existir no catalogo. Nao e paranoia: `enter-hunt` com um slug
-  // inventado nao da erro nenhum — o jogo simplesmente nao inicia o campo, e o
-  // painel ficaria "rodando" com tudo zerado, sem nada explicando por que.
-  const fonte = await fetchSource();
-  if (!fonte.hunts.some((h) => h.slug === slug)) {
-    return NextResponse.json({ erro: "hunt_desconhecida" }, { status: 400 });
-  }
 
   const v = await lerVinculo(usuario.id);
   if (!v) return NextResponse.json({ erro: "sem_vinculo" }, { status: 409 });
@@ -50,11 +39,11 @@ export async function POST(req: Request) {
   // O desejo vai pro banco ANTES de conectar: se o processo morrer no meio, o
   // proximo boot religa. Gravar depois deixaria uma janela em que o robo esta
   // rodando e ninguem sabe disso.
-  await salvarDesejado(usuario.id, { ligado: true, slug });
+  await salvarDesejado(usuario.id, { ligado: true });
 
   const persistir = (t: Tokens) => atualizarTokens(usuario.id, t);
   const cfg = await lerConfig(usuario.id).catch(() => undefined);
-  sessaoDe(usuario.id).comecar(usuario.id, v.tokens, shard, slug, persistir, cfg);
+  sessaoDe(usuario.id).segurar(usuario.id, v.tokens, shard, persistir, cfg, v.nomeJogador);
 
-  return NextResponse.json({ ok: true, slug });
+  return NextResponse.json({ ok: true });
 }

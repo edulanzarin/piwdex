@@ -21,8 +21,6 @@ async function retomarUma(userId: string, d: Desejado): Promise<void> {
   // Conta recusada pelo jogo: NAO religa. Reconectar nao desfaz ban, e insistir a
   // cada restart do container era exatamente o comportamento a eliminar.
   if (v.status === "blocked") return;
-  if (!d.slug) return; // sem hunt escolhida nao ha o que retomar
-
   let shard = v.shard ?? 0;
   if (!shard) {
     // Sem shard cacheado nao da pra abrir: descobre agora. Se falhar, o proximo
@@ -38,7 +36,7 @@ async function retomarUma(userId: string, d: Desejado): Promise<void> {
   // alguem abrir a tela — e "ninguem abre a tela" e exatamente a condicao em que
   // o robo trabalha.
   const cfg = await lerConfig(userId).catch(() => undefined);
-  sessaoDe(userId).retomar(userId, v.tokens, shard, d.slug, persistir, cfg);
+  sessaoDe(userId).retomar(userId, v.tokens, shard, d.slug, persistir, cfg, v.nomeJogador);
 }
 
 /**

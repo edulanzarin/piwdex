@@ -16,6 +16,7 @@ import {
   type EstadoHunt,
   type Evento,
   type Fechamento,
+  type Mensagem,
   type NaFila,
   type Placar,
   type StatusSessao,
@@ -115,6 +116,21 @@ const CURA_COOLDOWN_MS = 60_000;
 const COMPRA_GATILHO_MS = 3 * 60_000;
 
 const EVENTOS_MAX = 60;
+/** Mensagens de chat guardadas. O ring existe porque o `history` do jogo repete
+ *  o backlog inteiro a cada reconexao. */
+const CHAT_MAX = 60;
+/**
+ * Teto da fila no estado que vai pra tela.
+ *
+ * O jogo reenvia a lista inteira a cada mudanca, e com o auto-catch desligado
+ * ela so cresce. O estado vai pro navegador uma vez por segundo enquanto a
+ * cacada roda: sem teto, uma fila de trezentos corpos vira trezentos objetos por
+ * segundo, por aba aberta, durante horas. A tela mostra quarenta.
+ */
+const FILA_NO_ESTADO = 60;
+/** Anti-flood do chat do JOGO (~1 msg/min). Barrar aqui evita gastar a janela
+ *  do servidor com uma mensagem que ele vai recusar. */
+const CHAT_COOLDOWN_MS = 60_000;
 
 /**
  * O que cada codigo de fechamento significa, e o que fazer com ele.
@@ -168,6 +184,14 @@ export class SessaoJogo extends EventEmitter {
   private bolas: BolaEstoque[] = [];
   private auto: EstadoAuto | null = null;
 
+  private chat: Mensagem[] = [];
+  private chatIds = new Set<string>();
+  private chatTextos = new Map<string, number>();
+  private chatEnviadoEm = 0;
+  private meuNome: string | null = null;
+  /** envio aguardando o eco do jogo: so o eco confirma que a mensagem entrou */
+  private chatPendente: { texto: string; resolver: (r: "ok" | "recusado") => void } | null = null;
+
   private ouro: number | null = null;
   private nivelTreinador: number | null = null;
   private nivelLider: number | null = null;
@@ -197,6 +221,7 @@ export class SessaoJogo extends EventEmitter {
   private placar: Placar = placarZero();
   private compraGatilhoEm = 0;
   private jobRodando = false;
+  private vendaRodando = false;
 
   private tAnalyzer: ReturnType<typeof setInterval> | null = null;
   private tPokes: ReturnType<typeof setInterval> | null = null;
@@ -220,7 +245,7 @@ export class SessaoJogo extends EventEmitter {
       desdeMs: this.desdeMs,
       analyzer: this.analyzer,
       eventos: this.eventos,
-      fila: this.fila,
+      fila: this.fila.slice(0, FILA_NO_ESTADO),
       time: this.time,
       heroHp: this.heroHp,
       heroMaxHp: this.heroMaxHp,
@@ -243,6 +268,9 @@ export class SessaoJogo extends EventEmitter {
       bolas: this.bolas,
       auto: this.auto,
       noBox: this.box.length,
+
+      chat: this.chat,
+      chatLiberadoEm: this.chatEnviadoEm ? this.chatEnviadoEm + CHAT_COOLDOWN_MS : null,
 
       placar: this.placar,
     };
@@ -277,7 +305,7 @@ export class SessaoJogo extends EventEmitter {
       if (f?.codigo) return `o jogo fechou a conexão (código ${f.codigo})`;
       return "a conexão caiu";
     }
-    if (!this.slug) return "sessão segurada, sem caçada";
+    if (!this.slug) return "sessão segurada, sem caçada escolhida";
     if (this.caidoDesde != null) return "o líder desmaiou — levantando";
     if (!campoVivo) return "no campo, mas o jogo não está mandando combate";
     return null;
@@ -287,15 +315,23 @@ export class SessaoJogo extends EventEmitter {
   // Comando
   // -------------------------------------------------------------------------
 
-  /** Liga o robo numa hunt. Idempotente: chamar de novo com outro slug troca de
-   *  cacada sem derrubar a conexao. */
-  comecar(
+  /**
+   * Liga o robo: TOMA a sessao de jogo da conta e segura.
+   *
+   * Nao pede hunt, e a mudanca importa. Ligar o robo e ganhar a sessao; cacar,
+   * vender, comprar e falar no chat sao trabalhos que rodam em cima dela. Quando
+   * as duas coisas eram uma so, escolher uma hunt virava pre-requisito pra
+   * qualquer outra funcao, e trocar de cacada passava por desligar tudo.
+   *
+   * Idempotente: chamar com a sessao viva so atualiza credencial e config.
+   */
+  segurar(
     userId: string,
     tokens: Tokens,
     shard: number,
-    slug: string,
     aoTrocarTokens: (t: Tokens) => Promise<void>,
     cfg?: ConfigAuto,
+    nomeJogador?: string | null,
   ) {
     this.userId = userId;
     this.tokens = tokens;
@@ -306,27 +342,70 @@ export class SessaoJogo extends EventEmitter {
     this.recusasDeToken = 0;
     this.shardErrado = 0;
     if (cfg) this.cfg = cfg;
-
-    const trocouDeHunt = this.slug !== slug;
-    this.slug = slug;
+    if (nomeJogador) this.meuNome = nomeJogador;
 
     if (!this.ws) {
       this.conectar();
       return;
     }
-    if (trocouDeHunt) {
-      // Trocar de hunt zera a contagem: o proximo analyzer vira a base nova.
+    this.emitir();
+  }
+
+  /**
+   * Entra numa cacada com a sessao que ja esta de pe.
+   *
+   * Trocar de hunt nao derruba a conexao: sai do campo antigo, zera a contagem e
+   * entra no novo. `false` quer dizer que nao ha sessao — quem chama liga primeiro.
+   */
+  cacar(slug: string): boolean {
+    if (!this.ws) return false;
+    const trocou = this.slug !== slug;
+    if (this.slug && trocou) this.enviar({ type: "leave-hunt" });
+    this.slug = slug;
+    if (trocou) {
+      // Cacada nova zera a contagem: o proximo analyzer vira a base.
       this.refazerBase = true;
+      this.analyzer = null;
       this.eventos = [];
       this.placar = placarZero();
       this.desdeMs = Date.now();
-      this.entrarNoCampo(slug);
-      this.rearmarTimers();
-      this.emitir();
+      this.ultimoCampoEm = 0;
     }
+    this.entrarNoCampo(slug);
+    this.rearmarTimers();
+    void this.gravarStatus();
+    this.emitir();
+    return true;
   }
 
-  /** Retoma o que estava desejado (usado pelo boot). Nao mexe em quem ja roda. */
+  /**
+   * Sai do campo e mantem a sessao.
+   *
+   * `leave-hunt` e obrigatorio: sem ele o personagem segue cacando no servidor, e
+   * o campo so morre quando a conexao inteira cai.
+   */
+  pararCacada(): boolean {
+    if (!this.ws) return false;
+    if (this.slug) this.enviar({ type: "leave-hunt" });
+    this.slug = null;
+    this.analyzer = null;
+    this.analyzerBase = null;
+    this.refazerBase = false;
+    this.fila = [];
+    this.ultimoCampoEm = 0;
+    this.deveVoltarAoCampo = false;
+    this.rearmarTimers();
+    this.emitir();
+    return true;
+  }
+
+  /**
+   * Retoma o que estava desejado (usado pelo boot). Nao mexe em quem ja roda.
+   *
+   * Segura a sessao mesmo SEM hunt: o desejo gravado e "quero o robo ligado", e
+   * exigir uma cacada pra retomar deixaria de fora quem usa o robo pra vender,
+   * repor ou acompanhar o chat.
+   */
   retomar(
     userId: string,
     tokens: Tokens,
@@ -334,10 +413,11 @@ export class SessaoJogo extends EventEmitter {
     slug: string | null,
     aoTrocarTokens: (t: Tokens) => Promise<void>,
     cfg?: ConfigAuto,
+    nomeJogador?: string | null,
   ) {
     if (this.ws) return;
-    if (!slug) return;
-    this.comecar(userId, tokens, shard, slug, aoTrocarTokens, cfg);
+    this.slug = slug;
+    this.segurar(userId, tokens, shard, aoTrocarTokens, cfg, nomeJogador);
   }
 
   /** A config mudou na tela: o motor passa a decidir por ela na proxima varredura. */
@@ -384,6 +464,52 @@ export class SessaoJogo extends EventEmitter {
     this.enviar({ type: dir === "store" ? "poke-store" : "poke-withdraw", pokeId });
     setTimeout(() => this.enviar({ type: "pokes-get" }), 500);
     return true;
+  }
+
+  /**
+   * Manda uma mensagem no chat e espera o VEREDITO.
+   *
+   * O jogo nao responde ack: ele ECOA a mensagem aceita como um frame `chat`
+   * normal, com o seu nome. Recusada (conteudo barrado), volta um frame de
+   * sistema sem remetente. Por isso o veredito vem do proximo frame e nao do
+   * envio — e por isso so envio CONFIRMADO arma o cooldown: recusa nao gasta a
+   * janela, o texto se corrige e vai de novo na hora.
+   */
+  async mandarChat(
+    texto: string,
+    canal: string,
+  ): Promise<{ ok: boolean; motivo?: "sem_sessao" | "vazio" | "ocupado" | "espera" | "recusado" | "sem_eco"; esperaMs?: number }> {
+    if (!this.ws || this.status !== "rodando") return { ok: false, motivo: "sem_sessao" };
+    const t = texto.trim();
+    if (!t) return { ok: false, motivo: "vazio" };
+    if (this.chatPendente) return { ok: false, motivo: "ocupado" };
+    const desde = this.chatEnviadoEm ? Date.now() - this.chatEnviadoEm : Infinity;
+    if (desde < CHAT_COOLDOWN_MS) {
+      return { ok: false, motivo: "espera", esperaMs: CHAT_COOLDOWN_MS - desde };
+    }
+
+    this.enviar({ type: "send", channel: canal, body: t });
+    const veredito = await new Promise<"ok" | "recusado" | "silencio">((resolve) => {
+      const prazo = setTimeout(() => {
+        this.chatPendente = null;
+        resolve("silencio");
+      }, 6_000);
+      this.chatPendente = {
+        texto: t,
+        resolver: (r) => {
+          clearTimeout(prazo);
+          this.chatPendente = null;
+          resolve(r);
+        },
+      };
+    });
+
+    if (veredito === "ok") {
+      this.chatEnviadoEm = Date.now();
+      this.emitir();
+      return { ok: true };
+    }
+    return { ok: false, motivo: veredito === "recusado" ? "recusado" : "sem_eco" };
   }
 
   /** Roda as automacoes AGORA, a pedido da tela. */
@@ -675,11 +801,118 @@ export class SessaoJogo extends EventEmitter {
         this.emitir();
         break;
 
+      case "chat":
+      case "history":
+        this.pegarChat(m);
+        break;
+
       case "joy-healed":
         // O ack nao prova nada: quem confirma e o HP na proxima lista.
         this.enviar({ type: "pokes-get" });
         break;
     }
+  }
+
+  // -------------------------------------------------------------------------
+  // Chat
+  // -------------------------------------------------------------------------
+
+  private static texto(o: Record<string, unknown>, chaves: string[]): string | null {
+    for (const k of chaves) {
+      const v = o[k];
+      if (typeof v === "string" && v.trim()) return v;
+    }
+    return null;
+  }
+
+  /**
+   * Uma mensagem, de qualquer formato que o jogo use.
+   *
+   * O parser aceita varios nomes de campo porque o formato de chat nao esta
+   * documentado em lugar nenhum: foi lido de captura. Tolerar aqui custa uma
+   * lista de sinonimos; nao tolerar custa o chat inteiro sumir quando eles
+   * renomearem um campo.
+   */
+  private lerMensagem(o: Record<string, unknown>, canalPadrao?: string): Mensagem | null {
+    const texto = SessaoJogo.texto(o, ["body", "text", "message", "content"]);
+    if (!texto) return null;
+    const de =
+      SessaoJogo.texto(o, [
+        "fromName", "from", "name", "player", "author", "sender", "playerName", "user", "username",
+      ]) ?? "?";
+    const canal = SessaoJogo.texto(o, ["channel", "chan", "room"]) ?? canalPadrao ?? "world";
+    const bruto = o.at ?? o.ts ?? o.time ?? o.createdAt ?? o.timestamp ?? o.date;
+    let em = Date.now();
+    if (typeof bruto === "number" && Number.isFinite(bruto)) em = bruto < 1e12 ? bruto * 1000 : bruto;
+    else if (typeof bruto === "string") {
+      const parseado = Date.parse(bruto);
+      if (Number.isFinite(parseado)) em = parseado;
+    }
+    return {
+      em, de, texto, canal,
+      id: SessaoJogo.texto(o, ["id"]) ?? undefined,
+      level: typeof o.level === "number" && Number.isFinite(o.level) ? o.level : undefined,
+      vip: o.isVip === true || undefined,
+      admin: o.isAdmin === true || undefined,
+      minha: !!this.meuNome && de.toLowerCase() === this.meuNome.toLowerCase(),
+    };
+  }
+
+  /** Guarda no ring. Dois dedupes, e os dois sao necessarios: o `history` repete o
+   *  backlog inteiro a cada reconexao (id), e a mensagem propria pode voltar do
+   *  servidor com id novo (conteudo, numa janela curta). */
+  private guardarMensagem(msg: Mensagem): boolean {
+    this.conferirPendente(msg);
+    if (msg.id) {
+      if (this.chatIds.has(msg.id)) return false;
+      this.chatIds.add(msg.id);
+      if (this.chatIds.size > CHAT_MAX * 3) this.chatIds.clear();
+    }
+    const chave = `${msg.de}|${msg.texto}`;
+    const antes = this.chatTextos.get(chave);
+    if (antes != null && Math.abs(msg.em - antes) < 60_000) return false;
+    this.chatTextos.set(chave, msg.em);
+    if (this.chatTextos.size > CHAT_MAX * 3) this.chatTextos.clear();
+
+    this.chat.push(msg);
+    this.chat.sort((a, b) => a.em - b.em);
+    if (this.chat.length > CHAT_MAX) this.chat.splice(0, this.chat.length - CHAT_MAX);
+    return true;
+  }
+
+  /** O eco com o SEU nome e o mesmo texto confirma o envio. Frame de sistema (sem
+   *  remetente) enquanto ha envio pendente e recusa. */
+  private conferirPendente(msg: Mensagem) {
+    const p = this.chatPendente;
+    if (!p) return;
+    if (this.meuNome && msg.de.toLowerCase() === this.meuNome.toLowerCase() && msg.texto === p.texto) {
+      p.resolver("ok");
+    } else if (msg.de === "?") {
+      p.resolver("recusado");
+    }
+  }
+
+  /** `chat` traz uma mensagem em `msg`; `history` traz um array POR CANAL, e a
+   *  chave do array (world/trade/help) e o canal dos itens. */
+  private pegarChat(m: Record<string, unknown>) {
+    let pegou = false;
+    if (m.msg && typeof m.msg === "object" && !Array.isArray(m.msg)) {
+      const p = this.lerMensagem(m.msg as Record<string, unknown>);
+      if (p && this.guardarMensagem(p)) pegou = true;
+    }
+    for (const [chave, valor] of Object.entries(m)) {
+      if (!Array.isArray(valor)) continue;
+      for (const o of valor as Record<string, unknown>[]) {
+        if (!o || typeof o !== "object") continue;
+        const p = this.lerMensagem(o, chave);
+        if (p && this.guardarMensagem(p)) pegou = true;
+      }
+    }
+    if (!pegou) {
+      const p = this.lerMensagem(m);
+      if (p && this.guardarMensagem(p)) pegou = true;
+    }
+    if (pegou) this.emitir();
   }
 
   private registrar(e: Evento) {
@@ -877,6 +1110,11 @@ export class SessaoJogo extends EventEmitter {
 
   private async rodarVendaPokes(): Promise<void> {
     if (!this.tokens || !this.userId || !this.cfg.venderPoke) return;
+    // A trava importa mais aqui que nas compras: um comando qualquer pede
+    // `pokes-get` de confirmacao, e esse frame chega a meio segundo do poll. Sem
+    // ela, as duas rodadas leem o MESMO box e mandam vender os mesmos ids.
+    if (this.vendaRodando) return;
+    this.vendaRodando = true;
     const trocar = async (t: Tokens) => {
       this.tokens = t;
       await this.aoTrocarTokens?.(t);
@@ -887,6 +1125,8 @@ export class SessaoJogo extends EventEmitter {
       if (recados.some((r) => r.ok)) this.enviar({ type: "pokes-get" });
     } catch (e) {
       console.error("[robo] venda de pokemon falhou:", e);
+    } finally {
+      this.vendaRodando = false;
     }
   }
 
@@ -1155,6 +1395,10 @@ export class SessaoJogo extends EventEmitter {
     if (this.ws) { try { this.ws.close(); } catch { /* noop */ } this.ws = null; }
     this.inventario.clear();
     this.fila = [];
+    this.chat = [];
+    this.chatIds.clear();
+    this.chatTextos.clear();
+    this.chatPendente = null;
     this.desdeMs = null;
     this.analyzerBase = null;
     this.refazerBase = false;

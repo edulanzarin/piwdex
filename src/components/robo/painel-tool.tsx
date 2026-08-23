@@ -9,6 +9,7 @@ import { CONFIG_PADRAO, type ConfigAuto } from "@/lib/robo/motor/tipos";
 import { Diagnostico, LinhaStatus } from "@/components/robo/painel-estado";
 import { AbaCacada } from "@/components/robo/painel-cacada";
 import { AbaAutomacao } from "@/components/robo/painel-automacao";
+import { AbaChat } from "@/components/robo/painel-chat";
 import { AbaRegistro } from "@/components/robo/painel-registro";
 
 /**
@@ -34,7 +35,7 @@ export interface HuntOpcao {
   area: string;
 }
 
-type Aba = "cacada" | "automacao" | "registro";
+type Aba = "cacada" | "automacao" | "chat" | "registro";
 
 function Numero({
   rotulo,
@@ -182,11 +183,30 @@ export function PainelTool({
 
   return (
     <div className="mx-auto mt-4 flex w-full max-w-[1400px] flex-col gap-4">
-      {/* ---- comando ---- */}
+      {/* ---- comando ----
+           Duas linhas, e a separacao e o assunto: em cima a SESSAO (ligar o robo
+           e tomar a conta do jogo), embaixo a CACADA (um trabalho que roda em
+           cima dela). Numa linha so, escolher hunt virava pre-requisito pra usar
+           venda, reposicao e chat. */}
       <Panel className="p-4">
-        <div className="flex flex-wrap items-end gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <div className="min-w-0 flex-1">
-            <p className="pix text-[11px] text-text-mute">Hunt</p>
+            <LinhaStatus estado={estado} agora={agora} nomeJogador={nomeJogador} vinculo={vinculo} />
+          </div>
+          {estado.ligado ? (
+            <Button variant="danger" size="lg" disabled={ocupado} onClick={() => void comandar("parar")}>
+              desligar o robô
+            </Button>
+          ) : (
+            <Button variant="primary" size="lg" disabled={ocupado} onClick={() => void comandar("ligar")}>
+              ligar o robô
+            </Button>
+          )}
+        </div>
+
+        <div className="mt-3 flex flex-wrap items-end gap-3 border-t border-line pt-3">
+          <div className="min-w-0 flex-1 basis-64">
+            <p className="pix text-[11px] text-text-mute">Caçada</p>
             <div className="mt-1">
               <Combobox
                 value={slug}
@@ -196,28 +216,23 @@ export function PainelTool({
               />
             </div>
           </div>
-          {estado.ligado ? (
-            <Button variant="danger" size="lg" disabled={ocupado} onClick={() => void comandar("parar")}>
-              desligar
+          <Button
+            variant={estado.slug === slug && estado.slug ? "outline" : "primary"}
+            disabled={ocupado || !slug || !estado.conectado || estado.slug === slug}
+            onClick={() => void comandar("cacar", { slug })}
+          >
+            {estado.slug ? "trocar de caçada" : "começar a caçar"}
+          </Button>
+          {estado.slug ? (
+            <Button variant="outline" disabled={ocupado} onClick={() => void comandar("cacar", {})}>
+              parar a caçada
             </Button>
-          ) : (
-            <Button
-              variant="primary"
-              size="lg"
-              disabled={ocupado || !slug}
-              onClick={() => void comandar("ligar", { slug })}
-            >
-              ligar o robô
-            </Button>
-          )}
-          {estado.ligado && slug && slug !== estado.slug ? (
-            <Button variant="outline" size="lg" disabled={ocupado} onClick={() => void comandar("ligar", { slug })}>
-              trocar de hunt
-            </Button>
+          ) : null}
+          {!estado.conectado ? (
+            <span className="pb-2 text-[12px] text-text-mute">Ligue o robô para poder caçar.</span>
           ) : null}
         </div>
 
-        <LinhaStatus estado={estado} agora={agora} nomeJogador={nomeJogador} vinculo={vinculo} />
         <Diagnostico estado={estado} vinculo={vinculo} />
 
         <div aria-live="polite">{erro ? <Note tone="danger" className="mt-3">{erro}</Note> : null}</div>
@@ -281,6 +296,7 @@ export function PainelTool({
         items={[
           { value: "cacada", label: "Caçada" },
           { value: "automacao", label: "Automação" },
+          { value: "chat", label: "Chat", count: estado.chat.length || undefined },
           { value: "registro", label: "Registro" },
         ]}
       />
@@ -289,6 +305,7 @@ export function PainelTool({
       {aba === "automacao" ? (
         <AbaAutomacao estado={estado} config={config} onConfig={mudarConfig} erro={null} />
       ) : null}
+      {aba === "chat" ? <AbaChat estado={estado} /> : null}
       {aba === "registro" ? <AbaRegistro /> : null}
     </div>
   );
@@ -298,11 +315,16 @@ export function PainelTool({
  *  constante do servidor, que nao diz a ninguem o que fazer a seguir. */
 const MENSAGEM: Record<string, string> = {
   sem_hunt: "escolha uma hunt primeiro",
+  sem_sessao: "ligue o robô primeiro",
+  vazio: "escreva alguma coisa antes de mandar",
+  espera: "o jogo aceita cerca de uma mensagem por minuto",
+  recusado: "o jogo recusou essa mensagem",
+  sem_eco: "o jogo não confirmou o envio",
+  ocupado: "ainda estou mandando a anterior",
   hunt_desconhecida: "essa hunt não existe no catálogo do jogo",
   sem_vinculo: "conecte a sua conta do jogo antes",
   vinculo_vencido: "o token do jogo venceu: reconecte a conta",
   conta_bloqueada: "o jogo recusou esta conta",
   shard_nao_encontrado: "não achei o shard da conta no jogo; tente de novo em instantes",
-  sem_sessao: "ligue o robô primeiro",
   assinatura_inativa: "a assinatura não está ativa",
 };
