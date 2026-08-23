@@ -1,29 +1,31 @@
 import type { Metadata } from "next";
-import { Note, Panel } from "@/components/ui";
-import { exigirUsuario } from "@/lib/robo/sessao";
+import { PainelTool, type HuntOpcao } from "@/components/robo/painel-tool";
+import { exigirVip } from "@/lib/robo/sessao";
+import { lerVinculo } from "@/lib/robo/vinculo";
+import { lerDesejado } from "@/lib/robo/motor/desejado";
+import { fetchSource } from "@/lib/source";
 
 export const metadata: Metadata = { title: "Painel" };
 
-/**
- * O painel — a tela que o subdominio abre.
- *
- * Ainda e a casca: a conta ja existe e o portao ja fecha, mas o motor entra nas
- * proximas camadas.
- */
+/** O painel e dinamico por natureza: ele mostra uma sessao viva. */
+export const dynamic = "force-dynamic";
+
 export default async function Painel() {
-  const u = await exigirUsuario();
+  const u = await exigirVip();
+  const [v, d, fonte] = await Promise.all([lerVinculo(u.id), lerDesejado(u.id), fetchSource()]);
+
+  const hunts: HuntOpcao[] = fonte.hunts
+    .map((h) => ({ slug: h.slug, nome: h.name, level: h.level, area: h.area }))
+    .sort((a, b) => a.level - b.level || a.nome.localeCompare(b.nome, "pt-BR"));
 
   return (
-    <Panel className="mx-auto mt-8 max-w-xl p-6">
-      <h1 className="pix text-[18px] text-[var(--color-t-robo)]">Painel</h1>
-      <p className="mt-3 text-[14px] leading-relaxed text-text-dim">
-        Olá, {u.nome ?? u.email}.
-      </p>
-      <Note className="mt-4">
-        {u.vip
-          ? "Assinatura ativa. Falta conectar a conta do jogo."
-          : "Sem assinatura ativa — o robô só liga depois dela."}
-      </Note>
-    </Panel>
+    <PainelTool
+      hunts={hunts}
+      slugInicial={d?.slug ?? null}
+      // `blocked` continua sendo vinculo: a tela precisa poder EXPLICAR a recusa,
+      // e mandar essa pessoa pro "conecte sua conta" esconderia o motivo.
+      temVinculo={!!v && v.status !== "expired"}
+      nomeJogador={v?.nomeJogador ?? null}
+    />
   );
 }

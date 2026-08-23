@@ -4,6 +4,8 @@ import { lerTokens, pedirAoJogo, recusaDe } from "@/lib/robo/jogo/auth";
 import { lerPokes } from "@/lib/robo/jogo/ws";
 import { normalizarPokes } from "@/lib/robo/jogo/pokes";
 import { marcarBloqueado, salvarShard, salvarTime, salvarVinculo } from "@/lib/robo/vinculo";
+import { soltarSessao } from "@/lib/robo/motor/sessao";
+import { retomarSessoes } from "@/lib/robo/motor/boot";
 
 export const runtime = "nodejs";
 
@@ -72,6 +74,11 @@ export async function POST(req: Request) {
     | null;
   const nomeJogador = dado?.character?.name ?? dado?.name ?? null;
 
+  // Vincular conta nova = a anterior morre AQUI. Sem isto o motor seguiria
+  // segurando o WebSocket do personagem VELHO entre o connect e o proximo
+  // "ligar", e nesse meio o time ao vivo e os comandos ainda seriam dele.
+  soltarSessao(usuario.id);
+
   // `r.tokens` e nao `tokens`: o `pedirAoJogo` pode ter renovado o par no meio do
   // caminho, e gravar o antigo faria o vinculo nascer vencido.
   await salvarVinculo(usuario.id, r.tokens, { nomeJogador });
@@ -93,6 +100,11 @@ export async function POST(req: Request) {
   } catch {
     /* o time fica pra depois */
   }
+
+  // Vinculo renovado: se o robo estava LIGADO no banco (a conexao caiu porque o
+  // token venceu, e nao porque o dono desligou), ele retoma sozinho. Reconectar
+  // passa a ser a unica acao do usuario; o resto volta ao que era.
+  setTimeout(() => { void retomarSessoes(usuario.id).catch(() => {}); }, 1_000);
 
   return NextResponse.json({ ok: true, nomeJogador });
 }
