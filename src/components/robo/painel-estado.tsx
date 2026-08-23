@@ -179,6 +179,24 @@ export function BarraTopo({
   const lider = estado.time.find((p) => p.leader) ?? estado.time[0] ?? null;
   const xp = lider ? xpProgress(lider.level, lider.xp) : null;
 
+  /**
+   * O que está EM USO, e não a bolsa inteira.
+   *
+   * Antes o topo listava as quatro primeiras bolas com estoque — quem olhava não
+   * tinha como saber por que aquelas quatro. O que decide a caçada é a bola que o
+   * auto-catch usa e a que ele reserva pro shiny; o resto é assunto da aba Conta.
+   */
+  const bolaDe = (id: number) => estado.bolas.find((b) => b.id === id) ?? null;
+  const ativos = [
+    { rotulo: "captura", bola: estado.auto?.autoCatch ? bolaDe(estado.auto.autoCatchBallId) : null },
+    {
+      rotulo: "shiny",
+      bola: estado.auto?.autoCatchShiny ? bolaDe(estado.auto.autoCatchShinyBallId) : null,
+    },
+  ]
+    .filter((x): x is { rotulo: string; bola: NonNullable<ReturnType<typeof bolaDe>> } => !!x.bola)
+    .map((x) => ({ rotulo: x.rotulo, ...x.bola }));
+
   return (
     <Panel className="p-3 sm:p-4">
       <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
@@ -263,27 +281,18 @@ export function BarraTopo({
                 </span>
               </>
             ) : null}
-            {estado.bolas.length ? (
+            {ativos.length ? (
               <span className="flex items-center gap-1.5">
-                {estado.bolas
-                  .filter((b) => b.infinita || b.quantidade > 0)
-                  .slice(0, 4)
-                  .map((b) => (
-                    <BolaChip
-                      key={b.id}
-                      nome={b.nome}
-                      icone={b.icone}
-                      quantidade={b.quantidade}
-                      infinita={b.infinita}
-                      ativa={estado.auto?.autoCatchBallId === b.id}
-                    />
-                  ))}
-              </span>
-            ) : null}
-            {estado.shard ? <span className="tabular">shard {estado.shard}</span> : null}
-            {estado.reconexoes > 0 ? (
-              <span className="tabular" title="reconexões desde que foi ligado">
-                {estado.reconexoes} religadas
+                {ativos.map((a) => (
+                  <BolaChip
+                    key={a.rotulo}
+                    nome={`${a.rotulo}: ${a.nome}`}
+                    icone={a.icone}
+                    quantidade={a.quantidade}
+                    infinita={a.infinita}
+                    ativa
+                  />
+                ))}
               </span>
             ) : null}
           </span>

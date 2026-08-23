@@ -108,6 +108,18 @@ const CONTESTADA_MS = 25_000;
 
 /** Sem frame `field` por este tempo, a hunt esta ligada e parada. */
 const CAMPO_MUDO_MS = 12_000;
+/**
+ * Sem combate por este tempo, o motor RE-ENTRA no campo por conta.
+ *
+ * `enter-hunt` e um frame sem resposta: o jogo aceita ou ignora, e nao ha ack. A
+ * conexao que nasce logo depois de um deploy pega o servidor no meio da troca e
+ * as vezes perde esse frame — o socket fica aberto, o analyzer zerado e a tela
+ * dizendo "a conexao esta aberta e o jogo nao esta mandando combate", pra sempre.
+ *
+ * Reenviar e barato e idempotente (entrar num campo em que ja se esta nao faz
+ * nada). Nao reenviar custa a noite inteira de cacada.
+ */
+const CAMPO_TRAVADO_MS = 30_000;
 
 /** Anti-flood do `field-revive` — o frame `field` chega ~2x por segundo. */
 const REVIVE_COOLDOWN_MS = 15_000;
@@ -122,7 +134,15 @@ const COMPRA_GATILHO_MS = 3 * 60_000;
 const EVENTOS_MAX = 60;
 /** Mensagens de chat guardadas. O ring existe porque o `history` do jogo repete
  *  o backlog inteiro a cada reconexao. */
-const CHAT_MAX = 60;
+/**
+ * Mensagens guardadas.
+ *
+ * Trezentas cabem porque o chat NAO viaja no estado: ele tem evento proprio no
+ * stream e so e enviado quando muda. No estado, que sai uma vez por segundo
+ * enquanto a cacada corre, trezentas mensagens seriam ~45KB/s — mais de um giga
+ * numa noite de robo, pra reenviar a mesma conversa.
+ */
+const CHAT_MAX = 300;
 /**
  * Teto da fila no estado que vai pra tela.
  *
@@ -211,6 +231,8 @@ export class SessaoJogo extends EventEmitter {
   private rotaConcluida = false;
   private rotaPlanejadaPara: string | null = null;
   private rotaTrocandoEm = 0;
+  /** quando o motor reenviou o `enter-hunt` da ultima vez */
+  private reentradaEm = 0;
 
   private heroHp: number | null = null;
   private heroMaxHp: number | null = null;
@@ -290,7 +312,6 @@ export class SessaoJogo extends EventEmitter {
       passoAtual: this.nivelLider != null ? passoDoNivel(this.rota, this.nivelLider) : null,
       rotaConcluida: this.rotaConcluida,
 
-      chat: this.chat,
       chatLiberadoEm: this.chatEnviadoEm ? this.chatEnviadoEm + CHAT_COOLDOWN_MS : null,
 
       placar: this.placar,
@@ -539,6 +560,7 @@ export class SessaoJogo extends EventEmitter {
 
     if (veredito === "ok") {
       this.chatEnviadoEm = Date.now();
+      this.emit("chat");
       this.emitir();
       return { ok: true };
     }
@@ -665,12 +687,41 @@ export class SessaoJogo extends EventEmitter {
     this.limparTimers();
     if (this.slug) {
       this.enviar({ type: "analyzer-get" });
-      this.tAnalyzer = setInterval(() => this.enviar({ type: "analyzer-get" }), ANALYZER_MS);
+      this.tAnalyzer = setInterval(() => {
+        this.enviar({ type: "analyzer-get" });
+        this.conferirCampo();
+      }, ANALYZER_MS);
     }
     setTimeout(() => this.enviar({ type: "pokes-get" }), 500);
     this.tPokes = setInterval(() => this.enviar({ type: "pokes-get" }), POKES_MS);
     this.tJobs = setInterval(() => void this.rodarJobs(), JOBS_MS);
     this.tPerfil = setInterval(() => void this.lerPerfil(), PERFIL_MS);
+  }
+
+  /**
+   * A cacada esta ligada e o campo esta mudo? Entao volta a entrar nele.
+   *
+   * Roda de carona no poll do analyzer, que ja bate a cada 2s. Nao dispara com o
+   * lider caido: ali o campo esta mudo por um motivo conhecido, e quem resolve e
+   * `levantarLider` — reentrar por cima seria brigar com ele.
+   */
+  private conferirCampo() {
+    if (!this.ws || !this.slug) return;
+    if (this.caidoDesde != null || this.deveVoltarAoCampo) return;
+    const agora = Date.now();
+    if (agora - this.ultimoCampoEm < CAMPO_TRAVADO_MS) return;
+    if (agora - this.reentradaEm < CAMPO_TRAVADO_MS) return;
+    // A conexao acabou de abrir: da o mesmo prazo antes de cobrar o primeiro frame.
+    if (this.desdeMs && agora - this.desdeMs < CAMPO_TRAVADO_MS) return;
+
+    this.reentradaEm = agora;
+    console.warn(`[robo] campo mudo ha ${CAMPO_TRAVADO_MS / 1000}s — reentrando em ${this.slug}`);
+    this.enviar({ type: "enter-hunt", slug: this.slug });
+    this.enviar({ type: "pending-get" });
+    this.registrar({
+      em: agora, tipo: "aviso", especie: "sem combate: entrei na caçada de novo",
+      shiny: false, xp: 0, loot: [],
+    });
   }
 
   private limparTimers() {
@@ -955,7 +1006,12 @@ export class SessaoJogo extends EventEmitter {
       const p = this.lerMensagem(m);
       if (p && this.guardarMensagem(p)) pegou = true;
     }
-    if (pegou) this.emitir();
+    if (pegou) this.emit("chat");
+  }
+
+  /** O chat, pra quem escuta o evento `chat` do stream. */
+  chatAtual(): Mensagem[] {
+    return this.chat;
   }
 
   /**

@@ -271,8 +271,6 @@ export interface EstadoHunt {
   /** a rota terminou: o lider chegou no nivel alvo */
   rotaConcluida: boolean;
 
-  /** o chat do jogo, ultimas mensagens */
-  chat: Mensagem[];
   /** quando o proximo envio de chat e aceito (anti-flood do jogo) */
   chatLiberadoEm: number | null;
 
@@ -479,7 +477,7 @@ export function estadoParado(): EstadoHunt {
     reconexoes: 0, shard: null,
     ouro: null, nivelTreinador: null, nivelLider: null, bolas: [], auto: null, noBox: 0,
     perfil: null, rota: [], passoAtual: null, rotaConcluida: false,
-    chat: [], chatLiberadoEm: null,
+    chatLiberadoEm: null,
     placar: placarZero(),
   };
 }

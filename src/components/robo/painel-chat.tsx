@@ -7,7 +7,7 @@ import { qualityTier, TIER_COLOR } from "@/lib/rarity";
 import { TOM } from "@/components/robo/pecas";
 import { fichaDoChat, type FichaPoke } from "@/components/robo/poke-modal";
 import { lerMensagemDoChat, type ItemDoChat, type PokeDoChat } from "@/lib/robo/chat-links";
-import { CANAIS, CANAL_ROTULO, type Canal, type EstadoHunt } from "@/lib/robo/motor/tipos";
+import { CANAIS, CANAL_ROTULO, type Canal, type EstadoHunt, type Mensagem } from "@/lib/robo/motor/tipos";
 
 /**
  * O chat do jogo.
@@ -105,9 +105,14 @@ type Filtro = Canal | "todos";
 
 export function AbaChat({
   estado,
+  chat,
+  lidoAte,
   onFicha,
 }: {
   estado: EstadoHunt;
+  chat: Mensagem[];
+  /** o que chegou depois disto ainda não foi visto */
+  lidoAte: number;
   onFicha: (f: FichaPoke) => void;
 }) {
   const [filtro, setFiltro] = useState<Filtro>("todos");
@@ -119,14 +124,17 @@ export function AbaChat({
   const fim = useRef<HTMLDivElement | null>(null);
 
   const mensagens = useMemo(
-    () => (filtro === "todos" ? estado.chat : estado.chat.filter((m) => m.canal === filtro)),
-    [estado.chat, filtro],
+    () => (filtro === "todos" ? chat : chat.filter((m) => m.canal === filtro)),
+    [chat, filtro],
   );
-  const porCanal = useMemo(() => {
+  // Por canal, só o que ainda NÃO foi visto. Uma contagem que nunca zera vira
+  // parte da moldura, e a moldura ninguém lê.
+  const novasPorCanal = useMemo(() => {
     const c: Record<string, number> = {};
-    for (const m of estado.chat) c[m.canal] = (c[m.canal] ?? 0) + 1;
+    for (const m of chat) if (m.em > lidoAte && !m.minha) c[m.canal] = (c[m.canal] ?? 0) + 1;
     return c;
-  }, [estado.chat]);
+  }, [chat, lidoAte]);
+  const novasTotal = Object.values(novasPorCanal).reduce((a, b) => a + b, 0);
 
   // O relógio é próprio: a espera do anti-flood conta sozinha, sem depender de
   // um frame novo chegar do servidor para a tela se atualizar.
@@ -171,7 +179,10 @@ export function AbaChat({
   return (
     <Panel className="p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="pix text-[13px] text-text-dim">Chat do jogo</h2>
+        <h2 className="pix text-[13px] text-text-dim">
+          Chat do jogo
+          <span className="ml-2 text-[11px] text-text-mute">{chat.length} guardadas</span>
+        </h2>
         <span className="flex items-center gap-2">
           <span className="pix text-[10px] text-text-mute">lendo</span>
           <Segmented
@@ -179,10 +190,10 @@ export function AbaChat({
             onChange={setFiltro}
             size="sm"
             options={[
-              { value: "todos", label: `todos ${estado.chat.length || ""}`.trim() },
+              { value: "todos", label: `todos${novasTotal ? ` ${novasTotal}` : ""}` },
               ...CANAIS.map((c) => ({
                 value: c,
-                label: `${CANAL_ROTULO[c]}${porCanal[c] ? ` ${porCanal[c]}` : ""}`,
+                label: `${CANAL_ROTULO[c]}${novasPorCanal[c] ? ` ${novasPorCanal[c]}` : ""}`,
               })),
             ]}
           />

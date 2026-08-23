@@ -1,8 +1,8 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { Panel, Sprite } from "@/components/ui";
-import { IconCoin } from "@/components/ui/icons";
+import { Panel, Segments, Sprite } from "@/components/ui";
+import { IconDollar } from "@/components/ui/icons";
 import { IconGem, IconLevel, IconTarget, IconXp } from "@/components/game-icons";
 import { Pokeball } from "@/components/ui/pokeball";
 import { cn } from "@/lib/cn";
@@ -35,7 +35,7 @@ export type Tom = keyof typeof TOM;
 
 /** O ícone de cada grandeza, num lugar só: trocar aqui troca no painel inteiro. */
 export const ICONE = {
-  ouro: IconCoin,
+  ouro: IconDollar,
   diamante: IconGem,
   xp: IconXp,
   nivel: IconLevel,
@@ -90,9 +90,14 @@ export function Valor({
 /**
  * Uma barra com nome e operandos.
  *
- * "91%" sozinho é placar sem jogo. A barra mostra a proporção, o número mostra
- * de quanto, e o rótulo diz de quê — as três coisas, sempre, porque tirar
- * qualquer uma delas obriga quem lê a adivinhar as outras duas.
+ * O desenho NÃO é daqui: ela embrulha `Segments`, o medidor em blocos que a dex
+ * e a calculadora já usam. Eu tinha escrito uma barra lisa própria aqui, e o
+ * resultado foi o painel do robô medindo as coisas de um jeito e o resto do site
+ * de outro — a mesma grandeza com duas aparências.
+ *
+ * "91%" sozinho é placar sem jogo: o rótulo diz de quê, a barra dá a proporção e
+ * o número diz de quanto. Tirar qualquer um dos três obriga quem lê a adivinhar
+ * os outros dois.
  */
 export function Medidor({
   rotulo,
@@ -110,11 +115,11 @@ export function Medidor({
   tom?: Tom;
   /** cor crua, quando ela é dado (faixa de raridade, tipo) e não decisão de UI */
   cor?: string;
+  /** menos blocos, para caber em linha apertada */
   compacto?: boolean;
   sufixo?: ReactNode;
   className?: string;
 }) {
-  const razao = max > 0 ? Math.max(0, Math.min(1, valor / max)) : 0;
   return (
     <span className={cn("flex min-w-0 flex-col gap-1", className)}>
       {rotulo || sufixo ? (
@@ -123,15 +128,13 @@ export function Medidor({
           {sufixo ? <span className="text-[11px] tabular text-text-mute">{sufixo}</span> : null}
         </span>
       ) : null}
-      <span
-        className={cn("flex w-full overflow-hidden bg-surface-3", compacto ? "h-1" : "h-1.5")}
-        aria-hidden="true"
-      >
-        <span
-          className="transition-[width] duration-500 ease-out"
-          style={{ width: `${razao * 100}%`, backgroundColor: cor ?? TOM[tom] }}
-        />
-      </span>
+      <Segments
+        ratio={max > 0 ? valor / max : 0}
+        tint={cor ?? TOM[tom]}
+        segments={compacto ? 10 : 16}
+        max={max}
+        value={valor}
+      />
     </span>
   );
 }

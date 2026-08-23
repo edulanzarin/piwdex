@@ -131,7 +131,10 @@ export function PokeModal({
     !!leitura &&
     leitura.ivs.every((v) => v >= 0 && v <= IV_MAX + 1) &&
     (ficha.ivTotal == null || Math.abs(leitura.total - ficha.ivTotal) <= Math.max(6, ficha.ivTotal * 0.1));
-  const ivs = confere ? leitura.ivs : null;
+  // Arredondado e travado no teto: a inversao devolve fracionario (o stat que
+  // entra ja veio arredondado pelo jogo), e "IV 31,7/32" e precisao que o dado
+  // nao tem.
+  const ivs = confere ? leitura.ivs.map((v) => Math.min(IV_MAX, Math.round(v))) : null;
   const pct = totalIv != null ? totalIv / TOTAL_MAX : null;
   const v = pct != null ? veredito(pct) : null;
   const poder = ficha.power ?? (ficha.stats.length ? powerOf(ficha.stats, ficha.quality) : null);
@@ -170,10 +173,10 @@ export function PokeModal({
                 </>
               ) : null}
               <span
-                className="pix border px-2 py-0.5 text-[10px]"
+                className="pix inline-flex h-6 items-center border px-2 text-[10px]"
                 style={{ color: TIER_COLOR[tier], borderColor: `color-mix(in srgb, ${TIER_COLOR[tier]} 45%, transparent)` }}
               >
-                {TIER_LABEL[tier]} · {ficha.quality.toFixed(3)}x
+                {TIER_LABEL[tier]} · {ficha.quality.toFixed(2)}x
               </span>
             </span>
 

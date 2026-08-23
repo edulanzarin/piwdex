@@ -108,7 +108,7 @@ function Consumivel({
 }) {
   return (
     <div
-      className="flex flex-col gap-2 border border-line bg-bg-soft p-3 transition-colors"
+      className="flex h-full flex-col gap-2 border border-line bg-bg-soft p-3 transition-colors"
       style={ligado ? { borderColor: "color-mix(in srgb, var(--color-t-robo) 45%, transparent)" } : undefined}
     >
       <div className="flex items-center justify-between gap-2">
@@ -375,7 +375,7 @@ export function AbaAutomacao({
 
   const bolasDaLoja = (loja?.bolas ?? []).map((b) => ({
     value: String(b.id),
-    label: `${b.nome} · ${compact(b.preco)} ouro`,
+    label: `${b.nome} · ${compact(b.preco)} dólares`,
     render: (
       <span className="flex min-w-0 items-center gap-2">
         {b.icone ? <Sprite src={b.icone} alt="" size={18} /> : null}
@@ -387,7 +387,7 @@ export function AbaAutomacao({
 
   const comIcone = (i: { id: number; nome: string; preco: number; icone: string }) => ({
     value: String(i.id),
-    label: `${i.nome} · ${compact(i.preco)} ouro`,
+    label: `${i.nome} · ${compact(i.preco)} dólares`,
     render: (
       <span className="flex min-w-0 items-center gap-2">
         {i.icone ? <Sprite src={i.icone} alt="" size={18} /> : null}
@@ -434,14 +434,16 @@ export function AbaAutomacao({
                   </Note>
                 ) : null}
 
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="flex flex-col gap-2 border border-line bg-bg-soft p-3">
+                {/* `items-stretch` + `justify-between`: os quatro cartões têm
+                    conteúdo de tamanhos diferentes (dois têm campo embaixo, dois
+                    não) e sem isso a grade desenhava quatro alturas. */}
+                <div className="grid items-stretch gap-3 sm:grid-cols-2">
+                  <div className="flex flex-col justify-between gap-2 border border-line bg-bg-soft p-3">
                     <Switch
                       checked={autoAtual.autoCatch}
                       disabled={salvandoAuto}
                       onChange={(e) => mudarAutoLocal({ autoCatch: e.currentTarget.checked })}
                       label="capturar sozinho"
-                      hint="o jogo joga a bola nos corpos da fila"
                     />
                     {autoAtual.autoCatch ? (
                       <Select
@@ -454,13 +456,12 @@ export function AbaAutomacao({
                     ) : null}
                   </div>
 
-                  <div className="flex flex-col gap-2 border border-line bg-bg-soft p-3">
+                  <div className="flex flex-col justify-between gap-2 border border-line bg-bg-soft p-3">
                     <Switch
                       checked={autoAtual.autoCatchShiny}
                       disabled={salvandoAuto}
                       onChange={(e) => mudarAutoLocal({ autoCatchShiny: e.currentTarget.checked })}
                       label="bola separada para shiny"
-                      hint="gasta a bola boa só no que vale"
                     />
                     {autoAtual.autoCatchShiny ? (
                       <Select
@@ -473,13 +474,12 @@ export function AbaAutomacao({
                     ) : null}
                   </div>
 
-                  <div className="flex flex-col gap-2 border border-line bg-bg-soft p-3">
+                  <div className="flex flex-col justify-between gap-2 border border-line bg-bg-soft p-3">
                     <Switch
                       checked={autoAtual.autoPotion}
                       disabled={salvandoAuto}
                       onChange={(e) => mudarAutoLocal({ autoPotion: e.currentTarget.checked })}
                       label="usar poção sozinho"
-                      hint="antes de desmaiar, que custa a caçada inteira"
                     />
                     {autoAtual.autoPotion ? (
                       <label className="flex items-end gap-2">
@@ -497,13 +497,12 @@ export function AbaAutomacao({
                     ) : null}
                   </div>
 
-                  <div className="flex flex-col gap-2 border border-line bg-bg-soft p-3">
+                  <div className="flex flex-col justify-between gap-2 border border-line bg-bg-soft p-3">
                     <Switch
                       checked={autoAtual.autoRevive}
                       disabled={salvandoAuto}
                       onChange={(e) => mudarAutoLocal({ autoRevive: e.currentTarget.checked })}
                       label="usar revive sozinho"
-                      hint="o robô também levanta o líder por conta"
                     />
                   </div>
                 </div>
@@ -643,7 +642,7 @@ export function AbaAutomacao({
               </span>
             }
           >
-            <div className="grid gap-3 sm:grid-cols-3">
+            <div className="grid items-stretch gap-3 sm:grid-cols-3">
               <Consumivel
                 titulo="bolas"
                 unidade="un"
@@ -703,7 +702,7 @@ export function AbaAutomacao({
               </label>
               <p className="max-w-xs pb-1 text-[11px] text-text-mute">
                 O robô nunca gasta além disso de uma vez, mesmo com a conta cheia.
-                {loja ? ` Você tem ${compact(loja.ouro)} de ouro.` : ""}
+                {loja ? ` Você tem ${compact(loja.ouro)} em dólares.` : ""}
               </p>
             </div>
           </Secao>
@@ -743,7 +742,7 @@ export function AbaAutomacao({
               label="vender os itens marcados"
               hint={
                 rascunho.dropIds.length
-                  ? `${rascunho.dropIds.length} marcados · ${compact(rendeMarcado)} de ouro parado na mochila`
+                  ? `${rascunho.dropIds.length} marcados · ${compact(rendeMarcado)} em dólares parados na mochila`
                   : "marque pelo menos um item abaixo"
               }
             />
@@ -751,30 +750,42 @@ export function AbaAutomacao({
             {mochila.length === 0 ? (
               <Empty title="Mochila vazia" hint="Os drops aparecem aqui depois dos primeiros abates." />
             ) : (
-              <ul className="grid max-h-[300px] gap-1 overflow-y-auto sm:grid-cols-2">
+              <ul className="grid max-h-[320px] content-start gap-1 overflow-y-auto sm:grid-cols-2">
                 {mochila.map((i) => {
                   const marcado = rascunho.dropIds.includes(i.id);
                   return (
-                    <li
-                      key={i.id}
-                      className="flex items-center gap-2 border border-line bg-bg-soft px-2 py-1.5"
-                      style={marcado ? { borderColor: "color-mix(in srgb, var(--color-ok) 40%, transparent)" } : undefined}
-                    >
-                      <Checkbox
-                        checked={marcado}
-                        onChange={() =>
-                          mudar({
-                            dropIds: marcado
-                              ? rascunho.dropIds.filter((x) => x !== i.id)
-                              : [...rascunho.dropIds, i.id],
-                          })
-                        }
-                      />
-                      {i.icone ? <Sprite src={i.icone} alt="" size={20} /> : null}
-                      <span className="min-w-0 flex-1 truncate text-[13px] text-text">{i.nome}</span>
-                      <span className="shrink-0 text-[11px] tabular text-text-mute">
-                        {compact(i.quantidade)}x · {compact(i.quantidade * i.precoNpc)}
-                      </span>
+                    <li key={i.id}>
+                      {/* A LINHA inteira marca. Obrigar a acertar o quadradinho
+                          de 16px numa lista de vinte itens é trabalho manual que
+                          o clique já podia resolver. */}
+                      <label
+                        className="flex h-11 cursor-pointer select-none items-center gap-2 border bg-bg-soft px-2 transition-colors hover:border-line-strong"
+                        style={{
+                          borderColor: marcado
+                            ? "color-mix(in srgb, var(--color-ok) 45%, transparent)"
+                            : "var(--color-line)",
+                        }}
+                      >
+                        <Checkbox
+                          checked={marcado}
+                          onChange={() =>
+                            mudar({
+                              dropIds: marcado
+                                ? rascunho.dropIds.filter((x) => x !== i.id)
+                                : [...rascunho.dropIds, i.id],
+                            })
+                          }
+                        />
+                        {i.icone ? (
+                          <Sprite src={i.icone} alt="" size={20} />
+                        ) : (
+                          <span className="h-5 w-5 shrink-0 border border-line" />
+                        )}
+                        <span className="min-w-0 flex-1 truncate text-[13px] text-text">{i.nome}</span>
+                        <span className="shrink-0 text-right text-[11px] tabular text-text-mute">
+                          {compact(i.quantidade)}x · {compact(i.quantidade * i.precoNpc)}
+                        </span>
+                      </label>
                     </li>
                   );
                 })}
@@ -803,8 +814,8 @@ export function AbaAutomacao({
                   Com isto ligado, o robô vende sozinho todo pokémon do box abaixo dos limites. Confira
                   os números antes de sair da tela.
                 </Note>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="border border-line bg-bg-soft p-3">
+                <div className="grid items-stretch gap-3 sm:grid-cols-2">
+                  <div className="flex items-center border border-line bg-bg-soft p-3">
                     <Switch
                       checked={rascunho.manterShiny}
                       onChange={(e) => mudar({ manterShiny: e.currentTarget.checked })}
@@ -814,7 +825,7 @@ export function AbaAutomacao({
                   {/* Qualidade e IV são grandezas diferentes e as duas seguram o
                       bicho: um IV médio de qualidade DIVINA vale mais que um IV
                       alto de qualidade comum. */}
-                  <label className="flex flex-col gap-1 border border-line bg-bg-soft p-3">
+                  <label className="flex flex-col justify-between gap-1 border border-line bg-bg-soft p-3">
                     <span className="pix text-[10px] text-text-mute">fica com qualidade a partir de</span>
                     <Select
                       value={qualityTier(rascunho.qualidadeMinima)}
@@ -830,13 +841,13 @@ export function AbaAutomacao({
                               aria-hidden="true"
                             />
                             <span className="flex-1">{TIER_LABEL[t]}</span>
-                            <span className="text-[11px] tabular text-text-mute">{TIER_MIN[t].toFixed(1)}x</span>
+                            <span className="text-[11px] tabular text-text-mute">{TIER_MIN[t].toFixed(2)}x</span>
                           </span>
                         ),
                       }))}
                     />
                   </label>
-                  <label className="flex flex-col gap-1 border border-line bg-bg-soft p-3">
+                  <label className="flex flex-col justify-between gap-1 border border-line bg-bg-soft p-3">
                     <span className="pix text-[10px] text-text-mute">fica com IV a partir de</span>
                     <NumberField
                       value={rascunho.ivMinimo}
@@ -845,7 +856,7 @@ export function AbaAutomacao({
                       max={192}
                     />
                   </label>
-                  <label className="flex flex-col gap-1 border border-line bg-bg-soft p-3">
+                  <label className="flex flex-col justify-between gap-1 border border-line bg-bg-soft p-3">
                     <span className="pix text-[10px] text-text-mute">fica com nível a partir de</span>
                     <NumberField
                       value={rascunho.nivelMinimo}

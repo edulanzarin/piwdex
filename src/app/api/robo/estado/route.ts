@@ -57,6 +57,17 @@ export async function GET(req: Request) {
         escrever(`event: estado\ndata: ${JSON.stringify(estadoDe(usuario.id))}\n\n`);
       };
 
+      /**
+       * O chat viaja num evento SEPARADO.
+       *
+       * Ele muda devagar (uma mensagem por vez) e o estado muda a cada segundo
+       * enquanto a cacada corre. Juntos, trezentas mensagens seriam reenviadas
+       * sessenta vezes por minuto — a mesma conversa, de novo, pra sempre.
+       */
+      const mandarChat = () => {
+        escrever(`event: chat\ndata: ${JSON.stringify(sessao.chatAtual())}\n\n`);
+      };
+
       const aoMudar = () => {
         if (pendente) return;
         const espera = Math.max(0, TETO_MS - (Date.now() - ultimoEnvio));
@@ -72,7 +83,9 @@ export async function GET(req: Request) {
       };
 
       mandarEstado();
+      mandarChat();
       sessao.on("mudou", aoMudar);
+      sessao.on("chat", mandarChat);
 
       const batida = setInterval(() => escrever(": batida\n\n"), BATIMENTO_MS);
 
@@ -85,6 +98,7 @@ export async function GET(req: Request) {
         // deixa um listener preso na sessao, que vive o processo inteiro. O
         // EventEmitter avisa aos dez e vaza memoria muito antes disso.
         sessao.off("mudou", aoMudar);
+        sessao.off("chat", mandarChat);
         try { controle.close(); } catch { /* ja fechado */ }
       };
 

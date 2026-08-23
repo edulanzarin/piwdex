@@ -120,7 +120,7 @@ export async function rodarCompras(
         if (qtd <= 0) {
           recados.push({
             ok: false, tipo: "compra",
-            texto: `sem ouro para repor ${alvo.nome}`,
+            texto: `sem dólares para repor ${alvo.nome}`,
             detalhe: `precisa de ${ouroTxt(alvo.preco * falta)}, disponível ${ouroTxt(disponivel)}`,
             ouro: 0,
           });
@@ -167,7 +167,7 @@ export async function rodarCompras(
     if (qtd <= 0) {
       recados.push({
         ok: false, tipo: "compra",
-        texto: `sem ouro para repor ${item.nome}`,
+        texto: `sem dólares para repor ${item.nome}`,
         detalhe: `precisa de ${ouroTxt(item.preco * falta)}, disponível ${ouroTxt(disponivel)}`,
         ouro: 0,
       });

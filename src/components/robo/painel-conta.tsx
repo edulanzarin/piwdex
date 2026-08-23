@@ -165,7 +165,7 @@ export function AbaConta({ onFicha }: { onFicha: (f: FichaPoke) => void }) {
         ) : (
           <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
             <Dado rotulo="Nível" valor={String(perfil.level)} icone={<ICONE.nivel size={12} />} />
-            <Dado rotulo="Ouro" valor={compact(perfil.gold)} tom={TOM.ouro} icone={<ICONE.ouro size={12} />} />
+            <Dado rotulo="Dólares" valor={compact(perfil.gold)} tom={TOM.ouro} icone={<ICONE.ouro size={12} />} />
             <Dado
               rotulo="Diamantes"
               valor={compact(perfil.diamantes)}
@@ -243,7 +243,7 @@ export function AbaConta({ onFicha }: { onFicha: (f: FichaPoke) => void }) {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="pix text-[13px] text-text-dim">Mochila</h2>
             <span className="pix text-[11px] text-text-mute">
-              {mochila.length} tipos · {compact(valorParado)} de ouro parado
+              {mochila.length} tipos · {compact(valorParado)} em dólares parados
             </span>
           </div>
 
@@ -376,7 +376,7 @@ export function AbaConta({ onFicha }: { onFicha: (f: FichaPoke) => void }) {
                         {p.locked ? <span className="pix text-[10px] text-text-mute">cadeado</span> : null}
                       </p>
                       <p className="mt-0.5 flex flex-wrap items-center gap-x-3 text-[11px] tabular text-text-mute">
-                        <span className="pix text-[10px]" style={{ color: TIER_COLOR[tier] }}>
+                        <span className="pix w-16 shrink-0 text-[10px]" style={{ color: TIER_COLOR[tier] }}>
                           {TIER_LABEL[tier]}
                         </span>
                         <span>IV {p.ivTotal}</span>

@@ -7,7 +7,7 @@ import { compact, num, TIER_LABEL } from "@/lib/labels";
 import { qualityTier, TIER_COLOR } from "@/lib/rarity";
 import { spriteUrl } from "@/lib/sprites";
 import { xpProgress } from "@/lib/xp";
-import { BolaChip, Cartao, ICONE, Medidor, TOM, Valor } from "@/components/robo/pecas";
+import { Cartao, ICONE, Medidor, TOM, Valor } from "@/components/robo/pecas";
 import { fichaDaConta, type FichaPoke } from "@/components/robo/poke-modal";
 import type { EstadoHunt, Evento } from "@/lib/robo/motor/tipos";
 import type { HuntOpcao } from "@/components/robo/painel-tool";
@@ -75,7 +75,9 @@ function LinhaTime({
               </span>
             ) : null}
             {p.shiny ? <span className="pix text-[10px] text-warn">shiny</span> : null}
-            <span className="pix text-[10px]" style={{ color: TIER_COLOR[tier] }}>
+            {/* Largura fixa: os nomes vao de "Raro" a "Ancestral", e texto solto
+                empurrava o resto da linha um pouco diferente em cada pokemon. */}
+            <span className="pix w-16 shrink-0 text-[10px]" style={{ color: TIER_COLOR[tier] }}>
               {TIER_LABEL[tier]}
             </span>
             <span className="pix text-[10px] text-text-mute">IV {p.ivTotal}</span>
@@ -192,11 +194,11 @@ export function AbaCacada({
           tom={a?.shinyCaptures ? "ouro" : "neutro"}
         />
         <Valor rotulo="XP/h" valor={a ? Math.round(a.xpPerHour) : null} icone={<ICONE.xp size={12} />} tom="xp" />
-        <Valor rotulo="Ouro/h" valor={a ? Math.round(a.goldPerHour) : null} icone={<ICONE.ouro size={12} />} tom="ouro" />
+        <Valor rotulo="Dólares/h" valor={a ? Math.round(a.goldPerHour) : null} icone={<ICONE.ouro size={12} />} tom="ouro" />
         <Valor
           rotulo="Saldo"
           valor={a ? Math.round(liquido) : null}
-          sufixo="ouro"
+          sufixo="dólares"
           icone={<ICONE.ouro size={12} />}
           tom={liquido < 0 ? "perigo" : "vida"}
         />
@@ -207,7 +209,7 @@ export function AbaCacada({
           icone={<Pokeball size={12} />}
           tom={estoqueBolas === 0 && estado.ligado ? "perigo" : "neutro"}
         />
-        <Valor rotulo="Ouro" valor={estado.ouro} icone={<ICONE.ouro size={12} />} tom="ouro" />
+        <Valor rotulo="Dólares" valor={estado.ouro} icone={<ICONE.ouro size={12} />} tom="ouro" />
         <Valor
           rotulo="Nível"
           valor={estado.nivelLider}
@@ -253,12 +255,9 @@ export function AbaCacada({
           titulo="Time"
           altura={ALTURA}
           acao={
-            <span className="flex items-center gap-2">
-              <span className="pix text-[11px] text-text-mute">{estado.noBox} no box</span>
-              <Button variant="outline" size="sm" disabled={ocupado} onClick={() => void comandar("curar")}>
-                curar na Joy
-              </Button>
-            </span>
+            <Button variant="outline" size="sm" disabled={ocupado} onClick={() => void comandar("curar")}>
+              curar na Joy
+            </Button>
           }
         >
           {estado.caido ? (
@@ -423,22 +422,6 @@ export function AbaCacada({
         </Cartao>
       </div>
 
-      {/* A bolsa completa fecha a aba: é a pergunta "dá para continuar?" */}
-      {estado.bolas.length ? (
-        <div className="flex flex-wrap items-center gap-2 border border-line bg-bg-soft px-3 py-2">
-          <span className="pix text-[10px] text-text-mute">bolsa</span>
-          {estado.bolas.map((b) => (
-            <BolaChip
-              key={b.id}
-              nome={b.nome}
-              icone={b.icone}
-              quantidade={b.quantidade}
-              infinita={b.infinita}
-              ativa={estado.auto?.autoCatchBallId === b.id}
-            />
-          ))}
-        </div>
-      ) : null}
     </div>
   );
 }

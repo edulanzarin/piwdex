@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { RoboNav } from "@/components/robo/nav";
 import { usuarioAtual } from "@/lib/robo/sessao";
-import { RoboFooter } from "@/components/robo/footer";
 
 /**
  * A moldura do ROBO — a metade logada, em `bot.piwdex.com.br`.
@@ -14,6 +13,9 @@ import { RoboFooter } from "@/components/robo/footer";
  *   indexada so serviria pra confundir quem procura a dex.
  * - **Navegacao propria.** Os links da dex nao levam a lugar nenhum de dentro
  *   do painel, e o painel tem os seus.
+ * - **Sem rodape.** O painel e uma tela de trabalho que ja rola muito; um rodape
+ *   institucional no fim dela nao e lido por ninguem e ainda empurra o conteudo.
+ *   O aviso de projeto de fa vive na dex, que e a parte publica.
  */
 export const metadata: Metadata = {
   title: { default: "Robô · PIWdex", template: "%s · Robô PIWdex" },
@@ -40,7 +42,6 @@ export default async function LayoutRobo({ children }: { children: React.ReactNo
       <main id="painel" className="mx-auto w-full max-w-[1400px] flex-1 px-3 pb-16 pt-4 sm:px-5">
         {children}
       </main>
-      <RoboFooter />
     </>
   );
 }

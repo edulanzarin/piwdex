@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Button, Combobox, Note, Panel, Tabs } from "@/components/ui";
 import { compact } from "@/lib/labels";
-import { estadoParado, type EstadoHunt } from "@/lib/robo/motor/tipos";
+import { estadoParado, type EstadoHunt, type Mensagem } from "@/lib/robo/motor/tipos";
 import { CONFIG_PADRAO, type ConfigAuto } from "@/lib/robo/motor/tipos";
 import { BarraTopo } from "@/components/robo/painel-estado";
 import { AbaCacada } from "@/components/robo/painel-cacada";
@@ -95,12 +95,31 @@ export function PainelTool({
   // caçada, da conta e do chat, e uma cópia por origem daria quatro fichas
   // ligeiramente diferentes do mesmo bicho.
   const [ficha, setFicha] = useState<FichaPoke | null>(null);
+  // O chat chega por um evento próprio do stream: ele muda devagar e o estado
+  // muda a cada segundo, e juntá-los reenviaria a conversa inteira sessenta
+  // vezes por minuto.
+  const [chat, setChat] = useState<Mensagem[]>([]);
+  /**
+   * Até quando o chat já foi lido.
+   *
+   * A contagem na aba é de NÃO LIDAS. "60" fixo não é aviso, é decoração: um
+   * número que nunca muda para de ser olhado, e aí a mensagem que importa passa
+   * junto com ele.
+   */
+  const [lidoAte, setLidoAte] = useState(() => Date.now());
   const fonte = useRef<EventSource | null>(null);
 
   useEffect(() => {
     if (!temVinculo) return;
     const es = new EventSource("/api/robo/estado");
     fonte.current = es;
+    es.addEventListener("chat", (ev) => {
+      try {
+        setChat(JSON.parse((ev as MessageEvent).data) as Mensagem[]);
+      } catch {
+        /* frame torto: mantem o ultimo chat bom */
+      }
+    });
     es.addEventListener("estado", (ev) => {
       try {
         setEstado(JSON.parse((ev as MessageEvent).data) as EstadoHunt);
@@ -121,6 +140,13 @@ export function PainelTool({
     const t = setInterval(() => setAgora(Date.now()), 1000);
     return () => clearInterval(t);
   }, []);
+
+  // Estar NA aba do chat já é ter lido: a contagem zera enquanto ela está aberta.
+  useEffect(() => {
+    if (aba === "chat") setLidoAte(Date.now());
+  }, [aba, chat.length]);
+
+  const naoLidas = chat.filter((m) => m.em > lidoAte && !m.minha).length;
 
   const comandar = useCallback(async (rota: string, corpo?: unknown) => {
     setOcupado(true);
@@ -198,7 +224,7 @@ export function PainelTool({
           { value: "conta", label: "Conta" },
           { value: "cacada", label: "Caçada" },
           { value: "automacao", label: "Automação" },
-          { value: "chat", label: "Chat", count: estado.chat.length || undefined },
+          { value: "chat", label: "Chat", count: naoLidas || undefined },
           { value: "registro", label: "Registro" },
         ]}
       />
@@ -220,7 +246,9 @@ export function PainelTool({
       <PokeModal ficha={ficha} onFechar={() => setFicha(null)} />
 
       {aba === "conta" ? <AbaConta onFicha={setFicha} /> : null}
-      {aba === "chat" ? <AbaChat estado={estado} onFicha={setFicha} /> : null}
+      {aba === "chat" ? (
+        <AbaChat estado={estado} chat={chat} lidoAte={lidoAte} onFicha={setFicha} />
+      ) : null}
       {aba === "registro" ? <AbaRegistro /> : null}
     </div>
   );
