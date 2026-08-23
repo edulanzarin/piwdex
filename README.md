@@ -37,8 +37,12 @@ intacta e o robo apagado.
 
 ## O que o robo faz
 
-Ele SEGURA a sessao de jogo (o WebSocket **e** a sessao, e o jogo aceita uma por
-conta) e, em cima dela, roda os trabalhos:
+**Ligar o robo e tomar a sessao de jogo**, e nada alem disso: o WebSocket **e** a
+sessao, e o jogo aceita uma por conta. Cacar e um TRABALHO que roda em cima dela,
+ao lado de vender, repor e falar no chat — por isso da pra ligar o robo sem
+escolher cacada nenhuma, e trocar de hunt sem largar a sessao.
+
+Os trabalhos:
 
 | Trabalho | Como |
 |---|---|
@@ -48,6 +52,7 @@ conta) e, em cima dela, roda os trabalhos:
 | Vender drop | lista BRANCA de itens, respeitando o cadeado do jogador |
 | Vender pokemon | so o que passa por todos os vetos (time, lider, inicial, cadeado, shiny, IV, nivel) |
 | Automacao do jogo | liga o Auto-Helper (auto-catch, auto-potion, auto-revive) e escolhe as bolas |
+| Chat | le os tres canais e manda mensagem pelo mesmo socket (nada sai sozinho) |
 
 Comprar e vender vao por REST, e por isso podem acontecer com a cacada correndo:
 REST nao disputa a sessao. Tudo que MUTA a conta em campo sai pelo socket ja
