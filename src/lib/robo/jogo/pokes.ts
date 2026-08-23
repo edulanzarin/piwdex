@@ -79,16 +79,17 @@ export function normalizarPokes(lista: unknown): ActivePoke[] {
   });
 }
 
-/** O treinador, do `GET /api/characters/me`. */
-export interface Perfil {
-  nome: string;
-  level: number;
-  gold: number;
-  diamantes: number;
-  capturas: number;
-  vip: boolean;
-}
+import type { Perfil } from "@/lib/robo/motor/tipos";
 
+export type { Perfil };
+
+/**
+ * O treinador, do `GET /api/characters/me`.
+ *
+ * A rota devolve a conta inteira e o motor lia dois campos. O resto vinha junto,
+ * no mesmo byte, e ia pro lixo — sendo que e exatamente o que responde "como
+ * esta a minha conta" sem abrir o jogo, que com o robo ligado custa a sessao.
+ */
 export function normalizarPerfil(bruto: unknown): Perfil | null {
   if (!bruto || typeof bruto !== "object") return null;
   const raiz = bruto as Record<string, unknown>;
@@ -96,6 +97,9 @@ export function normalizarPerfil(bruto: unknown): Perfil | null {
   // se o jogo achatar a resposta um dia.
   const p = ((raiz.character ?? raiz) as Record<string, unknown>) ?? {};
   if (!p || typeof p !== "object") return null;
+  const talvez = (v: unknown): number | null =>
+    typeof v === "number" && Number.isFinite(v) ? v : null;
+  const frase = (v: unknown): string | null => (typeof v === "string" && v ? v : null);
   return {
     nome: str(p.name, "?"),
     level: num(p.level),
@@ -103,5 +107,12 @@ export function normalizarPerfil(bruto: unknown): Perfil | null {
     diamantes: num(p.diamonds),
     capturas: num(p.catches ?? p.totalCatches),
     vip: Boolean(p.isVip ?? p.vip),
+    vipAte: frase(p.vipUntil),
+    xp: talvez(p.xp),
+    cla: frase(p.clan),
+    profissao: frase(p.profession),
+    sequencia: talvez(p.streak ?? p.streakDays ?? p.loginStreak),
+    pescaria: talvez(p.fishingSkill),
+    passeNivel: talvez(p.battlePassPoints),
   };
 }

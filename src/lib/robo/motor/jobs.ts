@@ -259,12 +259,16 @@ export async function rodarVendaDrops(
  * falharia de qualquer jeito, e um item recusado derruba o lote inteiro.
  */
 export function vendaveis(box: ActivePoke[], cfg: ConfigAuto): ActivePoke[] {
+  // Qualidade e IV sao grandezas DIFERENTES e ambas seguram o bicho: um Ledian de
+  // IV medio e qualidade DIVINE vale mais que um de IV alto e qualidade comum. Ter
+  // so o IV como veto mandava o segundo caso pro NPC.
   const manter = new Set(cfg.manterEspecies);
   return box.filter((p) => {
     if (p.team || p.leader || p.starter || p.locked) return false;
     if (cfg.manterShiny && p.shiny) return false;
     if (manter.has(p.speciesId)) return false;
     if (p.ivTotal >= cfg.ivMinimo) return false;
+    if (p.quality >= cfg.qualidadeMinima) return false;
     if (p.level >= cfg.nivelMinimo) return false;
     return true;
   });

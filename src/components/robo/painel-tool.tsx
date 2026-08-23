@@ -10,6 +10,7 @@ import { Diagnostico, LinhaStatus } from "@/components/robo/painel-estado";
 import { AbaCacada } from "@/components/robo/painel-cacada";
 import { AbaAutomacao } from "@/components/robo/painel-automacao";
 import { AbaChat } from "@/components/robo/painel-chat";
+import { AbaConta } from "@/components/robo/painel-conta";
 import { AbaRegistro } from "@/components/robo/painel-registro";
 
 /**
@@ -35,7 +36,7 @@ export interface HuntOpcao {
   area: string;
 }
 
-type Aba = "cacada" | "automacao" | "chat" | "registro";
+type Aba = "cacada" | "automacao" | "conta" | "chat" | "registro";
 
 function Numero({
   rotulo,
@@ -264,7 +265,8 @@ export function PainelTool({
         <Numero
           rotulo="Nível"
           valor={estado.nivelLider != null ? String(estado.nivelLider) : "—"}
-          sufixo="líder"
+          sufixo={estado.passoAtual ? `de ${config.nivelAlvo}` : "líder"}
+          tom={estado.rotaConcluida ? "var(--color-ok)" : undefined}
         />
       </div>
 
@@ -296,6 +298,7 @@ export function PainelTool({
         items={[
           { value: "cacada", label: "Caçada" },
           { value: "automacao", label: "Automação" },
+          { value: "conta", label: "Conta" },
           { value: "chat", label: "Chat", count: estado.chat.length || undefined },
           { value: "registro", label: "Registro" },
         ]}
@@ -305,6 +308,7 @@ export function PainelTool({
       {aba === "automacao" ? (
         <AbaAutomacao estado={estado} config={config} onConfig={mudarConfig} erro={null} />
       ) : null}
+      {aba === "conta" ? <AbaConta /> : null}
       {aba === "chat" ? <AbaChat estado={estado} /> : null}
       {aba === "registro" ? <AbaRegistro /> : null}
     </div>

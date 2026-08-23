@@ -25,6 +25,26 @@ export const TIER_ORDER: RarityTier[] = [
   "WEAK", "COMMON", "UNCOMMON", "RARE", "EPIC", "LEGENDARY", "MYTHIC", "ANCIENT", "DIVINE",
 ];
 
+/**
+ * O PISO de qualidade de cada faixa — a mesma tabela lida ao contrario.
+ *
+ * Existe porque escolher por faixa e escolher por numero sao a mesma decisao
+ * vista de dois lados: a tela pergunta "guardar de EPIC pra cima", e a regra que
+ * roda no servidor compara `quality >= 1.5`. Derivar um do outro na mao, em dois
+ * lugares, e como as duas tabelas divergem.
+ */
+export const TIER_MIN: Record<RarityTier, number> = {
+  WEAK: 0,
+  COMMON: 1.0,
+  UNCOMMON: 1.1,
+  RARE: 1.3,
+  EPIC: 1.5,
+  LEGENDARY: 1.7,
+  MYTHIC: 2.0,
+  ANCIENT: 3.0,
+  DIVINE: 4.0,
+};
+
 /** Faixa a que uma qualidade pertence (tabela oficial acima). */
 export function qualityTier(quality: number): RarityTier {
   if (quality < 1.0) return "WEAK";

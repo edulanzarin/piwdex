@@ -1,9 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Button, Empty, Loading, Modal, Note, Panel, SearchInput, Sprite } from "@/components/ui";
-import { compact, num } from "@/lib/labels";
+import { Button, Empty, Loading, Modal, Note, Panel, SearchInput, Segmented, Sprite } from "@/components/ui";
+import { compact, num, TIER_LABEL } from "@/lib/labels";
+import { qualityTier, TIER_COLOR } from "@/lib/rarity";
 import { spriteUrl } from "@/lib/sprites";
+import { xpProgress } from "@/lib/xp";
 import type { ActivePoke } from "@/lib/robo/jogo/pokes";
 import type { EstadoHunt, Evento } from "@/lib/robo/motor/tipos";
 
@@ -11,6 +13,8 @@ interface NoBox extends ActivePoke {
   /** a venda automatica levaria este, com a config de agora */
   vendavel: boolean;
 }
+
+type Ordem = "qualidade" | "iv" | "nivel" | "valor" | "nome";
 
 /** A aba da caçada: quem luta, o que está na fila, o que acabou de acontecer. */
 
@@ -24,6 +28,46 @@ function BarraVida({ hp, maxHp }: { hp: number; maxHp: number }) {
   return (
     <span className="flex h-1.5 w-full overflow-hidden bg-surface-3" aria-hidden="true">
       <span style={{ width: `${razao * 100}%`, backgroundColor: cor }} />
+    </span>
+  );
+}
+
+/**
+ * O quanto falta para o próximo nível.
+ *
+ * A curva de XP do jogo é fechada e pública (`lib/xp.ts`), então dá para mostrar
+ * o progresso mesmo quando o frame não manda o XP acumulado: sem ele a barra
+ * some, e o número de nível continua de pé.
+ */
+function BarraXp({ level, xp }: { level: number; xp: number | null }) {
+  const p = xpProgress(level, xp);
+  // Sem o XP acumulado o jogo ainda deixa dizer o TAMANHO do nível, e essa é a
+  // leitura honesta: barra vazia diria "zero por cento", que é outra coisa.
+  if (p.pct == null) {
+    return (
+      <span className="flex items-center gap-2 text-[10px] tabular text-text-mute">
+        <span className="pix text-[10px]">nível custa</span>
+        {compact(p.need)} xp
+      </span>
+    );
+  }
+  return (
+    <span className="flex items-center gap-2">
+      <span className="flex h-1 w-full overflow-hidden bg-surface-3" aria-hidden="true">
+        <span style={{ width: `${p.pct * 100}%`, backgroundColor: COR }} />
+      </span>
+      <span className="shrink-0 text-[10px] tabular text-text-mute">{Math.round(p.pct * 100)}%</span>
+    </span>
+  );
+}
+
+/** A faixa de qualidade, com a cor da escada do jogo. */
+function Qualidade({ quality }: { quality: number }) {
+  if (!quality) return null;
+  const t = qualityTier(quality);
+  return (
+    <span className="pix shrink-0 text-[10px]" style={{ color: TIER_COLOR[t] }} title={`${quality.toFixed(2)}x`}>
+      {TIER_LABEL[t]}
     </span>
   );
 }
@@ -62,6 +106,7 @@ function ModalBox({
 }) {
   const [box, setBox] = useState<NoBox[] | null>(null);
   const [busca, setBusca] = useState("");
+  const [ordem, setOrdem] = useState<Ordem>("qualidade");
 
   const carregar = useCallback(async () => {
     const j = (await fetch("/api/robo/box")
@@ -75,9 +120,16 @@ function ModalBox({
   }, [aberto, carregar]);
 
   const termo = busca.trim().toLowerCase();
+  const ordenar: Record<Ordem, (a: NoBox, b: NoBox) => number> = {
+    qualidade: (a, b) => b.quality - a.quality || b.ivTotal - a.ivTotal,
+    iv: (a, b) => b.ivTotal - a.ivTotal || b.quality - a.quality,
+    nivel: (a, b) => b.level - a.level || b.ivTotal - a.ivTotal,
+    valor: (a, b) => b.sellValue - a.sellValue,
+    nome: (a, b) => a.name.localeCompare(b.name, "pt-BR"),
+  };
   const lista = (box ?? [])
     .filter((p) => !termo || p.name.toLowerCase().includes(termo))
-    .sort((a, b) => b.ivTotal - a.ivTotal || b.level - a.level);
+    .sort(ordenar[ordem]);
   const marcados = (box ?? []).filter((p) => p.vendavel).length;
 
   return (
@@ -93,10 +145,25 @@ function ModalBox({
               placeholder="filtrar por nome…"
               className="min-w-0 flex-1"
             />
+            <Segmented
+              value={ordem}
+              onChange={setOrdem}
+              size="sm"
+              options={[
+                { value: "qualidade", label: "qualidade" },
+                { value: "iv", label: "IV" },
+                { value: "nivel", label: "nível" },
+                { value: "valor", label: "valor" },
+                { value: "nome", label: "nome" },
+              ]}
+            />
             <Button variant="outline" size="sm" onClick={() => void carregar()}>
               atualizar
             </Button>
           </div>
+          <p className="text-[12px] text-text-mute">
+            {box.length} no box{lista.length !== box.length ? ` · ${lista.length} no filtro` : ""}.
+          </p>
 
           {marcados > 0 ? (
             <Note tone="warn">
@@ -126,10 +193,12 @@ function ModalBox({
                       {p.shiny ? <span className="pix text-[10px] text-warn">shiny</span> : null}
                       {p.locked ? <span className="pix text-[10px] text-text-mute">cadeado</span> : null}
                     </p>
-                    <p className="mt-0.5 flex gap-3 text-[11px] tabular text-text-mute">
+                    <p className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] tabular text-text-mute">
+                      <Qualidade quality={p.quality} />
                       <span>IV {p.ivTotal}</span>
                       <span>poder {compact(p.power)}</span>
                       <span>vale {compact(p.sellValue)}</span>
+                      <span>{num(p.hp, 0)}/{num(p.maxHp, 0)} de vida</span>
                     </p>
                   </div>
                   {p.vendavel ? (
@@ -208,11 +277,15 @@ export function AbaCacada({
           ) : (
             <ul className="mt-3 flex flex-col gap-2">
               {estado.time.map((p) => (
-                <li key={p.id} className="flex items-center gap-3 border border-line bg-bg-soft p-2">
-                  <Sprite src={spriteUrl(p.speciesId, p.shiny)} alt="" size={36} />
+                <li
+                  key={p.id}
+                  className="flex items-center gap-3 border border-line bg-bg-soft p-2"
+                  style={p.leader ? { borderColor: "color-mix(in srgb, var(--color-t-robo) 45%, transparent)" } : undefined}
+                >
+                  <Sprite src={spriteUrl(p.speciesId, p.shiny)} alt="" size={p.leader ? 44 : 36} />
                   <div className="min-w-0 flex-1">
-                    <p className="flex items-center gap-2 truncate text-[13px] text-text">
-                      {p.name}
+                    <p className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[13px] text-text">
+                      <span className="truncate">{p.name}</span>
                       <span className="pix text-[10px] text-text-mute">nv {p.level}</span>
                       {p.leader ? (
                         <span className="pix text-[10px]" style={{ color: COR }}>
@@ -220,12 +293,17 @@ export function AbaCacada({
                         </span>
                       ) : null}
                       {p.shiny ? <span className="pix text-[10px] text-warn">shiny</span> : null}
+                      <Qualidade quality={p.quality} />
+                      <span className="pix text-[10px] text-text-mute">IV {p.ivTotal}</span>
                     </p>
                     <span className="mt-1 flex items-center gap-2">
                       <BarraVida hp={p.hp} maxHp={p.maxHp} />
                       <span className="shrink-0 text-[11px] tabular text-text-mute">
                         {num(p.hp, 0)}/{num(p.maxHp, 0)}
                       </span>
+                    </span>
+                    <span className="mt-1 block">
+                      <BarraXp level={p.level} xp={p.xp} />
                     </span>
                   </div>
                   {!p.leader ? (

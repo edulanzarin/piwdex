@@ -18,6 +18,8 @@ import {
   type Fechamento,
   type Mensagem,
   type NaFila,
+  type PassoRota,
+  type Perfil,
   type Placar,
   type StatusSessao,
 } from "@/lib/robo/motor/tipos";
@@ -26,6 +28,7 @@ import { salvarStatus } from "@/lib/robo/motor/desejado";
 import { CONFIG_PADRAO, type ConfigAuto } from "@/lib/robo/motor/config";
 import { rodarCompras, rodarVendaDrops, rodarVendaPokes, type Recado } from "@/lib/robo/motor/jobs";
 import { registrarEvento } from "@/lib/robo/motor/eventos";
+import { passoDoNivel, planejarRota } from "@/lib/robo/motor/rota";
 import { fetchSource } from "@/lib/source";
 
 export * from "@/lib/robo/motor/tipos";
@@ -192,9 +195,15 @@ export class SessaoJogo extends EventEmitter {
   /** envio aguardando o eco do jogo: so o eco confirma que a mensagem entrou */
   private chatPendente: { texto: string; resolver: (r: "ok" | "recusado") => void } | null = null;
 
+  private perfil: Perfil | null = null;
   private ouro: number | null = null;
   private nivelTreinador: number | null = null;
   private nivelLider: number | null = null;
+
+  private rota: PassoRota[] = [];
+  private rotaConcluida = false;
+  private rotaPlanejadaPara: string | null = null;
+  private rotaTrocandoEm = 0;
 
   private heroHp: number | null = null;
   private heroMaxHp: number | null = null;
@@ -268,6 +277,11 @@ export class SessaoJogo extends EventEmitter {
       bolas: this.bolas,
       auto: this.auto,
       noBox: this.box.length,
+
+      perfil: this.perfil,
+      rota: this.rota,
+      passoAtual: this.nivelLider != null ? passoDoNivel(this.rota, this.nivelLider) : null,
+      rotaConcluida: this.rotaConcluida,
 
       chat: this.chat,
       chatLiberadoEm: this.chatEnviadoEm ? this.chatEnviadoEm + CHAT_COOLDOWN_MS : null,
@@ -357,19 +371,24 @@ export class SessaoJogo extends EventEmitter {
    * Trocar de hunt nao derruba a conexao: sai do campo antigo, zera a contagem e
    * entra no novo. `false` quer dizer que nao ha sessao — quem chama liga primeiro.
    */
-  cacar(slug: string): boolean {
+  cacar(slug: string, porRota = false): boolean {
     if (!this.ws) return false;
     const trocou = this.slug !== slug;
     if (this.slug && trocou) this.enviar({ type: "leave-hunt" });
     this.slug = slug;
     if (trocou) {
-      // Cacada nova zera a contagem: o proximo analyzer vira a base.
+      // Cacada nova zera a contagem do ANALYZER: ele e por cacada.
       this.refazerBase = true;
       this.analyzer = null;
-      this.eventos = [];
-      this.placar = placarZero();
       this.desdeMs = Date.now();
       this.ultimoCampoEm = 0;
+      // O feed e o placar das automacoes NAO zeram numa troca de rota: a rota
+      // troca de alvo varias vezes numa subida, e zerar a cada faixa apagaria o
+      // registro da sessao inteira algumas vezes por hora.
+      if (!porRota) {
+        this.eventos = [];
+        this.placar = placarZero();
+      }
     }
     this.entrarNoCampo(slug);
     this.rearmarTimers();
@@ -683,7 +702,13 @@ export class SessaoJogo extends EventEmitter {
               qty: Number(l.qty ?? 0),
             }))
           : [];
-        if (Number.isFinite(Number(m.level))) this.nivelLider = Number(m.level);
+        if (Number.isFinite(Number(m.level))) {
+          const antes = this.nivelLider;
+          this.nivelLider = Number(m.level);
+          // Subiu de nivel: e o unico instante em que a rota pode precisar trocar.
+          // Testar aqui evita esperar os 20s do proximo `pokes`.
+          if (m.leveledUp || (antes != null && this.nivelLider > antes)) void this.cuidarDaRota();
+        }
         this.registrar({
           em: Date.now(), tipo: "kill", especie: String(m.speciesName ?? "?"),
           shiny: Boolean(m.shiny), xp: Number(m.xpGained ?? 0), loot,
@@ -763,6 +788,8 @@ export class SessaoJogo extends EventEmitter {
           // A venda de pokemon le a lista que ACABOU de chegar: vender assim que
           // coleta e o que impede o box de encher entre uma varredura e outra.
           if (this.cfg.venderPoke) void this.rodarVendaPokes();
+          // A rota tambem: o nivel do lider so muda aqui e no `field-kill`.
+          void this.cuidarDaRota();
         }
         break;
 
@@ -1036,6 +1063,85 @@ export class SessaoJogo extends EventEmitter {
   }
 
   // -------------------------------------------------------------------------
+  // A cacada automatica
+  // -------------------------------------------------------------------------
+
+  /**
+   * Planeja a subida do lider ate o nivel alvo, e troca de hunt sozinho.
+   *
+   * O calculo e o MESMO da ferramenta publica de rota (`motor/rota.ts` chama
+   * `buildRoute`): dano, ameaca e XP por hora nivel a nivel. O robo nao ganha uma
+   * segunda opiniao sobre onde cacar — ele ganha as pernas pra executar a que ja
+   * existe.
+   *
+   * Replaneja quando o LIDER muda, e nao a cada nivel: a rota ja e calculada
+   * nivel a nivel ate o alvo, entao refazer a cada subida so gastaria CPU pra
+   * chegar no mesmo plano.
+   */
+  private async cuidarDaRota(): Promise<void> {
+    if (!this.cfg.autoRota || !this.ws) return;
+    const lider = this.time.find((p) => p.leader) ?? this.time[0];
+    if (!lider) return;
+
+    const assinatura = `${lider.id}|${this.cfg.nivelAlvo}`;
+    if (this.rotaPlanejadaPara !== assinatura) {
+      this.rotaPlanejadaPara = assinatura;
+      this.rota = [];
+      this.rotaConcluida = false;
+      const plano = await planejarRota(lider, this.cfg.nivelAlvo, { vip: this.perfil?.vip });
+      if (this.rotaPlanejadaPara !== assinatura) return; // o lider trocou no meio
+      if (!plano) {
+        // Sem plano: ou o lider ja passou do alvo, ou a especie nao tem alvo
+        // alcancavel. Os dois casos param a rota — insistir so trocaria de hunt
+        // a esmo.
+        this.rotaConcluida = lider.level >= this.cfg.nivelAlvo;
+        this.emitir();
+        return;
+      }
+      this.rota = plano.passos;
+      this.emitir();
+    }
+
+    if (lider.level >= this.cfg.nivelAlvo) {
+      if (!this.rotaConcluida) {
+        this.rotaConcluida = true;
+        this.registrar({
+          em: Date.now(), tipo: "aviso", especie: `${lider.name} chegou ao nível ${lider.level}`,
+          shiny: false, xp: 0, loot: [],
+        });
+        if (this.userId) {
+          void registrarEvento(this.userId, {
+            tipo: "meta",
+            titulo: `${lider.name} chegou ao nível ${this.cfg.nivelAlvo}`,
+            corpo: "A caçada automática terminou. O robô segue segurando a sessão.",
+          });
+        }
+        // Chegou na meta: sai do campo e NAO escolhe outra hunt. Continuar cacando
+        // depois do alvo seria o robo decidindo por conta o que fazer com o tempo
+        // do dono.
+        this.pararCacada();
+      }
+      return;
+    }
+
+    const passo = passoDoNivel(this.rota, lider.level);
+    if (!passo || passo.slug === this.slug) return;
+    // Anti-oscilacao: o `pokes` chega a cada 20s e o nivel pode empatar na
+    // fronteira de duas faixas. Uma troca por minuto e teto de sobra pra uma rota
+    // que muda de alvo a cada varios niveis.
+    const agora = Date.now();
+    if (agora - this.rotaTrocandoEm < 60_000) return;
+    this.rotaTrocandoEm = agora;
+
+    this.registrar({
+      em: Date.now(), tipo: "aviso",
+      especie: `rota: nível ${lider.level}, agora em ${passo.alvo}`,
+      shiny: false, xp: 0, loot: [],
+    });
+    this.cacar(passo.slug, true);
+  }
+
+  // -------------------------------------------------------------------------
   // As automacoes de loja (REST — nao disputam a sessao)
   // -------------------------------------------------------------------------
 
@@ -1057,8 +1163,10 @@ export class SessaoJogo extends EventEmitter {
       if (!r.res.ok) return;
       const perfil = normalizarPerfil(await r.res.json().catch(() => null));
       if (!perfil) return;
+      this.perfil = perfil;
       this.ouro = perfil.gold;
       this.nivelTreinador = perfil.level;
+      if (!this.meuNome) this.meuNome = perfil.nome;
       this.emitir();
     } catch {
       /* leitura de enfeite: nunca derruba a cacada */

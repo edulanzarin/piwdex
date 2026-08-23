@@ -2,8 +2,16 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Button, Checkbox, Empty, Loading, Note, NumberField, Panel, Select, Sprite, Switch } from "@/components/ui";
-import { compact } from "@/lib/labels";
-import type { ConfigAuto, EstadoAuto, EstadoHunt } from "@/lib/robo/motor/tipos";
+import { compact, TIER_LABEL } from "@/lib/labels";
+import { spriteUrl } from "@/lib/sprites";
+import { qualityTier, TIER_COLOR, TIER_MIN, TIER_ORDER } from "@/lib/rarity";
+import type {
+  BolaEstoque,
+  ConfigAuto,
+  EstadoAuto,
+  EstadoHunt,
+  PassoRota,
+} from "@/lib/robo/motor/tipos";
 
 /**
  * A aba que transforma "uma conexão aberta numa hunt" em robô.
@@ -151,14 +159,19 @@ export function AbaAutomacao({
   const [mochila, setMochila] = useState<ItemMochila[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [auto, setAuto] = useState<EstadoAuto | null>(estado.auto);
+  const [bolas, setBolas] = useState<BolaEstoque[]>(estado.bolas);
   const [salvandoAuto, setSalvandoAuto] = useState(false);
   const [recado, setRecado] = useState<string | null>(null);
+  const [previa, setPrevia] = useState<{ passos: PassoRota[]; horas: number; erro?: string } | null>(null);
 
   // O frame `autohelper` chega pela sessão e é mais fresco que o GET: quando ele
   // vier, ele manda.
   useEffect(() => {
     if (estado.auto) setAuto(estado.auto);
   }, [estado.auto]);
+  useEffect(() => {
+    if (estado.bolas.length) setBolas(estado.bolas);
+  }, [estado.bolas]);
 
   useEffect(() => {
     let vivo = true;
@@ -173,6 +186,7 @@ export function AbaAutomacao({
         setMochila((l.mochila ?? []) as ItemMochila[]);
       }
       if (a?.auto) setAuto(a.auto as EstadoAuto);
+      if (a?.bolas?.length) setBolas(a.bolas as BolaEstoque[]);
       setCarregando(false);
     })();
     return () => {
@@ -189,21 +203,105 @@ export function AbaAutomacao({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(patch),
       });
-      const j = (await res.json().catch(() => ({}))) as { auto?: EstadoAuto; erro?: string };
+      const j = (await res.json().catch(() => ({}))) as {
+        auto?: EstadoAuto;
+        bolas?: BolaEstoque[];
+        erro?: string;
+      };
       if (!res.ok) {
         setRecado(j.erro === "jogo_recusou" ? "o jogo recusou essa mudança" : "não consegui salvar no jogo");
         return;
       }
       if (j.auto) setAuto(j.auto);
+      if (j.bolas?.length) setBolas(j.bolas);
     } finally {
       setSalvandoAuto(false);
     }
   }, []);
 
-  const bolasOpcoes = (loja?.bolas ?? []).map((b) => ({
+  /**
+   * Duas listas de bola, e a diferença é o que faz a Idle Ball aparecer.
+   *
+   * O auto-catch escolhe entre as bolas que a CONTA tem (`/api/game/balls`), que
+   * inclui bola infinita e bola que não está à venda. A reposição escolhe entre
+   * as bolas da LOJA, porque só se pode comprar o que está lá. Usar o catálogo da
+   * loja para as duas coisas escondia a Idle Ball da captura automática.
+   */
+  /**
+   * A prévia da subida, sem ligar nada.
+   *
+   * Decidir se concorda com a rota depois de ligá-la é a ordem errada para algo
+   * que joga sozinho por horas. O plano sai do mesmo motor; quando a sessão está
+   * viva, o plano DELA manda (é o que o robô vai de fato executar).
+   */
+  useEffect(() => {
+    if (!config.autoRota || estado.rota.length) {
+      setPrevia(null);
+      return;
+    }
+    let vivo = true;
+    const t = setTimeout(async () => {
+      const res = await fetch(`/api/robo/rota?alvo=${config.nivelAlvo}`).catch(() => null);
+      const j = (await res?.json().catch(() => null)) as
+        | { passos?: PassoRota[]; horas?: number; erro?: string }
+        | null;
+      if (!vivo) return;
+      setPrevia(
+        res?.ok && j?.passos
+          ? { passos: j.passos, horas: j.horas ?? 0 }
+          : { passos: [], horas: 0, erro: j?.erro ?? "sem_rota" },
+      );
+    }, 400); // o nível alvo muda dígito a dígito; sem a espera, um plano por tecla
+    return () => {
+      vivo = false;
+      clearTimeout(t);
+    };
+  }, [config.autoRota, config.nivelAlvo, estado.rota.length]);
+
+  const rota = estado.rota.length ? estado.rota : (previa?.passos ?? []);
+  const horasRota = estado.rota.length
+    ? null
+    : previa?.passos.length
+      ? previa.horas
+      : null;
+
+  const bolasDaConta = (bolas.length ? bolas : estado.bolas).map((b) => ({
+    value: String(b.id),
+    label: b.infinita ? `${b.nome} · ilimitada` : `${b.nome} · ${compact(b.quantidade)} na bolsa`,
+    render: (
+      <span className="flex min-w-0 items-center gap-2">
+        {b.icone ? <Sprite src={b.icone} alt="" size={18} /> : null}
+        <span className="min-w-0 flex-1 truncate">{b.nome}</span>
+        <span className="shrink-0 text-[11px] tabular text-text-mute">
+          {b.infinita ? "∞" : compact(b.quantidade)}
+        </span>
+      </span>
+    ),
+  }));
+
+  const bolasDaLoja = (loja?.bolas ?? []).map((b) => ({
     value: String(b.id),
     label: `${b.nome} · ${compact(b.preco)} ouro`,
+    render: (
+      <span className="flex min-w-0 items-center gap-2">
+        {b.icone ? <Sprite src={b.icone} alt="" size={18} /> : null}
+        <span className="min-w-0 flex-1 truncate">{b.nome}</span>
+        <span className="shrink-0 text-[11px] tabular text-text-mute">{compact(b.preco)}</span>
+      </span>
+    ),
   }));
+
+  const comIcone = (i: { id: number; nome: string; preco: number; icone: string }) => ({
+    value: String(i.id),
+    label: `${i.nome} · ${compact(i.preco)} ouro`,
+    render: (
+      <span className="flex min-w-0 items-center gap-2">
+        {i.icone ? <Sprite src={i.icone} alt="" size={18} /> : null}
+        <span className="min-w-0 flex-1 truncate">{i.nome}</span>
+        <span className="shrink-0 text-[11px] tabular text-text-mute">{compact(i.preco)}</span>
+      </span>
+    ),
+  });
   const pocoes = (loja?.itens ?? []).filter((i) => i.categoria === "heal");
   const revives = (loja?.itens ?? []).filter((i) => i.categoria === "revive");
 
@@ -255,7 +353,7 @@ export function AbaAutomacao({
                       <Select
                         value={String(auto.autoCatchBallId || "")}
                         onChange={(v) => void mudarAuto({ autoCatchBallId: Number(v) })}
-                        options={bolasOpcoes}
+                        options={bolasDaConta}
                         placeholder="escolha a bola"
                         disabled={salvandoAuto}
                       />
@@ -274,7 +372,7 @@ export function AbaAutomacao({
                       <Select
                         value={String(auto.autoCatchShinyBallId || "")}
                         onChange={(v) => void mudarAuto({ autoCatchShinyBallId: Number(v) })}
-                        options={bolasOpcoes}
+                        options={bolasDaConta}
                         placeholder="escolha a bola"
                         disabled={salvandoAuto}
                       />
@@ -319,6 +417,93 @@ export function AbaAutomacao({
             )}
           </Secao>
 
+          {/* ---------------- caçada automática ---------------- */}
+          <Secao
+            titulo="Caçada automática"
+            hint="O robô escolhe o alvo e troca de hunt sozinho conforme o líder sobe, pelo mesmo cálculo da ferramenta de rota."
+            acao={
+              estado.rotaConcluida ? (
+                <span className="pix shrink-0 text-[11px]" style={{ color: "var(--color-ok)" }}>
+                  meta alcançada
+                </span>
+              ) : estado.passoAtual ? (
+                <span className="pix shrink-0 text-[11px] text-text-mute">
+                  {estado.passoAtual.alvo} · nv {estado.passoAtual.de}–{estado.passoAtual.ate}
+                </span>
+              ) : undefined
+            }
+          >
+            <div className="flex flex-wrap items-end gap-3">
+              <Switch
+                checked={config.autoRota}
+                onChange={(e) => void onConfig({ autoRota: e.currentTarget.checked })}
+                label="subir sozinho até o nível"
+              />
+              <label className="flex flex-col gap-1">
+                <span className="pix text-[10px] text-text-mute">nível alvo</span>
+                <NumberField
+                  value={config.nivelAlvo}
+                  onChange={(n) => void onConfig({ nivelAlvo: n })}
+                  min={2}
+                  max={1000}
+                  className="w-28"
+                />
+              </label>
+            </div>
+
+            {config.autoRota ? (
+              rota.length === 0 ? (
+                <Note tone={previa?.erro === "sem_lider" ? "warn" : "muted"}>
+                  {previa?.erro === "sem_lider"
+                    ? "Não sei qual é o seu líder ainda. Ligue o robô uma vez para eu ler o time."
+                    : previa?.erro === "ja_passou"
+                      ? "O líder já passou desse nível. Escolha um alvo mais alto."
+                      : previa?.erro
+                        ? "Não consegui montar uma rota para este líder."
+                        : "Montando a subida…"}
+                </Note>
+              ) : (
+                <>
+                  <Note>
+                    {horasRota
+                      ? `Prévia: cerca de ${horasRota < 1 ? "menos de uma hora" : `${Math.round(horasRota)}h`} de caçada. `
+                      : ""}
+                    A caçada para sozinha ao chegar no alvo. O robô continua segurando a sessão.
+                  </Note>
+                  <ul className="flex max-h-[260px] flex-col gap-1 overflow-y-auto">
+                    {rota.map((p) => {
+                      const atual = estado.passoAtual?.slug === p.slug && estado.passoAtual?.de === p.de;
+                      return (
+                        <li
+                          key={`${p.de}-${p.slug}`}
+                          className="flex items-center gap-2 border border-line bg-bg-soft px-2 py-1.5"
+                          style={atual ? { borderColor: "color-mix(in srgb, var(--color-t-robo) 55%, transparent)" } : undefined}
+                        >
+                          <Sprite src={spriteUrl(p.speciesId)} alt="" size={24} />
+                          <span className="pix w-16 shrink-0 text-[10px] text-text-mute">
+                            {p.de}–{p.ate}
+                          </span>
+                          <span className="min-w-0 flex-1 truncate text-[13px] text-text">{p.alvo}</span>
+                          {p.risco !== "safe" ? (
+                            <span
+                              className="pix shrink-0 text-[10px]"
+                              style={{ color: p.risco === "deadly" ? "var(--color-danger)" : "var(--color-warn)" }}
+                            >
+                              {p.risco === "deadly" ? "letal" : "arriscado"}
+                            </span>
+                          ) : null}
+                          <span className="shrink-0 text-[11px] tabular text-text-mute">
+                            {compact(p.xpH)} xp/h
+                          </span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </>
+              )
+            ) : null}
+          </Secao>
+
           {/* ---------------- reposição ---------------- */}
           <Secao
             titulo="Reposição"
@@ -342,7 +527,7 @@ export function AbaAutomacao({
                 onAlvo={(n) => void onConfig({ alvoBola: n })}
                 itemId={config.bolaId}
                 onItem={(n) => void onConfig({ bolaId: n })}
-                opcoes={bolasOpcoes}
+                opcoes={bolasDaLoja}
                 rotuloPadrao="a mais barata da loja"
               />
               <Consumivel
@@ -356,7 +541,7 @@ export function AbaAutomacao({
                 onAlvo={(n) => void onConfig({ alvoPocao: n })}
                 itemId={config.pocaoId}
                 onItem={(n) => void onConfig({ pocaoId: n })}
-                opcoes={pocoes.map((i) => ({ value: String(i.id), label: `${i.nome} · ${compact(i.preco)}` }))}
+                opcoes={pocoes.map(comIcone)}
                 rotuloPadrao="a mais barata da loja"
               />
               <Consumivel
@@ -370,7 +555,7 @@ export function AbaAutomacao({
                 onAlvo={(n) => void onConfig({ alvoRevive: n })}
                 itemId={config.reviveId}
                 onItem={(n) => void onConfig({ reviveId: n })}
-                opcoes={revives.map((i) => ({ value: String(i.id), label: `${i.nome} · ${compact(i.preco)}` }))}
+                opcoes={revives.map(comIcone)}
                 rotuloPadrao="o mais barato da loja"
               />
             </div>
@@ -489,7 +674,7 @@ export function AbaAutomacao({
                   Com isto ligado, o robô vende sozinho todo pokémon do box abaixo dos limites. Confira
                   os números antes de sair da tela.
                 </Note>
-                <div className="grid gap-3 sm:grid-cols-3">
+                <div className="grid gap-3 sm:grid-cols-2">
                   <div className="border border-line bg-bg-soft p-3">
                     <Switch
                       checked={config.manterShiny}
@@ -497,6 +682,31 @@ export function AbaAutomacao({
                       label="nunca vender shiny"
                     />
                   </div>
+                  {/* Qualidade e IV são grandezas diferentes e as duas seguram o
+                      bicho: um IV médio de qualidade DIVINA vale mais que um IV
+                      alto de qualidade comum. */}
+                  <label className="flex flex-col gap-1 border border-line bg-bg-soft p-3">
+                    <span className="pix text-[10px] text-text-mute">fica com qualidade a partir de</span>
+                    <Select
+                      value={qualityTier(config.qualidadeMinima)}
+                      onChange={(t) => void onConfig({ qualidadeMinima: TIER_MIN[t] })}
+                      options={TIER_ORDER.filter((t) => t !== "WEAK").map((t) => ({
+                        value: t,
+                        label: TIER_LABEL[t],
+                        render: (
+                          <span className="flex items-center gap-2">
+                            <span
+                              className="h-2 w-2 shrink-0"
+                              style={{ backgroundColor: TIER_COLOR[t] }}
+                              aria-hidden="true"
+                            />
+                            <span className="flex-1">{TIER_LABEL[t]}</span>
+                            <span className="text-[11px] tabular text-text-mute">{TIER_MIN[t].toFixed(1)}x</span>
+                          </span>
+                        ),
+                      }))}
+                    />
+                  </label>
                   <label className="flex flex-col gap-1 border border-line bg-bg-soft p-3">
                     <span className="pix text-[10px] text-text-mute">fica com IV a partir de</span>
                     <NumberField

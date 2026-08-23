@@ -121,6 +121,43 @@ export interface EstadoAuto {
   vipNoJogo: boolean;
 }
 
+/** Uma faixa da subida: de que nivel a que nivel, cacando o que, e onde. */
+export interface PassoRota {
+  de: number;
+  ate: number;
+  slug: string;
+  alvo: string;
+  speciesId: number;
+  xpH: number;
+  goldH: number;
+  horas: number;
+  risco: "safe" | "risky" | "deadly";
+}
+
+/**
+ * A conta do jogo, inteira.
+ *
+ * O painel mostrava nivel e ouro porque era so o que o motor lia. O resto ja
+ * vinha na mesma resposta e estava sendo descartado — e e o que responde "como
+ * esta a minha conta" sem abrir o jogo (que, com o robo ligado, custa a sessao).
+ */
+export interface Perfil {
+  nome: string;
+  level: number;
+  gold: number;
+  diamantes: number;
+  capturas: number;
+  vip: boolean;
+  vipAte: string | null;
+  xp: number | null;
+  cla: string | null;
+  profissao: string | null;
+  /** dias seguidos de login, quando o jogo manda */
+  sequencia: number | null;
+  pescaria: number | null;
+  passeNivel: number | null;
+}
+
 /** O que as automacoes fizeram NESTA sessao. */
 export interface Placar {
   itensVendidos: number;
@@ -215,6 +252,16 @@ export interface EstadoHunt {
   /** quantos pokemons fora do time */
   noBox: number;
 
+  /** a conta inteira, do REST (nao disputa a sessao) */
+  perfil: Perfil | null;
+
+  /** a subida planejada, quando a cacada automatica esta ligada */
+  rota: PassoRota[];
+  /** a faixa que esta correndo agora */
+  passoAtual: PassoRota | null;
+  /** a rota terminou: o lider chegou no nivel alvo */
+  rotaConcluida: boolean;
+
   /** o chat do jogo, ultimas mensagens */
   chat: Mensagem[];
   /** quando o proximo envio de chat e aceito (anti-flood do jogo) */
@@ -259,10 +306,24 @@ export interface ConfigAuto {
   manterShiny: boolean;
   /** IV total (0..186 no jogo) a partir do qual o bicho FICA */
   ivMinimo: number;
+  /**
+   * Qualidade a partir da qual o bicho FICA.
+   *
+   * Ela e um MULTIPLICADOR (1.0, 1.3, 1.7...), e nao um placar de 0 a 100. A tela
+   * pede a faixa por nome (`qualityTier`) porque ninguem decide venda digitando
+   * 1.7 — mas quem manda aqui e o numero, que e o que o jogo entrega.
+   */
+  qualidadeMinima: number;
   /** acima deste nivel o bicho FICA (nivel alto custou tempo) */
   nivelMinimo: number;
   /** especies que nunca sao vendidas */
   manterEspecies: number[];
+
+  // --- cacada automatica ---
+  /** o robo escolhe a hunt e troca sozinho conforme o lider sobe */
+  autoRota: boolean;
+  /** ate que nivel subir. Chegou la, a cacada para. */
+  nivelAlvo: number;
 }
 
 export const CONFIG_PADRAO: ConfigAuto = {
@@ -289,8 +350,12 @@ export const CONFIG_PADRAO: ConfigAuto = {
   venderPoke: false,
   manterShiny: true,
   ivMinimo: 120,
+  qualidadeMinima: 1.5,
   nivelMinimo: 30,
   manterEspecies: [],
+
+  autoRota: false,
+  nivelAlvo: 100,
 };
 
 const inteiro = (v: unknown, padrao: number, min = 0, max = 9_999_999): number =>
@@ -338,8 +403,15 @@ export function normalizarConfig(bruto: unknown): ConfigAuto {
     venderPoke: Boolean(c.venderPoke),
     manterShiny: c.manterShiny === undefined ? p.manterShiny : Boolean(c.manterShiny),
     ivMinimo: inteiro(c.ivMinimo, p.ivMinimo, 0, 186),
+    qualidadeMinima:
+      typeof c.qualidadeMinima === "number" && Number.isFinite(c.qualidadeMinima)
+        ? Math.max(0, Math.min(10, c.qualidadeMinima))
+        : p.qualidadeMinima,
     nivelMinimo: inteiro(c.nivelMinimo, p.nivelMinimo, 1, 1000),
     manterEspecies: idsDe(c.manterEspecies),
+
+    autoRota: Boolean(c.autoRota),
+    nivelAlvo: inteiro(c.nivelAlvo, p.nivelAlvo, 2, 1000),
   };
 
   // Alvo abaixo do piso e uma compra que nunca satisfaz a condicao que a
@@ -397,6 +469,7 @@ export function estadoParado(): EstadoHunt {
     fechamento: null, explicacao: null, conectado: false, campoVivo: false,
     reconexoes: 0, shard: null,
     ouro: null, nivelTreinador: null, nivelLider: null, bolas: [], auto: null, noBox: 0,
+    perfil: null, rota: [], passoAtual: null, rotaConcluida: false,
     chat: [], chatLiberadoEm: null,
     placar: placarZero(),
   };

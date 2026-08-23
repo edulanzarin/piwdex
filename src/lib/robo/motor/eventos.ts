@@ -20,6 +20,7 @@ export type TipoEvento =
   | "compra" // repos consumivel
   | "cura" // passou na Joy / usou Revive
   | "religou" // a conexao caiu e voltou sozinha
+  | "meta" // a cacada automatica chegou no nivel alvo
   | "recusado" // o jogo recusou a conta
   | "falha"; // uma automacao nao rodou (e por que)
 

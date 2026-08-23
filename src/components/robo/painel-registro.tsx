@@ -19,6 +19,7 @@ const CORES: Record<TipoEvento, string> = {
   compra: "var(--color-t-robo)",
   cura: "var(--color-accent)",
   religou: "var(--color-text-mute)",
+  meta: "var(--color-t-robo)",
   recusado: "var(--color-danger)",
   falha: "var(--color-danger)",
 };
@@ -30,6 +31,7 @@ const ROTULOS: Record<TipoEvento, string> = {
   compra: "compra",
   cura: "cura",
   religou: "religou",
+  meta: "meta",
   recusado: "recusa",
   falha: "falha",
 };
