@@ -26,6 +26,7 @@
 import { projectStat } from "./stats";
 import { effectiveness } from "./typing";
 import type { AttackCategory, PokeType } from "./types";
+import { xpForLevelUp } from "./xp";
 
 export const SIM_IV = 21;
 
@@ -358,8 +359,6 @@ export function enemyCombatStats(bases: number[], huntLevel: number): { hp: numb
   };
 }
 
-export type RouteMode = "xp" | "gold";
-
 // Alcance de nivel: voce caca em torno do seu nivel (sem limite pra baixo, margem pra
 // cima). Impede rota mandar um lvl 48 pra uma hunt lvl 150, e deixa alvos super-efetivos
 // um pouco acima ao alcance. Acima disso o wild fica tanky demais (kill-speed ja pune).
@@ -367,7 +366,6 @@ export type RouteMode = "xp" | "gold";
 export const reachOf = (level: number): number => level + Math.max(8, level * 0.15);
 
 export interface RoutePick {
-  score: number;
   enemy: EnemyCombat;
   est: HuntEstimate;
 }
@@ -388,7 +386,6 @@ function scanHunts(
   quality: number,
   enemies: EnemyCombat[],
   movesOf: MovesOf,
-  mode: RouteMode,
   vip: boolean,
   skip: ((e: EnemyCombat) => boolean) | undefined,
   pool: MovePool,
@@ -409,45 +406,49 @@ function scanHunts(
       keepEst = est;
     }
     if (!est) continue;
-    const score = mode === "gold" ? est.goldH : est.xpH;
-    const pick: RoutePick = { score, enemy: e, est };
+    const pick: RoutePick = { enemy: e, est };
     if (est.threat.risk === "deadly") {
-      if (!lastResort || score > lastResort.score) lastResort = pick;
+      if (!lastResort || est.xpH > lastResort.est.xpH) lastResort = pick;
       continue;
     }
-    if (!best || score > best.score) best = pick;
+    if (!best || est.xpH > best.est.xpH) best = pick;
   }
   return { pick: best ?? lastResort, keepEst, keepSeen };
 }
 
-/** Melhor alvo pro nivel dado. Alvo "deadly" (voce cai antes de 2 kills) NAO entra —
- *  fica so como ultimo recurso, pra rota nunca voltar vazia quando nada e seguro. */
-export function pickHunt(
-  species: Species,
-  level: number,
-  ivs: number[],
-  quality: number,
-  enemies: EnemyCombat[],
-  movesOf: MovesOf,
-  mode: RouteMode,
-  vip: boolean,
-  skip?: (e: EnemyCombat) => boolean,
-  pool: MovePool = "natural",
-): RoutePick | null {
-  return scanHunts(species, level, ivs, quality, enemies, movesOf, mode, vip, skip, pool).pick;
-}
-
 export interface RouteStep {
+  /** primeiro nivel farmado na faixa */
   from: number;
+  /** nivel que a faixa ALCANCA — a proxima comeca aqui, e `to` do ultimo passo e a meta */
   to: number;
   enemy: EnemyCombat;
+  /** rendimento no ULTIMO nivel da faixa: golpe, efetividade e risco saem daqui */
   est: HuntEstimate;
+  /** XP que a faixa custa (curva fechada do jogo) */
+  xp: number;
+  /** horas da faixa, somadas NIVEL A NIVEL */
+  hours: number;
+  /** abates e ouro que cabem nessas horas */
+  kills: number;
+  gold: number;
+  /** algum nivel da faixa nao rendia XP: `hours` conta so o resto */
+  partial: boolean;
 }
 
-/** Rota do nivel `start` ao `target` com a especie ESCOLHIDA (sem evoluir/voltar).
- *  Em cada nivel pega a hunt de maior XP/h (ou ouro/h) EFETIVO dentro do alcance; so troca
- *  de hunt quando a nova ganha da atual por margem (>8%), pra as faixas ficarem limpas.
- *  Sai da faixa na hora se a hunt atual virar "deadly" (o wild cresce, voce nao). */
+/**
+ * Rota do nivel `start` ao `target` com a especie ESCOLHIDA (sem evoluir/voltar).
+ *
+ * Em cada nivel pega a hunt de maior XP/h EFETIVO dentro do alcance; so troca de hunt
+ * quando a nova ganha da atual por margem (>8%), pra as faixas ficarem limpas. Sai da
+ * faixa na hora se a hunt atual virar "deadly" (o wild cresce, voce nao).
+ *
+ * **O tempo e integrado nivel a nivel, e nao pela ponta da faixa.** O ritmo sobe junto
+ * com o lutador: numa faixa 352->500 o alvo rende 11,7M de XP/h no comeco e 13,6M no
+ * fim. Dividir o XP da faixa inteira pelo ritmo do FIM cobra a subida toda no passo
+ * mais rapido dela e devolve uma rota que ninguem cumpre. Somando nivel a nivel, cada
+ * nivel paga o proprio preco — e o ouro do trecho sai das MESMAS horas, entao os dois
+ * numeros param de discordar entre si.
+ */
 export function buildRoute(
   species: Species,
   start: number,
@@ -456,7 +457,6 @@ export function buildRoute(
   movesOf: MovesOf,
   quality: number,
   ivs: number[],
-  mode: RouteMode = "xp",
   vip = false,
   pool: MovePool = "natural",
 ): RouteStep[] {
@@ -465,14 +465,49 @@ export function buildRoute(
   const t = Math.max(s + 1, Math.floor(target));
   const SWITCH_MARGIN = 1.08;
 
-  for (let lvl = s; lvl <= t; lvl++) {
+  // XP de nivel que ficou sem alvo nenhum (o lutador ainda nao aprendeu golpe que
+  // alcance ninguem). Ele nao pode sumir: nivel sem hunt continua custando XP, e
+  // descartar em silencio barateia a rota. Fica pendurado ate a primeira faixa, que
+  // o herda, estica o inicio ate ele e se marca incompleta.
+  let semAlvo = 0;
+  let semAlvoDesde = 0;
+
+  /** Soma um nivel na faixa: o custo dele em XP e o que essas horas rendem. */
+  const cobrar = (step: RouteStep, lvl: number, est: HuntEstimate) => {
+    const xp = xpForLevelUp(lvl);
+    step.xp += xp;
+    step.to = lvl + 1;
+    step.est = est;
+    if (semAlvo > 0) {
+      step.xp += semAlvo;
+      step.from = Math.min(step.from, semAlvoDesde);
+      step.partial = true;
+      semAlvo = 0;
+    }
+    if (est.xpH > 0) {
+      const h = xp / est.xpH;
+      step.hours += h;
+      step.kills += h * est.kosH;
+      step.gold += h * est.goldH;
+    } else {
+      step.partial = true;
+    }
+  };
+
+  // `lvl < t`: chegar no nivel `t` e parar de farmar nele. Somar o nivel `t` cobrava
+  // um nivel inteiro a mais do que a meta pede.
+  for (let lvl = s; lvl < t; lvl++) {
     const last = steps[steps.length - 1];
     // a varredura ja passa pelo alvo da faixa atual, entao pede a conta dele de carona
     // (`keepEst`) em vez de refazer o `estimateHunt` logo abaixo.
     const { pick: p, keepEst, keepSeen } = scanHunts(
-      species, lvl, ivs, quality, enemies, movesOf, mode, vip, undefined, pool, last?.enemy,
+      species, lvl, ivs, quality, enemies, movesOf, vip, undefined, pool, last?.enemy,
     );
-    if (!p) continue;
+    if (!p) {
+      if (semAlvo === 0) semAlvoDesde = lvl;
+      semAlvo += xpForLevelUp(lvl);
+      continue;
+    }
     if (last) {
       // rendimento do alvo ATUAL neste nivel — so troca se o novo ganha por margem.
       // `keepSeen` falso = o alvo ficou fora da varredura (saiu do alcance); ai a conta
@@ -480,15 +515,20 @@ export function buildRoute(
       const curEst = keepSeen
         ? keepEst
         : estimateHunt(species, lvl, ivs, quality, last.enemy, movesOf(last.enemy.pokeId), vip, pool);
-      const curScore = curEst ? (mode === "gold" ? curEst.goldH : curEst.xpH) : 0;
       const curSafe = curEst != null && (curEst.threat.risk !== "deadly" || p.est.threat.risk === "deadly");
-      if (curEst && curSafe && p.score <= curScore * SWITCH_MARGIN) {
-        last.to = lvl;
-        last.est = curEst; // atualiza o rendimento pro nivel corrente da faixa
+      if (curEst && curSafe && p.est.xpH <= curEst.xpH * SWITCH_MARGIN) {
+        cobrar(last, lvl, curEst);
         continue;
       }
     }
-    steps.push({ from: lvl, to: lvl, enemy: p.enemy, est: p.est });
+    const step: RouteStep = {
+      from: lvl, to: lvl + 1, enemy: p.enemy, est: p.est,
+      xp: 0, hours: 0, kills: 0, gold: 0, partial: false,
+    };
+    cobrar(step, lvl, p.est);
+    steps.push(step);
   }
+  // Sobrou XP sem alvo e nem uma faixa apareceu pra herdar: a rota inteira e um buraco,
+  // e devolve-la vazia diz isso melhor do que uma faixa fantasma.
   return steps;
 }

@@ -11,7 +11,6 @@
 
 import { BALLS, type Ball } from "./balls";
 import type { MovePool } from "./combat";
-import type { RouteMode } from "./combat";
 import type { HuntSort } from "./hunt";
 import type { PokeType } from "./types";
 
@@ -32,7 +31,7 @@ export const HUNT_BALLS: Ball[] = BALLS.filter((b) => b.catchRate < 255 && b.pri
  *  tambem — senao o link repoe o 0 que o campo passou a barrar. */
 export const QUALITY_MIN = 0.1;
 
-export type HuntView = "ranking" | "rota";
+export type HuntView = "ranking" | "rota" | "ouro";
 
 export interface HuntState {
   /** pokeId do SEU pokemon; null = nada escolhido */
@@ -44,8 +43,6 @@ export interface HuntState {
   pool: MovePool;
   vip: boolean;
   view: HuntView;
-  /** o que a ROTA persegue; o ranking ordena por coluna */
-  mode: RouteMode;
   /** contar a captura no ouro (o jogo gasta uma bola por abate) */
   cap: boolean;
   /** chave da bola usada na conta de captura */
@@ -54,6 +51,8 @@ export interface HuntState {
   day: PokeType | "";
   /** nivel alvo da rota */
   target: number;
+  /** quanto ouro se quer juntar na aba de farm — o alvo de la nao e nivel, e ouro */
+  goal: number;
   /** filtros do ranking */
   type: PokeType | "";
   area: string;
@@ -73,11 +72,11 @@ export const EMPTY_HUNT: HuntState = {
   pool: "natural",
   vip: false,
   view: "rota",
-  mode: "xp",
   cap: false,
   ball: "poke",
   day: "",
   target: 100,
+  goal: 10_000_000,
   type: "",
   area: "",
   maxLvl: null,
@@ -100,8 +99,7 @@ const oneOf = <T extends string>(v: string | null, valid: readonly T[], fallback
 const huntBall = (v: string | null): string =>
   HUNT_BALLS.some((b) => b.key === v) ? (v as string) : EMPTY_HUNT.ball;
 
-const VIEWS = ["rota", "ranking"] as const;
-const MODES = ["xp", "gold"] as const;
+const VIEWS = ["rota", "ranking", "ouro"] as const;
 const POOLS = ["natural", "tm"] as const;
 const SORTS = ["xp", "gold", "kos", "eff", "risk", "level", "name"] as const;
 
@@ -117,11 +115,11 @@ export function parseHuntState(sp: URLSearchParams): HuntState {
     pool: oneOf(sp.get("golpes"), POOLS, EMPTY_HUNT.pool),
     vip: sp.get("vip") === "1",
     view: oneOf(sp.get("v"), VIEWS, EMPTY_HUNT.view),
-    mode: oneOf(sp.get("m"), MODES, EMPTY_HUNT.mode),
     cap: sp.get("cap") === "1",
     ball: huntBall(sp.get("bola")),
     day: (sp.get("dia") ?? "") as PokeType | "",
     target: Math.max(2, num(sp.get("alvo"), EMPTY_HUNT.target)),
+    goal: Math.max(1, num(sp.get("meta"), EMPTY_HUNT.goal)),
     type: (sp.get("t") ?? "") as PokeType | "",
     area: sp.get("area") ?? "",
     maxLvl: maxLvl != null && maxLvl !== "" ? Math.max(1, num(maxLvl, 1)) : null,
@@ -144,11 +142,11 @@ export function buildHuntSearch(s: HuntState): string {
   put("golpes", s.pool, EMPTY_HUNT.pool);
   put("vip", s.vip, false);
   put("v", s.view, EMPTY_HUNT.view);
-  put("m", s.mode, EMPTY_HUNT.mode);
   put("cap", s.cap, false);
   put("bola", s.ball, EMPTY_HUNT.ball);
   put("dia", s.day, "");
   put("alvo", s.target, EMPTY_HUNT.target);
+  put("meta", s.goal, EMPTY_HUNT.goal);
   put("t", s.type, "");
   put("area", s.area, "");
   if (s.maxLvl != null) p.set("ate", String(s.maxLvl));

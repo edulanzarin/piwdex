@@ -12,7 +12,7 @@ import { animatedSpriteUrl, spriteUrl } from "@/lib/sprites";
 import { TYPE_COLOR } from "@/lib/typing";
 import { STAT_LABEL, STAT_SHORT, TYPE_LABEL, compact } from "@/lib/labels";
 import { TYPE_DAY_BONUS } from "@/lib/boost";
-import { Route, Rows3 } from "lucide-react";
+import { Coins, Route, Rows3 } from "lucide-react";
 import type { HuntPayload } from "@/lib/hunt-data";
 import {
   EMPTY_HUNT,
@@ -47,6 +47,7 @@ import {
 } from "@/components/ui";
 import { TypeBadge, TypeIcon } from "@/components/type-icon";
 import { IconGem, IconLevel, IconScale, IconTm, IconTarget, STAT_ICONS } from "@/components/game-icons";
+import { HuntGold } from "@/components/hunt-gold";
 import { HuntRanking } from "@/components/hunt-ranking";
 import { HuntRoute } from "@/components/hunt-route";
 import { BallIcon } from "@/components/ball-icon";
@@ -496,8 +497,10 @@ export function HuntTool({ payload }: { payload: HuntPayload }) {
           </div>
 
           {/* A ROTA vem primeiro: "ate onde eu subo e como" e a pergunta de quem
-              abre a tela. A tabela inteira fica na segunda aba, pra quem quer
-              comparar alvo a alvo. */}
+              abre a tela. Depois vem OURO, que e a outra pergunta inteira: ela nao
+              tem nivel alvo nem linha de chegada, e por isso nao cabia como modo da
+              rota (ver o cabecalho de `hunt-gold.tsx`). A tabela inteira fica por
+              ultimo, pra quem quer comparar alvo a alvo. */}
           <Tabs
             value={s.view}
             onChange={(view) => patch({ view, page: 0 })}
@@ -506,6 +509,11 @@ export function HuntTool({ payload }: { payload: HuntPayload }) {
                 value: "rota",
                 label: "Rota de treino",
                 icon: <Route size={14} strokeWidth={2.25} />,
+              },
+              {
+                value: "ouro",
+                label: "Farmar ouro",
+                icon: <Coins size={14} strokeWidth={2.25} />,
               },
               {
                 value: "ranking",
@@ -517,6 +525,17 @@ export function HuntTool({ payload }: { payload: HuntPayload }) {
 
           {s.view === "rota" ? (
             <HuntRoute
+              state={s}
+              patch={patch}
+              fighter={fighter}
+              ivs={ivs}
+              entrada={aplicada}
+              payload={payload}
+              movesOf={movesOf}
+              tint={tint}
+            />
+          ) : s.view === "ouro" ? (
+            <HuntGold
               state={s}
               patch={patch}
               fighter={fighter}
