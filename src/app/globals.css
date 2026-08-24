@@ -221,7 +221,11 @@
     position: fixed;
     inset: 0;
     z-index: -2;
-    background-image: url("/images/wallpaper-sm.webp");
+    /* `?v=` porque o arquivo em `public/` NAO leva hash de build: trocar a arte
+       mantendo o nome faz o navegador de quem ja visitou continuar servindo a
+       antiga do cache, e a troca "nao acontece" sem nenhum erro. Subir o numero
+       e o que publica de fato. */
+    background-image: url("/images/wallpaper-sm.webp?v=2");
     background-size: cover;
     background-position: center 18%;
     background-repeat: no-repeat;
@@ -237,7 +241,7 @@
 
   @media (min-width: 900px) {
     body::before {
-      background-image: url("/images/wallpaper.webp");
+      background-image: url("/images/wallpaper.webp?v=2");
     }
   }
 

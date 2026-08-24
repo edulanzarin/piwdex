@@ -1,7 +1,8 @@
 import type { CSSProperties } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { getDexPayload } from "@/lib/dex-data";
+import { getMetaPayload, unpackMon } from "@/lib/meta-data";
+import { metaTable, TIER_COLOR } from "@/lib/meta";
 import { RARITY_COLOR } from "@/lib/typing";
 import { officialArtUrl, spriteUrl } from "@/lib/sprites";
 import { agora, fecharPiso } from "@/lib/pacing";
@@ -57,34 +58,39 @@ export const dynamic = "force-dynamic";
  */
 export default async function HomePage() {
   const t0 = agora();
-  const { counts, entries } = await getDexPayload();
 
   /**
-   * O DESTAQUE DO DIA — a arte que ocupa a metade direita do herói.
+   * O DESTAQUE — o número 1 da tier list, e não um sorteio.
    *
-   * É a peça que a referência põe ali: a splash art de um campeão. Aqui não há
-   * splash, há o render oficial — e ele é grande o bastante pra sustentar meia
-   * tela sozinho, que é o que faltava depois de o painel do catálogo sair.
+   * A primeira versão sorteava pelo dia. Dava capa nova todo dia, e dava também
+   * um Ludicolo na chegada de um site que se apresenta como ferramenta de meta:
+   * a home mostrava um pokémon qualquer no lugar mais nobre da página, sem nada
+   * dizendo por que aquele.
    *
-   * ## Por que sorteado pelo DIA, e não por request
+   * Agora vem do `metaTable`, que é o mesmo motor da ferramenta de Meta — a nota
+   * sai de combate (DPS efetivo e HP efetivo), não de soma de stat. O destaque
+   * passa a AFIRMAR alguma coisa: "este é o mais forte do jogo", com a nota do
+   * lado provando.
    *
-   * A rota é `force-dynamic`: um `Math.random()` aqui trocaria de pokémon a cada
-   * F5, e isso quebra duas coisas de uma vez. O visitante que volta em cinco
-   * minutos vê outra capa e o site parece instável; e o mesmo endereço passa a
-   * servir imagens diferentes, o que estraga o cache de borda e o pré-carregamento.
+   * `pool: "natural"` de propósito, que é o que o Eduardo pediu: sem TM. O
+   * ranking com TM mede o teto de quem já investiu numa máquina; o natural mede
+   * a espécie como ela sai do campo, e é essa a pergunta de quem está chegando.
    *
-   * Com a semente vindo do DIA, todo mundo vê o mesmo destaque no mesmo dia e a
-   * home ganha um motivo pra ser revisitada — que é exatamente o que a seção de
-   * destaque existe pra fazer.
-   *
-   * Só entram espécies com render oficial e sem variante: variante compartilha o
-   * looktype da base e sairia com a arte de outro bicho (ver `officialArtUrl`).
+   * Escrever uma segunda regra de "quem é o mais forte" aqui daria duas respostas
+   * pra mesma pergunta no mesmo site, e a da home seria a que ninguém revisa.
    */
-  const elegiveis = entries.filter((e) => !e.variant && e.id < 1e4);
-  const hoje = new Date();
-  const semente =
-    hoje.getUTCFullYear() * 10000 + (hoje.getUTCMonth() + 1) * 100 + hoje.getUTCDate();
-  const destaque = elegiveis[semente % elegiveis.length];
+  const { mons } = await getMetaPayload();
+  const ranking = metaTable(mons.map(unpackMon), "natural");
+  const topo = ranking.find((e) => e.creature.pokeId < 1e4) ?? ranking[0];
+  const destaque = topo
+    ? {
+        id: topo.creature.pokeId,
+        name: topo.creature.name,
+        rarity: topo.creature.rarity,
+        nota: topo.score,
+        tier: topo.tier,
+      }
+    : null;
 
   await fecharPiso(t0);
 
@@ -153,10 +159,16 @@ export default async function HomePage() {
             style={{ "--d": "80ms" } as CSSProperties}
           >
             <Eyebrow>A dex completa do</Eyebrow>
+            {/* UMA cor, e não três.
+                "POKE" branco, "IDLE" vermelho e "WORLD" ciano davam três acentos
+                de peso igual num nome de três palavras — nenhuma ganhava, e o
+                título lia como logotipo de outra coisa. Pior: as três eram cores
+                de FERRAMENTA (dex, meta), que nesta paleta significam "esta seção
+                é a Pokédex", e ali não significavam nada.
+                Branco no todo, com o acento da marca só em "IDLE" — que é a
+                palavra que diz o gênero do jogo e a única que merecia destaque. */}
             <DisplayTitle as="h2" size="xl" className="text-text">
-              Poke{" "}
-              <span style={{ color: "var(--color-t-dex)" }}>Idle</span>{" "}
-              <span style={{ color: "var(--color-t-meta)" }}>World</span>
+              Poke <span style={{ color: "var(--color-t-dex)" }}>Idle</span> World
             </DisplayTitle>
           </div>
 
@@ -204,13 +216,34 @@ export default async function HomePage() {
               priority
               className="anim-float relative [--sprite:340px] xl:[--sprite:420px]"
             />
-            <span className="anim-in absolute bottom-0 flex flex-col items-center gap-1.5">
-              <Eyebrow tint="var(--color-text-mute)">Destaque de hoje</Eyebrow>
-              <span className="pix text-[20px] tracking-[0.1em] text-text transition-colors group-hover:text-[color:var(--cor)]" style={{ "--cor": RARITY_COLOR[destaque.rarity] } as CSSProperties}>
+            {/* A legenda vive ABAIXO da arte, e não por cima dela.
+                Ela estava em `absolute bottom-0` e caía em cima do sprite — com
+                render de 420px e fundo transparente, "DESTAQUE DE HOJE" pousava
+                no meio do bicho e as duas coisas ficavam ilegíveis. Texto sobre
+                arte só funciona quando a arte tem uma faixa reservada pra isso, e
+                render recortado não tem. */}
+            <span className="mt-4 flex flex-col items-center gap-2">
+              <span className="flex items-center gap-2">
+                <span
+                  className="pix rounded-pill border px-2 py-0.5 text-[10px] tracking-[0.14em]"
+                  style={{
+                    color: TIER_COLOR[destaque.tier],
+                    borderColor: `color-mix(in oklab, ${TIER_COLOR[destaque.tier]} 45%, transparent)`,
+                    backgroundColor: `color-mix(in oklab, ${TIER_COLOR[destaque.tier]} 14%, transparent)`,
+                  }}
+                >
+                  tier {destaque.tier}
+                </span>
+                <Eyebrow tint="var(--color-text-mute)">O mais forte do jogo</Eyebrow>
+              </span>
+              <span
+                className="pix text-[24px] tracking-[0.1em] text-text transition-colors group-hover:text-[color:var(--cor)]"
+                style={{ "--cor": RARITY_COLOR[destaque.rarity] } as CSSProperties}
+              >
                 {destaque.name}
               </span>
               <span className="num text-[11px] text-text-mute">
-                #{String(destaque.id).padStart(3, "0")}
+                nota {destaque.nota.toFixed(1)} · sem TM
               </span>
             </span>
           </Link>
