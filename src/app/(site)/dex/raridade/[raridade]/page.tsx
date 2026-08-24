@@ -15,7 +15,7 @@ import { RARITY_LABEL, TYPE_LABEL, compact as gold } from "@/lib/labels";
 import { PokeCard } from "@/components/poke-card";
 import { JsonLd, trilha } from "@/lib/jsonld";
 import { IconChevronRight } from "@/components/ui";
-import { IconGem } from "@/components/game-icons";
+import { RarityIcon } from "@/components/rarity-icon";
 
 /**
  * O hub de uma raridade.
@@ -109,10 +109,11 @@ export default async function RaridadePage({ params }: Props) {
         <span className="hero-facho" aria-hidden="true" />
         <div className="flex flex-wrap items-center gap-4">
           <span className="hero-halo anim-float grid place-items-center">
-            {/* O GameIcon fecha o contrato em size/className — cor vai por
-                herança, que e o que o primitivo espera. */}
+            {/* O brasão é POR RARIDADE, e não a mesma gema pra todas: a escada
+                está na forma (pedra bruta -> ... -> cristal com estrelas), então
+                a página diz o degrau antes de dizer a cor. */}
             <span style={{ color: cor }}>
-              <IconGem size={40} />
+              <RarityIcon rarity={r} size={40} />
             </span>
           </span>
           <div className="min-w-0 flex-1">
@@ -186,7 +187,7 @@ export default async function RaridadePage({ params }: Props) {
                 backgroundColor: `color-mix(in oklab, ${RARITY_COLOR[x]} 12%, transparent)`,
               }}
             >
-              <IconGem size={13} />
+              <RarityIcon rarity={x} size={14} />
               {RARITY_LABEL[x]}
             </Link>
           ))}
