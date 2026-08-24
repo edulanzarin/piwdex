@@ -1,121 +1,21 @@
 /**
- * Simbolo dos 18 tipos, DESENHADO aqui.
+ * Simbolo dos 18 tipos.
  *
- * Eram lucide embrulhado, e o problema nao era o desenho — era o registro: traco
- * fino e neutro num produto que pede massa, e a 12-14px (onde 16 dos 21 usos
- * vivem) o contorno perde metade da forma pro antisserrilhado e vira cinza.
- * Cheio se le.
+ * Os desenhos vem de `tipos/glifos.tsx` — os OFICIAIS dos jogos recentes, e nao
+ * um desenho nosso. O porque esta la, e ele vale a leitura: tipo e canone do
+ * jogo, e simbolo proprio disputa com um que a pessoa ja tem decorado.
  *
- * ## A silhueta continua sendo o criterio, e nao a metafora bonita
- *
- * A 14px o que se le e a FORMA, e dois contornos parecidos lado a lado no mesmo
- * badge viram a mesma mancha. Por isso Terrestre e camada e Pedra e bloco
- * facetado, e nao as duas montanhas; Psiquico e olho e Fada e flor, e nao as
- * duas estrelas; Fogo tem a base ondulada e Agua a base redonda, que e o que
- * separa duas gotas.
- *
- * O par COR + FORMA e proposital: quem nao distingue matiz continua separando os
- * tipos pela forma, coisa que cor sozinha nunca resolve.
+ * O par COR + FORMA continua de pe: a cor sai do `TYPE_COLOR` do site e o glifo
+ * herda por `currentColor`, entao quem nao distingue matiz continua separando os
+ * tipos pela forma.
  */
-import type { ReactNode } from "react";
 import type { PokeType } from "@/lib/types";
+import { TIPO_GLIFO, TIPO_VIEWBOX } from "@/components/tipos/glifos";
 import { TYPE_COLOR } from "@/lib/typing";
 import { TYPE_LABEL, multWord } from "@/lib/labels";
 import type { TypeMult } from "@/lib/typing";
 import { cn } from "@/lib/cn";
 
-const TYPE_ICON: Record<PokeType, ReactNode> = {
-  NORMAL: (
-    <>
-    <path d="M12 2.6a9.4 9.4 0 1 0 0 18.8 9.4 9.4 0 0 0 0-18.8zm0 3.2a6.2 6.2 0 1 1 0 12.4 6.2 6.2 0 0 1 0-12.4z"/><path d="M12 8.6a3.4 3.4 0 1 1 0 6.8 3.4 3.4 0 0 1 0-6.8z" opacity=".55"/>
-    </>
-  ),
-  FIRE: (
-    <>
-    <path d="M12.6 1.4c3.4 4 2 6.4.6 8.2-1.2 1.5-2.6 2.9-2.2 5-2-1-2.4-3-2.4-3-2 2-2.6 4-2.6 5.6a8 8 0 0 0 16 0c0-6-6-9.8-9.4-15.8z"/>
-    </>
-  ),
-  WATER: (
-    <>
-    <path d="M12 1.6c4 5.4 8 9.4 8 13.2a8 8 0 0 1-16 0c0-3.8 4-7.8 8-13.2z"/>
-    </>
-  ),
-  ELECTRIC: (
-    <>
-    <path d="M14.6 1.2 4.4 13.4a.9.9 0 0 0 .7 1.5h4.2l-1.5 7.5a.9.9 0 0 0 1.6.7l10-12.2a.9.9 0 0 0-.7-1.5h-4.1l1.5-7.5a.9.9 0 0 0-1.5-.7z"/>
-    </>
-  ),
-  GRASS: (
-    <>
-    <path d="M20.6 2.4C10.4 2 3.4 6.6 3.4 13.8c0 2.3.8 4.2 2 5.6L3 21.8l1.7 1.7 2.4-2.4c1.5 1.1 3.3 1.7 5.2 1.7 0-6.4 2.6-11.2 7-14.6-4.8 1.4-8 4.4-9.8 8.6-.5-1-.7-2-.7-3 0-5.2 5-8.8 11.8-8.4z"/>
-    </>
-  ),
-  ICE: (
-    <>
-    <path d="M13.2 1.4v4.2l2.2-2.2 1.7 1.7-3.9 3.9v2.4l2-1.2 5.4-3.1.9 2.3-2.9 1.7 3 .8-.6 2.3-5.7-1.5-2.1 1.2 2.1 1.2 5.7-1.5.6 2.3-3 .8 2.9 1.7-.9 2.3-5.4-3.1-2-1.2v2.4l3.9 3.9-1.7 1.7-2.2-2.2v4.2h-2.4v-4.2l-2.2 2.2-1.7-1.7 3.9-3.9v-2.4l-2 1.2-5.4 3.1-.9-2.3 2.9-1.7-3-.8.6-2.3 5.7 1.5 2.1-1.2-2.1-1.2-5.7 1.5-.6-2.3 3-.8-2.9-1.7.9-2.3 5.4 3.1 2 1.2V9l-3.9-3.9 1.7-1.7 2.2 2.2V1.4z" transform="translate(0 .6) scale(.96)"/>
-    </>
-  ),
-  FIGHTING: (
-    <>
-    <path d="M5.6 9.2h11a3 3 0 0 1 3 3v4.4a4.8 4.8 0 0 1-4.8 4.8H8.4a4.8 4.8 0 0 1-4.8-4.8v-4.4a3 3 0 0 1 2-3z"/><path d="M6.6 3.4a1.9 1.9 0 0 1 1.9 1.9v4H4.7v-4a1.9 1.9 0 0 1 1.9-1.9z"/><path d="M11 2.8a1.9 1.9 0 0 1 1.9 1.9v4.5H9.1V4.7A1.9 1.9 0 0 1 11 2.8z"/><path d="M15.4 3.4a1.9 1.9 0 0 1 1.9 1.9v4h-3.8v-4a1.9 1.9 0 0 1 1.9-1.9z"/><path d="M20.4 11.2a2.2 2.2 0 0 1 0 4.4h-1.6v-4.4z"/>
-    </>
-  ),
-  POISON: (
-    <>
-    <path d="M12 1.8a8 8 0 0 0-8 8c0 2.7 1.3 5 3.4 6.5v2.3a1.6 1.6 0 0 0 1.6 1.6h6a1.6 1.6 0 0 0 1.6-1.6v-2.3A8 8 0 0 0 20 9.8a8 8 0 0 0-8-8zM8.8 8.4a2 2 0 1 1 0 4 2 2 0 0 1 0-4zm6.4 0a2 2 0 1 1 0 4 2 2 0 0 1 0-4z"/><path d="M9.4 20.4h1.4v1.8H9.4zm3.2 0H14v1.8h-1.4z"/>
-    </>
-  ),
-  GROUND: (
-    <>
-    <path d="M2 12.6h20v2.6H2z"/><path d="M2 17.2h20v2.6H2z"/><path d="M6.4 4.2h11.2l3 6.2H3.4z"/>
-    </>
-  ),
-  FLYING: (
-    <>
-    <path d="M22 3.2c-1.4 8-6.6 12.4-12 13.6l-1.6 4.4-2.4-.8 1.4-3.8C4 16.2 2.4 14.4 2 12.2c2.6 2 5.6 1.8 7.6.4-2.4-.4-4.2-1.6-5.2-3.4 3 1.8 6 1.2 8-.4-2 0-3.8-.8-5-2.2 3.8 1.2 7.4-.2 9.6-2.2 2-1.8 3.6-1.6 5-1.2z"/>
-    </>
-  ),
-  PSYCHIC: (
-    <>
-    <path d="M12 4.6c-4.8 0-8.9 3.1-10.6 7.4 1.7 4.3 5.8 7.4 10.6 7.4s8.9-3.1 10.6-7.4C20.9 7.7 16.8 4.6 12 4.6zm0 2.6a4.8 4.8 0 1 1 0 9.6 4.8 4.8 0 0 1 0-9.6z"/><path d="M12 8.4a3.6 3.6 0 1 1 0 7.2 3.6 3.6 0 0 1 0-7.2z"/><circle cx="10.4" cy="10.4" r="1.25" fill="#100e0c" opacity=".9"/><path d="M2.2 3.4 4.6 6 3.1 7.5.7 5zM21.8 3.4 23.3 5l-2.4 2.5L19.4 6z" opacity=".7"/>
-    </>
-  ),
-  BUG: (
-    <>
-    <path d="M12 6.4c3.2 0 5.6 2.8 5.6 6.6s-2.4 6.8-5.6 6.8-5.6-3-5.6-6.8 2.4-6.6 5.6-6.6z"/><path d="M8.6 1.6 11 5l-1.9 1.4-2.4-3.4zM15.4 1.6l1.9 1.4-2.4 3.4L13 5z"/><path d="M2.6 9.4h4v2.2h-4zm14.8 0h4v2.2h-4zM2.6 15h4v2.2h-4zm14.8 0h4v2.2h-4z"/>
-    </>
-  ),
-  ROCK: (
-    <>
-    <path d="M8.6 2.8h7l6 7.4-9.6 11-9.6-11z"/><path d="M8.6 2.8 2.4 10.2h8.2z" opacity=".45"/><path d="M15.6 2.8 21.6 10.2h-8.2z" opacity=".65"/><path d="M12 21.2 2.4 10.2h19.2z" opacity=".85"/>
-    </>
-  ),
-  GHOST: (
-    <>
-    <path d="M12 1.8a8.4 8.4 0 0 0-8.4 8.4v11.2l2.8-2.4 2.8 2.4 2.8-2.4 2.8 2.4 2.8-2.4 2.8 2.4V10.2A8.4 8.4 0 0 0 12 1.8zM9 8.4a1.9 1.9 0 1 1 0 3.8 1.9 1.9 0 0 1 0-3.8zm6 0a1.9 1.9 0 1 1 0 3.8 1.9 1.9 0 0 1 0-3.8z"/>
-    </>
-  ),
-  DRAGON: (
-    <>
-    <path d="M4.2 2.2c2 .4 3.4 1.6 4.2 3.4l2-1.2 1.8 2.6 2.4-1.4 1.2 3 3-.6-.4 3.2 2.6.8-1.8 2.6 2 1.8-2.8 1.6.8 2.8-3.2-.4-.6 3-2.6-1.8-2 2.4-1.6-2.8-3 1.2.2-3.2-3.2-.2 1.4-2.8-2.4-2 2.8-1.6-1.4-2.8 3-.2z"/><path d="M12 8.4a3.6 3.6 0 1 1 0 7.2 3.6 3.6 0 0 1 0-7.2z" fill="none"/>
-    </>
-  ),
-  DARK: (
-    <>
-    <path d="M13.6 1.8a10.2 10.2 0 1 0 8.6 14.6 8 8 0 0 1-8.6-14.6z"/>
-    </>
-  ),
-  STEEL: (
-    <>
-    <path d="M12 1.6 21 6.8v10.4L12 22.4 3 17.2V6.8zm0 5.8a4.6 4.6 0 1 0 0 9.2 4.6 4.6 0 0 0 0-9.2z"/>
-    </>
-  ),
-  FAIRY: (
-    <>
-    <path d="M12 2.4c1.8 0 2.4 2 2 3.6 1.4-.9 3.3-.7 3.9.8.6 1.5-.8 2.9-2.4 3.3 1.6.4 3 1.8 2.4 3.3-.6 1.5-2.5 1.7-3.9.8.4 1.6-.2 3.6-2 3.6s-2.4-2-2-3.6c-1.4.9-3.3.7-3.9-.8-.6-1.5.8-2.9 2.4-3.3-1.6-.4-3-1.8-2.4-3.3.6-1.5 2.5-1.7 3.9-.8-.4-1.6.2-3.6 2-3.6z"/><path d="M19.6 17.4l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z"/>
-    </>
-  ),
-};
 
 export function TypeIcon({
   type,
@@ -128,7 +28,7 @@ export function TypeIcon({
   className?: string;
   style?: React.CSSProperties;
 }) {
-  const corpo = TYPE_ICON[type];
+  const corpo = TIPO_GLIFO[type];
   if (!corpo) return null;
   // Piso de 16, e nao de 13.
   //
@@ -141,7 +41,7 @@ export function TypeIcon({
   const s = Math.max(16, size);
   return (
     <svg
-      viewBox="0 0 24 24"
+      viewBox={TIPO_VIEWBOX}
       width={s}
       height={s}
       fill="currentColor"
