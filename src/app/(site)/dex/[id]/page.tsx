@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
@@ -25,20 +26,7 @@ import {
 import { TypeBadge, TypeMultChip } from "@/components/type-icon";
 import { caminhoDoTipo } from "@/lib/tipo-url";
 import { caminhoDaRaridade } from "@/lib/raridade-url";
-import {
-  CategoryIcon,
-  IconAtk,
-  IconBag,
-  IconGem,
-  IconLevel,
-  IconScale,
-  IconTarget,
-  IconTm,
-  IconDef as IconDefShield,
-  IconWeak,
-  IconXp,
-  STAT_ICONS,
-} from "@/components/game-icons";
+import { CategoryIcon, IconAtk, IconBag, IconDef as IconDefShield, IconGem, IconLevel, IconScale, IconTarget, IconTm, IconWeak, IconXp, STAT_ICONS, SeloRaro } from "@/components/game-icons";
 import {
   CATEGORY_LABEL,
   RARITY_LABEL,
@@ -425,61 +413,67 @@ export default async function CreaturePage({ params }: Props) {
           className="h-full"
         >
           {chain.length > 1 ? (
-            /* A linha OCUPA o painel, em vez de se espremer no canto esquerdo.
-               Era `flex-wrap` com caixas de largura fixa (`w-26`): três estágios
-               num painel de 780px deixavam quase metade dele vazio à direita, e
-               o bloco lia como conteúdo que sobrou de outra coluna.
-               Agora é uma grade de frações iguais — cada estágio recebe o mesmo
-               pedaço do que existe, com a seta ocupando a coluna entre eles. A
-               largura fixa saiu junto: era ela que existia pra o nome não decidir
-               o tamanho da caixa, e com fração igual o nome não decide mais
-               nada. */
+            /* A linha OCUPA o painel, e o CONECTOR tem coluna propria.
+               Duas tentativas erradas antes desta, e as duas com o mesmo defeito
+               por caminhos opostos:
+               1. `flex-wrap` com caixa de largura fixa — tres estagios num painel
+                  de 780px deixavam metade dele vazio a direita.
+               2. Grade de fracoes iguais com a seta ancorada FORA do fluxo, na
+                  borda entre celulas. Resolveu o vazio e criou outro: o "nv 40"
+                  nao tinha largura reservada, entao ele cavalgava a borda do
+                  cartao e saia cortado.
+               O certo e a grade declarar as duas coisas: `1fr auto 1fr auto 1fr`
+               — estagio elastico, conector do tamanho que ele precisa. Ninguem
+               sai do fluxo, ninguem esmaga ninguem. */
             <ol
-              className="grid items-center gap-x-2 gap-y-3"
-              style={{ gridTemplateColumns: `repeat(${chain.length}, minmax(0, 1fr))` }}
+              className="grid items-stretch gap-y-3"
+              style={{
+                gridTemplateColumns: Array.from(
+                  { length: chain.length * 2 - 1 },
+                  (_, i) => (i % 2 === 0 ? "minmax(0, 1fr)" : "auto"),
+                ).join(" "),
+              }}
             >
               {chain.map((s, i) => (
-                <li key={s.creature.pokeId} className="relative flex items-center justify-center">
-                  {/* A seta e o nivel moram ENTRE as celulas, ancorados na borda
-                      esquerda desta — assim eles nao consomem uma coluna da grade
-                      e os estagios continuam do mesmo tamanho. */}
+                <Fragment key={s.creature.pokeId}>
                   {i > 0 ? (
-                    <span className="absolute top-1/2 -left-1 z-10 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-0.5 text-text-mute">
-                      <IconChevronRight size={16} />
+                    <li
+                      aria-hidden="true"
+                      className="flex flex-col items-center justify-center gap-0.5 px-2 text-text-mute"
+                    >
+                      <IconChevronRight size={18} />
                       {s.evolveLevel ? (
                         <span className="num text-[10px] whitespace-nowrap">
                           nv {s.evolveLevel}
                         </span>
                       ) : null}
-                    </span>
+                    </li>
                   ) : null}
-                  <Link
-                    href={`/dex/${s.creature.pokeId}`}
-                    title={s.creature.name}
-                    className={cn(
-                      "flex w-full flex-col items-center gap-2 rounded-pix border px-2 py-4",
-                      "transition-[border-color,background-color,transform] duration-200",
-                      "motion-safe:hover:-translate-y-0.5",
-                      s.creature.pokeId === c.pokeId
-                        ? "border-accent/60 bg-accent/10"
-                        : "border-line hover:border-accent/40 hover:bg-surface-2",
-                    )}
-                  >
-                    {/* A arte cresceu de 52 pra 72: com o espaco da grade
-                        disponivel, sprite pequeno num cartao largo deixa um vazio
-                        no meio que e pior que o vazio da direita que a gente
-                        acabou de resolver. */}
-                    <Sprite
-                      src={spriteUrl(s.creature.pokeId)}
-                      alt={s.creature.name}
-                      size={72}
-                      className="[--sprite:56px] sm:[--sprite:72px]"
-                    />
-                    <span className="w-full truncate text-center text-[12px] text-text-dim">
-                      {s.creature.name}
-                    </span>
-                  </Link>
-                </li>
+                  <li className="flex">
+                    <Link
+                      href={`/dex/${s.creature.pokeId}`}
+                      title={s.creature.name}
+                      className={cn(
+                        "flex w-full flex-col items-center justify-center gap-2 rounded-pix border px-2 py-4",
+                        "transition-[border-color,background-color,transform] duration-200",
+                        "motion-safe:hover:-translate-y-0.5",
+                        s.creature.pokeId === c.pokeId
+                          ? "border-accent/60 bg-accent/10"
+                          : "border-line hover:border-accent/40 hover:bg-surface-2",
+                      )}
+                    >
+                      <Sprite
+                        src={spriteUrl(s.creature.pokeId)}
+                        alt={s.creature.name}
+                        size={72}
+                        className="[--sprite:56px] sm:[--sprite:72px]"
+                      />
+                      <span className="w-full truncate text-center text-[12px] text-text-dim">
+                        {s.creature.name}
+                      </span>
+                    </Link>
+                  </li>
+                </Fragment>
               ))}
             </ol>
           ) : (
@@ -648,7 +642,7 @@ export default async function CreaturePage({ params }: Props) {
                           ) : (
                             l.name
                           )}
-                          {item?.rare ? <Chip size="xs" tone="accent" icon={<IconGem size={14} />}>raro</Chip> : null}
+                          {item?.rare ? <SeloRaro /> : null}
                         </span>
                       </td>
                       <td className="px-3 py-1.5 text-right text-[14px] text-ok tabular">

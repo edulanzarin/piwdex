@@ -304,18 +304,28 @@
      largura), o que e mais forte do que pedir `tnum` e torcer. O
      `letter-spacing` negativo compensa a largura extra do monoespacado, senao a
      tabela cresce e a densidade some. */
-  table, .tabular, .num {
-    font-family: var(--font-mono-stack);
+  /* MONO e pra NUMERO, e so.
+     A primeira versao disto pos `table` no mesmo seletor da familia mono, e o
+     resultado foi toda celula de toda tabela virar monoespaçada — nome de golpe,
+     nome de item, categoria. A tabela de drops inteira lia como saida de
+     terminal, que e exatamente o dialeto do qual esta passada esta saindo.
+     O engano tem uma forma reconhecivel: `table` estava ali de antes, quando a
+     regra so ligava `tabular-nums` (inofensivo em texto). Ao trocar o que a
+     regra FAZ, o seletor herdado deixou de fazer sentido e ninguem reparou,
+     porque o seletor nao mudou. Trocar a acao de uma regra pede reler quem ela
+     alcanca.
+     `table` volta a so pedir digito de largura fixa — que a Lexend nao tem, mas
+     tambem nao atrapalha. Quem quer mono pede: `.num` na celula. */
+  table {
     font-variant-numeric: tabular-nums;
-    letter-spacing: -0.02em;
   }
 
-  /* O rotulo dentro da tabela volta pro texto: mono e pra NUMERO. Cabecalho de
-     coluna e nome de especie em mono viram etiqueta de terminal, que e
-     exatamente o dialeto do qual esta passada esta saindo. */
-  table :is(th, .txt), .tabular .txt {
-    font-family: var(--font-ui-stack);
-    letter-spacing: normal;
+  .tabular, .num {
+    font-family: var(--font-mono-stack);
+    font-variant-numeric: tabular-nums;
+    /* O tracking negativo compensa a largura extra do monoespaçado, senao a
+       coluna cresce e a densidade some. */
+    letter-spacing: -0.02em;
   }
 
   /* Sprite do jogo e pixel art: escalar com suavizacao vira borrao. */

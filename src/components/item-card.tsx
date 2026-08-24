@@ -4,14 +4,7 @@ import type { ItemEntry } from "@/lib/items";
 import { killsPerUnit } from "@/lib/items";
 import { assetIconUrl, spriteUrl } from "@/lib/sprites";
 import { Chip, IconCoin, Pokeball, Sprite, Tooltip } from "@/components/ui";
-import {
-  IconGem,
-  IconLevel,
-  IconLoot,
-  IconShop,
-  ITEM_CATEGORY_ART,
-  ItemCategoryIcon,
-} from "@/components/game-icons";
+import { ITEM_CATEGORY_ART, IconGem, IconLevel, IconLoot, IconShop, ItemCategoryIcon, SeloRaro } from "@/components/game-icons";
 import { ITEM_CATEGORY_LABEL, ITEM_ORIGIN_LABEL, compact, num} from "@/lib/labels";
 
 /**
@@ -170,9 +163,7 @@ export function ItemCard({
         </span>
         {e.rare ? (
           <span className="absolute top-2 right-2">
-            <Chip size="xs" tone="accent" icon={<IconGem size={13} />}>
-              raro
-            </Chip>
+            <SeloRaro />
           </span>
         ) : null}
       </div>
@@ -251,7 +242,7 @@ export function ItemRow({ e }: { e: ItemEntry }) {
             <span className="block truncate text-[14px] font-medium text-text group-hover:text-[var(--color-t-itens)]">
               {e.name}
             </span>
-            {e.rare ? <span className="pix text-[11px] text-accent">raro</span> : null}
+            {e.rare ? <SeloRaro /> : null}
           </span>
         </Link>
       </td>

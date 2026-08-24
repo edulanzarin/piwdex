@@ -29,6 +29,7 @@ import {
   ShieldHalf,
   Shield,
   SlidersHorizontal,
+  Sparkle,
   Sparkles,
   Star,
   Sword,
@@ -101,6 +102,19 @@ export function CategoryIcon({
 
 // ---- marcadores ----
 export const IconGem = wrap(Gem, "IconGem");
+/**
+ * RARO — e por que nao e o `IconGem`.
+ *
+ * O losango do `Gem` ja carrega outro significado nesta interface: ele e a
+ * RARIDADE do pokemon, a escada de seis degraus (comum ate mitico). Usa-lo
+ * tambem pra "item raro" faz o mesmo simbolo dizer duas coisas em telas que
+ * aparecem juntas — a ficha da especie mostra o losango da raridade no topo e o
+ * losango de item raro na tabela de drops, a vinte centimetros um do outro.
+ *
+ * `Sparkle` (singular, diferente do `Sparkles` que marca ataque especial) diz
+ * "isto aqui e incomum" sem disputar com a escada.
+ */
+export const IconRare = wrap(Sparkle, "IconRare");
 export const IconTm = wrap(Disc3, "IconTm");
 export const IconBag = wrap(Package, "IconBag");
 export const IconLevel = wrap(TrendingUp, "IconLevel");
@@ -173,4 +187,32 @@ export function ItemCategoryIcon({
 }) {
   const Icon = ITEM_CATEGORY_ICON[category] ?? IconMisc;
   return <Icon size={size} className={className} />;
+}
+
+/**
+ * O SELO de item raro.
+ *
+ * Existia em TRES lugares com tres formas: chip com losango minusculo no card do
+ * item, `<span>` de texto minusculo na linha da tabela de itens, e outro chip com
+ * losango na tabela de drops da ficha. Tres desenhos pro mesmo fato — e o
+ * terceiro so foi descoberto porque o Eduardo apontou o primeiro.
+ *
+ * Caixa ALTA, e nao "raro" em caixa baixa: a palavra e um SELO, e selo em caixa
+ * baixa no meio de uma linha de texto le como parte da frase — na tabela de
+ * drops, "Bulb raro" parecia o nome do item.
+ */
+export function SeloRaro({ size = "xs" }: { size?: "xs" | "sm" }) {
+  return (
+    <span
+      className={[
+        "pix inline-flex shrink-0 items-center gap-1 rounded-pill border",
+        "border-accent/35 bg-accent/12 text-accent",
+        size === "xs" ? "px-2 py-0.5 text-[9px]" : "px-2.5 py-1 text-[10px]",
+      ].join(" ")}
+      title="Item raro"
+    >
+      <IconRare size={size === "xs" ? 11 : 13} />
+      raro
+    </span>
+  );
 }
