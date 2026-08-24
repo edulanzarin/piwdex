@@ -2,6 +2,8 @@ import type { CSSProperties } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getDexPayload } from "@/lib/dex-data";
+import { RARITY_COLOR } from "@/lib/typing";
+import { officialArtUrl, spriteUrl } from "@/lib/sprites";
 import { agora, fecharPiso } from "@/lib/pacing";
 import {
   ButtonLink,
@@ -55,7 +57,34 @@ export const dynamic = "force-dynamic";
  */
 export default async function HomePage() {
   const t0 = agora();
-  const { counts, catalog } = await getDexPayload();
+  const { counts, entries } = await getDexPayload();
+
+  /**
+   * O DESTAQUE DO DIA — a arte que ocupa a metade direita do herói.
+   *
+   * É a peça que a referência põe ali: a splash art de um campeão. Aqui não há
+   * splash, há o render oficial — e ele é grande o bastante pra sustentar meia
+   * tela sozinho, que é o que faltava depois de o painel do catálogo sair.
+   *
+   * ## Por que sorteado pelo DIA, e não por request
+   *
+   * A rota é `force-dynamic`: um `Math.random()` aqui trocaria de pokémon a cada
+   * F5, e isso quebra duas coisas de uma vez. O visitante que volta em cinco
+   * minutos vê outra capa e o site parece instável; e o mesmo endereço passa a
+   * servir imagens diferentes, o que estraga o cache de borda e o pré-carregamento.
+   *
+   * Com a semente vindo do DIA, todo mundo vê o mesmo destaque no mesmo dia e a
+   * home ganha um motivo pra ser revisitada — que é exatamente o que a seção de
+   * destaque existe pra fazer.
+   *
+   * Só entram espécies com render oficial e sem variante: variante compartilha o
+   * looktype da base e sairia com a arte de outro bicho (ver `officialArtUrl`).
+   */
+  const elegiveis = entries.filter((e) => !e.variant && e.id < 1e4);
+  const hoje = new Date();
+  const semente =
+    hoje.getUTCFullYear() * 10000 + (hoje.getUTCMonth() + 1) * 100 + hoje.getUTCDate();
+  const destaque = elegiveis[semente % elegiveis.length];
 
   await fecharPiso(t0);
 
@@ -87,7 +116,7 @@ export default async function HomePage() {
           O `max-w-3xl` segura a medida e o resto da faixa fica pra ARTE, que é a
           troca inteira desta passada: o wallpaper deixa de disputar a metade
           direita com um widget e volta a ser cenário. */}
-      <section className="flex min-h-[62vh] flex-col justify-center py-12 lg:py-20">
+      <section className="grid min-h-[62vh] items-center gap-10 py-12 lg:grid-cols-[1.05fr_minmax(0,0.95fr)] lg:py-20">
         {/* Cada bloco entra no seu tempo, na ordem em que se lê: marca, manchete,
             frase, botões. O atraso vem de `--d` e não de quatro classes
             diferentes — é a mesma animação, deslocada. */}
@@ -137,7 +166,56 @@ export default async function HomePage() {
           >
             Stats, drops, evolução e onde caçar cada espécie do jogo.
           </p>
+
+          {/* A pista de rolagem. Uma home que abre com meia tela de arte precisa
+              dizer que há mais embaixo — sem isso, quem chega em monitor grande
+              lê o herói como a página inteira. */}
+          <Link
+            href="#ferramentas"
+            className="anim-in pix group mt-2 inline-flex items-center gap-2.5 text-[10px] tracking-[0.2em] text-text-mute transition-colors hover:text-text-dim"
+            style={{ "--d": "260ms" } as CSSProperties}
+          >
+            <span className="grid h-8 w-8 place-items-center rounded-pill border border-line-strong transition-transform duration-300 motion-safe:group-hover:translate-y-0.5">
+              <IconChevronRight size={14} className="rotate-90" />
+            </span>
+            as ferramentas
+          </Link>
         </div>
+
+        {/* ---- o DESTAQUE DO DIA ---- */}
+        {destaque ? (
+          <Link
+            href={`/dex/${destaque.id}`}
+            className="anim-in group relative hidden place-items-center lg:grid"
+            style={{ "--d": "320ms" } as CSSProperties}
+          >
+            {/* O halo sai da cor da RARIDADE. Ele é o que separa a arte do
+                wallpaper — sem nenhuma superfície, que era o problema do painel
+                que morava aqui. Luz em vez de caixa. */}
+            <span
+              aria-hidden="true"
+              className="absolute h-[26rem] w-[26rem] rounded-pill blur-[90px] transition-opacity duration-500 group-hover:opacity-90"
+              style={{ backgroundColor: RARITY_COLOR[destaque.rarity], opacity: 0.55 }}
+            />
+            <Sprite
+              src={officialArtUrl(destaque.id) ?? spriteUrl(destaque.id)}
+              alt={destaque.name}
+              size={420}
+              pixel={!officialArtUrl(destaque.id)}
+              priority
+              className="anim-float relative [--sprite:340px] xl:[--sprite:420px]"
+            />
+            <span className="anim-in absolute bottom-0 flex flex-col items-center gap-1.5">
+              <Eyebrow tint="var(--color-text-mute)">Destaque de hoje</Eyebrow>
+              <span className="pix text-[20px] tracking-[0.1em] text-text transition-colors group-hover:text-[color:var(--cor)]" style={{ "--cor": RARITY_COLOR[destaque.rarity] } as CSSProperties}>
+                {destaque.name}
+              </span>
+              <span className="num text-[11px] text-text-mute">
+                #{String(destaque.id).padStart(3, "0")}
+              </span>
+            </span>
+          </Link>
+        ) : null}
       </section>
 
       {/* ================= as ferramentas, em CENAS =================
