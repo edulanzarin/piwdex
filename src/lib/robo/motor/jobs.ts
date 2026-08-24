@@ -410,8 +410,19 @@ export async function rodarColeta(
     if (d) {
       t = d.tokens;
       if (d.mudou) await aoTrocarTokens(t);
-      // `podeColetar` do jogo manda. Tentar sem ele so colecionaria recusa.
-      if (d.dado.podeColetar && !d.dado.jaColetouHoje) {
+      /**
+       * Tres portoes, e o do meio e o que faltava.
+       *
+       * `travadoPorVip` e o jogo dizendo que o premio DESTE dia e de assinante e
+       * a conta nao e. Sem ele, toda rodada mandava um pedido pra ouvir o mesmo
+       * nao — e o registro enchia de "não consegui coletar a diária" numa conta
+       * onde nao ha nada a consertar.
+       */
+      if (d.dado.travadoPorVip) {
+        // Silencio de proposito: nao e falha, e uma recompensa que nao e desta
+        // conta. Virar linha no registro seria transformar um fato do plano em
+        // um alarme diario.
+      } else if (d.dado.podeColetar && !d.dado.jaColetouHoje) {
         const c = await coletarDiaria(t);
         t = c.tokens;
         if (c.mudou) await aoTrocarTokens(t);

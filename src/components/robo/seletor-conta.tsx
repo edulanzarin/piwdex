@@ -54,16 +54,27 @@ export function SeletorDeConta({
   ativa,
   onTrocar,
   onAdicionar,
+  onLigar,
   limite,
 }: {
   contas: ContaViva[];
   ativa: string | null;
   onTrocar: (id: string) => void;
   onAdicionar: () => void;
+  /** liga ou desliga UMA conta, sem sair da que esta na tela */
+  onLigar: (id: string, ligar: boolean) => void;
   /** `-1` = sem teto (admin, e o que os planos vao relaxar) */
   limite: number;
 }) {
   const semTeto = limite < 0;
+  /**
+   * As que o dono nao ligou.
+   *
+   * Com seis contas, ligar uma a uma custava seis trocas de aba — e o resultado
+   * era o que se viu: quatro rodando e duas paradas sem ninguem perceber que
+   * elas estavam so DESLIGADAS, e nao barradas por limite.
+   */
+  const paradas = contas.filter((c) => !c.ligada && c.status === "active");
   if (!contas.length) return null;
 
   return (
@@ -92,12 +103,52 @@ export function SeletorDeConta({
             >
               {rotulo(c)}
             </span>
+            {/* O interruptor mora no chip: com varias contas, ligar uma passava
+                por trocar de aba, e trocar de aba pra clicar em ligar e a
+                definicao de trabalho manual que a tela podia poupar.
+
+                `span` e nao `button`: botao dentro de botao e HTML invalido, e o
+                navegador desmonta a arvore de um jeito que o chip inteiro para
+                de responder ao clique. */}
+            <span
+              role="button"
+              tabIndex={0}
+              aria-label={c.ligada ? `desligar ${rotulo(c)}` : `ligar ${rotulo(c)}`}
+              title={c.ligada ? "desligar esta conta" : "ligar esta conta"}
+              onClick={(e) => {
+                e.stopPropagation();
+                onLigar(c.id, !c.ligada);
+              }}
+              onKeyDown={(e) => {
+                if (e.key !== "Enter" && e.key !== " ") return;
+                e.preventDefault();
+                e.stopPropagation();
+                onLigar(c.id, !c.ligada);
+              }}
+              className="pix shrink-0 cursor-pointer px-1 text-[9px] text-text-mute transition-colors hover:text-text"
+            >
+              {c.ligada ? "◼" : "▶"}
+            </span>
             <span className="pix shrink-0 text-[9px]" style={{ color: t.cor }}>
               {t.texto}
             </span>
           </button>
         );
       })}
+
+      {/* Ligar todas de uma vez. So aparece quando ha o que ligar — um botao que
+          nao faz nada e pior que nenhum, porque ensina a ignorar a barra. */}
+      {paradas.length > 1 ? (
+        <button
+          type="button"
+          onClick={() => paradas.forEach((c) => onLigar(c.id, true))}
+          className="pix border px-2.5 py-1.5 text-[10px] transition-colors hover:brightness-125"
+          style={{ borderColor: "color-mix(in srgb, var(--color-ok) 45%, transparent)", color: TOM.vida }}
+          title={paradas.map((c) => rotulo(c)).join(", ")}
+        >
+          ligar as {paradas.length}
+        </button>
+      ) : null}
 
       {semTeto || contas.length < limite ? (
         <button

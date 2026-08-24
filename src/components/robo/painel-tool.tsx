@@ -233,6 +233,25 @@ export function PainelTool({
 
   const naoLidas = chat.filter((m) => m.em > lidoAte && !m.minha).length;
 
+  /**
+   * Liga ou desliga OUTRA conta, sem trocar a que esta na tela.
+   *
+   * As rotas ja aceitam `?conta=`; o que faltava era a tela poder mandar. E o
+   * otimismo aqui e proposital: o chip muda na hora e a lista viva corrige na
+   * proxima leitura. Esperar o servidor pra pintar deixava seis cliques sem
+   * resposta visivel, e quem clica de novo acaba desligando o que ligou.
+   */
+  const ligarConta = useCallback(async (id: string, ligar: boolean) => {
+    setVivas((l) => l.map((c) => (c.id === id ? { ...c, ligada: ligar } : c)));
+    await fetch(comConta(`/api/robo/${ligar ? "ligar" : "parar"}`, id), { method: "POST" }).catch(
+      () => {},
+    );
+    const j = (await fetch("/api/robo/contas")
+      .then((r) => (r.ok ? r.json() : null))
+      .catch(() => null)) as { contas?: ContaViva[] } | null;
+    if (j?.contas) setVivas(j.contas);
+  }, []);
+
   const comandar = useCallback(async (rota: string, corpo?: unknown) => {
     setOcupado(true);
     setErro(null);
@@ -315,6 +334,7 @@ export function PainelTool({
           limite={limite}
           onTrocar={(id) => router.push(`/painel?conta=${encodeURIComponent(id)}`)}
           onAdicionar={() => router.push("/conectar")}
+          onLigar={ligarConta}
         />
       ) : null}
 

@@ -346,9 +346,13 @@ export function AbaAutomacao({ estado }: { estado: EstadoHunt }) {
                 <Switch
                   block
                   checked={atual.autoCatch}
-                  disabled={salvando}
+                  /* Sem VIP no jogo o servidor dele nao liga isto: o interruptor
+                     aceitava o clique, a tela mostrava ligado, e nada capturava.
+                     Bloquear e dizer a verdade — o aviso acima explica o porque. */
+                  disabled={salvando || !atual.vipNoJogo}
                   onChange={(e) => mudar({ autoCatch: e.currentTarget.checked })}
                   label="capturar sozinho"
+                  hint={!atual.vipNoJogo ? "precisa de VIP no jogo" : undefined}
                 />
               </Cartao>
 
@@ -367,9 +371,10 @@ export function AbaAutomacao({ estado }: { estado: EstadoHunt }) {
                 <Switch
                   block
                   checked={atual.autoCatchShiny}
-                  disabled={salvando}
+                  disabled={salvando || !atual.vipNoJogo}
                   onChange={(e) => mudar({ autoCatchShiny: e.currentTarget.checked })}
                   label="bola separada para shiny"
+                  hint={!atual.vipNoJogo ? "precisa de VIP no jogo" : undefined}
                 />
               </Cartao>
 
