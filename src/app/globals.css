@@ -16,18 +16,32 @@
    ========================================================================== */
 
 @theme {
-  /* ---- superficies ----
-     Subiram um degrau inteiro. O quase-preto (#06070d) deixava a tela
-     monocromatica: sem luz no fundo, cor de dado sobra sozinha e o site parece
-     um terminal, nao uma ferramenta de jogo. O azul-noite tem a MESMA
-     profundidade e devolve o ar. A hierarquia continua por profundidade, nao
-     por borda. */
-  --color-bg: #0c0e14;
-  --color-bg-soft: #12151d;
-  --color-surface: #181c26;
-  --color-surface-2: #212632;
-  --color-surface-3: #2b3140;
-  --color-overlay: #070810;
+  /* ---- superficies: grafite MORNO ----
+
+     Elas eram azul-noite, e o azul veio de uma passada que buscava o registro
+     sombrio da referencia (LoL). O conteudo desmentiu a escolha: a grade e a
+     ficha passaram a mostrar RENDER OFICIAL — arte cartoon, clara e saturada — e
+     bicho cartoon dentro de moldura fria nao le como contraste, le como duas
+     coisas de sites diferentes na mesma tela.
+
+     A virada e de MATIZ, nao de claridade: o mesmo escuro, girado do azul (~220
+     graus) pro grafite morno (~28), com saturacao baixa pra ser neutro e nao
+     sepia. Continua sendo tema escuro de ferramenta de jogo; deixa e de ser
+     noite fria.
+
+     A LUMINANCIA de cada token foi preservada ate a quarta casa. Isso nao e
+     capricho: este arquivo documenta razoes de contraste medidas (o
+     `text-mute` a 4,65:1 no pior caso, sobre o flutuante), e mexer no matiz sem
+     travar a luz teria quebrado a acessibilidade em silencio — cor nova
+     "parecida" e o jeito mais facil de perder um criterio AA sem ninguem notar.
+
+     A hierarquia continua por profundidade, nao por borda. */
+  --color-bg: #100e0c;
+  --color-bg-soft: #181512;
+  --color-surface: #1f1c18;
+  --color-surface-2: #2a2521;
+  --color-surface-3: #36302b;
+  --color-overlay: #0a0807;
 
   /* ---- linhas ----
      Baixaram de contraste na virada pro console macio, e isso e a metade menos
@@ -35,8 +49,8 @@
      acaba; canto arredondado ja diz isso com a propria silhueta, e ai a mesma
      linha que antes DESENHAVA passa a RISCAR. A hierarquia volta a sair de
      superficie e sombra — que e o principio, e nao a moda. */
-  --color-line: #262b38;
-  --color-line-strong: #333a4b;
+  --color-line: #2f2a26;
+  --color-line-strong: #3f3933;
 
   /* ---- texto: tres degraus, nunca mais ----
      O degrau mais apagado subiu. O #5f6b80 anterior media 3,00:1 sobre o
@@ -53,19 +67,25 @@
      flutuante). O degrau do meio subiu junto pra escada continuar sendo escada —
      tres tons que ninguem distingue viram um tom so, e ai o token nao informa
      mais nada. */
-  --color-text: #e8edf7;
-  --color-text-dim: #b3bece;
-  --color-text-mute: #8691a5;
+  --color-text: #f0ecea;
+  --color-text-dim: #c4bcb4;
+  --color-text-mute: #988f86;
 
   /* ---- acento da INTERFACE ----
-     Aco frio, NAO roxo. O violeta anterior tingia tudo — halo do topo, borda de
+     AREIA morna, e nao mais aco frio — pelo mesmo motivo das superficies. Um
+     acento azulado sobre grafite morno vira a unica coisa fria da tela, e o olho
+     acha isso antes de achar o dado.
+     A luminancia foi preservada, entao o botao de fio fino e o anel de foco
+     continuam com o mesmo contraste medido.
+
+     O que NAO muda e o papel dele: quase neutro de proposito. O violeta anterior tingia tudo — halo do topo, borda de
      foco, aba ativa, chip, logo — e o site inteiro virava "o site roxo". Este
      acento e quase neutro de proposito: ele marca ESTADO (foco, ativo, hover) e
      sai da frente. A cor com significado fica onde ela informa: tipo, raridade
      e a cor de cada ferramenta. */
-  --color-accent: #a8bfe0;
-  --color-accent-soft: #6f8099;
-  --color-accent-deep: #1a2330;
+  --color-accent: #cdbba3;
+  --color-accent-soft: #927b5d;
+  --color-accent-deep: #27221b;
   --color-neon: #2ee6d6;
   --color-neon-deep: #0f3f3d;
 
