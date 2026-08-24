@@ -7,6 +7,7 @@ import { RARITY_COLOR } from "@/lib/typing";
 import { officialArtUrl, spriteUrl } from "@/lib/sprites";
 import { agora, fecharPiso } from "@/lib/pacing";
 import {
+  ArtCard,
   ButtonLink,
   DisplayTitle,
   Eyebrow,
@@ -194,38 +195,59 @@ export default async function HomePage() {
           </Link>
         </div>
 
-        {/* ---- o DESTAQUE DO DIA ---- */}
+        {/* ---- o DESTAQUE DO DIA ----
+
+            Ele voltou pra dentro de um CARD, e isso desfaz a escolha anterior de
+            proposito. A versao passada tirou o painel e ficou so com a arte e um
+            halo — "luz em vez de caixa". A ideia era boa e a execucao nao pagou:
+            sem superficie, o destaque nao lia como PECA. Ele ficava pousado sobre
+            o wallpaper como se tivesse escorregado pra ali, e o halo, que era pra
+            separar arte de fundo, so dizia que havia luz atras de alguma coisa —
+            nao onde aquela coisa comecava e terminava.
+
+            E o card e o que ele sempre foi: o `ArtCard`, a forma de arte em cima
+            e placa embaixo que ja existia em `ui/` e so aparecia na pagina de
+            estilo. O destaque e o caso exato pra que ela foi escrita — a arte e o
+            argumento, e a unica chrome que ela aceita e uma placa fina com o
+            nome.
+
+            `max-w-sm` porque a coluna da direita passa dos 600px no `xl`, e um
+            painel de arte quadrado nessa largura vira poster: o heroi da esquerda
+            perderia a disputa dentro da propria primeira dobra. */}
         {destaque ? (
-          <Link
+          <ArtCard
             href={`/dex/${destaque.id}`}
-            className="anim-in group relative hidden place-items-center lg:grid"
+            shape="quadrada"
+            tint={RARITY_COLOR[destaque.rarity]}
+            className="anim-in mx-auto hidden w-full max-w-sm lg:block"
             style={{ "--d": "320ms" } as CSSProperties}
-          >
-            {/* O halo sai da cor da RARIDADE. Ele é o que separa a arte do
-                wallpaper — sem nenhuma superfície, que era o problema do painel
-                que morava aqui. Luz em vez de caixa. */}
-            <span
-              aria-hidden="true"
-              className="absolute h-[26rem] w-[26rem] rounded-pill blur-[90px] transition-opacity duration-500 group-hover:opacity-90"
-              style={{ backgroundColor: RARITY_COLOR[destaque.rarity], opacity: 0.55 }}
-            />
-            <Sprite
-              src={spriteUrl(destaque.id)}
-              alt={destaque.name}
-              size={420}
-              priority
-              className="anim-float relative [--sprite:340px] xl:[--sprite:420px]"
-            />
-            {/* A legenda vive ABAIXO da arte, e não por cima dela.
-                Ela estava em `absolute bottom-0` e caía em cima do sprite — com
-                render de 420px e fundo transparente, "DESTAQUE DE HOJE" pousava
-                no meio do bicho e as duas coisas ficavam ilegíveis. Texto sobre
-                arte só funciona quando a arte tem uma faixa reservada pra isso, e
-                render recortado não tem. */}
-            <span className="mt-4 flex flex-col items-center gap-2">
+            art={
+              <>
+                {/* O HALO fica — ele so trocou de patrao.
+                    Solto sobre o wallpaper ele tinha de fazer dois trabalhos e so
+                    dava conta de um: separar a arte do fundo (nao dava) e dar
+                    vida a peca (dava). Dentro do card, a borda ja separa, e ele
+                    volta a fazer so o que sabe. Por isso ele encolheu e baixou a
+                    opacidade: 26rem a 55% existiam pra vencer uma cena inteira
+                    atras; aqui atras ha uma superficie de uma cor so. */}
+                <span
+                  aria-hidden="true"
+                  className="absolute h-52 w-52 rounded-pill blur-[64px] transition-opacity duration-500 group-hover:opacity-90"
+                  style={{ backgroundColor: RARITY_COLOR[destaque.rarity], opacity: 0.4 }}
+                />
+                <Sprite
+                  src={spriteUrl(destaque.id)}
+                  alt={destaque.name}
+                  size={300}
+                  priority
+                  className="anim-float relative [--sprite:240px] xl:[--sprite:300px]"
+                />
+              </>
+            }
+            eyebrow={
               <span className="flex items-center gap-2">
                 <span
-                  className="pix rounded-pill border px-2 py-0.5 text-[10px] tracking-[0.14em]"
+                  className="rounded-pill border px-2 py-0.5 tracking-[0.14em]"
                   style={{
                     color: TIER_COLOR[destaque.tier],
                     borderColor: `color-mix(in oklab, ${TIER_COLOR[destaque.tier]} 45%, transparent)`,
@@ -234,19 +256,23 @@ export default async function HomePage() {
                 >
                   tier {destaque.tier}
                 </span>
-                <Eyebrow tint="var(--color-text-mute)">Pokémon em destaque</Eyebrow>
+                Pokémon em destaque
               </span>
-              <span
-                className="pix text-[24px] tracking-[0.1em] text-text transition-colors group-hover:text-[color:var(--cor)]"
-                style={{ "--cor": RARITY_COLOR[destaque.rarity] } as CSSProperties}
-              >
-                {destaque.name}
+            }
+            name={
+              <span className="flex items-baseline justify-between gap-2">
+                <span className="min-w-0 truncate text-[17px] tracking-[0.08em]">
+                  {destaque.name}
+                </span>
+                {/* O numero na MESMA linha do nome, e nao numa terceira.
+                    Ele e identificacao, nao afirmacao: gastar uma linha inteira
+                    da placa com ele daria a "#145" o mesmo peso de "tier S". */}
+                <span className="num shrink-0 text-[11px] text-text-mute">
+                  #{String(destaque.id).padStart(3, "0")}
+                </span>
               </span>
-              <span className="num text-[11px] text-text-mute">
-                #{String(destaque.id).padStart(3, "0")}
-              </span>
-            </span>
-          </Link>
+            }
+          />
         ) : null}
       </section>
 
