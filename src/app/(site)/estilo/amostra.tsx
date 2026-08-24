@@ -2,8 +2,12 @@
 
 import { useState } from "react";
 import {
+  ArtCard,
   Badge,
   Button,
+  ExploreLink,
+  Frame,
+  RuleTitle,
   DisplayTitle,
   Eyebrow,
   Reveal,
@@ -27,6 +31,7 @@ import {
   Skeleton,
   StatBar,
   StatTile,
+  Sprite,
   Switch,
   Tabs,
   Tooltip,
@@ -412,6 +417,72 @@ export function Amostra() {
                 </p>
               </div>
             </Reveal>
+          ))}
+        </div>
+      </Bloco>
+
+      <Bloco
+        titulo="Titulo de capitulo"
+        nota="Fio dos dois lados e tracking muito largo. Ele PARA a pagina — um por tela costuma ser o certo, dois ja e ritmo de slides."
+      >
+        <div className="flex flex-col gap-8 py-2">
+          <RuleTitle>Mais recente</RuleTitle>
+          <RuleTitle tint="var(--color-t-dex)">Em destaque</RuleTitle>
+        </div>
+      </Bloco>
+
+      <Bloco
+        titulo="Moldura de fio"
+        nota="Contorno, e nao superficie. O Panel tem fundo e elevacao pra separar do que passa atras; a moldura emoldura o que ja esta legivel."
+      >
+        <div className="grid gap-4 sm:grid-cols-3">
+          <Frame className="p-5">
+            <p className="pix text-[12px] text-text-dim">Simples</p>
+            <p className="mt-1 text-[12px] text-text-mute">Um fio, e respiro.</p>
+          </Frame>
+          <Frame dupla className="p-5">
+            <p className="pix text-[12px] text-text-dim">Dupla</p>
+            <p className="mt-1 text-[12px] text-text-mute">A segunda linha faz virar placa.</p>
+          </Frame>
+          <Frame cantos tint="var(--color-t-hunt)" className="p-5">
+            <p className="pix text-[12px] text-text-dim">Cantos</p>
+            <p className="mt-1 text-[12px] text-text-mute">So os quatro cantos marcados.</p>
+          </Frame>
+        </div>
+        <div className="mt-5 flex flex-wrap gap-6">
+          <ExploreLink href="#">Explorar</ExploreLink>
+          <ExploreLink href="#" tint="var(--color-t-meta)">
+            Ver todos
+          </ExploreLink>
+        </div>
+      </Bloco>
+
+      <Bloco
+        titulo="Cartao de arte"
+        nota="Arte encostando nas bordas e placa solida embaixo. A placa nao flutua sobre a imagem: nome sobre arte some em metade dos casos de uma grade."
+      >
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          {[
+            ["Pokédex", "pokedex", "var(--color-t-dex)"],
+            ["Itens", "itens", "var(--color-t-itens)"],
+            ["Hunt", "hunt", "var(--color-t-hunt)"],
+            ["Meta", "meta", "var(--color-t-meta)"],
+          ].map(([nome, arte, cor]) => (
+            <ArtCard
+              key={nome}
+              href="#"
+              name={nome}
+              eyebrow="Ferramenta"
+              tint={cor}
+              art={
+                <Sprite
+                  src={`/images/icons/${arte}.png`}
+                  alt=""
+                  size={120}
+                  className="[--sprite:96px]"
+                />
+              }
+            />
           ))}
         </div>
       </Bloco>

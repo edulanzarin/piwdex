@@ -6,6 +6,8 @@ import { agora, fecharPiso } from "@/lib/pacing";
 import {
   Badge,
   ButtonLink,
+  ExploreLink,
+  RuleTitle,
   DisplayTitle,
   Eyebrow,
   FeatureSection,
@@ -14,7 +16,6 @@ import {
   MetricGrid,
   Parallax,
   Pokeball,
-  SectionTitle,
   Sprite,
 } from "@/components/ui";
 import { FERRAMENTAS } from "@/lib/ferramentas";
@@ -260,9 +261,17 @@ export default async function HomePage() {
           A revelação entra no scroll, e não na carga: animar o que está abaixo da
           dobra no carregamento é pagar o custo da animação enquanto ninguém
           olha. */}
-      <SectionTitle id="ferramentas" className="scroll-mt-20">
+      {/* Titulo de CAPITULO, e nao de lista: fio dos dois lados, centralizado,
+          com a pokébola de marca em cima. Ele para a página, e por isso é o
+          ÚNICO da home — usado em toda seção, vira ritmo de slides e nada mais
+          parece importante. */}
+      <RuleTitle
+        id="ferramentas"
+        className="scroll-mt-24 pt-6"
+        emblem={<Pokeball size={26} className="text-[var(--color-t-dex)]" />}
+      >
         Ferramentas
-      </SectionTitle>
+      </RuleTitle>
 
       {FERRAMENTAS.map((t, i) => (
         <FeatureSection
@@ -304,6 +313,15 @@ export default async function HomePage() {
             >
               Abrir {t.nome}
             </ButtonLink>
+          }
+          footer={
+            /* O link mora ABAIXO das ações e não ao lado: ele não é uma segunda
+               opção do mesmo peso — é a saída lateral pra quem não quer abrir a
+               ferramenta ainda. Ao lado do botão, dois alvos parecidos disputam
+               a mesma decisão. */
+            <ExploreLink href={t.href} tint={t.cor} className="pt-1">
+              O que dá pra fazer aqui
+            </ExploreLink>
           }
         />
       ))}
