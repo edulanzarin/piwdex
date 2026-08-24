@@ -1,26 +1,27 @@
 #!/usr/bin/env python3
-"""Gera o fundo do site a partir de assets/wallpaper.jpg.
+"""Gera o fundo do site a partir de assets/wallpaper.<ext>.
 
 Por que assar a imagem em vez de tratar no CSS:
 
-1. **Escurecer no CSS e uniforme; o problema e o PICO.** O wallpaper original
-   tem luminancia media 148 mas vai de nuvem clara (229) a folhagem escura na
-   MESMA linha. Um scrim uniforme forte o bastante pra domar a nuvem apaga a
-   folhagem — some a imagem inteira. Rebaixar por pixel trata os dois.
-2. **`filter` numa camada de tela cheia custa composicao a cada scroll.**
-   Assado, o custo e zero.
-3. **Peso.** Pixelizar comprime absurdamente bem: 1,9 MB -> 45 KB.
+1. **`filter` numa camada de tela cheia custa composicao a cada scroll.**
+   Assado, o custo e zero. Vale pro brilho e vale, sobretudo, pro DESFOQUE:
+   `blur()` em `position: fixed` de tela inteira e a coisa mais cara que da pra
+   pedir a um compositor.
+2. **Peso.** O PNG fonte tem 8,5 MB; o que sai daqui tem dezenas de KB.
+3. **O tratamento e derivado da FONTE.** Trocar o wallpaper e trocar o arquivo em
+   `assets/` e rodar `npm run bake:wallpaper` — os numeros se recalculam.
 
-O JPG fonte fica em `assets/` (fora de `public/`) de proposito: ele nao e
-servido, so alimenta este script. Trocar o wallpaper e substituir o arquivo e
-rodar `npm run bake:wallpaper`.
+A fonte fica em `assets/` (fora de `public/`) de proposito: ela nao e servida, so
+alimenta este script. A EXTENSAO nao importa — jpg, png, webp, o que for. Ela
+importava, e a arte nova chegou em png contra um `FONTE` cravado em `.jpg`;
+descobrir isso e um erro de "faltou a fonte" com o arquivo ali do lado.
 """
 
 from pathlib import Path
-from PIL import Image, ImageEnhance
+from PIL import Image, ImageEnhance, ImageFilter
 
 RAIZ = Path(__file__).resolve().parent.parent
-FONTE = RAIZ / "assets" / "wallpaper.jpg"
+ASSETS = RAIZ / "assets"
 DESTINO = RAIZ / "public" / "images"
 
 # A PIXELIZACAO SAIU.
@@ -30,25 +31,51 @@ DESTINO = RAIZ / "public" / "images"
 # arte oficial em alta — um fundo em bloco de 4px passou a ser a unica peca da
 # tela ainda no dialeto antigo. Fundo pixelizado atras de render oficial suavizado
 # nao le como estilo, le como imagem de baixa resolucao.
-#
-# O que o script mantem, e que era o valor de verdade dele: medir a fonte e
-# DERIVAR o quanto escurecer. Ver `fator_de_brilho`.
 PERFIS = [(2560, "wallpaper.webp"), (1280, "wallpaper-sm.webp")]
 
 QUALIDADE = 80
 
 # O ALVO e a luminancia media, nao o fator. Fator fixo so funciona pra uma arte:
-# o 0.27 daqui foi calculado pra uma foto de media 148, e aplicado numa arte que
-# ja nasce escura (a cidade neon, media 44) devolveria um retangulo preto. Medir a
-# fonte e derivar o fator faz trocar o wallpaper ser trocar o arquivo — que e o
-# que o cabecalho deste script promete.
-# A arte NOVA ja nasce escura (media 19 medida no arquivo, contra 44 da anterior
-# e 148 da foto original). O ALVO continua em 38 e a funcao so ESCURECE, entao ela
-# passa reto — o que e o comportamento certo: nao ha o que domar. O numero fica
-# como teto pra o dia em que a fonte for uma arte clara de novo.
+# um 0.27 calculado pra uma foto de media 148 aplicado numa arte que ja nasce
+# escura devolveria um retangulo preto. Medir a fonte e derivar o fator faz trocar
+# o wallpaper ser trocar o arquivo — que e o que o cabecalho promete.
+#
+# A arte de ago/2026 (Pikachu sob a folha) mede 77 de media, contra 19 da cidade
+# anterior: e a primeira fonte CLARA desde a foto original, e a primeira em que a
+# funcao de brilho volta a ter trabalho (fator ~0.49).
 ALVO = 38           # luminancia media do fundo, medida depois de assar
-SATURACAO = 0.78    # so o suficiente pra cor de tipo/raridade ganhar da arte
-AZUL = 1.06         # a arte ja e azul-noite; empurrar mais vira monocromatico
+SATURACAO = 0.74    # so o suficiente pra cor de tipo/raridade ganhar da arte
+
+# ---------------------------------------------------------------------------
+# O DESFOQUE, e por que ele nao estava aqui antes
+# ---------------------------------------------------------------------------
+#
+# A regra antiga era "a imagem NAO leva blur — quem borra e o vidro dos paineis",
+# e ela era certa pra uma cidade neon: geometria dura, luz pontual, nada que o
+# olho tente LER. A arte nova e ilustracao — tem um personagem no meio, folhagem
+# desenhada, estrelas com contorno. Nitida atras de um painel de vidro ela nao le
+# como ambiente, le como conteudo que alguem cobriu, e o olho volta pra ela.
+#
+# O raio e FRACAO DA LARGURA, nao pixel fixo: os dois perfis tem de sair com o
+# mesmo desfoque APARENTE, e um raio de 3 num arquivo de 2560 e outra coisa num
+# de 1280. E leve de proposito — o suficiente pra tirar a aresta da ilustracao,
+# nao pra transformar a cena em mancha.
+DESFOQUE = 1 / 850  # 2560 -> 3.0px, 1280 -> 1.5px
+
+
+def fonte() -> Path:
+    """A arte fonte, seja qual for a extensao."""
+    achados = sorted(
+        p for p in ASSETS.glob("wallpaper.*") if p.suffix.lower() != ".py"
+    )
+    if not achados:
+        raise SystemExit(f"faltou a fonte: {ASSETS}/wallpaper.<ext>")
+    if len(achados) > 1:
+        raise SystemExit(
+            "ha mais de um wallpaper em assets/ "
+            f"({', '.join(p.name for p in achados)}) — deixe so o que vale."
+        )
+    return achados[0]
 
 
 def fator_de_brilho(img) -> float:
@@ -59,39 +86,39 @@ def fator_de_brilho(img) -> float:
     return min(1.0, ALVO / max(1.0, media))
 
 
-def assar(largura: int, nome: str) -> None:
-    src = Image.open(FONTE).convert("RGB")
+def assar(src: Image.Image, largura: int, nome: str) -> None:
     altura = round(largura * src.size[1] / src.size[0])
 
-    # LANCZOS: reducao com o melhor detalhe preservado. Antes havia aqui um
-    # BOX seguido de NEAREST pra fabricar o pixel; sem pixel, o que se quer e
-    # descer sem serrilhar.
+    # LANCZOS: reducao com o melhor detalhe preservado. O desfoque vem DEPOIS da
+    # reducao, senao ele e reamostrado junto e cada perfil sai com um raio
+    # aparente diferente.
     out = src.resize((largura, altura), Image.LANCZOS)
+    out = out.filter(ImageFilter.GaussianBlur(largura * DESFOQUE))
 
     out = ImageEnhance.Color(out).enhance(SATURACAO)
     out = ImageEnhance.Brightness(out).enhance(fator_de_brilho(src))
 
-    r, g, b = out.split()
-    out = Image.merge("RGB", (
-        r.point(lambda v: int(v * 0.88)),
-        g.point(lambda v: int(v * 0.95)),
-        b.point(lambda v: min(255, int(v * AZUL))),
-    ))
-
     destino = DESTINO / nome
     out.save(destino, "WEBP", quality=QUALIDADE, method=6)
 
-    amostra = list(out.convert("L").resize((16, 16)).get_flattened_data())
+    amostra = sorted(out.convert("L").resize((64, 64)).get_flattened_data())
     media = sum(amostra) / len(amostra)
     kb = destino.stat().st_size / 1024
-    print(f"  {nome:22} {largura}x{altura}  "
-          f"luminancia {media:.0f}  {kb:.0f} KB")
+    print(
+        f"  {nome:22} {largura}x{altura}  "
+        f"luminancia media {media:.0f}  p98 {amostra[int(len(amostra) * 0.98)]:>3}  "
+        f"{kb:.0f} KB"
+    )
 
 
 if __name__ == "__main__":
-    if not FONTE.exists():
-        raise SystemExit(f"faltou a fonte: {FONTE}")
+    f = fonte()
+    src = Image.open(f).convert("RGB")
+    bruto = sorted(src.convert("L").resize((64, 64)).get_flattened_data())
+    print(
+        f"assando de {f.name} ({src.size[0]}x{src.size[1]}, "
+        f"media {sum(bruto) / len(bruto):.0f}, p98 {bruto[int(len(bruto) * 0.98)]}):"
+    )
     DESTINO.mkdir(parents=True, exist_ok=True)
-    print(f"assando de {FONTE.name}:")
     for largura, nome in PERFIS:
-        assar(largura, nome)
+        assar(src, largura, nome)

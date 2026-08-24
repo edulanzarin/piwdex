@@ -233,9 +233,14 @@
      o `fixed` do background quebra em Safari iOS e cria um repaint caro no
      scroll. Um `position: fixed` com `z-index: -2` custa uma composicao so.
 
-     A imagem NAO leva blur aqui de proposito — quem borra e o vidro dos
-     paineis. Borrar na origem apagaria o efeito, que e justamente ver a foto
-     nitida se desmanchar atras da superficie. */
+     O DESFOQUE agora vem assado no arquivo (ver `scripts/bake-wallpaper.py`), e
+     nao daqui. A regra antiga era "a imagem nao leva blur — quem borra e o vidro
+     dos paineis", e ela valia pra uma cidade neon: geometria dura, nada que o
+     olho tente ler. A arte de ago/2026 e ilustracao com personagem no meio, e
+     nitida atras do vidro ela vira conteudo coberto em vez de ambiente. Assar
+     em vez de `filter` porque desfoque numa camada `fixed` de tela cheia e a
+     conta mais cara que da pra pedir ao compositor, e ela se paga a cada
+     scroll. */
   body::before {
     content: "";
     position: fixed;
@@ -245,42 +250,39 @@
        mantendo o nome faz o navegador de quem ja visitou continuar servindo a
        antiga do cache, e a troca "nao acontece" sem nenhum erro. Subir o numero
        e o que publica de fato. */
-    background-image: url("/images/wallpaper-sm.webp?v=2");
+    background-image: url("/images/wallpaper-sm.webp?v=3");
     background-size: cover;
     background-position: center 18%;
     background-repeat: no-repeat;
-    /* A arte JA vem pixelizada, escurecida e puxada pro azul-noite no arquivo
-       (luminancia media 148 -> 42, pico 229 -> 67). Fazer isso no arquivo e nao
-       em `filter` tem duas razoes: `filter` numa camada de tela cheia custa
-       composicao a cada scroll, e — o que importa mais — escurecer no CSS e
-       uniforme, enquanto o problema era o PICO (nuvem clara ao lado de
-       folhagem escura na mesma linha). Rebaixar por pixel trata os dois.
-       De brinde, pixelizar derrubou o arquivo de 272 KB pra 30 KB. */
-    image-rendering: pixelated;
+    /* O `image-rendering: pixelated` SAIU daqui.
+       Ele era verdade quando o script pixelizava a arte; a pixelizacao caiu na
+       virada pro console macio e a linha ficou, mandando o navegador escalar com
+       vizinho-mais-proximo uma imagem LANCZOS suavizada — serrilhado de graca em
+       toda janela mais larga que 2560. */
   }
 
   @media (min-width: 900px) {
     body::before {
-      background-image: url("/images/wallpaper.webp?v=2");
+      background-image: url("/images/wallpaper.webp?v=3");
     }
   }
 
   /* ---- scrim ----
-     O wallpaper e AMBIENTE, nao conteudo. Enquanto o scrim abria em 46% no
-     topo, a foto competia com a interface: o neon da cidade passava por dentro
-     do painel e a tela inteira lia como transparente. O gradiente agora fecha
-     bem mais cedo (70% ja no topo), e a arte volta ao papel dela — dar cor e
-     profundidade atras do vidro, sem disputar a leitura com o dado.
+     O wallpaper e AMBIENTE, nao conteudo, e o scrim e o que segura isso: sem
+     ele a arte passa por dentro do painel e a tela inteira le como transparente.
 
-     O degrau continua existindo: o topo e o trecho mais aberto, porque e onde
-     mora o heroi e a arte tem de aparecer.
+     O degrau existe porque o topo e onde mora o heroi e a arte tem de aparecer;
+     do meio pra baixo mora o DADO, e ali ela tem de sumir.
 
-     E ele ABRIU de novo (70% -> 40% no topo) quando a arte trocou. Os 70% eram
-     calibrados contra uma fonte de luminancia 44 com PICOS de neon; a arte nova
-     mede 19 de media e nao tem pico — dobrar o scrim em cima dela apagaria a
-     cena inteira e devolveria um retangulo preto, que e o oposto do que o fundo
-     existe pra fazer.
-     Regra que fica: scrim e funcao da ARTE, e trocar a arte pede remedir. */
+     Regra que fica: scrim e funcao da ARTE, e trocar a arte pede remedir. E a
+     terceira remedicao (70 -> 40 -> 18 no topo) e a que prova a regra ao
+     contrario: a arte de ago/2026 e a mais CLARA das tres (media 77 na fonte,
+     assada pra 37) e mesmo assim pediu o scrim mais ABERTO. Media nao e o que
+     manda — o que manda e o perfil vertical. Medida por faixa, ela chega escura
+     em cima (16-25, que e onde o heroi mora e onde o scrim e mais leve) e so
+     clareia no rodape (43-70, que e onde ele fecha em 74%). Com os 40/72/92
+     antigos a cena inteira caia pra 14-22 de luminancia: um retangulo achatado
+     onde da pra adivinhar que ha um desenho. */
   body::after {
     content: "";
     position: fixed;
@@ -290,9 +292,9 @@
     background:
       linear-gradient(
         180deg,
-        color-mix(in srgb, var(--color-bg) 40%, transparent) 0%,
-        color-mix(in srgb, var(--color-bg) 72%, transparent) 45%,
-        color-mix(in srgb, var(--color-bg) 92%, transparent) 100%
+        color-mix(in srgb, var(--color-bg) 18%, transparent) 0%,
+        color-mix(in srgb, var(--color-bg) 45%, transparent) 45%,
+        color-mix(in srgb, var(--color-bg) 74%, transparent) 100%
       ),
       radial-gradient(
         1200px 560px at 50% 0%,
