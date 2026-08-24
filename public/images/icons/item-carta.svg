@@ -1,0 +1,17 @@
+<svg viewBox="0 0 128 128" width="128" height="128" xmlns="http://www.w3.org/2000/svg" role="img">
+  <title>Carta</title>
+  <ellipse cx="64" cy="118" rx="30" ry="5.5" fill="#000" opacity=".3"/>
+  <rect x="20" y="14" width="80" height="102" rx="10" fill="#171310" transform="rotate(-7 60 65)"/>
+  <rect x="24" y="18" width="72" height="94" rx="7" fill="#2a2521" transform="rotate(-7 60 65)"/>
+  <rect x="30" y="10" width="80" height="104" rx="10" fill="#171310"/>
+  <rect x="34" y="14" width="72" height="96" rx="7" fill="#f0ecea"/>
+  <rect x="34" y="14" width="72" height="96" rx="7" fill="#c4bcb4" opacity=".0"/>
+  <path d="M99 14a7 7 0 0 1 7 7v82a7 7 0 0 1-7 7H76V14z" fill="#d8d2cc"/>
+  <rect x="41" y="21" width="58" height="52" rx="5" fill="#171310"/>
+  <rect x="44" y="24" width="52" height="46" rx="3" fill="#1a3f5e"/>
+  <path d="M44 55c8-10 14-4 20-10s12 2 20-4l12 8v13a3 3 0 0 1-3 3H47a3 3 0 0 1-3-3z" fill="#2e6a8f"/>
+  <circle cx="60" cy="38" r="8" fill="#ffd49a"/>
+  <g fill="#171310"><rect x="41" y="80" width="42" height="7" rx="3.5"/><rect x="41" y="93" width="30" height="7" rx="3.5"/></g>
+  <g fill="#988f86"><rect x="43" y="81.5" width="38" height="4" rx="2"/><rect x="43" y="94.5" width="26" height="4" rx="2"/></g>
+  <path d="m104 6 3 7.6 7.6 3-7.6 3-3 7.6-3-7.6-7.6-3 7.6-3z" fill="#cdbba3"/>
+</svg>

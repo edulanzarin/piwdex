@@ -161,9 +161,12 @@ export const FERRAMENTAS: Ferramenta[] = [
  */
 const VERSAO_ARTE = 2;
 
-/** URL da arte de uma ferramenta, com a versao. */
-export const arteUrl = (arte: string): string =>
-  `/images/icons/${arte}.svg?v=${VERSAO_ARTE}`;
+/** URL de uma arte de `public/images/icons`, com a versao. */
+export const iconeUrl = (nome: string): string =>
+  `/images/icons/${nome}.svg?v=${VERSAO_ARTE}`;
+
+/** URL da arte de uma ferramenta. Atalho pro `iconeUrl`, que e o mesmo lugar. */
+export const arteUrl = iconeUrl;
 
 export function ferramentaDoCaminho(caminho: string): Ferramenta | null {
   return (

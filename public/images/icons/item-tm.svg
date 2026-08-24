@@ -1,0 +1,15 @@
+<svg viewBox="0 0 128 128" width="128" height="128" xmlns="http://www.w3.org/2000/svg" role="img">
+  <title>TM</title>
+  <ellipse cx="64" cy="116" rx="34" ry="6" fill="#000" opacity=".3"/>
+  <circle cx="64" cy="62" r="50" fill="#171310"/>
+  <circle cx="64" cy="62" r="46" fill="#2ee6d6"/>
+  <path d="M64 16a46 46 0 0 1 0 92 46 46 0 0 0 0-92z" fill="#1a9c92"/>
+  <path d="M30 34a46 46 0 0 1 28-17 42 42 0 0 0-24 15z" fill="#7ff2e8"/>
+  <circle cx="64" cy="62" r="34" fill="#0f5f59" opacity=".55"/>
+  <circle cx="64" cy="62" r="26" fill="#171310"/>
+  <circle cx="64" cy="62" r="21" fill="#0d3f3b"/>
+  <circle cx="64" cy="62" r="10" fill="#171310"/>
+  <circle cx="64" cy="62" r="6" fill="#2ee6d6"/>
+  <path d="M64 41a21 21 0 0 1 21 21h-6a15 15 0 0 0-15-15z" fill="#2ee6d6" opacity=".5"/>
+  <ellipse cx="46" cy="42" rx="9" ry="5" fill="#fff" opacity=".35" transform="rotate(-40 46 42)"/>
+</svg>

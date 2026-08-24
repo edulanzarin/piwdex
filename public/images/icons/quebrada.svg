@@ -1,0 +1,29 @@
+<svg viewBox="0 0 128 128" width="128" height="128" xmlns="http://www.w3.org/2000/svg" role="img">
+  <title>Pokébola quebrada</title>
+  <!-- A quebra e uma FENDA em ziguezague no meio da bola, com as duas metades
+       afastadas e giradas pra lados opostos. A primeira versao desenhou dois
+       cacos soltos e nao lia como bola nenhuma: sem a silhueta redonda, nao ha
+       o que reconhecer como quebrado. -->
+  <ellipse cx="64" cy="118" rx="36" ry="6" fill="#000" opacity=".28"/>
+
+  <!-- metade de cima, girada pra esquerda -->
+  <g transform="rotate(-10 64 62) translate(-5 -4)">
+    <path d="M64 12a46 46 0 0 0-46 46l10 6 8-7 9 8 9-8 8 7 9-8 9 8 8-7 8 6A46 46 0 0 0 64 12z" fill="#171310"/>
+    <path d="M64 17a41 41 0 0 0-40.6 38.6l6.4 3.8 8-7 9 8 9-8 8 7 9-8 9 8 6.8-6A41 41 0 0 0 64 17z" fill="#ff5c72"/>
+    <path d="M64 17a41 41 0 0 1 40.6 34.4l-6.8 6-9-8-9 8-8-7-7.8 7V17z" fill="#c03a50"/>
+    <path d="M32 34a41 41 0 0 1 22-15 37 37 0 0 0-18 14z" fill="#ff8494"/>
+  </g>
+
+  <!-- metade de baixo, girada pra direita -->
+  <g transform="rotate(11 64 74) translate(6 8)">
+    <path d="M18 66l10-6 8 7 9-8 9 8 8-7 9 8 9-8 8 7 10-6a46 46 0 0 1-90 5z" fill="#171310"/>
+    <path d="M23.4 63.4l5.6-3.4 8 7 9-8 9 8 8-7 9 8 9-8 8 7 5.6-3.4A41 41 0 0 1 23.4 63.4z" fill="#f0ecea"/>
+    <path d="M64 71.6 72 64.6l9 8 9-8 8 7 5.6-3.4A41 41 0 0 1 64 104z" fill="#c4bcb4"/>
+    <path d="M34 92a41 41 0 0 0 22 12 37 37 0 0 1-19-11z" fill="#fff" opacity=".55"/>
+  </g>
+
+  <g fill="#988f86">
+    <path d="m106 18 2.8 7 7 2.8-7 2.8-2.8 7-2.8-7-7-2.8 7-2.8z" opacity=".85"/>
+    <path d="m18 92 2.2 5.4 5.4 2.2-5.4 2.2L18 107l-2.2-5.4-5.4-2.2 5.4-2.2z" opacity=".6"/>
+  </g>
+</svg>

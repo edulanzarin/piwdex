@@ -51,6 +51,7 @@ import type { AttackCategory } from "@/lib/types";
 import type { ItemCategory } from "@/lib/items";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
+import { iconeUrl } from "@/lib/ferramentas";
 
 export interface GameIconProps {
   size?: number;
@@ -240,15 +241,28 @@ const ITEM_CATEGORY_ICON: Record<ItemCategory, ReturnType<typeof wrap>> = {
  * linha acima — pixel art nesse tamanho ja foi tentada neste projeto e reprovada,
  * e e por isso que o lucide entrou. Ver o cabecalho de scripts/pixel-icons/arte.py.
  */
+/**
+ * A arte de RESERVA de cada categoria de item.
+ *
+ * Ela entra quando o icone do proprio item nao vem — o catalogo aponta pra um
+ * arquivo no host do jogo, e quando ele falha o card ficaria com um buraco. Sao
+ * slots de 56px no card e 128px na ficha: tamanho de ILUSTRACAO, e nao de glifo,
+ * entao aqui vale arte com sombra de contato e rampa de tres tons, como os
+ * icones das seis ferramentas.
+ *
+ * Eram PNG, e passaram a SVG pelo mesmo motivo dos outros: nitidez em qualquer
+ * escala e paleta que acompanha o tema. Servidas pelo `iconeUrl` pra levarem a
+ * versao — arquivo em `public/` nao e invalidado por republicar.
+ */
 export const ITEM_CATEGORY_ART: Record<ItemCategory, string> = {
-  loot: "/images/icons/item-drop.png",
-  stone: "/images/icons/item-pedra.png",
-  heal: "/images/icons/item-cura.png",
-  revive: "/images/icons/item-reviver.png",
-  clan: "/images/icons/item-cla.png",
-  tm: "/images/icons/item-tm.png",
-  card: "/images/icons/item-carta.png",
-  misc: "/images/icons/item-diverso.png",
+  loot: iconeUrl("item-drop"),
+  stone: iconeUrl("item-pedra"),
+  heal: iconeUrl("item-cura"),
+  revive: iconeUrl("item-reviver"),
+  clan: iconeUrl("item-cla"),
+  tm: iconeUrl("item-tm"),
+  card: iconeUrl("item-carta"),
+  misc: iconeUrl("item-diverso"),
 };
 
 export function ItemCategoryIcon({

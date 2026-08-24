@@ -1,0 +1,11 @@
+<svg viewBox="0 0 128 128" width="128" height="128" xmlns="http://www.w3.org/2000/svg" role="img">
+  <title>Pedra</title>
+  <ellipse cx="64" cy="116" rx="30" ry="6" fill="#000" opacity=".3"/>
+  <path d="M40 16h48l24 30-48 66-48-66z" fill="#171310"/>
+  <path d="M43 21h42l19.5 24.5L64 105 21.5 45.5z" fill="#7fd0f5"/>
+  <path d="M64 21h21l19.5 24.5L64 105z" fill="#3aa0d8"/>
+  <path d="M43 21h42l19.5 24.5h-81z" fill="#c9edff"/>
+  <path d="M64 45.5h40.5L64 105z" fill="#1d6b96" opacity=".55"/>
+  <path d="M47 26h14l-6 15H35z" fill="#fff" opacity=".55"/>
+  <path d="m101 12 2.6 6.8 6.8 2.6-6.8 2.6L101 30.8l-2.6-6.8-6.8-2.6 6.8-2.6z" fill="#c9edff"/>
+</svg>

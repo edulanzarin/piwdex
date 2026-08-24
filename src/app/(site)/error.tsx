@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { iconeUrl } from "@/lib/ferramentas";
 import { Button, ButtonLink, Chip, Note, Panel, Pokeball, Sprite } from "@/components/ui";
 
 /**
@@ -44,7 +45,7 @@ export default function ErroDaRota({
               tela: se a pagina de erro depender de um PNG que nao carregou, ela
               vira a segunda falha em cima da primeira. */}
           <Sprite
-            src="/images/icons/quebrada.png"
+            src={iconeUrl("quebrada")}
             alt=""
             size={96}
             className="[--sprite:76px] sm:[--sprite:96px]"

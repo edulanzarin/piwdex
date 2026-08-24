@@ -1,0 +1,17 @@
+<svg viewBox="0 0 128 128" width="128" height="128" xmlns="http://www.w3.org/2000/svg" role="img">
+  <title>Drop</title>
+  <ellipse cx="64" cy="116" rx="34" ry="6" fill="#000" opacity=".3"/>
+  <path d="M46 34h36c3 0 5 3 4 6l-4 12c14 7 24 20 24 34 0 16-18 24-42 24S22 102 22 86c0-14 10-27 24-34l-4-12c-1-3 1-6 4-6z" fill="#171310"/>
+  <path d="M48 37h32c2 0 3 2 2.6 4l-4.4 13.4C91 60.6 100 72 100 86c0 14-15 21-36 21s-36-7-36-21c0-14 9-25.4 21.8-31.6L45.4 41c-.4-2 .6-4 2.6-4z" fill="#46e08a"/>
+  <path d="M80 37c2 0 3 2 2.6 4l-4.4 13.4C91 60.6 100 72 100 86c0 14-15 21-36 21-3 0-6-.2-9-.5C74 104 89 97 89 85c0-13-9-24-22-29.6L71.4 41c.4-2-.6-4-2.6-4z" fill="#2a9c5c"/>
+  <path d="M28 96c6 8 19 11 36 11s30-3 36-11c-1 11-16 17-36 17s-35-6-36-17z" fill="#1c6b3d"/>
+  <path d="M48 37h10l-4 17c-11 6-19 15-21 25-2-13 4-25 17-32l-3.6-6c-.4-2 .6-4 1.6-4z" fill="#84f0b4"/>
+  <rect x="40" y="26" width="48" height="16" rx="5" fill="#171310"/>
+  <rect x="43" y="28.5" width="42" height="11" rx="3.5" fill="#cdbba3"/>
+  <g fill="#927b5d"><rect x="52" y="28.5" width="3.5" height="11"/><rect x="62" y="28.5" width="3.5" height="11"/><rect x="72" y="28.5" width="3.5" height="11"/></g>
+  <rect x="43" y="28.5" width="42" height="3" rx="1.5" fill="#f0ecea" opacity=".5"/>
+  <circle cx="64" cy="78" r="13" fill="#171310"/>
+  <circle cx="64" cy="78" r="9.5" fill="#3aa0d8"/>
+  <path d="M64 68.5a9.5 9.5 0 0 1 0 19 9.5 9.5 0 0 0 0-19z" fill="#1d6b96"/>
+  <ellipse cx="60" cy="73" rx="3" ry="2" fill="#fff" opacity=".8" transform="rotate(-30 60 73)"/>
+</svg>

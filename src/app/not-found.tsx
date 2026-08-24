@@ -2,7 +2,7 @@ import Link from "next/link";
 import { BookOpen, Calculator, Egg, Package, Radar, Swords } from "lucide-react";
 import { ButtonLink, IconChevronRight, Pokeball, Sprite } from "@/components/ui";
 import { CascaSite } from "@/components/casca-site";
-import { arteUrl } from "@/lib/ferramentas";
+import { arteUrl, iconeUrl } from "@/lib/ferramentas";
 
 /**
  * O 404.
@@ -98,7 +98,7 @@ export default function NaoEncontrado() {
               A pokebola inteira e a marca do site e aparece no topo de toda pagina
               — repetir ela aqui nao diz nada. A quebrada diz. */}
           <Sprite
-            src="/images/icons/quebrada.png"
+            src={iconeUrl("quebrada")}
             alt=""
             size={112}
             priority

@@ -1,0 +1,18 @@
+<svg viewBox="0 0 128 128" width="128" height="128" xmlns="http://www.w3.org/2000/svg" role="img">
+  <title>Nada encontrado</title>
+  <!-- O funil e o assunto, entao ele nao pode ser da cor da superficie: a
+       primeira versao usava `surface-2` sobre o fundo e a peca sumia. Aqui ele
+       sobe pro tom de linha forte, que e o degrau que ainda le como "apagado"
+       sem desaparecer. -->
+  <ellipse cx="64" cy="117" rx="26" ry="5.5" fill="#000" opacity=".26"/>
+  <path d="M14 18h100l-40 48v42a9 9 0 0 1-13 8l-9-4.5A9 9 0 0 1 47 103V66z" fill="#171310"/>
+  <path d="M24 24h80L70 66v42a3.5 3.5 0 0 1-5 3.2l-9-4.5a3.5 3.5 0 0 1-2-3.2V66z" fill="#6b625a"/>
+  <path d="M64 24h40L70 66v42a3.5 3.5 0 0 1-5 3.2l-1-.5z" fill="#4a423b"/>
+  <path d="M24 24h74l-5 6H29z" fill="#8a8078"/>
+  <path d="M34 34h22l-15 18z" fill="#a39a91" opacity=".55"/>
+  <g fill="#988f86">
+    <circle cx="98" cy="88" r="4.5" opacity=".75"/>
+    <circle cx="110" cy="101" r="3.2" opacity=".55"/>
+    <circle cx="94" cy="106" r="2.4" opacity=".4"/>
+  </g>
+</svg>

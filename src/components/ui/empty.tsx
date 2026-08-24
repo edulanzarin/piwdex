@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { iconeUrl } from "@/lib/ferramentas";
 import { Pokeball } from "./pokeball";
 import { Sprite } from "./sprite";
 
@@ -9,8 +10,8 @@ import { Sprite } from "./sprite";
 export type ArteVazio = "filtro" | "espera";
 
 const ARTE: Record<ArteVazio, string> = {
-  filtro: "/images/icons/vazio.png",
-  espera: "/images/icons/vazio.png",
+  filtro: iconeUrl("vazio"),
+  espera: iconeUrl("vazio"),
 };
 
 /**

@@ -1,0 +1,23 @@
+<svg viewBox="0 0 128 128" width="128" height="128" xmlns="http://www.w3.org/2000/svg" role="img">
+  <title>Diversos</title>
+  <ellipse cx="64" cy="117" rx="36" ry="6" fill="#000" opacity=".3"/>
+  <path d="M18 34h92v78a10 10 0 0 1-10 10H28a10 10 0 0 1-10-10z" fill="#171310"/>
+  <path d="M22 38h84v74a6 6 0 0 1-6 6H28a6 6 0 0 1-6-6z" fill="#2f2a25"/>
+  <path d="M74 38h32v74a6 6 0 0 1-6 6H74z" fill="#221e1a"/>
+  <path d="M22 38h52v4H22z" fill="#453d35"/>
+  <rect x="14" y="18" width="100" height="22" rx="7" fill="#171310"/>
+  <rect x="18" y="21" width="92" height="16" rx="4.5" fill="#453d35"/>
+  <rect x="18" y="21" width="92" height="5" rx="2.5" fill="#5a5049"/>
+  <g fill="#171310">
+    <rect x="30" y="52" width="26" height="24" rx="5"/><rect x="66" y="52" width="26" height="24" rx="5"/>
+    <rect x="30" y="84" width="26" height="24" rx="5"/><rect x="66" y="84" width="26" height="24" rx="5"/>
+  </g>
+  <rect x="33" y="55" width="20" height="18" rx="3" fill="#5b9dff"/>
+  <rect x="69" y="55" width="20" height="18" rx="3" fill="#46e08a"/>
+  <rect x="33" y="87" width="20" height="18" rx="3" fill="#ffb454"/>
+  <rect x="69" y="87" width="20" height="18" rx="3" fill="#f472b6"/>
+  <g fill="#fff" opacity=".45">
+    <rect x="33" y="55" width="20" height="5" rx="2.5"/><rect x="69" y="55" width="20" height="5" rx="2.5"/>
+    <rect x="33" y="87" width="20" height="5" rx="2.5"/><rect x="69" y="87" width="20" height="5" rx="2.5"/>
+  </g>
+</svg>

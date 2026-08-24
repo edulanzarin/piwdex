@@ -1,0 +1,14 @@
+<svg viewBox="0 0 128 128" width="128" height="128" xmlns="http://www.w3.org/2000/svg" role="img">
+  <title>Clã</title>
+  <ellipse cx="46" cy="118" rx="22" ry="5" fill="#000" opacity=".3"/>
+  <rect x="34" y="10" width="13" height="108" rx="6" fill="#171310"/>
+  <rect x="37" y="14" width="7" height="102" rx="3.5" fill="#927b5d"/>
+  <rect x="37" y="14" width="3" height="102" rx="1.5" fill="#cdbba3"/>
+  <path d="M44 18h68l-16 24 16 24H44z" fill="#171310"/>
+  <path d="M47 22h58l-13.5 20L105 62H47z" fill="#f472b6"/>
+  <path d="M76 22h29l-13.5 20L105 62H76z" fill="#b04a80"/>
+  <path d="M47 22h50l-3 4.5H47z" fill="#f9a8d4"/>
+  <path d="M64 30h18v6h6v10h-6v6H64v-6h-6V36h6z" fill="#f0ecea"/>
+  <circle cx="40.5" cy="10" r="7" fill="#171310"/>
+  <circle cx="40.5" cy="10" r="4.6" fill="#cdbba3"/>
+</svg>

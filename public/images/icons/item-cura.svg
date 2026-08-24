@@ -1,0 +1,14 @@
+<svg viewBox="0 0 128 128" width="128" height="128" xmlns="http://www.w3.org/2000/svg" role="img">
+  <title>Cura</title>
+  <ellipse cx="64" cy="117" rx="28" ry="5.5" fill="#000" opacity=".3"/>
+  <path d="M50 10h28v16h-4v10c16 6 26 21 26 38v34a12 12 0 0 1-12 12H40a12 12 0 0 1-12-12V74c0-17 10-32 26-38V26h-4z" fill="#171310"/>
+  <rect x="53" y="13" width="22" height="10" rx="2" fill="#cdbba3"/>
+  <rect x="53" y="13" width="22" height="3.5" rx="1.5" fill="#f0ecea" opacity=".6"/>
+  <path d="M57 26h14v13l5 2c13 5 22 18 22 33v34a9 9 0 0 1-9 9H41a9 9 0 0 1-9-9V74c0-15 9-28 22-33l3-2z" fill="#f0ecea"/>
+  <path d="M71 26v13l5 2c13 5 22 18 22 33v34a9 9 0 0 1-9 9H70z" fill="#c4bcb4"/>
+  <path d="M32 80h66v28a9 9 0 0 1-9 9H41a9 9 0 0 1-9-9z" fill="#ff5c72"/>
+  <path d="M70 80h28v28a9 9 0 0 1-9 9H70z" fill="#c03a50"/>
+  <path d="M40 88h50v6H40z" fill="#ff8494" opacity=".7"/>
+  <path d="M60 34h10v6h6v10h-6v6H60v-6h-6V40h6z" fill="#ff5c72"/>
+  <path d="M40 50c3-5 7-8 11-9-6 3-10 8-12 15z" fill="#fff" opacity=".7"/>
+</svg>
