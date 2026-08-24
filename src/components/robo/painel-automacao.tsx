@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Button, Loading, Note, NumberField, Select, Sprite, Switch } from "@/components/ui";
+import { Button, Loading, Note, Select, Sprite, Switch } from "@/components/ui";
 import { Pokeball } from "@/components/ui/pokeball";
 import { Secao } from "@/components/robo/pecas";
 import { compact } from "@/lib/labels";
@@ -125,7 +125,24 @@ function BolaSelect({
  * select, a poção tinha rótulo empilhado mais campo, o revive não tem nada — e
  * ligar um interruptor empurrava o vizinho.
  */
-function Cartao({ children, controle }: { children: React.ReactNode; controle?: React.ReactNode }) {
+function Cartao({
+  children,
+  controle,
+  linha,
+}: {
+  children: React.ReactNode;
+  controle?: React.ReactNode;
+  /** interruptor e ajuste na MESMA linha, pro ajuste que cabe em uma escolha */
+  linha?: boolean;
+}) {
+  if (linha) {
+    return (
+      <div className="flex flex-wrap items-center gap-3 border border-line bg-bg-soft p-3">
+        <div className="min-w-0 flex-1">{children}</div>
+        {controle}
+      </div>
+    );
+  }
   return (
     <div className="flex flex-col gap-2 border border-line bg-bg-soft p-3">
       {children}
@@ -133,6 +150,16 @@ function Cartao({ children, controle }: { children: React.ReactNode; controle?: 
     </div>
   );
 }
+
+/**
+ * Os limiares de vida que se oferece.
+ *
+ * Select e nao campo aberto: o jogo aceita qualquer inteiro, mas "curar abaixo
+ * de 47%" e uma precisao que ninguem tem — o campo pedia uma decisao onde
+ * bastava uma escolha, e ainda deixava digitar 0, que e o mesmo que desligar
+ * com o interruptor ligado.
+ */
+const VIDA = [10, 20, 30, 40, 50, 60, 70, 80, 90];
 
 export function AbaAutomacao({ estado }: { estado: EstadoHunt }) {
   /**
@@ -270,7 +297,7 @@ export function AbaAutomacao({ estado }: { estado: EstadoHunt }) {
       <Secao
         titulo="Automação do jogo"
         icone={<Pokeball size={14} />}
-        hint="Captura, poção e revive automáticos rodam no servidor do jogo — o robô só liga o interruptor. Dá para escolher a bola e a poção; o revive não, o jogo usa o da bolsa. Manter a bolsa cheia é trabalho da aba Loja."
+        hint="Captura, poção e revive automáticos rodam no servidor do jogo — o robô só liga o interruptor. Manter a bolsa cheia é trabalho da aba Loja."
       >
         {!atual ? (
           <Note tone="warn">Não consegui ler a configuração do jogo. Reconecte a conta.</Note>
@@ -345,34 +372,39 @@ export function AbaAutomacao({ estado }: { estado: EstadoHunt }) {
               </Cartao>
 
               <Cartao
+                linha
                 controle={
                   atual.autoPotion ? (
-                    <div className="flex flex-col gap-2">
+                    <>
+                      {/* So aparece quando a conta traz o campo. Sem ele, nao ha
+                          o que escolher e nao ha o que dizer — a frase que
+                          morava aqui explicava uma ausencia que a propria
+                          ausencia ja mostra. */}
                       {atual.campoPocao ? (
-                        <PocaoSelect
-                          valor={atual.pocaoId}
-                          onMudar={(pocaoId) => mudar({ pocaoId })}
-                          pocoes={pocoes}
-                          desabilitado={salvando}
+                        <div className="w-40 shrink-0">
+                          <PocaoSelect
+                            valor={atual.pocaoId}
+                            onMudar={(pocaoId) => mudar({ pocaoId })}
+                            pocoes={pocoes}
+                            desabilitado={salvando}
+                          />
+                        </div>
+                      ) : null}
+                      <div className="w-28 shrink-0">
+                        <Select
+                          value={String(atual.autoPotionThreshold)}
+                          onChange={(v) => mudar({ autoPotionThreshold: Number(v) })}
+                          disabled={salvando}
+                          options={(VIDA.includes(atual.autoPotionThreshold)
+                            ? VIDA
+                            : // O valor salvo entra na lista quando nao e um dos
+                              // degraus: um select que nao contem o proprio valor
+                              // desenha vazio e troca a config no primeiro save.
+                              [atual.autoPotionThreshold, ...VIDA].sort((a, b) => a - b)
+                          ).map((n) => ({ value: String(n), label: `${n}% de vida` }))}
                         />
-                      ) : (
-                        <p className="text-[11px] text-text-mute">
-                          Esta conta não trouxe o campo de qual poção — o jogo decide sozinho.
-                        </p>
-                      )}
-                      {/* Rótulo e unidade DENTRO da casca do campo: soltos ao
-                          lado, viravam três peças numa linha onde o cartão
-                          vizinho tem uma só, e a grade se desfazia. */}
-                      <NumberField
-                        value={atual.autoPotionThreshold}
-                        onChange={(n) => mudar({ autoPotionThreshold: n })}
-                        min={0}
-                        max={100}
-                        iconLeft={<span className="pix text-[10px]">abaixo de</span>}
-                        suffix="% da vida"
-                        className="text-center"
-                      />
-                    </div>
+                      </div>
+                    </>
                   ) : null
                 }
               >
@@ -385,20 +417,11 @@ export function AbaAutomacao({ estado }: { estado: EstadoHunt }) {
                 />
               </Cartao>
 
-              <Cartao
-                controle={
-                  atual.autoRevive ? (
-                    /* Não há seletor porque o jogo não tem: a dica dele é "usa
-                       Revive ao desmaiar", o item, no singular. Dizer isso aqui
-                       é a diferença entre um cartão vazio e um cartão que
-                       explica por que está vazio. */
-                    <p className="text-[11px] text-text-mute">
-                      O jogo usa o Revive da bolsa e não deixa escolher qual.
-                      {bolsaLida ? ` Você tem ${compact(revives.reduce((n, r) => n + r.quantidade, 0))}.` : ""}
-                    </p>
-                  ) : null
-                }
-              >
+              {/* So o interruptor: o jogo nao deixa escolher o revive, e um
+                  cartao sem ajuste nao precisa de paragrafo explicando que nao
+                  tem ajuste. Quando FALTA revive na bolsa, isso vira aviso la em
+                  cima, que e onde se age. */}
+              <Cartao linha>
                 <Switch
                   block
                   checked={atual.autoRevive}
