@@ -246,3 +246,28 @@ do Railway.
 
 O AdSense, porém, analisa o domínio que você cadastrar. Cadastre `piwdex.com.br`
 só depois do DNS apontado e do site respondendo nele.
+
+## O IP de ENTRADA não é o de SAÍDA
+
+Confusão que custou uma investigação: `piwdex.com.br` e `bot.piwdex.com.br`
+resolvem para endereços da borda do Railway — é por eles que o **navegador
+chega**. O jogo não vê nenhum dos dois.
+
+Quando o processo do robô abre um WebSocket para o jogo, ele **sai** pelo NAT da
+plataforma, e é esse endereço que o jogo conta no limite `4006 ip-limit`. Todas
+as contas do mesmo serviço saem pelo mesmo lugar, e por isso elas dividem o teto.
+
+O Railway não troca o IP de saída por requisição. Trocar de endereço exige
+serviço/região diferente (ou egress dedicado, onde o plano oferecer) — não é algo
+que se configure por conta.
+
+Para descobrir o endereço real, sem supor:
+
+```bash
+curl -s https://bot.piwdex.com.br/api/robo/saida -H "cookie: <sessão de admin>"
+# { "saida": "...", "poolDeSaida": false, "conexoesAbertas": 4, "tetoAprendido": 4 }
+```
+
+`poolDeSaida: true` significa que os dois espelhos viram endereços diferentes — a
+plataforma está usando um POOL, e aí o teto do jogo pode variar de uma conexão
+para outra.
