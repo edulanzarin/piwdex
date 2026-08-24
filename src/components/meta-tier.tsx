@@ -230,7 +230,7 @@ function CartaoTier({ e, onOpen }: { e: MetaEntry; onOpen: () => void }) {
         //
         // O ganho de densidade que os 76 davam era falso: cabiam 16 por linha,
         // mas quatro deles nao diziam quem eram.
-        "panel-card group flex w-[100px] flex-col overflow-hidden text-center",
+        "panel-card group flex w-[116px] flex-col overflow-hidden text-center",
         "transition-[border-color,box-shadow,transform] duration-200",
         "hover:-translate-y-0.5 hover:border-[color:var(--tint)] hover:shadow-elev-3",
         "focus-visible:border-[color:var(--tint)]",
@@ -242,42 +242,40 @@ function CartaoTier({ e, onOpen }: { e: MetaEntry; onOpen: () => void }) {
             navegador a rasterizar o desfoque a cada quadro. */}
         <span
           aria-hidden="true"
-          className="absolute h-[72px] w-[72px] origin-center scale-[0.72] rounded-full blur-xl transition-transform duration-300 ease-out group-hover:scale-100"
+          className="absolute h-20 w-20 origin-center scale-[0.72] rounded-full blur-xl transition-transform duration-300 ease-out group-hover:scale-100"
           style={{ backgroundColor: tint, opacity: 0.2 }}
         />
         <Sprite
           src={spriteUrl(c.pokeId)}
           alt={c.name}
-          size={64}
+          size={72}
           className="relative transition-transform duration-300 ease-out motion-safe:group-hover:scale-110"
         />
       </span>
 
-      {/* ---- o TIPO, em FAIXA e nao em disco ----
+      {/* ---- o TIPO, em ICONE ----
 
-          A primeira versao pos aqui o medalhao do card da dex, com o glifo do
-          tipo dentro. Reprovou por duas contas, e as duas sao de escala:
+          Aqui houve ida e volta, e vale registrar as duas pontas. A faixa de cor
+          de 3px entrou porque o medalhao do card grande reprovou por escala: o
+          glifo teria de sair a 12px, abaixo do piso de 14, e dois discos comiam
+          quase metade de uma peca de 76.
 
-          1. **O glifo teria de sair a 12px**, e o piso deste projeto e 14 — abaixo
-             dele icone de traco vira sujeira, e e regra escrita.
-          2. **Dois discos somam ~34px numa peca de 76**, quase metade da largura,
-             e eles ficam a coisa mais clara do tile. O medalhao no card da dex
-             ocupa 18% e pousa ao lado de um render de 128px; aqui ele passava a
-             disputar com o sprite a atencao que o sprite existe pra receber.
+          O que mudou nao foi a opiniao, foram os dois numeros. A peca cresceu pra
+          116, e os glifos de tipo deixaram de ser traco fino e passaram a ser
+          desenhados CHEIOS — e cheio a 14px se le, enquanto contorno de 2px no
+          mesmo tamanho vira cinza. Com as duas coisas, o icone cabe e diz mais
+          que a faixa: cor sozinha exige saber a paleta de cor, o simbolo nao.
 
-          A faixa resolve as duas: custa 3px de altura, nenhuma largura, e diz o
-          tipo pela COR, que e o canal que quem le tier list ja tem calibrado.
-          Bitipo divide a faixa em duas metades, na ordem (o primeiro tipo e o que
-          da STAB). A palavra continua no `title`, e o `aria-hidden` mantem a
-          faixa fora do leitor de tela — pra ele, o `title` do botao ja diz os
-          dois tipos por extenso. */}
-      <span aria-hidden="true" className="flex h-1 w-full shrink-0">
-        {tipos.map((t) => (
-          <span key={t} className="h-full flex-1" style={{ backgroundColor: TYPE_COLOR[t] }} />
-        ))}
-      </span>
+          Eles ficam DENTRO da placa, numa linha propria acima do nome, e nao
+          montados na costura: na costura seriam dois discos com borda e sombra
+          disputando com o sprite, que e o erro que a faixa tinha vindo corrigir. */}
+      <span className="relative flex flex-col items-center gap-1 border-t border-line bg-surface-2/70 px-1.5 pt-1.5 pb-2 transition-colors duration-200 group-hover:bg-surface-3/70">
+        <span aria-hidden="true" className="flex items-center gap-1">
+          {tipos.map((t) => (
+            <TypeIcon key={t} type={t} size={15} style={{ color: TYPE_COLOR[t] }} />
+          ))}
+        </span>
 
-      <span className="relative flex flex-col items-center gap-1 border-t border-line bg-surface-2/70 px-1.5 pt-2 pb-2 transition-colors duration-200 group-hover:bg-surface-3/70">
         <span className="w-full truncate text-[12px] leading-tight text-text-dim transition-colors group-hover:text-text">
           {c.name}
         </span>
