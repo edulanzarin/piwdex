@@ -1,4 +1,3 @@
-import Script from "next/script";
 import { SiteNav } from "@/components/site-nav";
 import { SiteFooter } from "@/components/site-footer";
 import { ApoioFlutuante } from "@/components/apoio";
@@ -24,14 +23,28 @@ export function CascaSite({ children }: { children: React.ReactNode }) {
     <>
       {/* O script do AdSense so entra quando existe conta: sem id, a pagina nao
           carrega um kilobyte de terceiro nem abre conexao pra rede de anuncio.
-          `afterInteractive` porque ele nao pode disputar a rede com o catalogo,
-          que e o que a pessoa veio buscar. */}
+
+          `<script>` cru, e nao `next/script`. O React 19 IÇA script `async` com
+          `src` pro `<head>` durante o SSR, entao a tag nasce no HTML servido —
+          igualzinha a que o painel do Google manda colar. Com
+          `strategy="afterInteractive"` ela nao existia no HTML: o que ia no
+          `<head>` era so um `<link rel=preload>`, e a tag de verdade so aparecia
+          depois da hidratacao. Serve anuncio do mesmo jeito, mas quem LE o HTML
+          sem executar JS — o rastreador de verificacao do AdSense — nao acha
+          nada, e a verificacao de propriedade falha sem dizer por que.
+
+          `async` mantem o que o `afterInteractive` buscava: o script nao bloqueia
+          o parse nem disputa a vez com o catalogo, que e o que a pessoa veio
+          buscar.
+
+          Continua fora do robo porque esta casca e so do site — a area paga nao
+          herda anuncio. E o `beforeInteractive`, que seria a outra saida, nao
+          serve justamente por isso: ele exige o layout RAIZ, que o robo herda. */}
       {temAnuncios() ? (
-        <Script
-          id="adsense"
-          strategy="afterInteractive"
-          crossOrigin="anonymous"
+        <script
+          async
           src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT}`}
+          crossOrigin="anonymous"
         />
       ) : null}
       {/* Pular pro conteudo: quem navega por teclado nao deve atravessar o
