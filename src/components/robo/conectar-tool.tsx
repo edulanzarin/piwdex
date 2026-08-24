@@ -65,6 +65,7 @@ const RECADO: Record<string, string> = {
   conta_bloqueada: "O jogo recusou esta conta. Reconectar não resolve — veja o que ele respondeu abaixo.",
   muitas_tentativas: "O jogo pediu para esperar. Tente de novo daqui a pouco.",
   token_recusado: "O jogo não aceitou esse token. Ele vence rápido — copie um recém-gerado.",
+  limite_de_contas: "Você chegou no teto de contas do seu plano. Desligue uma abaixo para abrir espaço.",
   nao_autenticado: "Sua sessão no PIWdex caiu. Entre de novo.",
   assinatura_inativa: "O vínculo com o jogo faz parte da assinatura.",
 };
@@ -86,6 +87,9 @@ export function ConectarTool({
   limite?: number;
 }) {
   const router = useRouter();
+  // `-1` = sem teto. `Infinity` nao atravessa JSON, entao o contrato manda -1.
+  const semTeto = (limite ?? -1) < 0;
+  const cheio = !semTeto && !reconectando && (jaLigadas ?? 0) >= (limite ?? 0);
   const [texto, setTexto] = useState("");
   const [ocupado, setOcupado] = useState(false);
   const [erro, setErro] = useState<{ recado: string; doJogo?: string } | null>(null);
@@ -143,6 +147,25 @@ export function ConectarTool({
 
   return (
     <div className="mx-auto mt-6 flex w-full max-w-2xl flex-col gap-4">
+      {/* Quantas cabem, antes do formulário. Descobrir o teto só depois de colar
+          o token é descobrir tarde demais. */}
+      {jaLigadas != null ? (
+        <p className="pix text-[11px] text-text-mute">
+          {reconectando
+            ? "reconectando uma conta que já é sua"
+            : semTeto
+              ? `${jaLigadas} ${jaLigadas === 1 ? "conta ligada" : "contas ligadas"} · sem teto`
+              : `${jaLigadas} de ${limite} contas`}
+        </p>
+      ) : null}
+
+      {cheio ? (
+        <Note tone="warn">
+          Você chegou no teto de contas do seu plano. Desligue uma na lista abaixo para abrir
+          espaço.
+        </Note>
+      ) : null}
+
       <HowTo
         tint={COR}
         resumo="Como o PIWdex entra na sua conta do jogo sem pedir a sua senha."

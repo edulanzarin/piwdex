@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { ConectarTool } from "@/components/robo/conectar-tool";
+import { GerenciarContas } from "@/components/robo/gerenciar-contas";
 import { exigirVip } from "@/lib/robo/sessao";
-import { CONTAS_POR_ASSINATURA, contaDoUsuario, listarContas } from "@/lib/robo/vinculo";
+import { contaDoUsuario, limiteDeContas, listarContas } from "@/lib/robo/vinculo";
 
 export const metadata: Metadata = { title: "Conectar" };
 
@@ -27,13 +28,18 @@ export default async function Conectar({
   ]);
 
   return (
-    <ConectarTool
+    <div className="flex flex-col gap-4">
+      <ConectarTool
       status={alvo?.status ?? null}
       nomeJogador={alvo?.apelido ?? alvo?.nomeJogador ?? null}
       motivoBloqueio={alvo?.bloqueioMotivo ?? null}
       reconectando={alvo?.id ?? null}
       jaLigadas={contas.length}
-      limite={CONTAS_POR_ASSINATURA}
-    />
+      limite={Number.isFinite(limiteDeContas(u)) ? limiteDeContas(u) : -1}
+      />
+      {/* Depois do formulario: quem chega aqui vem ADICIONAR. A lista e o que
+          ele consulta quando ja fez isso — inclusive pra desfazer. */}
+      <GerenciarContas contas={contas} />
+    </div>
   );
 }

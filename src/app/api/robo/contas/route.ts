@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { exigirUsuarioApi } from "@/lib/robo/sessao";
 import { contaPedida } from "@/lib/robo/conta";
 import {
-  CONTAS_POR_ASSINATURA,
+  limiteDeContas,
   apagarVinculo,
   contaDoUsuario,
   listarContas,
@@ -32,7 +32,10 @@ export async function GET() {
   const desejos = await Promise.all(contas.map((c) => lerDesejado(c.id).catch(() => null)));
 
   return NextResponse.json({
-    limite: CONTAS_POR_ASSINATURA,
+    // `Infinity` nao sobrevive ao JSON (vira null). O contrato manda -1, e a
+    // tela le isso como "sem teto" — um null seria indistinguivel de campo
+    // ausente, e a tela acabaria escondendo o botao de adicionar.
+    limite: Number.isFinite(limiteDeContas(usuario)) ? limiteDeContas(usuario) : -1,
     contas: contas.map((c, i) => {
       const viva = espiarSessao(c.id)?.estado();
       return {

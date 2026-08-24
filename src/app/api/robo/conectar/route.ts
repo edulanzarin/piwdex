@@ -4,7 +4,7 @@ import { lerTokens, pedirAoJogo, recusaDe } from "@/lib/robo/jogo/auth";
 import { lerPokes } from "@/lib/robo/jogo/ws";
 import { normalizarPokes } from "@/lib/robo/jogo/pokes";
 import {
-  CONTAS_POR_ASSINATURA,
+  limiteDeContas,
   contaDoUsuario,
   contarContas,
   marcarBloqueado,
@@ -60,9 +60,9 @@ export async function POST(req: Request) {
   const alvo = alvoId ? await contaDoUsuario(usuario.id, alvoId) : null;
   if (alvoId && !alvo) return NextResponse.json({ erro: "conta_alheia" }, { status: 404 });
 
-  if (!alvo && (await contarContas(usuario.id)) >= CONTAS_POR_ASSINATURA) {
+  if (!alvo && (await contarContas(usuario.id)) >= limiteDeContas(usuario)) {
     return NextResponse.json(
-      { erro: "limite_de_contas", limite: CONTAS_POR_ASSINATURA },
+      { erro: "limite_de_contas", limite: limiteDeContas(usuario) },
       { status: 409 },
     );
   }

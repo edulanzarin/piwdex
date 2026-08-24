@@ -105,14 +105,22 @@ const daLinha = (l: Linha): Vinculo | null => {
 /**
  * Quantas contas de jogo cabem numa assinatura.
  *
- * Numero, e nao "ilimitado", por uma razao de maquina: cada conta e um WebSocket
- * aberto o tempo todo, mais o poll do analyzer e as chamadas REST das
- * automacoes. Sem teto, uma assinatura sozinha pode custar o processo inteiro —
- * e o processo e um so (`numReplicas: 1`).
+ * O teto existe por uma razao de maquina: cada conta e um WebSocket aberto o
+ * tempo todo, mais o poll do analyzer e as chamadas REST das automacoes, e o
+ * processo e um so (`numReplicas: 1`). Sem teto, um assinante sozinho pode
+ * custar o processo inteiro.
  *
- * Se o Eduardo quiser outro numero, e AQUI, numa linha.
+ * ADMIN nao tem teto. Nao e privilegio decorativo: e a conta que testa o
+ * sistema, e testar quantas contas cabem exige poder passar do numero.
+ *
+ * Este valor e o teto do plano UNICO que existe hoje. Quando os planos
+ * existirem, ele vira coluna em `users` e esta funcao le de la — a assinatura ja
+ * e o lugar certo pra pergunta, e por isso ela recebe o usuario e nao um numero.
  */
-export const CONTAS_POR_ASSINATURA = 5;
+const CONTAS_PADRAO = 5;
+
+export const limiteDeContas = (u: { admin?: boolean }): number =>
+  u.admin ? Number.POSITIVE_INFINITY : CONTAS_PADRAO;
 
 /** As contas do usuario, sem token. Ordenadas pela ordem em que ele ligou. */
 export async function listarContas(userId: string): Promise<ContaResumo[]> {
@@ -192,17 +200,37 @@ export async function salvarVinculo(
   tokens: Tokens,
   meta: { cmid?: string | null; nomeJogador?: string | null } = {},
 ): Promise<{ id: string; nova: boolean }> {
+  /**
+   * Achar a linha que JA e desta conta de jogo.
+   *
+   * Duas portas, e a segunda existe por causa de um bug real: a migration 004
+   * deu id proprio as linhas antigas mas deixou o `cmid` NULO — ele nunca era
+   * gravado antes. Procurar so por `cmid` nao casava com nenhuma delas, e a
+   * primeira reconexao depois da migration criava uma SEGUNDA linha pro mesmo
+   * personagem. Duas linhas, dois sockets, cada um derrubando o outro.
+   *
+   * A segunda porta e o NOME, e ela so vale pra linha que ainda nao tem cmid —
+   * uma vez identificada, a linha e reparada com o cmid e nunca mais depende do
+   * nome, que o jogador pode trocar.
+   */
   const existente = meta.cmid
     ? await queryOne<{ id: string }>(
-        `SELECT id FROM game_links WHERE user_id = $1 AND cmid = $2`,
-        [userId, meta.cmid],
+        `SELECT id FROM game_links
+          WHERE user_id = $1
+            AND (cmid = $2 OR (cmid IS NULL AND player_name IS NOT NULL AND player_name = $3))
+          ORDER BY (cmid = $2) DESC, criado_em
+          LIMIT 1`,
+        [userId, meta.cmid, meta.nomeJogador ?? null],
       ).catch(() => null)
     : null;
 
   if (existente) {
+    // O `cmid` e GRAVADO aqui, e nao so lido: e o que repara a linha antiga e
+    // faz a proxima conexao casar pela porta boa.
     await query(
       `UPDATE game_links
           SET access_token = $2, refresh_token = $3,
+              cmid         = COALESCE($5, cmid),
               player_name  = COALESCE($4, player_name),
               status = 'active', block_status = NULL, block_reason = NULL, blocked_em = NULL
         WHERE id = $1`,
@@ -211,6 +239,7 @@ export async function salvarVinculo(
         cifrar(tokens.access),
         tokens.refresh ? cifrar(tokens.refresh) : null,
         meta.nomeJogador ?? null,
+        meta.cmid ?? null,
       ],
     );
     return { id: existente.id, nova: false };

@@ -55,8 +55,10 @@ export function SeletorDeConta({
   ativa: string | null;
   onTrocar: (id: string) => void;
   onAdicionar: () => void;
+  /** `-1` = sem teto (admin, e o que os planos vao relaxar) */
   limite: number;
 }) {
+  const semTeto = limite < 0;
   if (!contas.length) return null;
 
   return (
@@ -92,12 +94,12 @@ export function SeletorDeConta({
         );
       })}
 
-      {contas.length < limite ? (
+      {semTeto || contas.length < limite ? (
         <button
           type="button"
           onClick={onAdicionar}
           className="pix border border-dashed border-line px-2.5 py-1.5 text-[10px] text-text-mute transition-colors hover:border-line-strong hover:text-text-dim"
-          title={`${contas.length} de ${limite} contas`}
+          title={semTeto ? `${contas.length} contas` : `${contas.length} de ${limite} contas`}
         >
           + conta
         </button>
