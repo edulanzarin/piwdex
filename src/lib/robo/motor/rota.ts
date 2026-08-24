@@ -26,7 +26,15 @@ import type { PassoRota } from "@/lib/robo/motor/tipos";
  * robô entrar num ponto mais duro que o estimado, e a ameaça calculada deixaria
  * de valer.
  */
-async function slugsPorEspecie(): Promise<Map<number, string>> {
+/**
+ * Onde cacar cada especie, e o NIVEL que o ponto exige.
+ *
+ * O nivel vinha junto e era descartado no fim — era so criterio pra escolher o
+ * ponto mais barato. Ele voltou a importar: o jogo recusa entrada em hunt acima
+ * do nivel do TREINADOR, e sem esse numero o robo planejava rotas que o jogo
+ * ignora em silencio.
+ */
+export async function pontosPorEspecie(): Promise<Map<number, { slug: string; level: number }>> {
   const db = await getData();
   const mapa = new Map<number, { slug: string; level: number }>();
   for (const c of db.creatures) {
@@ -35,7 +43,7 @@ async function slugsPorEspecie(): Promise<Map<number, string>> {
       if (!atual || h.level < atual.level) mapa.set(c.pokeId, { slug: h.slug, level: h.level });
     }
   }
-  return new Map([...mapa].map(([id, v]) => [id, v.slug]));
+  return mapa;
 }
 
 /**
@@ -67,7 +75,16 @@ export interface Plano {
 export async function planejarRota(
   lider: Pick<ActivePoke, "speciesId" | "level" | "ivTotal" | "quality">,
   nivelAlvo: number,
-  opcoes: { vip?: boolean; bola?: string } = {},
+  /**
+   * `nivelTreinador` nao e enfeite: o jogo recusa entrada em hunt acima do
+   * nivel do TREINADOR, mesmo com o pokemon muito acima dela. E a regra que
+   * impede comprar um bicho nivel 500 numa conta nova e subir num dia.
+   *
+   * Sem ela o robo montava rotas perfeitas no papel e o `enter-hunt` era
+   * ignorado em silencio — o sintoma era "sem combate" reentrando pra sempre,
+   * sem nada na tela explicando.
+   */
+  opcoes: { vip?: boolean; bola?: string; nivelTreinador?: number | null } = {},
 ): Promise<Plano | null> {
   if (nivelAlvo <= lider.level) return null;
 
@@ -95,10 +112,19 @@ export async function planejarRota(
     "natural",
   );
 
-  const slugs = await slugsPorEspecie();
+  const pontos = await pontosPorEspecie();
+  const teto = opcoes.nivelTreinador ?? null;
   const passos: PassoRota[] = [];
+  let travadasPorNivel = 0;
   for (const p of passosCrus) {
-    const slug = slugs.get(p.enemy.pokeId);
+    const ponto = pontos.get(p.enemy.pokeId);
+    // O ponto existe, mas a conta ainda nao pode entrar nele. Nao e buraco de
+    // dado: e progresso que falta, e a tela precisa poder dizer isso.
+    if (ponto && teto != null && ponto.level > teto) {
+      travadasPorNivel++;
+      continue;
+    }
+    const slug = ponto?.slug;
     // Faixa sem slug é faixa que o robô não consegue executar. Ela sai do plano e
     // marca o buraco, em vez de virar um passo que trava a caçada na hora de
     // mandar `enter-hunt` com `undefined`.

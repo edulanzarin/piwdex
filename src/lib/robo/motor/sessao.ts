@@ -254,57 +254,24 @@ const FECHAMENTOS: Record<number, { acao: "token" | "shard" | "parar" | "tentar"
 const globalIp = globalThis as unknown as { _piwTetoIp?: number; _piwTetoEm?: number };
 
 /**
- * Por que o teto EXPIRA.
+ * O teto de conexoes por IP, e o que aprendemos errado sobre ele.
  *
- * A primeira versao aprendia o numero e o mantinha pra sempre. Isso so estaria
- * certo se o `4006` fosse sempre sobre NOS — e nao e. O processo sai pelo NAT da
- * plataforma, um endereco que pode ser compartilhado com outros inquilinos: uma
- * recusa causada pelo trafego de terceiros virava um teto nosso, permanente, com
- * contas na fila por um limite que nunca existiu.
+ * O jogo publica o limite: **20 contas**. Nos batiamos nele com duas, e a culpa
+ * era nossa — a descoberta de shard abria 64 sockets de uma vez (ver
+ * `jogo/ws.ts`), e o `4006` contava CONEXOES, nao contas.
  *
- * Um numero aprendido de UMA observacao, sobre um recurso que nao e so nosso,
- * tem que poder ser desaprendido. Meia hora depois ele caduca e o motor volta a
- * tentar — se o limite era real, o proximo 4006 o ensina de novo em segundos; se
- * era ruido, as contas voltam a rodar sozinhas.
+ * A primeira versao disto "aprendia" o teto na recusa e guardava o numero. Com a
+ * causa sendo um pico nosso, o que ela aprendia era o tamanho do proprio erro: um
+ * teto de 2, permanente, prendendo o resto das contas numa fila por um limite que
+ * nunca existiu. Aprender de UMA observacao, sobre um numero que o dono do
+ * sistema publica, foi teimosia disfarcada de esperteza.
+ *
+ * Agora o teto e o do JOGO, e o `4006` volta a ser o que sempre foi: um "agora
+ * nao" que pede espera, e nao uma sentenca a memorizar.
  */
-const TETO_VALIDO_MS = 30 * 60_000;
+const TETO_DO_JOGO = 20;
 
-export const tetoDeIp = (): number => {
-  const n = globalIp._piwTetoIp;
-  if (n == null) return Number.POSITIVE_INFINITY;
-  if (Date.now() - (globalIp._piwTetoEm ?? 0) > TETO_VALIDO_MS) {
-    globalIp._piwTetoIp = undefined;
-    console.info("[robo] o teto de IP caducou — voltando a tentar sem limite");
-    return Number.POSITIVE_INFINITY;
-  }
-  return n;
-};
-
-/** O jogo recusou com a Nesima conexao aberta: o teto e, no maximo, N. */
-function aprenderTetoIp(abertasNoMomento: number): void {
-  const visto = Math.max(1, abertasNoMomento);
-  if (visto < tetoDeIp()) {
-    globalIp._piwTetoIp = visto;
-    globalIp._piwTetoEm = Date.now();
-    console.warn(`[robo] teto de conexoes por IP aprendido: ${visto}`);
-  }
-}
-
-/**
- * Uma conexao ABRIU com N ja abertas: entao o teto e pelo menos N.
- *
- * E a evidencia contraria, e ela vale tanto quanto a recusa — mais, ate: uma
- * conexao que abriu e fato sobre o nosso limite, enquanto uma recusa pode ser
- * fato sobre o vizinho de NAT. Sem isto, o teto so sabia descer.
- */
-function tetoAoMenos(abertasAgora: number): void {
-  const atual = globalIp._piwTetoIp;
-  if (atual != null && abertasAgora >= atual) {
-    globalIp._piwTetoIp = abertasAgora;
-    globalIp._piwTetoEm = Date.now();
-    console.info(`[robo] o teto de IP era baixo demais: subiu pra ${abertasAgora}`);
-  }
-}
+export const tetoDeIp = (): number => TETO_DO_JOGO;
 
 /**
  * Quem manda numa sessao: a conta de jogo, e o assinante dono dela.
@@ -864,10 +831,6 @@ export class SessaoJogo extends EventEmitter {
       if (this.tSobrevivencia) clearTimeout(this.tSobrevivencia);
       this.tSobrevivencia = setTimeout(() => { this.tSobrevivencia = null; }, CONTESTADA_MS);
       this.definirStatus("rodando");
-      // Evidencia CONTRARIA ao teto: esta conexao abriu, e as outras seguem
-      // abertas. O limite e pelo menos isto — e uma abertura e fato sobre nos,
-      // enquanto uma recusa pode ser fato sobre o vizinho de NAT.
-      tetoAoMenos(conexoesAbertas());
       if (this.slug) this.entrarNoCampo(this.slug);
       this.rearmarTimers();
       void this.lerPerfil();
@@ -1544,7 +1507,10 @@ export class SessaoJogo extends EventEmitter {
     if (!this.time.length) return;
     this.recalculadoEm = agora;
     try {
-      this.recomendacoes = await melhores(this.time, "dolares", { vip: this.perfil?.vip });
+      this.recomendacoes = await melhores(this.time, "dolares", {
+        vip: this.perfil?.vip,
+        nivelTreinador: this.nivelTreinador ?? this.perfil?.level ?? null,
+      });
       this.emitir();
       this.aplicarRecomendacao();
     } catch (e) {
@@ -1612,7 +1578,10 @@ export class SessaoJogo extends EventEmitter {
       this.rotaPlanejadaPara = assinatura;
       this.rota = [];
       this.rotaConcluida = false;
-      const plano = await planejarRota(alvo, this.cfg.nivelAlvo, { vip: this.perfil?.vip });
+      const plano = await planejarRota(alvo, this.cfg.nivelAlvo, {
+        vip: this.perfil?.vip,
+        nivelTreinador: this.nivelTreinador ?? this.perfil?.level ?? null,
+      });
       if (this.rotaPlanejadaPara !== assinatura) return; // o alvo trocou no meio
       if (!plano) {
         // Sem plano: ou ja passou do alvo, ou a especie nao tem alvo alcancavel.
@@ -1880,7 +1849,6 @@ export class SessaoJogo extends EventEmitter {
     // o numero e sai da frente — a proxima tentativa so acontece quando houver
     // vaga, e nao no backoff de queda comum.
     if (regra?.acao === "esperar") {
-      aprenderTetoIp(conexoesAbertas());
       this.definirStatus("na-fila", frase ?? regra.frase);
       this.agendarReconexao(FILA_MS);
       return;

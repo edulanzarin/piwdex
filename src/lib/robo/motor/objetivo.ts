@@ -3,6 +3,9 @@ import { getHuntPayload } from "@/lib/hunt-data";
 import { economyOf, movesResolver, rankHunts, unpackSpecies, withEconomy } from "@/lib/hunt";
 import type { ActivePoke } from "@/lib/robo/jogo/pokes";
 import type { Recomendacao } from "@/lib/robo/motor/tipos";
+// Uma fonte so pro par "onde caçar e que nível o ponto exige": a copia local
+// daqui divergiria da de `rota.ts` no dia em que uma das duas mudasse.
+import { pontosPorEspecie } from "@/lib/robo/motor/rota";
 
 /**
  * "Quero mais dinheiro" virando conta.
@@ -25,17 +28,6 @@ import type { Recomendacao } from "@/lib/robo/motor/tipos";
  * (`huntLevel` é o mínimo), então usar outro mandaria o robô para um ponto mais
  * duro que o estimado, e a ameaça calculada deixaria de valer.
  */
-async function slugsPorEspecie(): Promise<Map<number, string>> {
-  const db = await getData();
-  const mapa = new Map<number, { slug: string; level: number }>();
-  for (const c of db.creatures) {
-    for (const h of db.locationsOf(c)) {
-      const atual = mapa.get(c.pokeId);
-      if (!atual || h.level < atual.level) mapa.set(c.pokeId, { slug: h.slug, level: h.level });
-    }
-  }
-  return new Map([...mapa].map(([id, v]) => [id, v.slug]));
-}
 
 /** Os IVs individuais o jogo não manda; espalhar o total acerta o montante, que
  *  é o que domina a estimativa de dano. Ver `motor/rota.ts`. */
@@ -57,7 +49,10 @@ export type Criterio = "dolares" | "xp";
 export async function melhores(
   time: ActivePoke[],
   criterio: Criterio,
-  opcoes: { vip?: boolean; bola?: string; limite?: number } = {},
+  /** `nivelTreinador`: o jogo recusa hunt acima do nivel do TREINADOR, mesmo
+   *  com o pokemon acima dela. Recomendar uma dessas e recomendar o que nao
+   *  executa. */
+  opcoes: { vip?: boolean; bola?: string; limite?: number; nivelTreinador?: number | null } = {},
 ): Promise<Recomendacao[]> {
   if (!time.length) return [];
 
@@ -72,7 +67,8 @@ export async function melhores(
     lootPct: 0,
   });
   const alvos = withEconomy(payload.targets, econ);
-  const slugs = await slugsPorEspecie();
+  const pontos = await pontosPorEspecie();
+  const teto = opcoes.nivelTreinador ?? null;
 
   const saida: Recomendacao[] = [];
   for (const p of time) {
@@ -93,7 +89,13 @@ export async function melhores(
     // primeiro desmaio, quando a caçada para e a média real vira zero. Ver
     // "Rendimento é vazão vezes tempo em pé, não vazão de pico".
     const bom = linhas
-      .filter((l) => l.est.threat.risk !== "deadly" && slugs.has(l.target.pokeId))
+      .filter((l) => {
+        if (l.est.threat.risk === "deadly") return false;
+        const ponto = pontos.get(l.target.pokeId);
+        if (!ponto) return false;
+        // Acima do nivel do treinador, o jogo simplesmente nao deixa entrar.
+        return teto == null || ponto.level <= teto;
+      })
       .sort((a, b) =>
         criterio === "dolares" ? b.est.goldH - a.est.goldH : b.est.xpH - a.est.xpH,
       )[0];
@@ -104,7 +106,7 @@ export async function melhores(
       nome: p.name,
       speciesId: p.speciesId,
       level: p.level,
-      slug: slugs.get(bom.target.pokeId)!,
+      slug: pontos.get(bom.target.pokeId)!.slug,
       alvo: bom.target.name,
       alvoSpeciesId: bom.target.pokeId,
       goldH: Math.round(bom.est.goldH),

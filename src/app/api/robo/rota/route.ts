@@ -32,7 +32,13 @@ export async function GET(req: Request) {
   }
   if (!lider) return NextResponse.json({ erro: "sem_lider" }, { status: 409 });
 
-  const plano = await planejarRota(lider, alvo, { vip: viva?.perfil?.vip });
+  const plano = await planejarRota(lider, alvo, {
+    vip: viva?.perfil?.vip,
+    // Sem a sessao viva o nivel do treinador sai do perfil gravado; sem
+    // nenhum dos dois vai `null`, e a rota volta a ignorar a regra — que e
+    // melhor que inventar um teto e esconder faixas que a conta pode fazer.
+    nivelTreinador: viva?.nivelTreinador ?? viva?.perfil?.level ?? null,
+  });
   if (!plano) {
     return NextResponse.json(
       { erro: lider.level >= alvo ? "ja_passou" : "sem_rota", lider: lider.name, nivel: lider.level },

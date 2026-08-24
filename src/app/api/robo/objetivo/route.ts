@@ -29,6 +29,9 @@ export async function GET(req: Request) {
   if (!time.length) return NextResponse.json({ erro: "sem_time" }, { status: 409 });
 
   return NextResponse.json({
-    recomendacoes: await melhores(time, criterio, { vip: viva?.perfil?.vip }),
+    recomendacoes: await melhores(time, criterio, {
+      vip: viva?.perfil?.vip,
+      nivelTreinador: viva?.nivelTreinador ?? viva?.perfil?.level ?? null,
+    }),
   });
 }
