@@ -274,11 +274,46 @@ const lin = (x: number): number => Math.sqrt(Math.max(0, x));
 
 // ---------------------------------------------------------------- catalogo e ranking
 
-/** Conjunto jogavel: tira as variantes de skin (Brave Blastoise e companhia apontam pra
- *  base com `captureBase` e nao sao uma linha propria do catalogo) e mantem Orre, que tem
- *  stats proprios. Sem isso a mesma especie aparece 2x na tier list. */
-export const playableSet = (creatures: MetaMon[]): MetaMon[] =>
-  creatures.filter((c) => c.captureBase == null || c.area === "orre");
+/**
+ * LENDARIO: as 11 especies que o catalogo marca `LEGENDARY` ou `MYTHIC`.
+ *
+ * Sao os passaros, os caes, Mewtwo, Lugia, Ho-oh, Mew e Celebi. O criterio sai do
+ * proprio catalogo e nao de uma lista de nomes escrita a mao — lista de nome
+ * envelhece no primeiro patch, o campo acompanha.
+ */
+export const ehLendario = (c: MetaMon): boolean =>
+  c.rarity === "LEGENDARY" || c.rarity === "MYTHIC";
+
+export interface EscopoMeta {
+  /** incluir lendarios no conjunto. Padrao: NAO — ver `playableSet`. */
+  lendarios?: boolean;
+}
+
+/**
+ * Conjunto jogavel.
+ *
+ * Tira as variantes de skin (Brave Blastoise e companhia apontam pra base com
+ * `captureBase` e nao sao uma linha propria do catalogo) e mantem Orre, que tem
+ * stats proprios. Sem isso a mesma especie aparece 2x na tier list.
+ *
+ * E tira os LENDARIOS por padrao. Os desenvolvedores do jogo disseram que eles
+ * nao vao ser jogaveis, e uma tier list que mede "quem eu uso" nao pode ser
+ * liderada por onze pokemon que ninguem pode por em campo.
+ *
+ * Por que uma CHAVE e nao uma exclusao cravada: a mesma fonte que disse que eles
+ * nao entram disse "tudo pode mudar". Cravar no codigo faria a decisao do jogo
+ * virar decisao nossa, e o dia em que eles virarem jogaveis a lista mentiria sem
+ * ninguem lembrar por que. Com chave, a tela DECLARA o recorte e desfazer e um
+ * clique.
+ */
+export const playableSet = (
+  creatures: MetaMon[],
+  { lendarios = false }: EscopoMeta = {},
+): MetaMon[] =>
+  creatures.filter(
+    (c) =>
+      (c.captureBase == null || c.area === "orre") && (lendarios || !ehLendario(c)),
+  );
 
 export interface MetaEntry {
   creature: MetaMon;
@@ -300,8 +335,27 @@ export interface MetaEntry {
 /** Tier list completa do conjunto jogavel, no pool pedido.
  *  Cada eixo e normalizado pelo MAIOR do catalogo — assim "100 de ataque" quer dizer
  *  "o melhor golpe do jogo", uma referencia que nao muda quando o filtro da tela muda. */
-export function metaTable(creatures: MetaMon[], pool: MovePool = "natural"): MetaEntry[] {
-  const set = playableSet(creatures);
+export function metaTable(
+  creatures: MetaMon[],
+  pool: MovePool = "natural",
+  escopo: EscopoMeta = {},
+): MetaEntry[] {
+  // O escopo entra ANTES da normalizacao, de proposito.
+  //
+  // Os tres eixos sao medidos contra o MAIOR do conjunto, entao quem esta no
+  // conjunto pode definir o teto. Especie que ninguem pode por em campo nao pode
+  // fazer isso: "100 de ataque" tem de querer dizer o melhor golpe que da pra
+  // usar, e nao o melhor que existe no arquivo.
+  //
+  // Medido no catalogo de hoje, tirar os lendarios quase nao mexe nas notas — o
+  // teto e do Mega Alakazam, que fica. A regra vale pelo que ela impede, nao pelo
+  // que ela move agora: no dia em que um lendario for o topo, a lista inteira
+  // seria medida contra alguem que nao joga.
+  //
+  // Isto NAO contradiz a regra de "a referencia nao muda quando o filtro da tela
+  // muda": filtro de tipo ou de tier e recorte de VISTA, e continua fora daqui.
+  // Escopo e outra coisa — e quem faz parte do jogo.
+  const set = playableSet(creatures, escopo);
   const raw = set.map((c) => {
     const best = bestMove(c, pool);
     const dps = poolDps(c, pool);

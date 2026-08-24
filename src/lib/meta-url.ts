@@ -29,6 +29,8 @@ export interface MetaState {
   wild: boolean;
   /** IV usado nos dois lados do duelo */
   iv: "medio" | "perfeito";
+  /** incluir lendarios na lista. Padrao: nao — ver `playableSet` */
+  lendarios: boolean;
 }
 
 export const EMPTY_META: MetaState = {
@@ -46,6 +48,7 @@ export const EMPTY_META: MetaState = {
   bQ: 1,
   wild: false,
   iv: "medio",
+  lendarios: false,
 };
 
 const num = (v: string | null, fallback: number): number => {
@@ -82,6 +85,7 @@ export function parseMetaState(sp: URLSearchParams): MetaState {
     bLv: Math.max(1, num(sp.get("blv"), EMPTY_META.bLv)),
     bQ: Math.max(0, num(sp.get("bq"), EMPTY_META.bQ)),
     wild: sp.get("selvagem") === "1",
+    lendarios: sp.get("lendarios") === "1",
     iv: oneOf(sp.get("iv"), IVS, EMPTY_META.iv),
   };
 }
@@ -104,6 +108,7 @@ export function buildMetaSearch(s: MetaState): string {
   put("blv", s.bLv, EMPTY_META.bLv);
   put("bq", s.bQ, EMPTY_META.bQ);
   put("selvagem", s.wild, false);
+  put("lendarios", s.lendarios, false);
   put("iv", s.iv, EMPTY_META.iv);
   const str = p.toString();
   return str ? `?${str}` : "";

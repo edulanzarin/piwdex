@@ -77,6 +77,13 @@ export default async function HomePage() {
    * ranking com TM mede o teto de quem já investiu numa máquina; o natural mede
    * a espécie como ela sai do campo, e é essa a pergunta de quem está chegando.
    *
+   * E sem LENDÁRIO, porque `metaTable` já sai assim por padrão — os
+   * desenvolvedores disseram que eles não vão ser jogáveis. Isso importa aqui
+   * mais do que na ferramenta: a home AFIRMA "este é o mais forte do jogo" no
+   * lugar mais nobre da página, e apontar um pokémon que ninguém pode usar seria
+   * a afirmação mais visível do site sendo a mais errada. Se a tier list e a home
+   * discordassem, a que ninguém revisa é esta.
+   *
    * Escrever uma segunda regra de "quem é o mais forte" aqui daria duas respostas
    * pra mesma pergunta no mesmo site, e a da home seria a que ninguém revisa.
    */

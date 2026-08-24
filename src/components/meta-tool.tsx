@@ -2,11 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { metaTable, playableSet, type MetaMon } from "@/lib/meta";
+import { ehLendario, metaTable, playableSet, type MetaMon } from "@/lib/meta";
 import { unpackMon, type PackedMon } from "@/lib/meta-data";
 import { buildMetaSearch, parseMetaState, type MetaState } from "@/lib/meta-url";
 import { Field, FieldRow, Note, Panel, Segmented, Tabs } from "@/components/ui";
-import { IconTm } from "@/components/game-icons";
+import { IconGem, IconTm } from "@/components/game-icons";
 import { ListOrdered, Shapes, Swords } from "lucide-react";
 import { MetaTier } from "@/components/meta-tier";
 import { MetaProfile } from "@/components/meta-profile";
@@ -54,8 +54,12 @@ export function MetaTool({ mons: packed }: { mons: PackedMon[] }) {
   // O conjunto JOGAVEL tira as variantes de skin (Brave Blastoise e companhia
   // apontam pra base e nao sao uma linha propria do catalogo). Sem isso a mesma
   // especie aparece duas vezes na tier list.
-  const jogaveis = useMemo(() => playableSet(mons), [mons]);
-  const table = useMemo(() => metaTable(mons, s.pool), [mons, s.pool]);
+  const escopo = useMemo(() => ({ lendarios: s.lendarios }), [s.lendarios]);
+  const jogaveis = useMemo(() => playableSet(mons, escopo), [mons, escopo]);
+  const table = useMemo(() => metaTable(mons, s.pool, escopo), [mons, s.pool, escopo]);
+  // Quantos ficam de fora — o numero e o que torna a chave uma AFIRMACAO ("11
+  // estao fora") em vez de um interruptor sem consequencia visivel.
+  const fora = useMemo(() => mons.filter(ehLendario).length, [mons]);
   const byId = useMemo(() => new Map(table.map((e) => [e.creature.pokeId, e])), [table]);
 
   const aberto = s.focus != null ? byId.get(s.focus) ?? null : null;
@@ -90,10 +94,27 @@ export function MetaTool({ mons: packed }: { mons: PackedMon[] }) {
             />
           </Field>
         </FieldRow>
+        <FieldRow>
+          <Field label="Lendários" icon={<IconGem size={14} />}>
+            <Segmented
+              value={s.lendarios ? "sim" : "nao"}
+              onChange={(v) => patch({ lendarios: v === "sim" })}
+              options={[
+                { value: "nao", label: "fora da lista", title: `${fora} espécies que o jogo não pretende deixar jogáveis` },
+                { value: "sim", label: "incluir", title: "Volta a contar lendários e míticos no ranking" },
+              ]}
+            />
+          </Field>
+        </FieldRow>
         <Note flush className="max-w-[46rem]">
           {s.pool === "tm"
             ? "Com TM a nota responde “quem presta se eu comprar a máquina”. O golpe de poder 600 abre um vale entre o básico e a evolução final, então o corte de cada tier cai noutro lugar."
             : "Só naturais é o que todo jogador tem sem gastar nada. A pergunta vira “entre o que eu já posso usar, quem presta?”, e a régua de corte muda junto."}
+        </Note>
+        <Note flush className="max-w-[46rem]">
+          {s.lendarios
+            ? `Os ${fora} lendários e míticos estão contando, e ocupam quase todo o topo do S. Eles também voltam a poder definir o teto de cada eixo — a régua passa a medir contra o melhor que existe, e não contra o melhor que dá pra usar.`
+            : `Os ${fora} lendários e míticos estão fora: os desenvolvedores disseram que não vão ser jogáveis. Eles também não contam como teto, então a régua mede contra o melhor que dá pra usar. Se isso mudar no jogo, o botão ao lado devolve eles.`}
         </Note>
       </Panel>
 
