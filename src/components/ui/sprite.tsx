@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
+import { ehPixelArt } from "@/lib/sprites";
 import { Pokeball } from "./pokeball";
 
 /**
@@ -30,7 +31,13 @@ export interface SpriteProps {
   alt: string;
   size?: number;
   className?: string;
-  /** sprite do jogo e pixel art: escala sem suavizacao */
+  /**
+   * Escala sem suavizacao.
+   *
+   * O padrao NAO e mais `true`: ele sai da propria URL (`ehPixelArt`), porque o
+   * `spriteUrl` escolhe entre render oficial e recorte do jogo sem o chamador
+   * saber qual veio. Passar explicitamente continua valendo pra quem tem certeza.
+   */
   pixel?: boolean;
   priority?: boolean;
   /**
@@ -49,7 +56,7 @@ export function Sprite({
   alt,
   size = 64,
   className,
-  pixel = true,
+  pixel,
   priority,
   fallback,
 }: SpriteProps) {
@@ -118,7 +125,7 @@ export function Sprite({
           alt={alt}
           width={size}
           height={size}
-          data-pixel={pixel || undefined}
+          data-pixel={(pixel ?? ehPixelArt(atual)) || undefined}
           loading={priority ? "eager" : "lazy"}
           decoding="async"
           onLoad={() => setState("ok")}

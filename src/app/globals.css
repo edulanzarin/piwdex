@@ -249,8 +249,14 @@
      profundidade atras do vidro, sem disputar a leitura com o dado.
 
      O degrau continua existindo: o topo e o trecho mais aberto, porque e onde
-     mora o heroi e a arte tem de aparecer. So que aberto agora quer dizer "da
-     pra ver a cidade", nao "da pra ler a placa da cidade". */
+     mora o heroi e a arte tem de aparecer.
+
+     E ele ABRIU de novo (70% -> 40% no topo) quando a arte trocou. Os 70% eram
+     calibrados contra uma fonte de luminancia 44 com PICOS de neon; a arte nova
+     mede 19 de media e nao tem pico — dobrar o scrim em cima dela apagaria a
+     cena inteira e devolveria um retangulo preto, que e o oposto do que o fundo
+     existe pra fazer.
+     Regra que fica: scrim e funcao da ARTE, e trocar a arte pede remedir. */
   body::after {
     content: "";
     position: fixed;
@@ -260,9 +266,9 @@
     background:
       linear-gradient(
         180deg,
-        color-mix(in srgb, var(--color-bg) 70%, transparent) 0%,
-        color-mix(in srgb, var(--color-bg) 86%, transparent) 45%,
-        color-mix(in srgb, var(--color-bg) 95%, transparent) 100%
+        color-mix(in srgb, var(--color-bg) 40%, transparent) 0%,
+        color-mix(in srgb, var(--color-bg) 72%, transparent) 45%,
+        color-mix(in srgb, var(--color-bg) 92%, transparent) 100%
       ),
       radial-gradient(
         1200px 560px at 50% 0%,

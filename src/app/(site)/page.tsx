@@ -198,10 +198,9 @@ export default async function HomePage() {
               style={{ backgroundColor: RARITY_COLOR[destaque.rarity], opacity: 0.55 }}
             />
             <Sprite
-              src={officialArtUrl(destaque.id) ?? spriteUrl(destaque.id)}
+              src={spriteUrl(destaque.id)}
               alt={destaque.name}
               size={420}
-              pixel={!officialArtUrl(destaque.id)}
               priority
               className="anim-float relative [--sprite:340px] xl:[--sprite:420px]"
             />

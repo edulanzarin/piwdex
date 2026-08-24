@@ -44,6 +44,21 @@ const VARIANT_SPRITE: Record<number, number> = {10001:9, 10501:9, 10502:160, 105
  *  Resolve variantes pro sprite da base. null para ids fora da faixa valida na PokeAPI. */
 export function spriteUrl(pokeId: number, shiny = false): string | null {
   if (!shiny) {
+    // A ARTE OFICIAL passou a vir primeiro, e essa troca vale pro site inteiro.
+    //
+    // Ela mora AQUI, e nao em cada chamada, porque sao ~40 pontos de uso — do
+    // card de 128px ao icone de 26px na fila de comparacao. Trocar um a um
+    // deixaria metade da tela numa arte e metade na outra, que e pior do que
+    // qualquer uma das duas sozinha: o mesmo pokemon com dois desenhos na mesma
+    // pagina le como bug, nao como escolha.
+    //
+    // O que se paga: o render e ~150 KB contra ~8 KB do webp recortado, e ele e
+    // desenhado pra ser visto GRANDE — a 26px o detalhe interno vira mancha.
+    // Se um dia a fila miuda pesar, a saida e um segundo parametro aqui (um
+    // `pequeno: true` que devolve o recorte do jogo), e nao voltar a espalhar a
+    // decisao pelas telas.
+    const oficial = officialArtUrl(pokeId);
+    if (oficial) return oficial;
     const g = gameSpriteUrl(pokeId);
     if (g) return g;
   }
@@ -116,4 +131,21 @@ export function assetIconUrl(icon: string): string {
 /** Icone do item do catalogo. */
 export function itemIconUrl(item: Item): string {
   return assetIconUrl(item.icon);
+}
+
+/**
+ * A imagem e PIXEL ART?
+ *
+ * Existe porque `image-rendering: pixelated` e certo pra uma fonte e errado pra
+ * outra, e quem chama nao devia ter de saber qual veio: o `spriteUrl` escolhe
+ * entre render oficial (suavizado) e recorte do jogo (pixel) sem avisar, entao a
+ * decisao de suavizacao tem de sair do MESMO lugar.
+ *
+ * Antes cada tela passava `pixel={!officialArtUrl(id)}` — uma segunda chamada ao
+ * mesmo seletor, escrita a mao, em cada ponto de uso. Bastava esquecer num pra
+ * ter render de 475px serrilhado no meio da pagina.
+ */
+export function ehPixelArt(src: string | null): boolean {
+  if (!src) return false;
+  return !src.includes("official-artwork");
 }

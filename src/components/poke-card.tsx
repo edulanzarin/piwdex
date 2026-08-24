@@ -166,13 +166,12 @@ export function PokeCard({
             "Brave Blastoise" sairia com o render do Blastoise comum e a grade
             afirmaria que sao o mesmo bicho. */}
         <Sprite
-          src={arte ?? spriteUrl(e.id)}
+          src={spriteUrl(e.id)}
           alt={e.name}
           size={128}
           priority={priority}
           /* Render em alta nao leva `pixelated` — escalar suavizado e o certo pra
              ele. O sprite do jogo continua pixelado, que e o que ele e. */
-          pixel={!arte}
           className="relative transition-transform duration-300 ease-out motion-safe:group-hover:-translate-y-1 motion-safe:group-hover:scale-110"
         />
 

@@ -176,14 +176,13 @@ export default async function CreaturePage({ params }: Props) {
               sozinho: melhor a arte menor e certa do que a maior e de outro
               bicho. */}
           <Sprite
-            src={officialArtUrl(c.pokeId) ?? spriteUrl(c.pokeId)}
+            src={spriteUrl(c.pokeId)}
             alt={c.name}
             size={240}
             priority
             /* `pixel={false}`: render em alta escalado com `image-rendering:
                pixelated` fica serrilhado. A suavizacao e pra ele; o pixelado
                continua valendo pro sprite do jogo, que e pixel art de verdade. */
-            pixel={!officialArtUrl(c.pokeId)}
             className="anim-float relative [--sprite:180px] sm:[--sprite:240px]"
           />
         </div>
