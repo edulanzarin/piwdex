@@ -131,7 +131,7 @@ export function Medidor({
       <Segments
         ratio={max > 0 ? valor / max : 0}
         tint={cor ?? TOM[tom]}
-        segments={compacto ? 10 : 16}
+        fino={compacto}
         max={max}
         value={valor}
       />

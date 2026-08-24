@@ -212,7 +212,7 @@ export function PokeModal({
               </span>
             </div>
             <span className="mt-2 block">
-              <Segments ratio={pct} tint={v.cor} segments={24} value={totalIv ?? 0} max={TOTAL_MAX} />
+              <Segments ratio={pct} tint={v.cor} value={totalIv ?? 0} max={TOTAL_MAX} />
             </span>
             <p className="mt-1.5 text-[11px] text-text-mute">
               {Math.round(pct * 100)}% do IV máximo. Quality e IV são grandezas separadas: a quality
@@ -252,7 +252,7 @@ export function PokeModal({
                       {compact(valor)}
                     </b>
                     <span className="min-w-0 flex-1">
-                      <Segments ratio={razao} tint={cor} segments={16} value={valor} max={maiorStat} />
+                      <Segments ratio={razao} tint={cor} fino value={valor} max={maiorStat} />
                     </span>
                     <span className="w-16 shrink-0 text-right text-[11px] tabular" style={{ color: cor }}>
                       {iv != null ? `IV ${iv}/${IV_MAX}` : ""}

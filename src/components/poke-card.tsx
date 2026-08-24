@@ -56,9 +56,13 @@ function StatSpine({
             className="flex flex-1 flex-col items-center gap-1.5"
             title={`${STAT_LABEL[i]}: ${v}`}
           >
-            <span className="relative flex h-10 w-full items-end rounded-[1px] bg-surface-2">
+            {/* A coluna virou pilula: `rounded-[1px]` era o canto reto do tema
+                antigo sobrevivendo em seis barras por card, sessenta cards por
+                tela. Numa coluna de 5px de largura, um raio cheio custa nada e e
+                a diferenca entre "grafico" e "riscos". */}
+            <span className="relative flex h-10 w-full items-end overflow-hidden rounded-pill bg-surface-2">
               <span
-                className="w-full rounded-[1px]"
+                className="w-full rounded-pill"
                 style={{
                   // piso de 8%: stat baixissimo nao pode virar barra invisivel,
                   // que se confunde com "nao carregou"
@@ -69,7 +73,7 @@ function StatSpine({
               />
               {/* tampa: quem passa do teto satura MARCADO, senao 140 e 255
                   desenham a mesma barra cheia e o card diz que sao iguais */}
-              {ratio > 1 ? <span className="absolute inset-x-0 top-0 h-[2px] bg-text" /> : null}
+              {ratio > 1 ? <span className="absolute inset-x-0 top-0 h-[2px] rounded-pill bg-text" /> : null}
             </span>
             {/* o icone no lugar da abreviacao: "AES" nao diz nada, o escudo com
                 nucleo diz "defesa especial" sem precisar de legenda */}
