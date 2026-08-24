@@ -251,16 +251,58 @@ const FECHAMENTOS: Record<number, { acao: "token" | "shard" | "parar" | "tentar"
  * Vive no `globalThis` pela mesma razao do registro de sessoes: o hot reload do
  * dev troca o modulo e o processo e o mesmo.
  */
-const globalIp = globalThis as unknown as { _piwTetoIp?: number };
+const globalIp = globalThis as unknown as { _piwTetoIp?: number; _piwTetoEm?: number };
 
-export const tetoDeIp = (): number => globalIp._piwTetoIp ?? Number.POSITIVE_INFINITY;
+/**
+ * Por que o teto EXPIRA.
+ *
+ * A primeira versao aprendia o numero e o mantinha pra sempre. Isso so estaria
+ * certo se o `4006` fosse sempre sobre NOS — e nao e. O processo sai pelo NAT da
+ * plataforma, um endereco que pode ser compartilhado com outros inquilinos: uma
+ * recusa causada pelo trafego de terceiros virava um teto nosso, permanente, com
+ * contas na fila por um limite que nunca existiu.
+ *
+ * Um numero aprendido de UMA observacao, sobre um recurso que nao e so nosso,
+ * tem que poder ser desaprendido. Meia hora depois ele caduca e o motor volta a
+ * tentar — se o limite era real, o proximo 4006 o ensina de novo em segundos; se
+ * era ruido, as contas voltam a rodar sozinhas.
+ */
+const TETO_VALIDO_MS = 30 * 60_000;
+
+export const tetoDeIp = (): number => {
+  const n = globalIp._piwTetoIp;
+  if (n == null) return Number.POSITIVE_INFINITY;
+  if (Date.now() - (globalIp._piwTetoEm ?? 0) > TETO_VALIDO_MS) {
+    globalIp._piwTetoIp = undefined;
+    console.info("[robo] o teto de IP caducou — voltando a tentar sem limite");
+    return Number.POSITIVE_INFINITY;
+  }
+  return n;
+};
 
 /** O jogo recusou com a Nesima conexao aberta: o teto e, no maximo, N. */
 function aprenderTetoIp(abertasNoMomento: number): void {
   const visto = Math.max(1, abertasNoMomento);
   if (visto < tetoDeIp()) {
     globalIp._piwTetoIp = visto;
+    globalIp._piwTetoEm = Date.now();
     console.warn(`[robo] teto de conexoes por IP aprendido: ${visto}`);
+  }
+}
+
+/**
+ * Uma conexao ABRIU com N ja abertas: entao o teto e pelo menos N.
+ *
+ * E a evidencia contraria, e ela vale tanto quanto a recusa — mais, ate: uma
+ * conexao que abriu e fato sobre o nosso limite, enquanto uma recusa pode ser
+ * fato sobre o vizinho de NAT. Sem isto, o teto so sabia descer.
+ */
+function tetoAoMenos(abertasAgora: number): void {
+  const atual = globalIp._piwTetoIp;
+  if (atual != null && abertasAgora >= atual) {
+    globalIp._piwTetoIp = abertasAgora;
+    globalIp._piwTetoEm = Date.now();
+    console.info(`[robo] o teto de IP era baixo demais: subiu pra ${abertasAgora}`);
   }
 }
 
@@ -822,6 +864,10 @@ export class SessaoJogo extends EventEmitter {
       if (this.tSobrevivencia) clearTimeout(this.tSobrevivencia);
       this.tSobrevivencia = setTimeout(() => { this.tSobrevivencia = null; }, CONTESTADA_MS);
       this.definirStatus("rodando");
+      // Evidencia CONTRARIA ao teto: esta conexao abriu, e as outras seguem
+      // abertas. O limite e pelo menos isto — e uma abertura e fato sobre nos,
+      // enquanto uma recusa pode ser fato sobre o vizinho de NAT.
+      tetoAoMenos(conexoesAbertas());
       if (this.slug) this.entrarNoCampo(this.slug);
       this.rearmarTimers();
       void this.lerPerfil();

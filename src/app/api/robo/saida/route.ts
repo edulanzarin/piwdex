@@ -57,7 +57,20 @@ export async function GET() {
      *  jogo pode variar entre uma conexao e outra */
     poolDeSaida: unicos.length > 1,
     conexoesAbertas: conexoesAbertas(),
-    /** o que o jogo revelou no primeiro `4006`. `null` = ainda nao aconteceu */
+    /**
+     * O teto que o motor esta aplicando AGORA. `null` = nenhum (caducou ou nunca
+     * houve). Ele expira em 30 min e sobe sozinho quando uma conexao abre acima
+     * dele — um numero aprendido de uma observacao, sobre um recurso que pode ser
+     * compartilhado, nao pode virar permanente.
+     */
     tetoAprendido: Number.isFinite(teto) ? teto : null,
+    /**
+     * O ASN do endereco de saida, quando o espelho da Cloudflare informa.
+     *
+     * E o que distingue as duas hipoteses do `4006`: se o jogo limita por
+     * DATACENTER (e nao por conta), o problema nao e quantas contas voce tem —
+     * e de onde elas falam, e nenhum ajuste de teto resolve.
+     */
+    dica: "compare `saida` entre dois deploys: se mudar, a plataforma nao dá endereço fixo",
   });
 }
