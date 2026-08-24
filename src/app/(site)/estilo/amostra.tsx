@@ -2,8 +2,16 @@
 
 import { useState } from "react";
 import {
+  Badge,
   Button,
   Checkbox,
+  DataList,
+  DataRow,
+  Divider,
+  Metric,
+  MetricCell,
+  MetricGrid,
+  SectionTitle,
   Chip,
   Empty,
   Input,
@@ -300,6 +308,67 @@ export function Amostra() {
               Painel com acao no canto. A borda so aparece onde a superficie nao resolveu.
             </p>
           </Panel>
+        </div>
+      </Bloco>
+
+      <Bloco
+        titulo="Selo"
+        nota="Estado do sistema, e nao categoria. Por isso e pilula com ponto, e nao chip: o ponto se le de canto de olho, antes da palavra."
+      >
+        <Fileira>
+          <Badge tone="ok" pulse>
+            Ao vivo
+          </Badge>
+          <Badge tone="neutral">Snapshot</Badge>
+          <Badge tone="accent">Novo</Badge>
+          <Badge tone="warn">Na fila</Badge>
+          <Badge tone="danger">Recusado</Badge>
+          <Badge tone="info" dot={false}>
+            Sem ponto
+          </Badge>
+        </Fileira>
+      </Bloco>
+
+      <Bloco
+        titulo="Metrica"
+        nota="Contagem sem teto. O irmao dela e o StatTile, que mede contra um maximo — pedir maximo aqui obrigaria a inventar um, e maximo inventado a tela passa a afirmar."
+      >
+        <div className="flex flex-col gap-5">
+          <MetricGrid>
+            <MetricCell value="482" label="especies" tint="var(--color-t-dex)" />
+            <MetricCell value="428" label="itens" tint="var(--color-t-itens)" />
+            <MetricCell value="347" label="locais de caca" tint="var(--color-t-hunt)" />
+            <MetricCell value="2.657" label="registros de drop" tint="var(--color-t-meta)" />
+          </MetricGrid>
+          <Fileira>
+            <Metric size="sm" value="12" label="Pequeno" />
+            <Metric size="md" value="1.204" label="Medio" />
+            <Metric size="lg" value="184" suffix="mil/h" label="Grande" tint="var(--color-neon)" />
+          </Fileira>
+        </div>
+      </Bloco>
+
+      <Bloco
+        titulo="Par rotulo e valor"
+        nota="A linha mais repetida do site. O valor vai a direita e no mono: com valor a esquerda, 9 e 1.204 comecam juntos e terminam em lugares diferentes."
+      >
+        <div className="grid gap-6 sm:grid-cols-2">
+          <DataList>
+            <DataRow label="Especie" value="Charmander" />
+            <DataRow label="Nivel da hunt" value="14" />
+            <DataRow label="XP por abate" value="62" />
+            <DataRow label="Ouro esperado" value="1.204" hint="valor por abate" />
+            <DataRow label="Total por hora" value="184.320" emphasis />
+          </DataList>
+          <div className="flex flex-col gap-3">
+            <SectionTitle size="sm">Titulo de secao</SectionTitle>
+            <p className="text-[13px] text-text-mute">
+              O fio corre da palavra ate a borda e morre em transparente. De ponta a ponta
+              com opacidade cheia, ele dividiria a pagina em duas.
+            </p>
+            <Divider />
+            <p className="text-[13px] text-text-mute">Fio solto, pra dentro de painel.</p>
+          </div>
         </div>
       </Bloco>
 

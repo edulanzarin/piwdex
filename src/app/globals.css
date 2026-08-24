@@ -116,8 +116,14 @@
      selecao, indicador, tag de 16px de altura. */
   --radius-xs: 6px;
 
-  /* ---- fonte unica: Chakra Petch, do next/font ---- */
+  /* ---- duas familias, e cada uma tem um trabalho ----
+     `ui` e Lexend Deca: texto, rotulo, titulo — tudo que se LE.
+     `mono` e JetBrains Mono: numero em coluna — tudo que se COMPARA.
+     A razao esta no comentario do `layout.tsx`; em resumo, a Lexend nao tem
+     digito de largura fixa e um site de tabela nao sobrevive a isso. Mono
+     resolve por construcao, e nao por feature opcional da fonte. */
   --font-ui-stack: var(--font-ui), "Segoe UI", system-ui, sans-serif;
+  --font-mono-stack: var(--font-mono), ui-monospace, "SF Mono", Menlo, monospace;
 
   /* ---- elevacao: uma escada de sombra, e o brilho vira DETALHE ----
      Antes o unico recurso de profundidade era o halo neon, e halo neon nao
@@ -186,9 +192,10 @@
     background-color: var(--color-bg);
     color: var(--color-text);
     font-family: var(--font-ui-stack);
-    /* 500 e o corpo: a familia tem peso medio de verdade, e e ele que da o traco
-       um pouco mais grosso sem cair no negrito — que nesta densidade vira mancha. */
-    font-weight: 500;
+    /* 400 voltou a ser o corpo. O 500 existia pra engrossar o traco fino da
+       quadrada anterior; a Lexend ja nasce com haste mais cheia, e manter o 500
+       nela deixa o paragrafo pesado ao lado da tabela. */
+    font-weight: 400;
     /* 16px. Foram tres subidas ate aqui (14 -> 15 -> 16): a queixa "tudo
        esmagado e pequeno" nao era de um elemento, era da escala inteira. */
     font-size: 1rem;
@@ -287,10 +294,27 @@
   }
   ::-webkit-scrollbar-thumb:hover { background: var(--color-accent-soft); }
 
-  /* A Quantico NAO tem numeral tabular — `tabular-nums` aqui nao faz nada. O
-     que mantem a coluna reta e o alinhamento a direita, aplicado em toda
-     celula de numero. A classe fica pro dia em que a fonte mudar. */
-  table, .tabular { font-variant-numeric: tabular-nums; }
+  /* ---- a coluna de numero ----
+     Este seletor era decorativo: `tabular-nums` so faz efeito se a fonte publicar
+     a feature, e nenhuma das quadradas anteriores publicava. A classe ficou
+     esperando "o dia em que a fonte mudar" — e o dia chegou.
+     Agora ela TROCA A FAMILIA. Mono alinha por construcao (todo glifo com a mesma
+     largura), o que e mais forte do que pedir `tnum` e torcer. O
+     `letter-spacing` negativo compensa a largura extra do monoespacado, senao a
+     tabela cresce e a densidade some. */
+  table, .tabular, .num {
+    font-family: var(--font-mono-stack);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+  }
+
+  /* O rotulo dentro da tabela volta pro texto: mono e pra NUMERO. Cabecalho de
+     coluna e nome de especie em mono viram etiqueta de terminal, que e
+     exatamente o dialeto do qual esta passada esta saindo. */
+  table :is(th, .txt), .tabular .txt {
+    font-family: var(--font-ui-stack);
+    letter-spacing: normal;
+  }
 
   /* Sprite do jogo e pixel art: escalar com suavizacao vira borrao. */
   img[data-pixel="true"] {
@@ -313,9 +337,14 @@
        de rotulo: caixa alta, peso 700 e tracking. O tracking nao e enfeite —
        caixa alta apertada numa quadrada vira bloco ilegivel. */
     text-transform: uppercase;
-    letter-spacing: 0.07em;
-    line-height: 1.1;
-    font-weight: 700;
+    /* O tracking caiu de 0.07 pra 0.045. Caixa alta apertada numa QUADRADA vira
+       bloco ilegivel, e era isso que o 0.07 resolvia. A Lexend ja e larga por
+       desenho: o mesmo tracking nela espalha o rotulo e desmancha a palavra. */
+    letter-spacing: 0.045em;
+    line-height: 1.15;
+    /* 600 no lugar de 700: a Lexend tem semibold de verdade, e o bold cheio em
+       caixa alta pesa demais num rotulo de 11px. */
+    font-weight: 600;
   }
 
   /* ---- superficie base de qualquer bloco: VIDRO ----

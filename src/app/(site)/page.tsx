@@ -3,9 +3,17 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getDexPayload } from "@/lib/dex-data";
 import { agora, fecharPiso } from "@/lib/pacing";
-import { ButtonLink, Chip, IconChevronRight, Pokeball, Sprite } from "@/components/ui";
+import {
+  Badge,
+  ButtonLink,
+  IconChevronRight,
+  MetricCell,
+  MetricGrid,
+  Pokeball,
+  SectionTitle,
+  Sprite,
+} from "@/components/ui";
 import { FERRAMENTAS } from "@/lib/ferramentas";
-import { LayoutGrid } from "lucide-react";
 
 // A home canonicaliza pra RAIZ. Ela e a unica pagina cujo canonical o layout
 // poderia acertar por acidente — e "por acidente" nao e contrato.
@@ -162,17 +170,17 @@ export default async function HomePage() {
         >
           <div className="flex items-center justify-between gap-3">
             <h3 className="pix text-[12px] text-text-dim">o catálogo agora</h3>
-            <Chip
-              size="xs"
+            {/* Selo de ESTADO do sistema, e nao categoria: por isso `Badge` e nao
+                `Chip`. O ponto pulsa quando esta ao vivo — o estado se le de canto
+                de olho, antes da palavra. */}
+            <Badge
               tone={catalog.live ? "ok" : "warn"}
-              /* O selo é o argumento de credibilidade da home — "este número veio
-                 do jogo agora" — e era só texto. A arte dá o sinal antes da
-                 leitura: torre transmitindo contra cartucho salvo. */
+              pulse={catalog.live}
               icon={
                 <Sprite
                   src={catalog.live ? "/images/icons/ao-vivo.png" : "/images/icons/snapshot.png"}
                   alt=""
-                  size={16}
+                  size={14}
                   fallback={null}
                 />
               }
@@ -183,35 +191,32 @@ export default async function HomePage() {
               }
             >
               {catalog.live ? "AO VIVO" : "SNAPSHOT"}
-            </Chip>
+            </Badge>
           </div>
 
-          <div className="grid grid-cols-2 gap-px bg-line">
+          {/* A grade saiu daqui e virou primitiva. Ela ja existia duas vezes (aqui e
+              no painel do robo) com CSS diferente, e o fio entre celulas — que e
+              `gap-px` sobre fundo de linha, e nao borda por celula — e o tipo de
+              detalhe que a segunda copia nunca herda. */}
+          <MetricGrid>
             {[
               { n: counts.creatures, label: "espécies", cor: "var(--color-t-dex)" },
               { n: counts.items, label: "itens", cor: "var(--color-t-itens)" },
               { n: counts.hunts, label: "locais de caça", cor: "var(--color-t-hunt)" },
               { n: counts.drops, label: "registros de drop", cor: "var(--color-t-meta)" },
             ].map((k, i) => (
-              // O fio que separa as células é o `gap-px` sobre o fundo de linha —
-              // uma borda por célula somaria duas no meio da grade.
               // As quatro células entram em cascata, uma a cada 60ms: o card se
               // preenche, e preencher é o gesto que combina com "o catálogo agora".
-              <span
+              <MetricCell
                 key={k.label}
-                className="anim-in flex flex-col gap-1 bg-surface/95 px-3 py-4"
+                value={k.n.toLocaleString("pt-BR")}
+                label={k.label}
+                tint={k.cor}
+                className="anim-in"
                 style={{ "--d": `${320 + i * 60}ms` } as CSSProperties}
-              >
-                <span
-                  className="text-[28px] leading-none font-bold tabular sm:text-[32px]"
-                  style={{ color: k.cor }}
-                >
-                  {k.n.toLocaleString("pt-BR")}
-                </span>
-                <span className="pix text-[11px] text-text-mute">{k.label}</span>
-              </span>
+              />
             ))}
-          </div>
+          </MetricGrid>
 
           {/* Não falar no condicional sobre uma coisa que já aconteceu: com a
               fonte fora do ar, "se a fonte cair" soa como se estivesse tudo bem,
@@ -235,11 +240,7 @@ export default async function HomePage() {
 
       {/* ================= ferramentas ================= */}
       <section id="ferramentas" className="flex flex-col gap-4 scroll-mt-20">
-        <h2 className="pix flex items-center gap-2 text-[14px] text-text-dim">
-          <LayoutGrid size={15} strokeWidth={2.25} aria-hidden="true" className="text-accent" />
-          Ferramentas
-          <span aria-hidden="true" className="h-px flex-1 bg-gradient-to-r from-line to-transparent" />
-        </h2>
+        <SectionTitle>Ferramentas</SectionTitle>
         <div className="grid gap-4 lg:grid-cols-2">
           {FERRAMENTAS.map((t, i) => {
             const Icone = t.Icone;
@@ -288,21 +289,17 @@ export default async function HomePage() {
                   </span>
 
                   <div className="flex min-w-0 flex-1 flex-col gap-2.5">
-                    <div className="flex items-center gap-2">
-                      {/* O glifo de linha aparece ao lado do nome mesmo com a arte
-                          presente: é o mesmo glifo da navegação, e repeti-lo aqui
-                          é o que ensina que aquele ícone lá em cima é esta tela. */}
-                      <Icone
-                        size={16}
-                        strokeWidth={2.25}
-                        aria-hidden="true"
-                        style={{ color: t.cor }}
-                        className="shrink-0 transition-transform duration-200 group-hover:scale-110"
-                      />
-                      <h3 className="pix flex-1 text-[19px] leading-none" style={{ color: t.cor }}>
-                        {t.nome}
-                      </h3>
-                    </div>
+                    {/* SEM glifo de linha ao lado do nome.
+                        Ele existia pra ensinar que o ícone da navegação é esta
+                        tela, e o preço disso era alto demais: traço fino de 16px
+                        encostado num sprite pixelado de 104px são duas linguagens
+                        de desenho na mesma linha, e a que perde é sempre a arte —
+                        o glifo lê como ícone de sistema e faz a peça feita à mão
+                        parecer enfeite. A arte já identifica a ferramenta, e ela
+                        identifica melhor. */}
+                    <h3 className="pix text-[19px] leading-none" style={{ color: t.cor }}>
+                      {t.nome}
+                    </h3>
 
                     <p className="text-[15px] leading-relaxed text-text-dim">{t.desc}</p>
 
