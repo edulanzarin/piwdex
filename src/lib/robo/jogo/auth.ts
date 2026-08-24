@@ -102,7 +102,25 @@ export function lerTokens(bruto: string): Tokens | null {
 // ---------------------------------------------------------------------------
 // Falar com a API do jogo
 // ---------------------------------------------------------------------------
+/**
+ * O escudo do Cloudflare julga o pedido INTEIRO, e nao so o `User-Agent`.
+ *
+ * Um GET com Bearer e mais nada nao se parece com o que o navegador manda, e
+ * essa diferenca e parte do que dispara o desafio. Estes cabecalhos sao os que
+ * o cliente do jogo envia — nada de disfarce, e o mesmo pedido que a aba faria.
+ */
+const COMO_NAVEGADOR = {
+  Accept: "application/json, text/plain, */*",
+  "Accept-Language": "pt-BR,pt;q=0.9,en;q=0.8",
+  Origin: GAME_HOST,
+  Referer: `${GAME_HOST}/`,
+  "Sec-Fetch-Dest": "empty",
+  "Sec-Fetch-Mode": "cors",
+  "Sec-Fetch-Site": "same-origin",
+} as const;
+
 const cabecalhos = (t: Tokens): HeadersInit => ({
+  ...COMO_NAVEGADOR,
   Authorization: `Bearer ${t.access}`,
   "User-Agent": UA,
   Accept: "application/json",
@@ -143,9 +161,46 @@ export async function renovarTokens(t: Tokens): Promise<Tokens | null> {
  * frase, e o dono da conta le o que o jogo de fato disse.
  */
 export type TipoRecusa =
-  | "blocked" // 403: conta/origem recusada. NAO reconectar.
+  | "blocked" // 403 do JOGO: conta recusada. NAO reconectar.
+  | "escudo" // 403 do CLOUDFLARE: o pedido foi barrado, a conta esta inteira.
   | "expired" // 401 mesmo depois do refresh: o vinculo morreu.
   | "rate_limited"; // 429: pediu demais. Esperar, nao desistir.
+
+/**
+ * O 403 tem DOIS donos, e confundi-los custa a conta do usuario.
+ *
+ * O jogo esta atras de Cloudflare, e o escudo devolve 403 com uma pagina HTML
+ * ("Just a moment...", `noindex,nofollow`, CSP) quando desconfia de quem pede.
+ * Isso nao diz nada sobre a conta — diz que o NOSSO pedido nao passou, e a
+ * proxima tentativa costuma passar.
+ *
+ * Lido como recusa de conta, ele marcava o vinculo `blocked`, que e TERMINAL: o
+ * robo para de religar pra sempre e a tela manda "reconectar não resolve". Uma
+ * conta inteira ficava desligada por um desafio de bot que durou trinta
+ * segundos.
+ *
+ * A assinatura e o CORPO: recusa de conta vem em JSON; o escudo vem em HTML.
+ */
+const marcasDoEscudo = [
+  "just a moment",
+  "cf-browser-verification",
+  "cf_chl",
+  "attention required",
+  "cloudflare",
+  "enable javascript and cookies",
+];
+
+export function ehEscudo(res: Response, corpo: string): boolean {
+  // O header e a evidencia mais limpa quando ele vem; o corpo cobre o resto.
+  if (res.headers.get("cf-mitigated")) return true;
+  const tipo = res.headers.get("content-type") ?? "";
+  const txt = corpo.toLowerCase();
+  const pareceHtml = tipo.includes("text/html") || txt.trimStart().startsWith("<!doctype") || txt.includes("<html");
+  if (!pareceHtml) return false;
+  // HTML sozinho ja e forte (a API do jogo responde JSON), mas exigir uma marca
+  // evita classificar como escudo uma pagina de erro qualquer do proprio jogo.
+  return marcasDoEscudo.some((m) => txt.includes(m)) || txt.includes("<title>");
+}
 
 export interface Recusa {
   tipo: TipoRecusa;
@@ -178,7 +233,16 @@ async function mensagemDoCorpo(res: Response): Promise<string> {
  *  servidor, que merece retry normal). So chame DEPOIS do refresh automatico. */
 export async function recusaDe(res: Response): Promise<Recusa | null> {
   if (res.ok) return null;
-  if (res.status === 403) return { tipo: "blocked", status: 403, mensagem: await mensagemDoCorpo(res) };
+  if (res.status === 403) {
+    const corpo = await mensagemDoCorpo(res);
+    // Escudo do Cloudflare != conta recusada. Ver `ehEscudo`: um marca o vinculo
+    // como morto pra sempre, o outro pede pra tentar de novo daqui a pouco.
+    return {
+      tipo: ehEscudo(res, corpo) ? "escudo" : "blocked",
+      status: 403,
+      mensagem: corpo,
+    };
+  }
   if (res.status === 401) return { tipo: "expired", status: 401, mensagem: await mensagemDoCorpo(res) };
   if (res.status === 429) return { tipo: "rate_limited", status: 429, mensagem: await mensagemDoCorpo(res) };
   return null; // 5xx e afins: problema do servidor, nao recusa da conta

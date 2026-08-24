@@ -66,6 +66,8 @@ const RECADO: Record<string, string> = {
   muitas_tentativas: "O jogo pediu para esperar. Tente de novo daqui a pouco.",
   token_recusado: "O jogo não aceitou esse token. Ele vence rápido — copie um recém-gerado.",
   limite_de_contas: "Você chegou no teto de contas do seu plano. Desligue uma abaixo para abrir espaço.",
+  escudo_do_jogo:
+    "A proteção anti-bot do jogo barrou o nosso pedido — isso é sobre a nossa conexão, não sobre a sua conta. Ela continua inteira. Tente de novo em um minuto.",
   nao_autenticado: "Sua sessão no PIWdex caiu. Entre de novo.",
   assinatura_inativa: "O vínculo com o jogo faz parte da assinatura.",
 };

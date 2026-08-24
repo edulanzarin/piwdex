@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { exigirConta } from "@/lib/robo/conta";
-import { atualizarTokens, lerVinculo, salvarShard } from "@/lib/robo/vinculo";
-import { lerPokes } from "@/lib/robo/jogo/ws";
+import { atualizarTokens, lerVinculo, marcarVencido, salvarShard } from "@/lib/robo/vinculo";
+import { buscarPokes } from "@/lib/robo/jogo/ws";
 import { sessaoDe } from "@/lib/robo/motor/sessao";
 import { salvarDesejado } from "@/lib/robo/motor/desejado";
 import { lerConfig } from "@/lib/robo/motor/config";
@@ -30,9 +30,22 @@ export async function POST(req: Request) {
 
   let shard = v.shard ?? 0;
   if (!shard) {
-    const r = await lerPokes(v.tokens, null).catch(() => null);
-    if (!r) return NextResponse.json({ erro: "shard_nao_encontrado" }, { status: 502 });
-    shard = r.shard;
+    const r = await buscarPokes(v.tokens, null).catch(() => null);
+    if (!r || !r.ok) {
+      // "Não achei o shard" era a resposta pra tres coisas diferentes, e duas
+      // delas nao melhoram tentando de novo. O codigo com que os sockets fecham
+      // separa as tres — ver `varrerShards`.
+      const motivo = r && !r.ok ? r.falha.motivo : "nenhum";
+      if (motivo === "vencido") {
+        await marcarVencido(v.id).catch(() => {});
+        return NextResponse.json({ erro: "vinculo_vencido" }, { status: 409 });
+      }
+      if (motivo === "bloqueado") {
+        return NextResponse.json({ erro: "conta_bloqueada" }, { status: 409 });
+      }
+      return NextResponse.json({ erro: "shard_nao_encontrado" }, { status: 502 });
+    }
+    shard = r.dado.shard;
     await salvarShard(v.id, shard).catch(() => {});
   }
 

@@ -79,6 +79,15 @@ export async function POST(req: Request) {
     // vencido no mesmo balde, e o jogador sem saber qual dos tres era.
     const recusa = await recusaDe(r.res);
 
+    // O escudo do Cloudflare barrou o NOSSO pedido, e a conta esta inteira. Nao
+    // marca nada no vinculo: o proximo clique costuma passar, e gravar `blocked`
+    // aqui desligaria a conta pra sempre por causa de um desafio de bot.
+    if (recusa?.tipo === "escudo") {
+      return NextResponse.json(
+        { erro: "escudo_do_jogo", motivo: recusa.mensagem, status: 403 },
+        { status: 503 },
+      );
+    }
     if (recusa?.tipo === "blocked") {
       // So da pra gravar a recusa quando se sabe EM QUAL conta ela aconteceu.
       // Numa adicao, o token foi recusado antes de existir linha pra marcar —

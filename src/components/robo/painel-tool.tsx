@@ -294,7 +294,9 @@ export function PainelTool({
       {/* Antes das abas: qual conta esta na tela e a pergunta que precede
           qualquer outra. Depois delas, ela viraria rodape de um painel que ja
           foi lido como se fosse "a" conta. */}
-      {vivas.length > 1 || limite > 1 ? (
+      {/* `limite < 0` = sem teto (admin): com uma conta so e teto infinito,
+          `limite > 1` era falso e o trilho — com o botao de ADICIONAR — sumia. */}
+      {vivas.length > 1 || limite < 0 || limite > 1 ? (
         <SeletorDeConta
           contas={vivas}
           ativa={contaAtiva}

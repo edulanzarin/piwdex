@@ -29,6 +29,30 @@ export interface ResultadoPokes {
   shard: number;
 }
 
+/**
+ * Por que a varredura nao achou o shard.
+ *
+ * Ela abre 64 sockets e espera um frame `pokes`. Quando nenhum vem, `null` era a
+ * resposta — e `null` juntava duas coisas que pedem atos OPOSTOS: "o jogo
+ * remanejou a conta, tente de novo" e "o seu token morreu, reconecte". A tela
+ * dizia "tente de novo em instantes" pro segundo caso, e tentar de novo nao
+ * resolve token vencido nunca.
+ *
+ * O codigo com que cada socket FECHA e a informacao que separa os dois, e ela
+ * estava sendo jogada fora. `4003` e o esperado (63 shards recusam assim); `4001`
+ * vindo de TODOS significa credencial, e `4004` e recusa de conta.
+ */
+export type MotivoSemShard = "vencido" | "bloqueado" | "nenhum";
+
+export interface FalhaShard {
+  motivo: MotivoSemShard;
+  /** o codigo cru do jogo, pra tela poder mostrar o que ninguem traduziu */
+  codigo: number | null;
+  frase: string | null;
+}
+
+export type BuscaShard = { ok: true; dado: ResultadoPokes } | { ok: false; falha: FalhaShard };
+
 /** Abre UM shard e resolve com a lista de `pokes` (ou null se fechar/expirar). */
 function abrirShard(shard: number, token: string, timeoutMs: number): Promise<Record<string, unknown>[] | null> {
   return new Promise((resolve) => {
@@ -62,17 +86,35 @@ function abrirShard(shard: number, token: string, timeoutMs: number): Promise<Re
 }
 
 /** Varre os 64 em paralelo e resolve no primeiro que mandar `pokes`. */
-function varrerShards(token: string, timeoutMs: number): Promise<ResultadoPokes | null> {
+function varrerShards(token: string, timeoutMs: number): Promise<BuscaShard> {
   return new Promise((resolve) => {
     const sockets: WebSocket[] = [];
     let fechado = false;
-    const fim = (r: ResultadoPokes | null) => {
+    // O que os 64 responderam. E daqui que sai a diferenca entre "nao achei" e
+    // "a sua credencial morreu".
+    const codigos = new Map<number, number>();
+    let frase: string | null = null;
+
+    const fim = (r: BuscaShard) => {
       if (fechado) return;
       fechado = true;
       // Fechar TODOS: os 63 restantes sao sessoes abertas na conta do jogador.
       sockets.forEach((w) => { try { w.close(); } catch { /* noop */ } });
       resolve(r);
     };
+
+    const desistir = () => {
+      // 4001 em massa e credencial, nao shard: nenhum dos 64 aceitou o token.
+      // 4004 e recusa de conta, e nenhuma das duas melhora com nova tentativa.
+      const motivo: MotivoSemShard = codigos.has(4004)
+        ? "bloqueado"
+        : codigos.has(4001)
+          ? "vencido"
+          : "nenhum";
+      const codigo = codigos.has(4004) ? 4004 : codigos.has(4001) ? 4001 : null;
+      fim({ ok: false, falha: { motivo, codigo, frase } });
+    };
+
     for (let n = 1; n <= SHARDS; n++) {
       let ws: WebSocket;
       try { ws = new WebSocket(`${WS_BASE}/ws${n}?token=${encodeURIComponent(token)}`); } catch { continue; }
@@ -81,13 +123,17 @@ function varrerShards(token: string, timeoutMs: number): Promise<ResultadoPokes 
         try {
           const j = JSON.parse(typeof ev.data === "string" ? ev.data : "") as { type?: string; list?: unknown };
           if (j?.type === "pokes" && Array.isArray(j.list)) {
-            fim({ pokes: j.list as Record<string, unknown>[], shard: n });
+            fim({ ok: true, dado: { pokes: j.list as Record<string, unknown>[], shard: n } });
           }
         } catch { /* noop */ }
       });
+      ws.addEventListener("close", (ev: CloseEvent) => {
+        codigos.set(ev.code, (codigos.get(ev.code) ?? 0) + 1);
+        if (!frase && ev.reason) frase = ev.reason;
+      });
       ws.addEventListener("error", () => { /* shard que recusa e o esperado: 63 deles */ });
     }
-    setTimeout(() => fim(null), timeoutMs);
+    setTimeout(desistir, timeoutMs);
   });
 }
 
@@ -98,9 +144,19 @@ function varrerShards(token: string, timeoutMs: number): Promise<ResultadoPokes 
  * acontece na primeira conexao e quando o jogo remaneja a conta.
  */
 export async function lerPokes(tokens: Tokens, shardConhecido?: number | null): Promise<ResultadoPokes | null> {
+  const r = await buscarPokes(tokens, shardConhecido);
+  return r.ok ? r.dado : null;
+}
+
+/** A mesma busca, com o MOTIVO quando falha. Quem precisa dizer ao usuario o que
+ *  fazer a seguir chama esta; quem so quer a lista chama `lerPokes`. */
+export async function buscarPokes(
+  tokens: Tokens,
+  shardConhecido?: number | null,
+): Promise<BuscaShard> {
   if (shardConhecido) {
     const lista = await abrirShard(shardConhecido, tokens.access, 6000);
-    if (lista) return { pokes: lista, shard: shardConhecido };
+    if (lista) return { ok: true, dado: { pokes: lista, shard: shardConhecido } };
   }
   return varrerShards(tokens.access, 7000);
 }
