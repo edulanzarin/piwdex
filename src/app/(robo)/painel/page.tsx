@@ -65,6 +65,22 @@ export default async function Painel({
 
   return (
     <PainelTool
+      /**
+       * A CONTA como `key`, e isto e correcao de bug e nao arrumacao.
+       *
+       * Trocar de conta e `router.push('/painel?conta=X')` — navegacao do
+       * cliente na MESMA rota. O componente nao remonta, entao todo `useState`
+       * sobrevive a troca: a config, o rascunho da aba Loja, o estado da sessao,
+       * as listas que cada painel buscou no `useEffect` de montagem.
+       *
+       * O estrago nao era so visual. A tela seguia segurando a config da conta
+       * ANTERIOR, e o proximo "salvar alterações" gravava os valores dela na
+       * conta nova — mexer numa conta virava mexer em todas.
+       *
+       * `key` diferente = arvore nova. Trocar de conta passa a ser o que sempre
+       * foi na cabeca de quem clica: comecar do zero naquela conta.
+       */
+      key={escolhida ?? "sem-conta"}
       // O estado VIVO ja no primeiro render.
       //
       // A pagina roda no mesmo processo do motor, entao ela pode simplesmente

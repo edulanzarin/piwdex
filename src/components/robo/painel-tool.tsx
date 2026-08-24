@@ -99,6 +99,18 @@ export function PainelTool({
   const [ocupado, setOcupado] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [config, setConfig] = useState<ConfigAuto>(configInicial ?? CONFIG_PADRAO);
+
+  /**
+   * Cinto e suspensorio do `key` da pagina.
+   *
+   * A pagina remonta esta arvore ao trocar de conta, o que ja resolve. Isto
+   * cobre o dia em que alguem renderizar o painel sem a `key` — e o modo de
+   * falha desse esquecimento e caro demais pra depender de uma so guarda: a
+   * config de uma conta gravada em cima da outra, sem erro nenhum na tela.
+   */
+  useEffect(() => {
+    setConfig(configInicial ?? CONFIG_PADRAO);
+  }, [contaAtiva, configInicial]);
   // Um relogio proprio: o `desdeMs` nao muda, mas "há quanto tempo" muda sozinho.
   const [agora, setAgora] = useState(() => Date.now());
   // O modal de pokémon mora AQUI, e não em cada aba: ele é aberto do topo, da
