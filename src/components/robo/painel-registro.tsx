@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button, Empty, Loading, Panel, Segmented, SearchInput } from "@/components/ui";
+import { compact } from "@/lib/labels";
 import { IconRegistro } from "@/components/ui/icons";
 import { TOM } from "@/components/robo/pecas";
 import type { EventoRobo, TipoEvento } from "@/lib/robo/motor/eventos";
@@ -52,6 +53,25 @@ const GRUPO: Record<Grupo, (t: TipoEvento) => boolean> = {
   problema: (t) => t === "falha" || t === "recusado",
 };
 
+/**
+ * O ouro que o evento moveu.
+ *
+ * Ele SEMPRE esteve gravado — `aplicarRecados` grava `{ ouro, quantidade }` em
+ * `data` desde o primeiro dia — e a tela nunca leu. O registro dizia "191 itens
+ * vendidos" sem dizer por quanto, que e a metade que responde "valeu a pena
+ * deixar isso ligado".
+ *
+ * Zero vira `null` de proposito: recusa grava `ouro: 0`, e um "+0" ao lado de
+ * "não comprou" e ruido com cara de dado.
+ */
+function ouroDe(e: EventoRobo): number | null {
+  const v = (e.dado as { ouro?: unknown } | null)?.ouro;
+  return typeof v === "number" && Number.isFinite(v) && v > 0 ? v : null;
+}
+
+/** Compra tira, o resto poe. O sinal e do MOVIMENTO, nao do numero gravado. */
+const ehSaida = (t: TipoEvento) => t === "compra";
+
 function quando(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "";
@@ -91,6 +111,26 @@ export function AbaRegistro({ onLido }: { onLido?: () => void }) {
       .filter((e) => GRUPO[grupo](e.tipo))
       .filter((e) => !t || `${e.titulo} ${e.corpo ?? ""}`.toLowerCase().includes(t));
   }, [eventos, grupo, busca]);
+
+  /**
+   * O caixa do que esta FILTRADO, e nao do total.
+   *
+   * A soma acompanha o filtro porque e assim que ela responde pergunta: filtrar
+   * por "essence of fire" e ver quanto aquele drop rendeu em quatorze dias e a
+   * conta que ninguem tinha como fazer. Um total fixo no topo responderia sempre
+   * a mesma coisa.
+   */
+  const caixa = useMemo(() => {
+    let entrou = 0;
+    let saiu = 0;
+    for (const e of lista) {
+      const o = ouroDe(e);
+      if (o == null) continue;
+      if (ehSaida(e.tipo)) saiu += o;
+      else entrou += o;
+    }
+    return { entrou, saiu };
+  }, [lista]);
 
   const contaPorGrupo = useMemo(() => {
     const c: Record<Grupo, number> = { tudo: 0, shiny: 0, dinheiro: 0, problema: 0 };
@@ -136,6 +176,38 @@ export function AbaRegistro({ onLido }: { onLido?: () => void }) {
         />
       </div>
 
+      {/* So aparece quando ha dinheiro no que esta filtrado: uma linha de zeros
+          ocuparia espaco pra dizer que nada aconteceu. */}
+      {caixa.entrou || caixa.saiu ? (
+        <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1 border border-line bg-bg-soft px-3 py-2 text-[12px]">
+          <span className="pix text-[10px] text-text-mute">
+            {busca.trim() || grupo !== "tudo" ? "no filtro" : "em 14 dias"}
+          </span>
+          {caixa.entrou ? (
+            <span style={{ color: TOM.vida }}>
+              entrou <b className="tabular">{compact(caixa.entrou)}</b>
+            </span>
+          ) : null}
+          {caixa.saiu ? (
+            <span style={{ color: TOM.ouro }}>
+              saiu <b className="tabular">{compact(caixa.saiu)}</b>
+            </span>
+          ) : null}
+          {caixa.entrou && caixa.saiu ? (
+            <span style={{ color: caixa.entrou - caixa.saiu < 0 ? TOM.perigo : TOM.vida }}>
+              saldo{" "}
+              <b className="tabular">
+                {caixa.entrou - caixa.saiu < 0 ? "−" : "+"}
+                {compact(Math.abs(caixa.entrou - caixa.saiu))}
+              </b>
+            </span>
+          ) : null}
+          <span className="ml-auto text-text-mute">
+            {lista.length} {lista.length === 1 ? "registro" : "registros"}
+          </span>
+        </div>
+      ) : null}
+
       {lista.length === 0 ? (
         <Empty
           title={eventos.length ? "Nada com esse filtro" : "Nada registrado ainda"}
@@ -171,7 +243,24 @@ export function AbaRegistro({ onLido }: { onLido?: () => void }) {
                 <p className="truncate text-[13px] text-text">{e.titulo}</p>
                 {e.corpo ? <p className="truncate text-[12px] text-text-mute">{e.corpo}</p> : null}
               </div>
-              <span className="shrink-0 text-[11px] tabular text-text-mute">{quando(e.em)}</span>
+              {/* A coluna existe mesmo vazia: com o valor entrando e saindo da
+                  linha, a data dançava de posição a cada registro sem dinheiro. */}
+              <span className="w-20 shrink-0 text-right text-[13px] tabular">
+                {(() => {
+                  const o = ouroDe(e);
+                  if (o == null) return null;
+                  const saida = ehSaida(e.tipo);
+                  return (
+                    <b style={{ color: saida ? TOM.ouro : TOM.vida }}>
+                      {saida ? "−" : "+"}
+                      {compact(o)}
+                    </b>
+                  );
+                })()}
+              </span>
+              <span className="w-24 shrink-0 text-right text-[11px] tabular text-text-mute">
+                {quando(e.em)}
+              </span>
             </li>
           ))}
         </ul>

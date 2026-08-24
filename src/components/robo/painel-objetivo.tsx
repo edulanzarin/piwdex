@@ -31,7 +31,20 @@ const RISCO: Record<string, { texto: string; cor: string }> = {
   deadly: { texto: "letal", cor: TOM.perigo },
 };
 
-function LinhaPar({ r, atual }: { r: Recomendacao; atual: boolean }) {
+/**
+ * Uma OPÇÃO da lista: com qual pokémon do time, e onde ele renderia mais.
+ *
+ * A linha dizia "caçando {alvo}" em todas as seis, e seis linhas afirmando que
+ * estão caçando leem como seis caçadas ao mesmo tempo — que é impossível: o jogo
+ * dá UMA sessão, com UM líder, em UM campo. A lista é um ranking de pares, e só
+ * a que está no ar está acontecendo.
+ *
+ * Por isso a posição virou número e o verbo saiu: "em Mantine" descreve uma
+ * possibilidade, "caçando Mantine" descreve um fato. E a que está de fato
+ * rodando ganha rótulo, em vez de só uma borda mais clara que ninguém compara
+ * entre linhas.
+ */
+function LinhaPar({ r, posicao, atual }: { r: Recomendacao; posicao: number; atual: boolean }) {
   return (
     <li
       className="flex h-14 items-center gap-2 border bg-bg-soft px-2"
@@ -41,14 +54,28 @@ function LinhaPar({ r, atual }: { r: Recomendacao; atual: boolean }) {
           : "var(--color-line)",
       }}
     >
+      <span className="pix w-4 shrink-0 text-right text-[11px] tabular text-text-mute">
+        {posicao}
+      </span>
       <Sprite src={spriteUrl(r.speciesId)} alt="" size={30} />
       <span className="min-w-0 flex-1">
         <span className="flex items-center gap-1.5">
           <b className="truncate text-[13px] text-text">{r.nome}</b>
           <span className="pix text-[10px] text-text-mute">nv {r.level}</span>
+          {atual ? (
+            <span
+              className="pix shrink-0 border px-1 text-[9px]"
+              style={{
+                color: "var(--color-t-robo)",
+                borderColor: "color-mix(in srgb, var(--color-t-robo) 55%, transparent)",
+              }}
+            >
+              no ar
+            </span>
+          ) : null}
         </span>
         <span className="flex items-center gap-1.5 text-[11px] text-text-mute">
-          <span className="truncate">caçando {r.alvo}</span>
+          <span className="truncate">em {r.alvo}</span>
           <span className="pix shrink-0 text-[10px]" style={{ color: RISCO[r.risco]?.cor }}>
             {RISCO[r.risco]?.texto}
           </span>
@@ -303,9 +330,23 @@ export function PainelObjetivo({
             </Note>
           ) : (
             <>
+              <Note>
+                Um de cada vez: o jogo dá uma sessão, com um líder, em um campo. Esta é a ordem do
+                que renderia mais — o robô segue a primeira que couber e reavalia sozinho.
+              </Note>
               <ul className="flex flex-col gap-1">
                 {pares.map((r, i) => (
-                  <LinhaPar key={r.pokeId} r={r} atual={i === 0} />
+                  <LinhaPar
+                    key={r.pokeId}
+                    r={r}
+                    posicao={i + 1}
+                    /* Do ESTADO, e não da posição: o robô pode estar na segunda
+                       porque a primeira acabou de subir no ranking e a troca só
+                       acontece na próxima reavaliação. Marcar o topo por padrão
+                       apontava para a linha errada justamente enquanto a lista
+                       mudava. */
+                    atual={seguindo && !!estado.slug && r.slug === estado.slug}
+                  />
                 ))}
               </ul>
               <Note>
