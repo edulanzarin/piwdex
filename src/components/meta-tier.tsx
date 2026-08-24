@@ -272,7 +272,7 @@ function CartaoTier({ e, onOpen }: { e: MetaEntry; onOpen: () => void }) {
       <span className="relative flex flex-col items-center gap-1 border-t border-line bg-surface-2/70 px-1.5 pt-1.5 pb-2 transition-colors duration-200 group-hover:bg-surface-3/70">
         <span aria-hidden="true" className="flex items-center gap-1">
           {tipos.map((t) => (
-            <TypeIcon key={t} type={t} size={15} style={{ color: TYPE_COLOR[t] }} />
+            <TypeIcon key={t} type={t} size={20} style={{ color: TYPE_COLOR[t] }} />
           ))}
         </span>
 

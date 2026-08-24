@@ -27,7 +27,7 @@ import { cn } from "@/lib/cn";
 const TYPE_ICON: Record<PokeType, ReactNode> = {
   NORMAL: (
     <>
-    <path d="M12 2.6a9.4 9.4 0 1 0 0 18.8 9.4 9.4 0 0 0 0-18.8zm0 4.6a4.8 4.8 0 1 1 0 9.6 4.8 4.8 0 0 1 0-9.6z"/>
+    <path d="M12 2.6a9.4 9.4 0 1 0 0 18.8 9.4 9.4 0 0 0 0-18.8zm0 3.2a6.2 6.2 0 1 1 0 12.4 6.2 6.2 0 0 1 0-12.4z"/><path d="M12 8.6a3.4 3.4 0 1 1 0 6.8 3.4 3.4 0 0 1 0-6.8z" opacity=".55"/>
     </>
   ),
   FIRE: (
@@ -77,7 +77,7 @@ const TYPE_ICON: Record<PokeType, ReactNode> = {
   ),
   PSYCHIC: (
     <>
-    <path d="M12 4.4c-5 0-9.2 3.4-11 7.6 1.8 4.2 6 7.6 11 7.6s9.2-3.4 11-7.6c-1.8-4.2-6-7.6-11-7.6zm0 3.4a4.2 4.2 0 1 1 0 8.4 4.2 4.2 0 0 1 0-8.4z"/><path d="M12 9.8a2.2 2.2 0 1 1 0 4.4 2.2 2.2 0 0 1 0-4.4z"/>
+    <path d="M12 4.6c-4.8 0-8.9 3.1-10.6 7.4 1.7 4.3 5.8 7.4 10.6 7.4s8.9-3.1 10.6-7.4C20.9 7.7 16.8 4.6 12 4.6zm0 2.6a4.8 4.8 0 1 1 0 9.6 4.8 4.8 0 0 1 0-9.6z"/><path d="M12 8.4a3.6 3.6 0 1 1 0 7.2 3.6 3.6 0 0 1 0-7.2z"/><circle cx="10.4" cy="10.4" r="1.25" fill="#100e0c" opacity=".9"/><path d="M2.2 3.4 4.6 6 3.1 7.5.7 5zM21.8 3.4 23.3 5l-2.4 2.5L19.4 6z" opacity=".7"/>
     </>
   ),
   BUG: (
@@ -130,7 +130,15 @@ export function TypeIcon({
 }) {
   const corpo = TYPE_ICON[type];
   if (!corpo) return null;
-  const s = Math.max(13, size);
+  // Piso de 16, e nao de 13.
+  //
+  // Ele subiu junto com o desenho. Enquanto o simbolo era traco de biblioteca,
+  // 13px passava — nao havia detalhe pra perder. Estes tem palpebra, faceta,
+  // dedo: a 13 isso vira uma mancha torta, que foi exatamente a queixa.
+  //
+  // Piso e melhor que corrigir os 21 pontos de uso um a um: quem pedir menos
+  // recebe 16 e a peca continua legivel, e o proximo ponto de uso ja nasce certo.
+  const s = Math.max(16, size);
   return (
     <svg
       viewBox="0 0 24 24"
@@ -186,7 +194,7 @@ export function TypeBadge({
       )}
       title={label}
     >
-      {known ? <TypeIcon type={type} size={size === "xs" ? 13 : 14} /> : null}
+      {known ? <TypeIcon type={type} size={size === "xs" ? 16 : 17} /> : null}
       {showLabel ? label : null}
     </span>
   );
