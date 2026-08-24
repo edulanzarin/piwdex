@@ -46,7 +46,7 @@ export function Chip({
           : undefined
       }
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-none border whitespace-nowrap font-medium tracking-wide",
+        "inline-flex items-center gap-1.5 rounded-[var(--radius-xs)] border whitespace-nowrap font-medium tracking-wide",
         size === "xs" ? "h-6 px-2 text-[11px]" : "h-7 px-2.5 text-[12px]",
         !tint && TONE[tone],
         className,

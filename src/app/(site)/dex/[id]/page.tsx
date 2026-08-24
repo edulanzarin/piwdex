@@ -394,7 +394,7 @@ export default async function CreaturePage({ params }: Props) {
                     href={`/dex/${s.creature.pokeId}`}
                     title={s.creature.name}
                     className={cn(
-                      "flex w-26 shrink-0 flex-col items-center gap-1.5 rounded-none border p-2.5 transition-colors",
+                      "flex w-26 shrink-0 flex-col items-center gap-1.5 rounded-pix border p-2.5 transition-colors",
                       s.creature.pokeId === c.pokeId
                         ? "border-accent/60 bg-accent/10"
                         : "border-line hover:border-accent/40 hover:bg-surface-2",

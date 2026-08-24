@@ -15,21 +15,36 @@ import { cn } from "@/lib/cn";
 type Variant = "primary" | "neon" | "outline" | "ghost" | "danger";
 type Size = "sm" | "md" | "lg";
 
+/**
+ * As variantes, e a hierarquia que elas passaram a ter.
+ *
+ * Antes as cinco eram a mesma receita com cores diferentes: fundo translucido,
+ * borda da mesma cor, halo neon. Cinco botoes igualmente discretos numa tela nao
+ * formam hierarquia — a acao principal nao ganhava de ninguem, e a tela ficava
+ * sem um lugar obvio pra clicar.
+ *
+ * Agora `primary` e SOLIDO: fundo cheio, texto escuro, elevacao de verdade. Ele
+ * e o unico assim de proposito, e e o que faz os outros quatro poderem ser
+ * quietos sem sumirem. O halo neon saiu da superficie parada e virou estado — um
+ * botao nao precisa acender pra existir, precisa pra responder.
+ */
 const VARIANT: Record<Variant, string> = {
   primary:
-    "bg-accent/15 text-accent border-accent/45 hover:bg-accent/25 hover:border-accent/70 " +
-    "active:bg-accent/35 shadow-[0_0_16px_-6px_var(--color-accent)]",
+    "bg-accent text-[#0c0e14] border-transparent font-semibold shadow-elev-2 " +
+    "hover:bg-[color-mix(in_oklab,var(--color-accent)_88%,white)] hover:shadow-elev-3 " +
+    "active:bg-[color-mix(in_oklab,var(--color-accent)_82%,black)] active:shadow-elev-1",
   neon:
-    "bg-neon/12 text-neon border-neon/40 hover:bg-neon/22 hover:border-neon/70 " +
-    "active:bg-neon/30 shadow-[0_0_16px_-6px_var(--color-neon)]",
+    "bg-neon text-[#06201f] border-transparent font-semibold shadow-elev-2 " +
+    "hover:bg-[color-mix(in_oklab,var(--color-neon)_88%,white)] hover:shadow-elev-3 " +
+    "active:bg-[color-mix(in_oklab,var(--color-neon)_82%,black)] active:shadow-elev-1",
   outline:
-    "bg-transparent text-text-dim border-line hover:text-text hover:border-line-strong " +
-    "hover:bg-surface-2 active:bg-surface-3",
+    "bg-surface-2/60 text-text-dim border-line hover:text-text hover:border-line-strong " +
+    "hover:bg-surface-2 active:bg-surface-3 shadow-elev-1 hover:shadow-elev-2",
   ghost:
-    "bg-transparent text-text-dim border-transparent hover:text-text hover:bg-surface-2 " +
+    "bg-transparent text-text-dim border-transparent hover:text-text hover:bg-surface-2/70 " +
     "active:bg-surface-3",
   danger:
-    "bg-danger/12 text-danger border-danger/45 hover:bg-danger/22 hover:border-danger/70 " +
+    "bg-danger/14 text-danger border-danger/35 hover:bg-danger/22 hover:border-danger/60 " +
     "active:bg-danger/30",
 };
 
@@ -43,9 +58,9 @@ const VARIANT: Record<Variant, string> = {
  * apontador, e isso vive AQUI, num lugar so.
  */
 const SIZE: Record<Size, string> = {
-  sm: "h-7 px-2 text-[13px] gap-1.5 pointer-coarse:h-11 pointer-coarse:px-3",
-  md: "h-8 px-3 text-[14px] gap-2 pointer-coarse:h-11 pointer-coarse:px-4",
-  lg: "h-10 px-4 text-[15px] gap-2 pointer-coarse:h-12 pointer-coarse:px-5",
+  sm: "h-8 px-3 text-[13px] gap-1.5 rounded-[var(--radius-xs)] pointer-coarse:h-11 pointer-coarse:px-4",
+  md: "h-9.5 px-4 text-[14px] gap-2 rounded-pix pointer-coarse:h-11 pointer-coarse:px-5",
+  lg: "h-11 px-5 text-[15px] gap-2 rounded-pix pointer-coarse:h-12 pointer-coarse:px-6",
 };
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -64,17 +79,26 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
  *  dos dois envelhece sozinho. */
 function shell(variant: Variant, size: Size, block?: boolean, className?: string) {
   return cn(
-    "inline-flex select-none items-center justify-center whitespace-nowrap rounded-none",
+    "inline-flex select-none items-center justify-center whitespace-nowrap",
+    // O raio nao mora aqui: ele vem do DEGRAU, porque botao pequeno com o mesmo
+    // raio do grande vira pastilha. Ver `SIZE`.
     "border font-medium uppercase tracking-wide",
     // O botao so tinha `transition-colors`, e cor de hover NAO EXISTE no dedo:
     // no celular o toque nao produzia resposta nenhuma ate a tela mudar, o que
     // le como "nao funcionou" e faz a pessoa tocar de novo. Um pixel de
     // afundamento em 100ms resolve — sem `scale` e sem mola, que e o que a
     // estetica de canto reto pede.
-    "transition-[color,background-color,border-color,transform] duration-100 ease-out",
-    "active:translate-y-px",
+    "transition-[color,background-color,border-color,box-shadow,transform] duration-[120ms] ease-out",
+    // O afundar continua, e agora ele tem par: a sombra desce junto. Afundar sem
+    // a sombra acompanhar le como o botao escorregando, nao como sendo apertado.
+    "active:translate-y-[1px]",
+    "motion-reduce:transition-none motion-reduce:active:translate-y-0",
     "disabled:pointer-events-none disabled:opacity-40",
-    "data-[active]:bg-accent/25 data-[active]:text-accent data-[active]:border-accent/70",
+    // ATIVO e um estado, e e aqui que o brilho ganhou o lugar dele: um anel de
+    // acento em vez de fundo cheio, pra o botao ativo nao competir com o
+    // primario solido que costuma estar na mesma barra.
+    "data-[active]:bg-accent/18 data-[active]:text-accent data-[active]:border-accent/55",
+    "data-[active]:shadow-glow-sm",
     SIZE[size],
     VARIANT[variant],
     block && "w-full",
@@ -118,7 +142,7 @@ export function IconButton({ label, size = "md", className, children, ...props }
   // de fechar do modal fica 32x44: alto o bastante e estreito demais.
   const square = {
     sm: "w-8 pointer-coarse:w-11",
-    md: "w-9 pointer-coarse:w-11",
+    md: "w-9.5 pointer-coarse:w-11",
     lg: "w-11 pointer-coarse:w-12",
   }[size];
   return (

@@ -22,16 +22,21 @@
      um terminal, nao uma ferramenta de jogo. O azul-noite tem a MESMA
      profundidade e devolve o ar. A hierarquia continua por profundidade, nao
      por borda. */
-  --color-bg: #0b0d12;
-  --color-bg-soft: #101319;
-  --color-surface: #151920;
-  --color-surface-2: #1c212b;
-  --color-surface-3: #242a36;
-  --color-overlay: #06070a;
+  --color-bg: #0c0e14;
+  --color-bg-soft: #12151d;
+  --color-surface: #181c26;
+  --color-surface-2: #212632;
+  --color-surface-3: #2b3140;
+  --color-overlay: #070810;
 
-  /* ---- linhas: fina por padrao, forte so quando a superficie nao resolveu ---- */
-  --color-line: #272d38;
-  --color-line-strong: #39414f;
+  /* ---- linhas ----
+     Baixaram de contraste na virada pro console macio, e isso e a metade menos
+     obvia da mudanca de raio. Canto reto precisa da linha pra dizer onde a peca
+     acaba; canto arredondado ja diz isso com a propria silhueta, e ai a mesma
+     linha que antes DESENHAVA passa a RISCAR. A hierarquia volta a sair de
+     superficie e sombra — que e o principio, e nao a moda. */
+  --color-line: #262b38;
+  --color-line-strong: #333a4b;
 
   /* ---- texto: tres degraus, nunca mais ----
      O degrau mais apagado subiu. O #5f6b80 anterior media 3,00:1 sobre o
@@ -88,29 +93,75 @@
      matiz que ainda nao carrega significado nesta paleta. */
   --color-t-robo: #a78bfa;
 
-  /* ---- raio: ZERO ----
-     Canto reto em tudo que e chrome, por escolha do Eduardo. Nao e so gosto —
-     casa com a fonte quadrada e com o pixel dos sprites; canto arredondado
-     puxava a interface pro dialeto de app generico.
+  /* ---- raio: uma escada de tres degraus, e ela e a virada ----
+     Era ZERO em tudo, por escolha de estetica: canto reto casava com a fonte
+     quadrada e com o pixel dos sprites. O que o canto reto trouxe junto, e que
+     so aparece na tela montada, foi DUREZA — quarenta retangulos empilhados com
+     fio claro em volta leem como planilha, nao como console.
 
-     Os tokens continuam existindo (em vez de eu apagar `rounded-*` de 40
-     arquivos) pra a decisao viver num lugar so: mudar de ideia e mexer aqui. */
-  --radius-pix: 0px;
-  --radius-pix-lg: 0px;
-  --radius-glass: 0px;
+     O retro nao morava na aresta. Ele mora na paleta, no brilho, no sprite e no
+     rotulo em caixa alta — tudo isso continua. O que muda e a GEOMETRIA, e e por
+     isso que a troca sai de um lugar so: os componentes ja pediam
+     `rounded-pix`, entao a escada nova chega neles sem visita arquivo a arquivo.
+
+     Tres degraus e nao um: controle (botao, campo, chip) pede raio menor que
+     bloco (painel, card), senao o botao dentro do painel parece uma bolha
+     dentro de outra. A pilula fica pro que e redondo por natureza — avatar,
+     ponto de estado, chip de contagem. */
+  --radius-pix: 10px;
+  --radius-pix-lg: 14px;
+  --radius-glass: 18px;
+  --radius-pill: 999px;
+  /* O degrau miudo, pro que e pequeno demais pra 10px nao virar bolha: caixa de
+     selecao, indicador, tag de 16px de altura. */
+  --radius-xs: 6px;
 
   /* ---- fonte unica: Chakra Petch, do next/font ---- */
   --font-ui-stack: var(--font-ui), "Segoe UI", system-ui, sans-serif;
 
-  /* ---- sombra/brilho neon: escada fechada ---- */
-  --shadow-glow-sm: 0 0 0 1px color-mix(in oklab, var(--color-accent) 35%, transparent),
-                    0 0 12px -2px color-mix(in oklab, var(--color-accent) 45%, transparent);
-  --shadow-glow: 0 0 0 1px color-mix(in oklab, var(--color-accent) 55%, transparent),
-                 0 0 22px -4px color-mix(in oklab, var(--color-accent) 60%, transparent);
-  --shadow-panel: 0 1px 0 0 rgba(255, 255, 255, 0.03) inset,
-                  0 12px 32px -18px rgba(0, 0, 0, 0.9);
-  --shadow-pop: 0 18px 48px -22px rgba(0, 0, 0, 0.95),
-                0 0 0 1px var(--color-line-strong);
+  /* ---- elevacao: uma escada de sombra, e o brilho vira DETALHE ----
+     Antes o unico recurso de profundidade era o halo neon, e halo neon nao
+     eleva: ele acende. O resultado era uma tela plana onde tudo brilhava um
+     pouco e nada parecia estar na frente de nada.
+
+     A escada abaixo separa as duas funcoes que estavam no mesmo token. `elev-*`
+     diz ALTURA (dupla de sombra: uma curta e fechada pro contato, uma longa e
+     aberta pro ambiente — e o par que o olho le como distancia). `glow-*` fica
+     so pra ESTADO: foco, ativo, perigo. */
+  --shadow-elev-1: 0 1px 2px -1px rgb(0 0 0 / 0.5),
+                   0 2px 8px -4px rgb(0 0 0 / 0.5);
+  --shadow-elev-2: 0 2px 4px -2px rgb(0 0 0 / 0.55),
+                   0 8px 20px -8px rgb(0 0 0 / 0.6);
+  --shadow-elev-3: 0 4px 8px -4px rgb(0 0 0 / 0.6),
+                   0 18px 40px -16px rgb(0 0 0 / 0.7);
+  --shadow-elev-4: 0 8px 16px -8px rgb(0 0 0 / 0.65),
+                   0 32px 64px -24px rgb(0 0 0 / 0.8);
+
+  /* A aresta de luz no topo, sozinha num token: e ela que da ESPESSURA a
+     superficie, e ela some quando a gente esquece de repeti-la em cada bloco. */
+  --shadow-lip: inset 0 1px 0 0 rgb(255 255 255 / 0.06);
+
+  /* Brilho de ESTADO. Nao entra em superficie parada — so em foco e ativo. */
+  --shadow-glow-sm: 0 0 0 1px color-mix(in oklab, var(--color-accent) 30%, transparent),
+                    0 0 14px -4px color-mix(in oklab, var(--color-accent) 45%, transparent);
+  --shadow-glow: 0 0 0 1px color-mix(in oklab, var(--color-accent) 45%, transparent),
+                 0 0 26px -6px color-mix(in oklab, var(--color-accent) 55%, transparent);
+
+  /* Os dois nomes antigos seguem existindo e apontam pra escada nova: eles sao
+     usados em componente e trocar o valor aqui e o ponto inteiro do token. */
+  --shadow-panel: var(--shadow-lip), var(--shadow-elev-3);
+  --shadow-pop: var(--shadow-elev-4), 0 0 0 1px var(--color-line-strong);
+
+  /* ---- respiro ----
+     A escada fechada de espaco. Ela ja existia de fato (todo mundo usava 2/3/4/6
+     do Tailwind), mas nao tinha nome — e o que nao tem nome volta a ser chutado
+     na proxima tela. */
+  --space-tight: 0.5rem;
+  --space-snug: 0.75rem;
+  --space-cozy: 1rem;
+  --space-roomy: 1.5rem;
+  --space-loose: 2rem;
+
 }
 
 /* ============================================================================
@@ -212,10 +263,14 @@
   }
 
   /* Foco visivel e NEON — num tema escuro o outline padrao do browser some. */
+  /* Foco: anel MACIO, e ele acompanha o raio da peca.
+     O outline de 2px cravado desenhava um retangulo reto por cima de um botao
+     arredondado — a moldura do foco denunciava a geometria antiga. `outline`
+     segue a borda do elemento quando o raio existe, entao basta parar de forcar
+     um raio proprio aqui. */
   :focus-visible {
-    outline: 2px solid var(--color-accent);
+    outline: 2px solid color-mix(in oklab, var(--color-accent) 85%, transparent);
     outline-offset: 2px;
-    border-radius: var(--radius-pix);
   }
 
   ::selection {
@@ -276,15 +331,16 @@
        e furo. 90% mantem as tres marcas do vidro (blur na borda, aresta de luz,
        sombra projetada) e devolve o contraste que o dado precisa. */
     background-color: color-mix(in oklab, var(--color-surface) 90%, transparent);
-    border: 1px solid color-mix(in srgb, #ffffff 12%, transparent);
+    /* A borda afinou de 12% pra 8% na virada do raio, e o motivo e o mesmo dos
+       tokens de linha: com canto arredondado a silhueta ja separa a peca do
+       fundo, entao a borda para de ser o contorno e volta a ser so a aresta de
+       luz. A profundidade agora vem da escada de elevacao, que e o recurso que
+       faltava. */
+    border: 1px solid color-mix(in srgb, #ffffff 8%, transparent);
     border-radius: var(--radius-glass);
-    /* O blur caiu junto: com 90% de fundo, borrar 18px e trabalho de composicao
-       que ninguem ve. */
     backdrop-filter: blur(12px) saturate(125%);
     -webkit-backdrop-filter: blur(12px) saturate(125%);
-    box-shadow:
-      inset 0 1px 0 0 rgb(255 255 255 / 0.07),
-      0 18px 44px -24px rgb(0 0 0 / 0.9);
+    box-shadow: var(--shadow-lip), var(--shadow-elev-3);
   }
 
   /* Painel de LISTA (card do grid). Mesma linguagem, vidro mais barato:
@@ -293,15 +349,35 @@
      mais opacidade, que resolve a legibilidade sem custar composicao. */
   .panel-card {
     background-color: color-mix(in oklab, var(--color-surface) 93%, transparent);
-    border: 1px solid color-mix(in srgb, #ffffff 10%, transparent);
-    border-radius: var(--radius-glass);
+    border: 1px solid color-mix(in srgb, #ffffff 7%, transparent);
+    border-radius: var(--radius-pix-lg);
     /* Aqui o blur quase saiu: sao 60 cards na tela e, com 93% de fundo, o que
        ele borra e uma nesga. Fica em 8px so pela borda. */
     backdrop-filter: blur(8px) saturate(115%);
     -webkit-backdrop-filter: blur(8px) saturate(115%);
-    box-shadow:
-      inset 0 1px 0 0 rgb(255 255 255 / 0.06),
-      0 12px 30px -20px rgb(0 0 0 / 0.85);
+    box-shadow: var(--shadow-lip), var(--shadow-elev-2);
+    transition: transform 140ms ease-out, box-shadow 140ms ease-out,
+                border-color 140ms ease-out;
+  }
+
+  /* O card do grid REAGE ao ponteiro. Um pixel e meio de subida e uma sombra um
+     degrau acima: e o gesto que separa "grade de retangulos" de "peca que se
+     pode pegar", e e barato — `transform` e `box-shadow` compoem sem relayout.
+     No dedo nao existe hover, entao nada disto dispara la. */
+  @media (hover: hover) {
+    a:hover > .panel-card,
+    .panel-card:hover {
+      transform: translateY(-1.5px);
+      box-shadow: var(--shadow-lip), var(--shadow-elev-3);
+      border-color: color-mix(in srgb, #ffffff 12%, transparent);
+    }
+  }
+
+  /* Quem pediu menos movimento nao ganha o levantar. */
+  @media (prefers-reduced-motion: reduce) {
+    .panel-card { transition: none; }
+    a:hover > .panel-card,
+    .panel-card:hover { transform: none; }
   }
 
   /* ---- campo (input/select/trigger): UMA aparencia pra tudo que aceita entrada ---- */
@@ -366,8 +442,8 @@
        foto nao se le — e o menu de filtro cai justamente em cima do conteudo
        mais denso da tela. */
     background-color: color-mix(in oklab, var(--color-surface-3) 99%, transparent);
-    border: 1px solid color-mix(in srgb, #ffffff 14%, transparent);
-    border-radius: var(--radius-glass);
+    border: 1px solid color-mix(in srgb, #ffffff 11%, transparent);
+    border-radius: var(--radius-pix-lg);
     backdrop-filter: blur(30px) saturate(150%);
     -webkit-backdrop-filter: blur(30px) saturate(150%);
     box-shadow:
