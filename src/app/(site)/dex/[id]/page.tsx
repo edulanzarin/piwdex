@@ -26,7 +26,7 @@ import {
 import { TypeBadge, TypeIcon, TypeMultChip } from "@/components/type-icon";
 import { caminhoDoTipo } from "@/lib/tipo-url";
 import { caminhoDaRaridade } from "@/lib/raridade-url";
-import { CategoryIcon, IconAtk, IconBag, IconDef as IconDefShield, IconGem, IconLevel, IconScale, IconTarget, IconTm, IconWeak, IconXp, STAT_ICONS, SeloRaro } from "@/components/game-icons";
+import { CategoryIcon, IconAtk, IconBag, IconDef as IconDefShield, IconLevel, IconScale, IconTarget, IconTm, IconWeak, IconXp, STAT_ICONS, SeloRaro } from "@/components/game-icons";
 import {
   CATEGORY_LABEL,
   RARITY_LABEL,
@@ -264,24 +264,6 @@ export default async function CreaturePage({ params }: Props) {
                 <TypeIcon type={t!} size={i === 0 ? 22 : 18} />
               </Link>
             ))}
-            {/* Mesma logica do selo de tipo: o chip de raridade leva ao hub
-                dela. Cada ficha passa a ter DUAS saidas pra outras fichas. */}
-            <Link
-              href={caminhoDaRaridade(c.rarity)}
-              aria-label={`Ver todos os pokémon ${RARITY_LABEL[c.rarity].toLowerCase()}`}
-            >
-              <Chip tint={RARITY_COLOR[c.rarity]} icon={<IconGem size={14} />}>
-                {RARITY_LABEL[c.rarity]}
-              </Chip>
-            </Link>
-            {roles.map((r) => (
-              <Chip key={r}>{ROLE_LABEL[r] ?? r}</Chip>
-            ))}
-            {e.hasTm ? (
-              <Chip tone="neon" icon={<IconTm size={14} />}>
-                aprende TM
-              </Chip>
-            ) : null}
           </div>
 
           {/* O catalogo do jogo entrega `description: "a bulbasaur"` — as 482 sao
@@ -292,7 +274,71 @@ export default async function CreaturePage({ params }: Props) {
             {resumo.frases.join(" ")}
           </p>
 
-          <dl className="mt-2 grid w-full grid-cols-2 gap-px overflow-hidden rounded-pix border border-line bg-line sm:grid-cols-4">
+          {/* ---- os ATRIBUTOS, separados dos tipos ----
+
+              Antes tipo e caracteristica dividiam a mesma fila: dois discos ao
+              lado de tres pastilhas retangulares. Duas formas na mesma linha
+              leem como "algumas destas coisas sao especiais e as outras
+              sobraram" — e nao era isso que a linha queria dizer.
+
+              A separacao e por NATUREZA, que e o que a referencia faz com
+              RAÇA / FUNÇÃO / REGIÃO: o tipo e IDENTIDADE (o que ele é, e por isso
+              vira emblema, redondo, acima), e raridade, papel e TM sao
+              ATRIBUTOS (o que ele tem, e por isso viram rotulo-e-valor).
+
+              A gramatica desta faixa e de proposito a MESMA da faixa de números
+              logo abaixo: rótulo em caixa alta miúda em cima, valor embaixo, fio
+              entre células. Duas faixas irmãs, uma de atributo e outra de número,
+              em vez de uma fila de chips soltos. */}
+          <dl className="mt-1 grid w-full grid-cols-2 gap-px overflow-hidden rounded-pix border border-line bg-line sm:grid-cols-3">
+            {[
+              {
+                label: "raridade",
+                href: caminhoDaRaridade(c.rarity),
+                node: (
+                  <span style={{ color: RARITY_COLOR[c.rarity] }}>{RARITY_LABEL[c.rarity]}</span>
+                ),
+              },
+              {
+                label: roles.length > 1 ? "papéis" : "papel",
+                node: (
+                  <span className="text-text">
+                    {roles.length ? roles.map((r) => ROLE_LABEL[r] ?? r).join(" · ") : "—"}
+                  </span>
+                ),
+              },
+              {
+                label: "golpe de TM",
+                node: e.hasTm ? (
+                  <span className="text-neon">aprende</span>
+                ) : (
+                  <span className="text-text-mute">não aprende</span>
+                ),
+              },
+            ].map((a) => {
+              const corpo = (
+                <>
+                  <dd className="text-[14px] leading-none font-semibold">{a.node}</dd>
+                  <dt className="pix text-[10px] tracking-[0.14em] text-text-mute">{a.label}</dt>
+                </>
+              );
+              return a.href ? (
+                <Link
+                  key={a.label}
+                  href={a.href}
+                  className="flex flex-col items-center gap-1.5 bg-surface px-3 py-2.5 transition-colors hover:bg-surface-2"
+                >
+                  {corpo}
+                </Link>
+              ) : (
+                <div key={a.label} className="flex flex-col items-center gap-1.5 bg-surface px-3 py-2.5">
+                  {corpo}
+                </div>
+              );
+            })}
+          </dl>
+
+          <dl className="grid w-full grid-cols-2 gap-px overflow-hidden rounded-pix border border-line bg-line sm:grid-cols-4">
             {[
               { label: "nível de caça", value: c.huntLevel || "—", icon: <IconLevel size={15} /> },
               {
