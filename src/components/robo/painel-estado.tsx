@@ -26,12 +26,37 @@ const COR = "var(--color-t-robo)";
 export const ROTULO: Record<StatusSessao, { texto: string; cor: string }> = {
   parado: { texto: "parado", cor: "var(--color-text-mute)" },
   conectando: { texto: "conectando", cor: "var(--color-warn)" },
-  rodando: { texto: "caçando", cor: "var(--color-ok)" },
+  /**
+   * `rodando` e A SESSAO de pe, e nao uma cacada.
+   *
+   * O rotulo dizia "caçando" e sobrou de antes da separacao entre ligar o robo
+   * (tomar a sessao) e cacar (um trabalho que roda em cima dela). Depois dela o
+   * crachá passou a afirmar uma cacada que podia nao existir — e a propria tela
+   * se desmentia tres linhas abaixo, mandando "escolha uma caçada acima".
+   *
+   * Quem sabe se ha cacada e o `slug`, e nao o status: ver `rotuloDe`.
+   */
+  rodando: { texto: "ligado", cor: "var(--color-ok)" },
   chutado: { texto: "sessão perdida", cor: "var(--color-warn)" },
   erro: { texto: "erro", cor: "var(--color-danger)" },
   bloqueado: { texto: "conta recusada", cor: "var(--color-danger)" },
   vencido: { texto: "token vencido", cor: "var(--color-danger)" },
 };
+
+/**
+ * O que o crachá diz, olhando o estado inteiro.
+ *
+ * O status sozinho nao distingue "a sessao e sua" de "ele esta cacando", porque
+ * as duas coisas sao `rodando` — cacar e um trabalho em cima da sessao, e nao um
+ * estado dela. Quem separa e o `slug`.
+ */
+export function rotuloDe(estado: EstadoHunt): { texto: string; cor: string } {
+  const base = ROTULO[estado.status];
+  if (estado.status !== "rodando") return base;
+  if (!estado.slug) return base; // sessao de pe, sem cacada: e legitimo
+  // Com hunt escolhida mas sem frame de campo, ainda nao e cacada — e entrada.
+  return { ...base, texto: estado.campoVivo ? "caçando" : "entrando" };
+}
 
 /** Duracao em h/min, sem virar cronometro de segundos: o numero muda a cada
  *  tique e ninguem le "1h 03min 47s". */
@@ -174,7 +199,10 @@ export function BarraTopo({
         ? "vencido"
         : "bloqueado"
       : estado.status;
-  const r = ROTULO[status];
+  // Com o status JA corrigido: `rotuloDe(estado)` cru voltaria a dizer "parado"
+  // ao lado do aviso vermelho de token vencido, que e a contradição que o
+  // override acima existe pra impedir.
+  const r = rotuloDe({ ...estado, status });
   const contando = estado.status === "rodando" || estado.status === "conectando";
   const lider = estado.time.find((p) => p.leader) ?? estado.time[0] ?? null;
   const xp = lider ? xpProgress(lider.level, lider.xp) : null;
