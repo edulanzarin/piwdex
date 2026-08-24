@@ -184,16 +184,19 @@ export function simular(lutador: LadoSim, alvo: LadoSim): ResultadoLuta {
   }
 
   /**
-   * O relogio de cada golpe.
+   * O relogio de cada golpe comeca na PROPRIA RECARGA, e nao em zero.
    *
-   * Todos comecam PRONTOS (t = 0), e isso e uma decisao com consequencia: numa
-   * luta de um hit, quem tem oito golpes prontos escolhe o melhor deles, enquanto
-   * comecar com as recargas escalonadas faria o resultado depender de uma ordem
-   * arbitraria. Entrar em campo com tudo carregado tambem e o que acontece no
-   * jogo — a recarga corre durante a luta, nao antes dela.
+   * A primeira versao deixava tudo pronto em t=0. Parecia inofensivo e apagava a
+   * unica coisa que separa dois lutadores quando ambos matam num hit: a VELOCIDADE
+   * de ataque. Com todo mundo pronto no instante zero, toda luta de one-shot
+   * terminava em t=0 — e no torneio do meta as 434 especies empataram com nota
+   * 100, porque no nivel 100 com IV perfeito tudo one-shota tudo.
+   *
+   * Um golpe de 1s e um de 4s nao podem matar no mesmo instante. Entrar em combate
+   * custa a preparacao do golpe, e e ela que faz recarga curta valer alguma coisa.
    */
-  const meuT = meus.map(() => 0);
-  const deleT = dele.map(() => 0);
+  const meuT = meus.map((x) => x.g.cooldownMs / 1000);
+  const deleT = dele.map((x) => x.g.cooldownMs / 1000);
 
   let hpAlvo = alvo.hp;
   let hpMeu = lutador.hp;
@@ -323,8 +326,10 @@ export function ritmoDeCacada(
   };
   if (!meus.length) return vazio;
 
-  const meuT = meus.map(() => 0);
-  const deleT = dele.map(() => 0);
+  // Mesma regra do `simular`: o primeiro golpe custa a propria recarga. No regime
+  // isso some (os relogios atravessam), mas mantem os dois motores concordando.
+  const meuT = meus.map((x) => x.g.cooldownMs / 1000);
+  const deleT = dele.map((x) => x.g.cooldownMs / 1000);
   let t = 0;
   let sofridoTotal = 0;
   let tRegime = 0;

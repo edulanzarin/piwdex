@@ -94,10 +94,25 @@ export function spriteUrl(pokeId: number, shiny = false): string | null {
  * maior e de outro bicho.
  */
 export function officialArtUrl(pokeId: number): string | null {
-  // Variante nao tem render proprio, e usar o da base seria dizer que sao iguais.
-  if (pokeId >= 1e4) return null;
-  if (pokeId <= 0) return null;
-  return `${SPRITE_BASE}/other/official-artwork/${pokeId}.png`;
+  /**
+   * A variante RESOLVE pra base, e nao devolve null.
+   *
+   * A primeira versao barrava tudo acima de 10000 com o argumento de que "usar o
+   * render da base seria dizer que sao iguais". O argumento estava errado, e a
+   * prova estava no arquivo: o `VARIANT_SPRITE` logo acima existe exatamente pra
+   * isso, e o comentario dele diz que as variantes "usam o MESMO visual da forma
+   * base (compartilham o looktype)". Elas nao sao outro desenho — sao a mesma
+   * especie com stats proprios.
+   *
+   * O sintoma foi o Kirlia #13281 aparecendo com o sprite miudo do jogo no meio de
+   * uma grade de renders em alta, junto de dezenas de outros da faixa 13xxx.
+   *
+   * Licao: quando um mapa de de-para ja existe pro mesmo problema, a resposta e
+   * consultar o mapa — nao inventar uma regra que o contradiz.
+   */
+  const id = VARIANT_SPRITE[pokeId] ?? pokeId;
+  if (id <= 0 || id >= 1e4) return null;
+  return `${SPRITE_BASE}/other/official-artwork/${id}.png`;
 }
 
 /**
