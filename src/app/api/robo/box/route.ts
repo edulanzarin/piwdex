@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { exigirUsuarioApi } from "@/lib/robo/sessao";
+import { exigirConta } from "@/lib/robo/conta";
 import { espiarSessao } from "@/lib/robo/motor/sessao";
 import { lerConfig } from "@/lib/robo/motor/config";
 import { vendaveis } from "@/lib/robo/motor/jobs";
@@ -17,13 +17,14 @@ export const runtime = "nodejs";
  * motor usa pra decidir. Duas implementacoes da mesma regra e como a tela passa
  * a mentir sobre o que o robo vai fazer.
  */
-export async function GET() {
-  const { usuario, resposta } = await exigirUsuarioApi({ vip: true });
+export async function GET(req: Request) {
+  const { alvo, resposta } = await exigirConta(req);
   if (resposta) return resposta;
+  const { usuario, conta: v } = alvo;
 
-  const s = espiarSessao(usuario.id);
+  const s = espiarSessao(v.id);
   const box = s?.boxAoVivo() ?? [];
-  const cfg = await lerConfig(usuario.id);
+  const cfg = await lerConfig(v.id);
   const marcados = new Set(vendaveis(box, cfg).map((p) => p.id));
 
   return NextResponse.json({

@@ -7,6 +7,7 @@ import { ICONE, Secao, Valor } from "@/components/robo/pecas";
 import { compact, TIER_LABEL } from "@/lib/labels";
 import { qualityTier, TIER_COLOR, TIER_MIN, TIER_ORDER } from "@/lib/rarity";
 import { estoqueDoAlvo, type ConfigAuto, type EstadoHunt } from "@/lib/robo/motor/tipos";
+import { useRota } from "@/components/robo/conta-atual";
 
 /**
  * A aba do BALCÃO: o que entra na conta por dólar e o que sai dela por dólar.
@@ -176,6 +177,7 @@ export function AbaLoja({
   config: ConfigAuto;
   onConfig: (cfg: ConfigAuto) => Promise<void>;
 }) {
+  const rota = useRota();
   /**
    * Rascunho.
    *
@@ -192,7 +194,7 @@ export function AbaLoja({
   const [rodando, setRodando] = useState(false);
 
   const carregar = useCallback(async () => {
-    const l = (await fetch("/api/robo/loja")
+    const l = (await fetch(rota("/api/robo/loja"))
       .then((r) => (r.ok ? r.json() : null))
       .catch(() => null)) as { loja?: Loja; mochila?: ItemMochila[]; bolsa?: Bolsa | null } | null;
     if (!l) return;
@@ -245,7 +247,7 @@ export function AbaLoja({
   async function rodarAgora() {
     setRodando(true);
     try {
-      await fetch("/api/robo/agora", { method: "POST" }).catch(() => null);
+      await fetch(rota("/api/robo/agora"), { method: "POST" }).catch(() => null);
       await carregar();
     } finally {
       setRodando(false);

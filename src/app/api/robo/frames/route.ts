@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { exigirUsuarioApi } from "@/lib/robo/sessao";
+import { exigirConta } from "@/lib/robo/conta";
 import { espiarSessao } from "@/lib/robo/motor/sessao";
 
 export const runtime = "nodejs";
@@ -14,8 +14,9 @@ export const runtime = "nodejs";
  *
  * So a FORMA: tipo, chaves e uma amostra truncada. Um tipo entra uma vez.
  */
-export async function GET() {
-  const { usuario, resposta } = await exigirUsuarioApi({ vip: true });
+export async function GET(req: Request) {
+  const { alvo, resposta } = await exigirConta(req);
   if (resposta) return resposta;
-  return NextResponse.json({ frames: espiarSessao(usuario.id)?.framesDesconhecidos() ?? [] });
+  const { usuario, conta: v } = alvo;
+  return NextResponse.json({ frames: espiarSessao(v.id)?.framesDesconhecidos() ?? [] });
 }

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { exigirUsuarioApi } from "@/lib/robo/sessao";
+import { exigirConta } from "@/lib/robo/conta";
 import { espiarSessao } from "@/lib/robo/motor/sessao";
 import { CANAIS } from "@/lib/robo/motor/tipos";
 
@@ -17,8 +17,9 @@ const MAX = 300;
  * consigo mesmo.
  */
 export async function POST(req: Request) {
-  const { usuario, resposta } = await exigirUsuarioApi({ vip: true });
+  const { alvo, resposta } = await exigirConta(req);
   if (resposta) return resposta;
+  const { usuario, conta: v } = alvo;
 
   let texto = "";
   let canal = "world";
@@ -31,7 +32,7 @@ export async function POST(req: Request) {
   }
   if (!texto) return NextResponse.json({ erro: "vazio" }, { status: 400 });
 
-  const s = espiarSessao(usuario.id);
+  const s = espiarSessao(v.id);
   if (!s) return NextResponse.json({ erro: "sem_sessao" }, { status: 409 });
 
   const r = await s.mandarChat(texto, canal);

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { exigirUsuarioApi } from "@/lib/robo/sessao";
+import { exigirConta } from "@/lib/robo/conta";
 import { ehConsumivel, lerLoja, lerMochila } from "@/lib/robo/jogo/loja";
 import { separarConsumivel } from "@/lib/robo/motor/jobs";
 import { atualizarTokens, lerVinculo } from "@/lib/robo/vinculo";
@@ -19,16 +19,15 @@ export const runtime = "nodejs";
  * em `motor/jobs.ts`). Uma segunda contagem aqui daria uma tela dizendo 30 e um
  * robo comprando como se fossem 12 — e a que ninguem revisa seria a de la.
  */
-export async function GET() {
-  const { usuario, resposta } = await exigirUsuarioApi({ vip: true });
+export async function GET(req: Request) {
+  const { alvo, resposta } = await exigirConta(req);
   if (resposta) return resposta;
+  const { usuario, conta: v } = alvo;
 
-  const v = await lerVinculo(usuario.id);
-  if (!v) return NextResponse.json({ erro: "sem_vinculo" }, { status: 409 });
 
   const [loja, mochila] = await Promise.all([lerLoja(v.tokens), lerMochila(v.tokens)]);
   if (!loja) return NextResponse.json({ erro: "jogo_fora_do_ar" }, { status: 502 });
-  if (loja.mudou) await atualizarTokens(usuario.id, loja.tokens).catch(() => {});
+  if (loja.mudou) await atualizarTokens(v.id, loja.tokens).catch(() => {});
 
   const itens = mochila?.itens ?? [];
   const bolsa = await separarConsumivel(itens);

@@ -11,6 +11,11 @@ import { query, queryOne } from "@/lib/robo/db";
  * O criterio do que entra e estreito de proposito: cabe aqui o que o dono da
  * conta precisaria saber sem ter visto. Kill nao entra — sao milhares por hora
  * e o analyzer ja conta. Shiny entra. Venda entra. Recusa entra.
+ *
+ * Cada linha guarda DOIS donos, e os dois sao necessarios: `link_id` diz qual
+ * conta de jogo fez, e `user_id` responde "o que aconteceu comigo" sem join —
+ * com varias contas, o registro sem a primeira nao diz de quem foi a venda, e
+ * sem a segunda o numero da aba precisaria de um join por minuto.
  */
 
 export type TipoEvento =
@@ -27,6 +32,8 @@ export type TipoEvento =
 
 export interface EventoRobo {
   id: string;
+  /** a conta de jogo que fez. `null` = o vinculo foi apagado depois */
+  contaId: string | null;
   tipo: TipoEvento;
   titulo: string;
   corpo: string | null;
@@ -37,6 +44,7 @@ export interface EventoRobo {
 
 interface Linha {
   id: string;
+  link_id: string | null;
   kind: string;
   title: string;
   body: string | null;
@@ -60,16 +68,15 @@ const JANELA = "14 days";
  */
 export async function registrarEvento(
   userId: string,
+  contaId: string | null,
   ev: { tipo: TipoEvento; titulo: string; corpo?: string | null; dado?: Record<string, unknown> | null },
 ): Promise<void> {
   try {
-    await query(`INSERT INTO robot_events (user_id, kind, title, body, data) VALUES ($1, $2, $3, $4, $5)`, [
-      userId,
-      ev.tipo,
-      ev.titulo,
-      ev.corpo ?? null,
-      ev.dado ? JSON.stringify(ev.dado) : null,
-    ]);
+    await query(
+      `INSERT INTO robot_events (user_id, link_id, kind, title, body, data)
+       VALUES ($1, $2, $3, $4, $5, $6)`,
+      [userId, contaId, ev.tipo, ev.titulo, ev.corpo ?? null, ev.dado ? JSON.stringify(ev.dado) : null],
+    );
     await query(
       `DELETE FROM robot_events WHERE user_id = $1 AND id NOT IN (
          SELECT id FROM robot_events WHERE user_id = $1 ORDER BY criado_em DESC LIMIT $2)`,
@@ -84,15 +91,28 @@ export async function registrarEvento(
   }
 }
 
-export async function listarEventos(userId: string, limite = 60): Promise<EventoRobo[]> {
+/**
+ * O registro do usuario, ou o de UMA conta.
+ *
+ * O padrao e o do usuario inteiro de proposito: com varias contas, "o que o robo
+ * fez enquanto eu dormia" e a pergunta sobre todas elas. Filtrar por conta e
+ * escolha da tela, e nao o caminho obrigatorio.
+ */
+export async function listarEventos(
+  userId: string,
+  limite = 60,
+  contaId?: string | null,
+): Promise<EventoRobo[]> {
   const linhas = await query<Linha>(
-    `SELECT id, kind, title, body, data, read_at, criado_em
-       FROM robot_events WHERE user_id = $1
+    `SELECT id, link_id, kind, title, body, data, read_at, criado_em
+       FROM robot_events
+      WHERE user_id = $1 AND ($3::uuid IS NULL OR link_id = $3)
       ORDER BY criado_em DESC LIMIT $2`,
-    [userId, Math.max(1, Math.min(300, limite))],
+    [userId, Math.max(1, Math.min(300, limite)), contaId ?? null],
   ).catch(() => []);
   return linhas.map((l) => ({
     id: l.id,
+    contaId: l.link_id,
     tipo: l.kind as TipoEvento,
     titulo: l.title,
     corpo: l.body,

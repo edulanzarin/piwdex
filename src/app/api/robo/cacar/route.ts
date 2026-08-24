@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { exigirUsuarioApi } from "@/lib/robo/sessao";
+import { exigirConta } from "@/lib/robo/conta";
 import { espiarSessao } from "@/lib/robo/motor/sessao";
 import { salvarDesejado } from "@/lib/robo/motor/desejado";
 import { fetchSource } from "@/lib/source";
@@ -15,8 +15,9 @@ export const runtime = "nodejs";
  * navegador no meio.
  */
 export async function POST(req: Request) {
-  const { usuario, resposta } = await exigirUsuarioApi({ vip: true });
+  const { alvo, resposta } = await exigirConta(req);
   if (resposta) return resposta;
+  const { usuario, conta: v } = alvo;
 
   let slug = "";
   try {
@@ -26,11 +27,11 @@ export async function POST(req: Request) {
     /* corpo vazio: e o pedido de PARAR a cacada */
   }
 
-  const s = espiarSessao(usuario.id);
+  const s = espiarSessao(v.id);
   if (!s) return NextResponse.json({ erro: "sem_sessao" }, { status: 409 });
 
   if (!slug) {
-    await salvarDesejado(usuario.id, { slug: null });
+    await salvarDesejado(v.id, { slug: null });
     if (!s.pararCacada()) return NextResponse.json({ erro: "sem_sessao" }, { status: 409 });
     return NextResponse.json({ ok: true, slug: null });
   }
@@ -43,7 +44,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ erro: "hunt_desconhecida" }, { status: 400 });
   }
 
-  await salvarDesejado(usuario.id, { slug });
+  await salvarDesejado(v.id, { slug });
   if (!s.cacar(slug)) return NextResponse.json({ erro: "sem_sessao" }, { status: 409 });
   return NextResponse.json({ ok: true, slug });
 }

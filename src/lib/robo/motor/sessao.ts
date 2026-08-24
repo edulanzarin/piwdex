@@ -183,7 +183,31 @@ const FECHAMENTOS: Record<number, { acao: "token" | "shard" | "parar" | "tentar"
   1011: { acao: "tentar", frase: "erro interno do jogo" },
 };
 
+/**
+ * Quem manda numa sessao: a conta de jogo, e o assinante dono dela.
+ *
+ * Objeto, e nao dois parametros soltos, porque os dois sao `string`: trocar a
+ * ordem seria um bug MUDO — a sessao abriria com a credencial certa e gravaria
+ * o desejo na chave errada, ou pior, na conta de outra pessoa.
+ */
+export interface DonoDaSessao {
+  conta: string;
+  usuario: string;
+}
+
 export class SessaoJogo extends EventEmitter {
+  /**
+   * Os dois donos desta sessao.
+   *
+   * `contaId` e o vinculo — a conta de JOGO cujo socket esta aberto aqui, e a
+   * chave de tudo que o robo grava: desejo, config, placar, shard, time.
+   * `userId` e o assinante, e serve pra uma coisa so: o registro de eventos, que
+   * responde "o que aconteceu comigo" somando todas as contas da pessoa.
+   *
+   * Eram um campo so ate a migration 004, quando conta e assinante eram a mesma
+   * coisa. Separa-los e o que permite a segunda conta existir.
+   */
+  private contaId: string | null = null;
   private userId: string | null = null;
   private tokens: Tokens | null = null;
   private shard = 0;
@@ -335,8 +359,10 @@ export class SessaoJogo extends EventEmitter {
     return this.ws ? this.box : [];
   }
 
-  ehDe(userId: string | null | undefined): boolean {
-    return !!userId && this.userId === userId;
+  /** Esta sessao e da conta X? Pergunta de conta, e nao de dono: um assinante
+   *  tem varias, e "e sua" nao distingue qual. */
+  ehDe(contaId: string | null | undefined): boolean {
+    return !!contaId && this.contaId === contaId;
   }
 
   /**
@@ -378,7 +404,7 @@ export class SessaoJogo extends EventEmitter {
    * Idempotente: chamar com a sessao viva so atualiza credencial e config.
    */
   segurar(
-    userId: string,
+    quem: DonoDaSessao,
     tokens: Tokens,
     shard: number,
     aoTrocarTokens: (t: Tokens) => Promise<void>,
@@ -386,7 +412,8 @@ export class SessaoJogo extends EventEmitter {
     nomeJogador?: string | null,
     placar?: Placar | null,
   ) {
-    this.userId = userId;
+    this.contaId = quem.conta;
+    this.userId = quem.usuario;
     this.tokens = tokens;
     this.shard = shard;
     this.aoTrocarTokens = aoTrocarTokens;
@@ -468,7 +495,7 @@ export class SessaoJogo extends EventEmitter {
    * repor ou acompanhar o chat.
    */
   retomar(
-    userId: string,
+    quem: DonoDaSessao,
     tokens: Tokens,
     shard: number,
     slug: string | null,
@@ -479,7 +506,7 @@ export class SessaoJogo extends EventEmitter {
   ) {
     if (this.ws) return;
     this.slug = slug;
-    this.segurar(userId, tokens, shard, aoTrocarTokens, cfg, nomeJogador, placar);
+    this.segurar(quem, tokens, shard, aoTrocarTokens, cfg, nomeJogador, placar);
   }
 
   /**
@@ -523,7 +550,7 @@ export class SessaoJogo extends EventEmitter {
   parar() {
     this.ligado = false;
     this.placar = placarZero();
-    if (this.userId) void salvarPlacar(this.userId, this.placar).catch(() => {});
+    if (this.contaId) void salvarPlacar(this.contaId, this.placar).catch(() => {});
     this.cancelarReconexao();
     if (this.ws && this.slug) this.enviar({ type: "leave-hunt" });
     this.slug = null;
@@ -864,7 +891,7 @@ export class SessaoJogo extends EventEmitter {
             shiny, xp: 0, loot: [], bola: String(m.ballName ?? ""),
           });
           if (shiny && this.userId) {
-            void registrarEvento(this.userId, {
+            void registrarEvento(this.userId, this.contaId, {
               tipo: "shiny",
               titulo: `Shiny ${especie} capturado`,
               corpo: String(m.ballName ?? "") || null,
@@ -905,7 +932,7 @@ export class SessaoJogo extends EventEmitter {
           if (lider && lider.maxHp > 0 && lider.hp <= 0) void this.levantarLider(lider.name);
           else this.liderDePe();
           if (this.userId) {
-            void salvarTime(this.userId, this.time, todos.length).catch(() => {});
+            void salvarTime(this.contaId!, this.time, todos.length).catch(() => {});
           }
           this.emitir();
           // A venda de pokemon le a lista que ACABOU de chegar: vender assim que
@@ -969,7 +996,7 @@ export class SessaoJogo extends EventEmitter {
         const quem = String(m.playerName ?? m.fromName ?? m.name ?? "alguém");
         const oque = String(m.speciesName ?? m.species ?? "um shiny");
         if (this.userId) {
-          void registrarEvento(this.userId, {
+          void registrarEvento(this.userId, this.contaId, {
             tipo: "shiny-mundo",
             titulo: `${quem} capturou ${oque} shiny`,
             dado: { quem, especie: oque },
@@ -1396,7 +1423,7 @@ export class SessaoJogo extends EventEmitter {
           shiny: false, xp: 0, loot: [],
         });
         if (this.userId) {
-          void registrarEvento(this.userId, {
+          void registrarEvento(this.userId, this.contaId, {
             tipo: "meta",
             titulo: `${alvo.name} chegou ao nível ${this.cfg.nivelAlvo}`,
             corpo: "A caçada automática terminou. O robô segue segurando a sessão.",
@@ -1550,7 +1577,7 @@ export class SessaoJogo extends EventEmitter {
         ouro: r.ok ? (r.tipo === "compra" ? -r.ouro : r.ouro) : undefined,
       });
       if (this.userId) {
-        void registrarEvento(this.userId, {
+        void registrarEvento(this.userId, this.contaId, {
           tipo: r.ok ? (r.tipo === "compra" ? "compra" : r.tipo === "venda-item" ? "venda-item" : "venda-poke") : "falha",
           titulo: r.texto,
           corpo: r.detalhe ?? null,
@@ -1562,7 +1589,7 @@ export class SessaoJogo extends EventEmitter {
     void this.lerPerfil();
     // O placar e NOSSO, e um restart nao pode apaga-lo: o que o robo fez de
     // madrugada e justamente o que ninguem viu acontecer.
-    if (this.userId) void salvarPlacar(this.userId, this.placar).catch(() => {});
+    if (this.contaId) void salvarPlacar(this.contaId, this.placar).catch(() => {});
   }
 
   // -------------------------------------------------------------------------
@@ -1602,7 +1629,7 @@ export class SessaoJogo extends EventEmitter {
 
     const regra = codigo != null ? FECHAMENTOS[codigo] : undefined;
     console.warn(
-      `[robo] socket fechou user=${this.userId ?? "?"} shard=${this.shard} code=${codigo ?? "-"} ` +
+      `[robo] socket fechou conta=${this.contaId ?? "?"} shard=${this.shard} code=${codigo ?? "-"} ` +
         `reason=${frase ?? "-"} acao=${regra?.acao ?? "tentar"}`,
     );
 
@@ -1665,8 +1692,8 @@ export class SessaoJogo extends EventEmitter {
     }
     this.shard = r.shard;
     this.explicacao = null;
-    if (this.userId) await salvarShard(this.userId, r.shard).catch(() => {});
-    console.warn(`[robo] shard redescoberto user=${this.userId ?? "?"} shard=${r.shard}`);
+    if (this.contaId) await salvarShard(this.contaId, r.shard).catch(() => {});
+    console.warn(`[robo] shard redescoberto conta=${this.contaId ?? "?"} shard=${r.shard}`);
     this.tentativa = 0;
     this.conectar();
   }
@@ -1685,8 +1712,8 @@ export class SessaoJogo extends EventEmitter {
     this.limparTimers();
     this.definirStatus("vencido", "token recusado pelo jogo");
     if (this.userId) {
-      await marcarVencido(this.userId).catch(() => {});
-      void registrarEvento(this.userId, {
+      if (this.contaId) await marcarVencido(this.contaId).catch(() => {});
+      void registrarEvento(this.userId, this.contaId, {
         tipo: "recusado",
         titulo: "O jogo recusou o token",
         corpo: "Reconecte a conta no painel: cole o token novo do jogo.",
@@ -1773,7 +1800,7 @@ export class SessaoJogo extends EventEmitter {
     if (this.ws) { try { this.ws.close(); } catch { /* noop */ } this.ws = null; }
     this.motivoBloqueio = recusa.mensagem || null;
     this.definirStatus("bloqueado", recusa.mensagem || undefined);
-    if (this.userId) await marcarBloqueado(this.userId, recusa).catch(() => {});
+    if (this.contaId) await marcarBloqueado(this.contaId, recusa).catch(() => {});
     this.emitir();
   }
 
@@ -1811,8 +1838,8 @@ export class SessaoJogo extends EventEmitter {
   }
 
   private gravarStatus(erro?: string | null) {
-    if (!this.userId) return Promise.resolve();
-    return salvarStatus(this.userId, this.status, erro ?? null).catch(() => {});
+    if (!this.contaId) return Promise.resolve();
+    return salvarStatus(this.contaId, this.status, erro ?? null).catch(() => {});
   }
 
   private emitir() {
@@ -1832,33 +1859,33 @@ export class SessaoJogo extends EventEmitter {
 const global_ = globalThis as unknown as { _piwSessoes?: Map<string, SessaoJogo> };
 const sessoes: Map<string, SessaoJogo> = (global_._piwSessoes ??= new Map());
 
-export function sessaoDe(userId: string): SessaoJogo {
-  let s = sessoes.get(userId);
+export function sessaoDe(contaId: string): SessaoJogo {
+  let s = sessoes.get(contaId);
   if (!s) {
     s = new SessaoJogo();
-    sessoes.set(userId, s);
+    sessoes.set(contaId, s);
   }
   return s;
 }
 
 /** A sessao SE existir — nao cria. Pra quem so quer ler o estado. */
-export function espiarSessao(userId: string): SessaoJogo | null {
-  return sessoes.get(userId) ?? null;
+export function espiarSessao(contaId: string): SessaoJogo | null {
+  return sessoes.get(contaId) ?? null;
 }
 
-export function estadoDe(userId: string): EstadoHunt {
-  return espiarSessao(userId)?.estado() ?? estadoParado();
+export function estadoDe(contaId: string): EstadoHunt {
+  return espiarSessao(contaId)?.estado() ?? estadoParado();
 }
 
 /** Descarta a sessao (usado ao trocar de conta vinculada: a anterior morre AQUI,
  *  senao o motor segue segurando o WS do personagem velho). */
-export function soltarSessao(userId: string): void {
-  const s = sessoes.get(userId);
+export function soltarSessao(contaId: string): void {
+  const s = sessoes.get(contaId);
   if (!s) return;
   s.parar();
-  sessoes.delete(userId);
+  sessoes.delete(contaId);
 }
 
-export function sessoesVivas(): { userId: string; sessao: SessaoJogo }[] {
-  return [...sessoes.entries()].map(([userId, sessao]) => ({ userId, sessao }));
+export function sessoesVivas(): { contaId: string; sessao: SessaoJogo }[] {
+  return [...sessoes.entries()].map(([contaId, sessao]) => ({ contaId, sessao }));
 }

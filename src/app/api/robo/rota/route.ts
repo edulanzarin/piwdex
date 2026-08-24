@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
-import { exigirUsuarioApi } from "@/lib/robo/sessao";
+import { exigirConta } from "@/lib/robo/conta";
 import { espiarSessao } from "@/lib/robo/motor/sessao";
 import { lerConfig } from "@/lib/robo/motor/config";
-import { lerVinculo } from "@/lib/robo/vinculo";
 import { planejarRota } from "@/lib/robo/motor/rota";
 
 export const runtime = "nodejs";
@@ -18,17 +17,17 @@ export const runtime = "nodejs";
  * no vinculo.
  */
 export async function GET(req: Request) {
-  const { usuario, resposta } = await exigirUsuarioApi({ vip: true });
+  const { alvo: dono, resposta } = await exigirConta(req);
   if (resposta) return resposta;
+  const { conta: v } = dono;
 
-  const cfg = await lerConfig(usuario.id);
+  const cfg = await lerConfig(v.id);
   const alvo = Number(new URL(req.url).searchParams.get("alvo") ?? cfg.nivelAlvo);
 
-  const viva = espiarSessao(usuario.id)?.estado();
+  const viva = espiarSessao(v.id)?.estado();
   let lider = viva?.time.find((p) => p.leader) ?? viva?.time[0] ?? null;
   if (!lider) {
-    const v = await lerVinculo(usuario.id);
-    const time = v?.time?.lista ?? [];
+    const time = v.time?.lista ?? [];
     lider = time.find((p) => p.leader) ?? time[0] ?? null;
   }
   if (!lider) return NextResponse.json({ erro: "sem_lider" }, { status: 409 });

@@ -6,6 +6,7 @@ import { Pokeball } from "@/components/ui/pokeball";
 import { Secao } from "@/components/robo/pecas";
 import { compact } from "@/lib/labels";
 import type { BolaEstoque, EstadoAuto, EstadoHunt } from "@/lib/robo/motor/tipos";
+import { useRota } from "@/components/robo/conta-atual";
 
 /**
  * A aba do USO: o que o jogo faz sozinho com o que a conta já tem.
@@ -162,6 +163,7 @@ function Cartao({
 const VIDA = [10, 20, 30, 40, 50, 60, 70, 80, 90];
 
 export function AbaAutomacao({ estado }: { estado: EstadoHunt }) {
+  const rota = useRota();
   /**
    * Rascunho.
    *
@@ -191,7 +193,7 @@ export function AbaAutomacao({ estado }: { estado: EstadoHunt }) {
   useEffect(() => {
     let vivo = true;
     void (async () => {
-      const a = (await fetch("/api/robo/auto")
+      const a = (await fetch(rota("/api/robo/auto"))
         .then((r) => (r.ok ? r.json() : null))
         .catch(() => null)) as {
         auto?: EstadoAuto;
@@ -266,7 +268,7 @@ export function AbaAutomacao({ estado }: { estado: EstadoHunt }) {
     setSalvando(true);
     setRecado(null);
     try {
-      const res = await fetch("/api/robo/auto", {
+      const res = await fetch(rota("/api/robo/auto"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(patch),

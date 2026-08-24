@@ -6,6 +6,7 @@ import { compact } from "@/lib/labels";
 import { IconRegistro } from "@/components/ui/icons";
 import { TOM } from "@/components/robo/pecas";
 import type { EventoRobo, TipoEvento } from "@/lib/robo/motor/eventos";
+import { useConta } from "@/components/robo/conta-atual";
 
 /**
  * O que o robô fez enquanto ninguém estava olhando.
@@ -84,12 +85,14 @@ function quando(iso: string): string {
 }
 
 export function AbaRegistro({ onLido }: { onLido?: () => void }) {
+  // O registro e do USUARIO por padrao; a conta so entra como filtro.
+  const conta = useConta();
   const [eventos, setEventos] = useState<EventoRobo[] | null>(null);
   const [grupo, setGrupo] = useState<Grupo>("tudo");
   const [busca, setBusca] = useState("");
 
   const carregar = useCallback(async () => {
-    const j = (await fetch("/api/robo/eventos?n=300")
+    const j = (await fetch(`/api/robo/eventos?n=300${conta ? `&conta=${conta}` : ""}`)
       .then((r) => (r.ok ? r.json() : null))
       .catch(() => null)) as { eventos?: EventoRobo[] } | null;
     setEventos(j?.eventos ?? []);

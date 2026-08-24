@@ -15,7 +15,10 @@ export async function GET(req: Request) {
   if (q.get("so") === "contagem") {
     return NextResponse.json({ naoLidos: await contarNaoLidos(usuario.id) });
   }
-  const eventos = await listarEventos(usuario.id, Number(q.get("n") ?? 120));
+  // `?conta=` filtra por uma conta; sem ele, o registro e do usuario INTEIRO —
+  // com varias contas, "o que o robo fez enquanto eu dormia" e a pergunta sobre
+  // todas elas, e obrigar a escolher uma esconderia a que deu problema.
+  const eventos = await listarEventos(usuario.id, Number(q.get("n") ?? 120), q.get("conta"));
   return NextResponse.json({ eventos, naoLidos: await contarNaoLidos(usuario.id) });
 }
 

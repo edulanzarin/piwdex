@@ -3,14 +3,35 @@ import { exigirUsuarioApi } from "@/lib/robo/sessao";
 import { lerTokens, pedirAoJogo, recusaDe } from "@/lib/robo/jogo/auth";
 import { lerPokes } from "@/lib/robo/jogo/ws";
 import { normalizarPokes } from "@/lib/robo/jogo/pokes";
-import { marcarBloqueado, salvarShard, salvarTime, salvarVinculo } from "@/lib/robo/vinculo";
+import {
+  CONTAS_POR_ASSINATURA,
+  contaDoUsuario,
+  contarContas,
+  marcarBloqueado,
+  salvarShard,
+  salvarTime,
+  salvarVinculo,
+} from "@/lib/robo/vinculo";
+import { contaPedida } from "@/lib/robo/conta";
 import { soltarSessao } from "@/lib/robo/motor/sessao";
 import { retomarSessoes } from "@/lib/robo/motor/boot";
 
 export const runtime = "nodejs";
 
 /**
- * Vincula a conta do JOGO ao usuario logado no piwdex.
+ * Liga uma conta do JOGO ao usuario logado no piwdex.
+ *
+ * Faz DUAS coisas conforme o `?conta=` venha ou nao, e a distincao importa:
+ *
+ *   sem `?conta=`  ADICIONA uma conta. Passa pelo teto da assinatura.
+ *   com `?conta=`  RECONECTA aquela conta — o caminho de quem venceu o token.
+ *                  Sem teto (nao entra conta nova) e, se o jogo recusar, a
+ *                  recusa tem onde ser gravada.
+ *
+ * Colar o token da MESMA conta sem `?conta=` tambem reconecta em vez de
+ * duplicar: quem decide e o `cmid`, no `salvarVinculo`. Duas linhas pro mesmo
+ * personagem seriam dois sockets brigando pela mesma sessao de jogo, cada um
+ * derrubando o outro pra sempre.
  *
  * Recebe o token colado (o valor cru do `pokeweb:tokens`, ou os JWT soltos),
  * prova contra `/api/characters/me` — se o jogo aceitar, o token e bom — e grava
@@ -34,6 +55,18 @@ export async function POST(req: Request) {
   const tokens = lerTokens(bruto);
   if (!tokens) return NextResponse.json({ erro: "token_invalido" }, { status: 400 });
 
+  // Reconexao aponta pra uma conta que ja e dele; adicao passa pelo teto.
+  const alvoId = contaPedida(req);
+  const alvo = alvoId ? await contaDoUsuario(usuario.id, alvoId) : null;
+  if (alvoId && !alvo) return NextResponse.json({ erro: "conta_alheia" }, { status: 404 });
+
+  if (!alvo && (await contarContas(usuario.id)) >= CONTAS_POR_ASSINATURA) {
+    return NextResponse.json(
+      { erro: "limite_de_contas", limite: CONTAS_POR_ASSINATURA },
+      { status: 409 },
+    );
+  }
+
   let r;
   try {
     r = await pedirAoJogo("/api/characters/me", tokens);
@@ -47,7 +80,10 @@ export async function POST(req: Request) {
     const recusa = await recusaDe(r.res);
 
     if (recusa?.tipo === "blocked") {
-      await marcarBloqueado(usuario.id, recusa);
+      // So da pra gravar a recusa quando se sabe EM QUAL conta ela aconteceu.
+      // Numa adicao, o token foi recusado antes de existir linha pra marcar —
+      // e inventar uma seria criar um vinculo bloqueado que ninguem pediu.
+      if (alvo) await marcarBloqueado(alvo.id, recusa);
       return NextResponse.json(
         { erro: "conta_bloqueada", motivo: recusa.mensagem, status: 403 },
         { status: 403 },
@@ -69,19 +105,42 @@ export async function POST(req: Request) {
     );
   }
 
-  const dado = (await r.res.json().catch(() => null)) as
-    | { character?: { name?: string }; name?: string }
-    | null;
-  const nomeJogador = dado?.character?.name ?? dado?.name ?? null;
+  const dado = (await r.res.json().catch(() => null)) as Record<string, unknown> | null;
+  const personagem = ((dado?.character ?? dado ?? {}) as Record<string, unknown>) || {};
+  const nomeJogador = typeof personagem.name === "string" ? personagem.name : null;
 
-  // Vincular conta nova = a anterior morre AQUI. Sem isto o motor seguiria
-  // segurando o WebSocket do personagem VELHO entre o connect e o proximo
-  // "ligar", e nesse meio o time ao vivo e os comandos ainda seriam dele.
-  soltarSessao(usuario.id);
+  /**
+   * O que identifica ESTA conta de jogo entre as do usuario.
+   *
+   * E o que decide "reconectar" e "adicionar": sem uma identidade estavel,
+   * colar o token da mesma conta duas vezes criaria dois vinculos pro mesmo
+   * personagem — e dois sockets brigando pela mesma sessao de jogo, cada um
+   * derrubando o outro pra sempre.
+   *
+   * Prefere o id do personagem quando ele vem; cai no nome quando nao vem. O
+   * nome e pior (o jogador pode troca-lo, e ai a proxima conexao entra como
+   * conta nova), mas e o que existe — e um `null` aqui desligaria a protecao
+   * inteira, que e o unico desfecho que nao da pra aceitar.
+   */
+  const cmid =
+    personagem.id != null && personagem.id !== ""
+      ? String(personagem.id)
+      : nomeJogador
+        ? `nome:${nomeJogador}`
+        : null;
 
   // `r.tokens` e nao `tokens`: o `pedirAoJogo` pode ter renovado o par no meio do
   // caminho, e gravar o antigo faria o vinculo nascer vencido.
-  await salvarVinculo(usuario.id, r.tokens, { nomeJogador });
+  const { id: contaId, nova } = await salvarVinculo(usuario.id, r.tokens, {
+    cmid,
+    nomeJogador,
+  });
+
+  // A sessao ANTIGA daquela conta morre aqui, e so a dela. Sem isto o motor
+  // seguiria segurando o WebSocket com a credencial velha entre o connect e o
+  // proximo "ligar". Antes isso soltava a sessao do usuario — que era a unica;
+  // hoje soltar por usuario derrubaria a cacada das OUTRAS contas dele.
+  soltarSessao(contaId);
 
   // Conectar TOMA a sessao de jogo de qualquer jeito (o WS e single-session e
   // chuta a aba aberta). Ja que o preco foi pago, aproveita e le o time agora —
@@ -94,8 +153,8 @@ export async function POST(req: Request) {
     if (pokes) {
       const todos = normalizarPokes(pokes.pokes);
       const time = todos.filter((p) => p.team).sort((a, b) => a.slot - b.slot);
-      await salvarShard(usuario.id, pokes.shard);
-      await salvarTime(usuario.id, time, todos.length);
+      await salvarShard(contaId, pokes.shard);
+      await salvarTime(contaId, time, todos.length);
     }
   } catch {
     /* o time fica pra depois */
@@ -104,7 +163,7 @@ export async function POST(req: Request) {
   // Vinculo renovado: se o robo estava LIGADO no banco (a conexao caiu porque o
   // token venceu, e nao porque o dono desligou), ele retoma sozinho. Reconectar
   // passa a ser a unica acao do usuario; o resto volta ao que era.
-  setTimeout(() => { void retomarSessoes(usuario.id).catch(() => {}); }, 1_000);
+  setTimeout(() => { void retomarSessoes(contaId).catch(() => {}); }, 1_000);
 
-  return NextResponse.json({ ok: true, nomeJogador });
+  return NextResponse.json({ ok: true, conta: contaId, nova, nomeJogador });
 }

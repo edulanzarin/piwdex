@@ -1,15 +1,16 @@
 import { NextResponse } from "next/server";
-import { exigirUsuarioApi } from "@/lib/robo/sessao";
+import { exigirConta } from "@/lib/robo/conta";
 import { espiarSessao } from "@/lib/robo/motor/sessao";
 import { lerConfig, salvarConfig } from "@/lib/robo/motor/config";
 
 export const runtime = "nodejs";
 
 /** As travas das automacoes. */
-export async function GET() {
-  const { usuario, resposta } = await exigirUsuarioApi({ vip: true });
+export async function GET(req: Request) {
+  const { alvo, resposta } = await exigirConta(req);
   if (resposta) return resposta;
-  return NextResponse.json({ config: await lerConfig(usuario.id) });
+  const { usuario, conta: v } = alvo;
+  return NextResponse.json({ config: await lerConfig(v.id) });
 }
 
 /**
@@ -23,8 +24,9 @@ export async function GET() {
  * abaixo do piso, e a tela precisa mostrar o valor corrigido.
  */
 export async function POST(req: Request) {
-  const { usuario, resposta } = await exigirUsuarioApi({ vip: true });
+  const { alvo, resposta } = await exigirConta(req);
   if (resposta) return resposta;
+  const { usuario, conta: v } = alvo;
 
   let bruto: unknown = {};
   try {
@@ -33,7 +35,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ erro: "corpo_invalido" }, { status: 400 });
   }
 
-  const cfg = await salvarConfig(usuario.id, bruto);
-  espiarSessao(usuario.id)?.usarConfig(cfg);
+  const cfg = await salvarConfig(v.id, bruto);
+  espiarSessao(v.id)?.usarConfig(cfg);
   return NextResponse.json({ config: cfg });
 }

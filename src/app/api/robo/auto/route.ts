@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { exigirUsuarioApi } from "@/lib/robo/sessao";
+import { exigirConta } from "@/lib/robo/conta";
 import { aplicarAuto, lerAuto, limparPatch } from "@/lib/robo/jogo/auto";
 import { lerMochila } from "@/lib/robo/jogo/loja";
 import { separarConsumivel } from "@/lib/robo/motor/jobs";
@@ -14,20 +14,19 @@ export const runtime = "nodejs";
  * comando de campo, e REST nao disputa o WebSocket. O frame `autohelper` chega
  * depois e atualiza o painel sozinho.
  */
-export async function GET() {
-  const { usuario, resposta } = await exigirUsuarioApi({ vip: true });
+export async function GET(req: Request) {
+  const { alvo, resposta } = await exigirConta(req);
   if (resposta) return resposta;
+  const { usuario, conta: v } = alvo;
 
-  const v = await lerVinculo(usuario.id);
-  if (!v) return NextResponse.json({ erro: "sem_vinculo" }, { status: 409 });
 
   const r = await lerAuto(v.tokens);
   if (!r) return NextResponse.json({ erro: "jogo_fora_do_ar" }, { status: 502 });
   if ("vencido" in r) {
-    await marcarVencido(usuario.id).catch(() => {});
+    await marcarVencido(v.id).catch(() => {});
     return NextResponse.json({ erro: "vinculo_vencido" }, { status: 409 });
   }
-  if (r.mudou) await atualizarTokens(usuario.id, r.tokens).catch(() => {});
+  if (r.mudou) await atualizarTokens(v.id, r.tokens).catch(() => {});
 
   /**
    * A bolsa, so pocao e revive.
@@ -51,8 +50,9 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  const { usuario, resposta } = await exigirUsuarioApi({ vip: true });
+  const { alvo, resposta } = await exigirConta(req);
   if (resposta) return resposta;
+  const { usuario, conta: v } = alvo;
 
   let bruto: unknown = {};
   try {
@@ -66,11 +66,9 @@ export async function POST(req: Request) {
   const patch = limparPatch(bruto);
   if (!Object.keys(patch).length) return NextResponse.json({ erro: "nada_a_mudar" }, { status: 400 });
 
-  const v = await lerVinculo(usuario.id);
-  if (!v) return NextResponse.json({ erro: "sem_vinculo" }, { status: 409 });
 
   const r = await aplicarAuto(v.tokens, patch);
-  if (r.mudou) await atualizarTokens(usuario.id, r.tokens).catch(() => {});
+  if (r.mudou) await atualizarTokens(v.id, r.tokens).catch(() => {});
   if (!r.ok || !r.leitura) {
     return NextResponse.json({ erro: "jogo_recusou", status: r.status }, { status: 502 });
   }

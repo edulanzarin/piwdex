@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { exigirUsuarioApi } from "@/lib/robo/sessao";
+import { exigirConta } from "@/lib/robo/conta";
 import { espiarSessao } from "@/lib/robo/motor/sessao";
 import { lerVinculo } from "@/lib/robo/vinculo";
 import { invocarLider } from "@/lib/robo/jogo/ws";
@@ -9,8 +9,9 @@ export const runtime = "nodejs";
 
 /** Troca o pokemon que caca. Pelo socket vivo quando ha um. */
 export async function POST(req: Request) {
-  const { usuario, resposta } = await exigirUsuarioApi({ vip: true });
+  const { alvo, resposta } = await exigirConta(req);
   if (resposta) return resposta;
+  const { usuario, conta: v } = alvo;
 
   let pokeId = "";
   try {
@@ -21,12 +22,13 @@ export async function POST(req: Request) {
   }
   if (!pokeId) return NextResponse.json({ erro: "sem_poke" }, { status: 400 });
 
-  if (espiarSessao(usuario.id)?.trocarLider(pokeId)) {
+  if (espiarSessao(v.id)?.trocarLider(pokeId)) {
     return NextResponse.json({ ok: true, por: "sessao" });
   }
 
-  const v = await lerVinculo(usuario.id);
-  if (!v?.shard) return NextResponse.json({ erro: "sem_vinculo" }, { status: 409 });
+  // Sem shard nao da pra falar com o jogo por fora da sessao: a chamada
+  // avulsa precisa saber em qual servidor a conta vive.
+  if (!v.shard) return NextResponse.json({ erro: "sem_shard" }, { status: 409 });
 
   const lista = await invocarLider(v.tokens, v.shard, pokeId);
   if (!lista) return NextResponse.json({ erro: "nao_confirmou" }, { status: 502 });

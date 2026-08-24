@@ -11,6 +11,7 @@ import { IconBag } from "@/components/game-icons";
 import { ICONE, LinhaItem, TOM } from "@/components/robo/pecas";
 import { fichaDaConta, type FichaPoke } from "@/components/robo/poke-modal";
 import type { BolaEstoque, Perfil } from "@/lib/robo/motor/tipos";
+import { useRota } from "@/components/robo/conta-atual";
 
 /**
  * A conta do jogo, inteira.
@@ -85,6 +86,7 @@ function data(iso: string | null): string {
 }
 
 export function AbaConta({ onFicha }: { onFicha: (f: FichaPoke) => void }) {
+  const rota = useRota();
   const [perfil, setPerfil] = useState<Perfil | null>(null);
   const [bolas, setBolas] = useState<BolaEstoque[]>([]);
   const [consumiveis, setConsumiveis] = useState<ItemMochila[]>([]);
@@ -100,7 +102,7 @@ export function AbaConta({ onFicha }: { onFicha: (f: FichaPoke) => void }) {
   const carregar = useCallback(async () => {
     setCarregando(true);
     setErro(null);
-    const res = await fetch("/api/robo/conta").catch(() => null);
+    const res = await fetch(rota("/api/robo/conta")).catch(() => null);
     const j = (await res?.json().catch(() => null)) as
       | {
           perfil?: Perfil;

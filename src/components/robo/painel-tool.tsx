@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Button, Combobox, Note, Panel, Tabs } from "@/components/ui";
 import { compact } from "@/lib/labels";
 import { estadoParado, type EstadoHunt, type Mensagem } from "@/lib/robo/motor/tipos";
@@ -14,6 +15,8 @@ import { AbaChat } from "@/components/robo/painel-chat";
 import { AbaConta } from "@/components/robo/painel-conta";
 import { AbaRegistro } from "@/components/robo/painel-registro";
 import { PokeModal, fichaDaConta, type FichaPoke } from "@/components/robo/poke-modal";
+import { ProvedorConta, comConta } from "@/components/robo/conta-atual";
+import { SeletorDeConta, type ContaNaTela, type ContaViva } from "@/components/robo/seletor-conta";
 
 /**
  * O cockpit.
@@ -75,15 +78,21 @@ export function PainelTool({
   nomeJogador,
   configInicial,
   estadoInicial,
+  contas,
+  contaAtiva,
 }: {
   hunts: HuntOpcao[];
   slugInicial: string | null;
   temVinculo: boolean;
   vinculo: "active" | "expired" | "blocked" | null;
   nomeJogador: string | null;
-  configInicial: ConfigAuto;
+  configInicial: ConfigAuto | null;
   estadoInicial: EstadoHunt;
+  contas: ContaNaTela[];
+  /** `null` = nenhuma conta ligada ainda */
+  contaAtiva: string | null;
 }) {
+  const router = useRouter();
   const [estado, setEstado] = useState<EstadoHunt>(estadoInicial ?? estadoParado());
   const [slug, setSlug] = useState(slugInicial ?? "");
   const [aba, setAba] = useState<Aba>("conta");
@@ -116,10 +125,36 @@ export function PainelTool({
    */
   const [eventosNovos, setEventosNovos] = useState(0);
   const fonte = useRef<EventSource | null>(null);
+  /**
+   * As contas com o estado VIVO.
+   *
+   * O servidor manda o cadastro no primeiro render; isto acrescenta "esta
+   * conectada agora", que e a metade que muda sozinha. Um minuto de intervalo
+   * porque a pergunta e "alguma caiu?", e nao "o que esta acontecendo" — essa
+   * ultima ja tem o stream da conta aberta.
+   */
+  const [vivas, setVivas] = useState<ContaViva[]>(contas);
+  const [limite, setLimite] = useState(contas.length);
 
   useEffect(() => {
     if (!temVinculo) return;
-    const es = new EventSource("/api/robo/estado");
+    const ler = () =>
+      fetch("/api/robo/contas")
+        .then((r) => (r.ok ? r.json() : null))
+        .then((j: { contas?: ContaViva[]; limite?: number } | null) => {
+          if (j?.contas) setVivas(j.contas);
+          if (j?.limite) setLimite(j.limite);
+        })
+        .catch(() => {});
+    void ler();
+    const t = setInterval(ler, 60_000);
+    return () => clearInterval(t);
+  }, [temVinculo]);
+
+
+  useEffect(() => {
+    if (!temVinculo) return;
+    const es = new EventSource(comConta("/api/robo/estado", contaAtiva));
     fonte.current = es;
     es.addEventListener("chat", (ev) => {
       try {
@@ -142,7 +177,10 @@ export function PainelTool({
       es.close();
       fonte.current = null;
     };
-  }, [temVinculo]);
+    // `contaAtiva` na lista: trocar de conta tem que FECHAR o stream da anterior.
+    // Sem isso a tela receberia dois fluxos ao mesmo tempo, e o estado piscaria
+    // entre duas contas sem nada indicar qual e qual.
+  }, [temVinculo, contaAtiva]);
 
   useEffect(() => {
     const t = setInterval(() => setAgora(Date.now()), 1000);
@@ -187,7 +225,7 @@ export function PainelTool({
     setOcupado(true);
     setErro(null);
     try {
-      const res = await fetch(`/api/robo/${rota}`, {
+      const res = await fetch(comConta(`/api/robo/${rota}`, contaAtiva), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: corpo ? JSON.stringify(corpo) : undefined,
@@ -201,19 +239,19 @@ export function PainelTool({
     } finally {
       setOcupado(false);
     }
-  }, []);
+  }, [contaAtiva]);
 
   /** Salva a config e adota o que VOLTOU: a normalizacao do servidor corrige
    *  alvo abaixo do piso, e mostrar o valor enviado esconderia a correcao. */
   const mudarConfig = useCallback(async (cfg: ConfigAuto) => {
-    const res = await fetch("/api/robo/config", {
+    const res = await fetch(comConta("/api/robo/config", contaAtiva), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(cfg),
     }).catch(() => null);
     const j = (await res?.json().catch(() => null)) as { config?: ConfigAuto } | null;
     setConfig(j?.config ?? cfg);
-  }, []);
+  }, [contaAtiva]);
 
   if (!temVinculo) {
     return (
@@ -236,6 +274,7 @@ export function PainelTool({
   }
 
   return (
+    <ProvedorConta value={contaAtiva}>
     <div className="mx-auto mt-4 flex w-full max-w-[1400px] flex-col gap-4">
       <BarraTopo
         estado={estado}
@@ -251,6 +290,19 @@ export function PainelTool({
       />
 
       <div aria-live="polite">{erro ? <Note tone="danger">{erro}</Note> : null}</div>
+
+      {/* Antes das abas: qual conta esta na tela e a pergunta que precede
+          qualquer outra. Depois delas, ela viraria rodape de um painel que ja
+          foi lido como se fosse "a" conta. */}
+      {vivas.length > 1 || limite > 1 ? (
+        <SeletorDeConta
+          contas={vivas}
+          ativa={contaAtiva}
+          limite={limite}
+          onTrocar={(id) => router.push(`/painel?conta=${encodeURIComponent(id)}`)}
+          onAdicionar={() => router.push("/conectar")}
+        />
+      ) : null}
 
       <Tabs
         value={aba}
@@ -290,6 +342,7 @@ export function PainelTool({
       ) : null}
       {aba === "registro" ? <AbaRegistro onLido={() => setEventosNovos(0)} /> : null}
     </div>
+    </ProvedorConta>
   );
 }
 

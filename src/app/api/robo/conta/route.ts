@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { exigirUsuarioApi } from "@/lib/robo/sessao";
+import { exigirConta } from "@/lib/robo/conta";
 import { pedirAoJogo } from "@/lib/robo/jogo/auth";
 import { normalizarPerfil } from "@/lib/robo/jogo/pokes";
 import { lerBolas } from "@/lib/robo/jogo/auto";
@@ -21,12 +21,11 @@ export const runtime = "nodejs";
  * As tres chamadas vao em paralelo porque nenhuma depende da outra, e a soma
  * serial delas seria o tempo de abertura da aba.
  */
-export async function GET() {
-  const { usuario, resposta } = await exigirUsuarioApi({ vip: true });
+export async function GET(req: Request) {
+  const { alvo, resposta } = await exigirConta(req);
   if (resposta) return resposta;
+  const { usuario, conta: v } = alvo;
 
-  const v = await lerVinculo(usuario.id);
-  if (!v) return NextResponse.json({ erro: "sem_vinculo" }, { status: 409 });
 
   const [me, bolas, mochila] = await Promise.all([
     pedirAoJogo("/api/characters/me", v.tokens).catch(() => null),
@@ -35,7 +34,7 @@ export async function GET() {
   ]);
 
   if (!me) return NextResponse.json({ erro: "jogo_fora_do_ar" }, { status: 502 });
-  if (me.mudou) await atualizarTokens(usuario.id, me.tokens).catch(() => {});
+  if (me.mudou) await atualizarTokens(v.id, me.tokens).catch(() => {});
   if (!me.res.ok) return NextResponse.json({ erro: "vinculo_vencido" }, { status: 409 });
 
   const perfil = normalizarPerfil(await me.res.json().catch(() => null));
@@ -45,11 +44,11 @@ export async function GET() {
   // Time e box juntos, com a marca de quem a venda automatica levaria. A sessao
   // viva tem a lista fresca; sem ela, o snapshot gravado no vinculo ainda
   // responde o time (o box so existe com o socket aberto).
-  const viva = espiarSessao(usuario.id);
+  const viva = espiarSessao(v.id);
   const estado = viva?.estado();
   const box = viva?.boxAoVivo() ?? [];
   const time = estado?.time.length ? estado.time : (v.time?.lista ?? []);
-  const cfg = await lerConfig(usuario.id).catch(() => null);
+  const cfg = await lerConfig(v.id).catch(() => null);
   const marcados = cfg ? new Set(vendaveis(box, cfg).map((p) => p.id)) : new Set<string>();
 
   return NextResponse.json({

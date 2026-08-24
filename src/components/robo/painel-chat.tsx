@@ -9,6 +9,7 @@ import { fichaDoChat, type FichaPoke } from "@/components/robo/poke-modal";
 import { lerMensagemDoChat, type ItemDoChat, type PokeDoChat } from "@/lib/robo/chat-links";
 import { IconChat } from "@/components/ui/icons";
 import { CANAIS, CANAL_ROTULO, type Canal, type EstadoHunt, type Mensagem } from "@/lib/robo/motor/tipos";
+import { useRota } from "@/components/robo/conta-atual";
 
 /**
  * O chat do jogo.
@@ -116,6 +117,7 @@ export function AbaChat({
   lidoAte: number;
   onFicha: (f: FichaPoke) => void;
 }) {
+  const rota = useRota();
   const [filtro, setFiltro] = useState<Filtro>("todos");
   const [destino, setDestino] = useState<Canal>("world");
   const [texto, setTexto] = useState("");
@@ -161,7 +163,7 @@ export function AbaChat({
     setRecado(null);
     setAviso(null);
     try {
-      const res = await fetch("/api/robo/chat", {
+      const res = await fetch(rota("/api/robo/chat"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ texto: texto.trim(), canal: destino }),

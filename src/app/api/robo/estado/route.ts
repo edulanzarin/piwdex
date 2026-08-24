@@ -1,4 +1,4 @@
-import { exigirUsuarioApi } from "@/lib/robo/sessao";
+import { exigirConta } from "@/lib/robo/conta";
 import { estadoDe, sessaoDe } from "@/lib/robo/motor/sessao";
 
 export const runtime = "nodejs";
@@ -26,13 +26,14 @@ const TETO_MS = 1_000;
 const BATIMENTO_MS = 20_000;
 
 export async function GET(req: Request) {
-  const { usuario, resposta } = await exigirUsuarioApi({ vip: true });
+  const { alvo, resposta } = await exigirConta(req);
   if (resposta) return resposta;
+  const { usuario, conta: v } = alvo;
 
   // `sessaoDe` e nao `espiarSessao`: quem abre o painel sem robo ligado precisa
   // de um emissor pra assinar — senao a tela so veria o estado inicial e ficaria
   // muda ate um F5.
-  const sessao = sessaoDe(usuario.id);
+  const sessao = sessaoDe(v.id);
   const enc = new TextEncoder();
 
   const stream = new ReadableStream({
@@ -54,7 +55,7 @@ export async function GET(req: Request) {
       const mandarEstado = () => {
         ultimoEnvio = Date.now();
         pendente = false;
-        escrever(`event: estado\ndata: ${JSON.stringify(estadoDe(usuario.id))}\n\n`);
+        escrever(`event: estado\ndata: ${JSON.stringify(estadoDe(v.id))}\n\n`);
       };
 
       /**

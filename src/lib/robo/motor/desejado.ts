@@ -13,6 +13,11 @@ import { query, queryOne } from "@/lib/robo/db";
  *    reconectou nada.
  *
  * A escrita de status e melhor-esforco: falha de banco nunca derruba a cacada.
+ *
+ * Chaveado pela CONTA (`link_id`) desde a migration 004, e nao pelo usuario: um
+ * assinante pode ter varias contas de jogo e cada uma quer estar ligada ou
+ * parada por conta propria. `listarLigados` traz o dono junto porque o boot
+ * precisa dos dois — a credencial e da conta, o registro de evento e do dono.
  */
 
 export type ModoRobo = "manual" | "auto";
@@ -28,6 +33,7 @@ export interface Desejado {
 }
 
 interface Linha {
+  link_id: string;
   user_id: string;
   enabled: boolean;
   mode: string;
@@ -46,17 +52,22 @@ const daLinha = (l: Linha): Desejado => ({
   placar: l.placar,
 });
 
-export async function lerDesejado(userId: string): Promise<Desejado | null> {
-  const l = await queryOne<Linha>(`SELECT * FROM robot_sessions WHERE user_id = $1`, [userId]);
+export async function lerDesejado(contaId: string): Promise<Desejado | null> {
+  const l = await queryOne<Linha>(`SELECT * FROM robot_sessions WHERE link_id = $1`, [contaId]);
   return l ? daLinha(l) : null;
 }
 
-/** Quem o boot deve religar. */
-export async function listarLigados(): Promise<{ userId: string; desejado: Desejado }[]> {
+/** Quem o boot deve religar: uma entrada por CONTA ligada, com o dono junto. */
+export async function listarLigados(): Promise<
+  { contaId: string; userId: string; desejado: Desejado }[]
+> {
   const linhas = await query<Linha>(
-    `SELECT * FROM robot_sessions WHERE enabled ORDER BY updated_at DESC`,
+    `SELECT rs.*, gl.user_id
+       FROM robot_sessions rs
+       JOIN game_links gl ON gl.id = rs.link_id
+      WHERE rs.enabled ORDER BY rs.updated_at DESC`,
   );
-  return linhas.map((l) => ({ userId: l.user_id, desejado: daLinha(l) }));
+  return linhas.map((l) => ({ contaId: l.link_id, userId: l.user_id, desejado: daLinha(l) }));
 }
 
 /**
@@ -68,18 +79,18 @@ export async function listarLigados(): Promise<{ userId: string; desejado: Desej
  * pra uma cacada que o usuario tinha encerrado.
  */
 export async function salvarDesejado(
-  userId: string,
+  contaId: string,
   patch: Partial<Pick<Desejado, "ligado" | "modo" | "slug">>,
 ): Promise<void> {
   await query(
-    `INSERT INTO robot_sessions (user_id, enabled, mode, slug)
+    `INSERT INTO robot_sessions (link_id, enabled, mode, slug)
      VALUES ($1, COALESCE($2, false), COALESCE($3, 'manual'), $4)
-     ON CONFLICT (user_id) DO UPDATE SET
+     ON CONFLICT (link_id) DO UPDATE SET
        enabled    = COALESCE($2, robot_sessions.enabled),
        mode       = COALESCE($3, robot_sessions.mode),
        slug       = CASE WHEN $5 THEN $4 ELSE robot_sessions.slug END,
        updated_at = now()`,
-    [userId, patch.ligado ?? null, patch.modo ?? null, patch.slug ?? null, "slug" in patch],
+    [contaId, patch.ligado ?? null, patch.modo ?? null, patch.slug ?? null, "slug" in patch],
   );
 }
 
@@ -89,20 +100,20 @@ export async function salvarDesejado(
  * Fire-and-forget, como o status: perder uma atualizacao de contador custa um
  * numero; parar a cacada por causa do banco custa a noite inteira.
  */
-export async function salvarPlacar(userId: string, placar: unknown): Promise<void> {
+export async function salvarPlacar(contaId: string, placar: unknown): Promise<void> {
   await query(
-    `INSERT INTO robot_sessions (user_id, placar) VALUES ($1, $2)
-     ON CONFLICT (user_id) DO UPDATE SET placar = $2, updated_at = now()`,
-    [userId, JSON.stringify(placar)],
+    `INSERT INTO robot_sessions (link_id, placar) VALUES ($1, $2)
+     ON CONFLICT (link_id) DO UPDATE SET placar = $2, updated_at = now()`,
+    [contaId, JSON.stringify(placar)],
   );
 }
 
 /** Ultimo status observado. Fire-and-forget: o motor nunca cai por causa disto. */
-export async function salvarStatus(userId: string, status: string, erro?: string | null): Promise<void> {
+export async function salvarStatus(contaId: string, status: string, erro?: string | null): Promise<void> {
   await query(
-    `INSERT INTO robot_sessions (user_id, last_status, last_error)
+    `INSERT INTO robot_sessions (link_id, last_status, last_error)
      VALUES ($1, $2, $3)
-     ON CONFLICT (user_id) DO UPDATE SET last_status = $2, last_error = $3, updated_at = now()`,
-    [userId, status, erro ?? null],
+     ON CONFLICT (link_id) DO UPDATE SET last_status = $2, last_error = $3, updated_at = now()`,
+    [contaId, status, erro ?? null],
   );
 }

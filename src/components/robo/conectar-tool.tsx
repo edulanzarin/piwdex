@@ -73,10 +73,17 @@ export function ConectarTool({
   status,
   nomeJogador,
   motivoBloqueio,
+  reconectando,
+  jaLigadas,
+  limite,
 }: {
   status: StatusVinculo | null;
   nomeJogador: string | null;
   motivoBloqueio: string | null;
+  /** o id da conta que se esta RECONECTANDO. `null` = conta nova */
+  reconectando?: string | null;
+  jaLigadas?: number;
+  limite?: number;
 }) {
   const router = useRouter();
   const [texto, setTexto] = useState("");
@@ -88,11 +95,16 @@ export function ConectarTool({
     setOcupado(true);
     setErro(null);
     try {
-      const res = await fetch("/api/robo/conectar", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ bruto }),
-      });
+      // Com o id, o jogo sabe QUAL conta reconectar; sem ele, e uma a mais —
+      // e colar o token de uma que ja existe reconecta ela, nao duplica.
+      const res = await fetch(
+        reconectando ? `/api/robo/conectar?conta=${encodeURIComponent(reconectando)}` : "/api/robo/conectar",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ bruto }),
+        },
+      );
       const j = (await res.json().catch(() => ({}))) as {
         ok?: boolean;
         erro?: string;

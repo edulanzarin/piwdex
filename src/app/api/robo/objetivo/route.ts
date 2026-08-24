@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
-import { exigirUsuarioApi } from "@/lib/robo/sessao";
+import { exigirConta } from "@/lib/robo/conta";
 import { espiarSessao } from "@/lib/robo/motor/sessao";
-import { lerVinculo } from "@/lib/robo/vinculo";
 import { melhores } from "@/lib/robo/motor/objetivo";
 
 export const runtime = "nodejs";
@@ -17,16 +16,16 @@ export const runtime = "nodejs";
  * vinculo — que e o suficiente pra tela mostrar a conta antes de o robo subir.
  */
 export async function GET(req: Request) {
-  const { usuario, resposta } = await exigirUsuarioApi({ vip: true });
+  const { alvo, resposta } = await exigirConta(req);
   if (resposta) return resposta;
+  const { conta: v } = alvo;
 
   const criterio = new URL(req.url).searchParams.get("por") === "xp" ? "xp" : "dolares";
-  const viva = espiarSessao(usuario.id)?.estado();
+  const viva = espiarSessao(v.id)?.estado();
   let time = viva?.time ?? [];
-  if (!time.length) {
-    const v = await lerVinculo(usuario.id);
-    time = v?.time?.lista ?? [];
-  }
+  // Sem sessao viva, o time sai do snapshot gravado no vinculo — abrir um WS so
+  // pra montar recomendacao tomaria a sessao de jogo da conta.
+  if (!time.length) time = v.time?.lista ?? [];
   if (!time.length) return NextResponse.json({ erro: "sem_time" }, { status: 409 });
 
   return NextResponse.json({

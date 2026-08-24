@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { PainelTool, type HuntOpcao } from "@/components/robo/painel-tool";
 import { exigirVip } from "@/lib/robo/sessao";
-import { lerVinculo } from "@/lib/robo/vinculo";
+import { contaDoUsuario, listarContas, primeiraConta } from "@/lib/robo/vinculo";
 import { lerDesejado } from "@/lib/robo/motor/desejado";
 import { lerConfig } from "@/lib/robo/motor/config";
 import { estadoDe } from "@/lib/robo/motor/sessao";
@@ -13,16 +13,35 @@ export const metadata: Metadata = { title: "Painel" };
 /** O painel e dinamico por natureza: ele mostra uma sessao viva. */
 export const dynamic = "force-dynamic";
 
-export default async function Painel() {
+/**
+ * A conta que a tela opera vem da URL (`?conta=`), e nao de um cookie.
+ *
+ * E o mesmo motivo pelo qual os filtros da dex moram na URL: com varias contas,
+ * "a aba do painel" passa a ser uma pergunta com sujeito, e um link tem que
+ * poder carregar o sujeito junto. Cookie faria duas abas abertas em contas
+ * diferentes brigarem pela mesma memoria.
+ */
+export default async function Painel({
+  searchParams,
+}: {
+  searchParams: Promise<{ conta?: string }>;
+}) {
   const u = await exigirVip();
-  const [v, d, fonte, cfg] = await Promise.all([
-    lerVinculo(u.id),
-    lerDesejado(u.id),
-    fetchSource(),
-    lerConfig(u.id),
+  const pedida = (await searchParams).conta;
+
+  const [contas, fonte] = await Promise.all([listarContas(u.id), fetchSource()]);
+
+  // Pedir uma conta que nao e sua cai na sua primeira, em vez de errar: o id na
+  // URL e chute facil, e uma tela de erro aqui so ensinaria quais ids existem.
+  const escolhida = pedida && (await contaDoUsuario(u.id, pedida)) ? pedida : await primeiraConta(u.id);
+  const conta = contas.find((c) => c.id === escolhida) ?? null;
+
+  const [d, cfg] = await Promise.all([
+    escolhida ? lerDesejado(escolhida) : null,
+    escolhida ? lerConfig(escolhida) : null,
   ]);
 
-  const vivo = estadoDe(u.id);
+  const vivo = estadoDe(escolhida ?? "");
 
   /**
    * Abrir o painel RELIGA o que deveria estar rodando.
@@ -32,12 +51,12 @@ export default async function Painel() {
    * da rede. Depois disso, o robo fica parado com o desejo ligado no banco e
    * ninguem descobre, porque quem usa o robo justamente NAO fica olhando a tela.
    *
-   * Quando alguem enfim abre, esta e a hora mais barata de consertar. Fora do
-   * caminho da renderizacao: a pagina nao espera a reconexao pra desenhar, e o
-   * stream mostra o resultado quando ele chegar.
+   * Sem `apenas`: com varias contas, quem abre a tela costuma ter mais de uma
+   * parada, e religar so a que ele esta olhando deixaria as outras no chao ate
+   * ele lembrar de visita-las uma a uma.
    */
-  if (d?.ligado && !vivo.ligado && v?.status === "active") {
-    setTimeout(() => { void retomarSessoes(u.id).catch(() => {}); }, 0);
+  if (d?.ligado && !vivo.ligado && conta?.status === "active") {
+    setTimeout(() => { void retomarSessoes().catch(() => {}); }, 0);
   }
 
   const hunts: HuntOpcao[] = fonte.hunts
@@ -55,12 +74,14 @@ export default async function Painel() {
       estadoInicial={vivo}
       hunts={hunts}
       slugInicial={d?.slug ?? null}
+      contas={contas}
+      contaAtiva={escolhida ?? null}
       // `expired` e `blocked` continuam sendo vinculo: a tela precisa poder
       // EXPLICAR o que houve, e mandar essa pessoa pro "conecte sua conta"
       // trocaria a instrucao exata por uma tela generica.
-      temVinculo={!!v}
-      vinculo={v?.status ?? null}
-      nomeJogador={v?.nomeJogador ?? null}
+      temVinculo={!!conta}
+      vinculo={conta?.status ?? null}
+      nomeJogador={conta?.apelido ?? conta?.nomeJogador ?? null}
       configInicial={cfg}
     />
   );

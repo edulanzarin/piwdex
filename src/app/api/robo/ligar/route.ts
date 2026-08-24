@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { exigirUsuarioApi } from "@/lib/robo/sessao";
+import { exigirConta } from "@/lib/robo/conta";
 import { atualizarTokens, lerVinculo, salvarShard } from "@/lib/robo/vinculo";
 import { lerPokes } from "@/lib/robo/jogo/ws";
 import { sessaoDe } from "@/lib/robo/motor/sessao";
@@ -18,12 +18,11 @@ export const runtime = "nodejs";
  * as duas coisas eram uma so, escolher uma cacada era pre-requisito pra usar
  * qualquer outra funcao do robo.
  */
-export async function POST() {
-  const { usuario, resposta } = await exigirUsuarioApi({ vip: true });
+export async function POST(req: Request) {
+  const { alvo, resposta } = await exigirConta(req);
   if (resposta) return resposta;
+  const { usuario, conta: v } = alvo;
 
-  const v = await lerVinculo(usuario.id);
-  if (!v) return NextResponse.json({ erro: "sem_vinculo" }, { status: 409 });
   if (v.status === "blocked") {
     return NextResponse.json({ erro: "conta_bloqueada", motivo: v.bloqueioMotivo }, { status: 409 });
   }
@@ -34,21 +33,22 @@ export async function POST() {
     const r = await lerPokes(v.tokens, null).catch(() => null);
     if (!r) return NextResponse.json({ erro: "shard_nao_encontrado" }, { status: 502 });
     shard = r.shard;
-    await salvarShard(usuario.id, shard).catch(() => {});
+    await salvarShard(v.id, shard).catch(() => {});
   }
 
   // O desejo vai pro banco ANTES de conectar: se o processo morrer no meio, o
   // proximo boot religa. Gravar depois deixaria uma janela em que o robo esta
   // rodando e ninguem sabe disso.
-  await salvarDesejado(usuario.id, { ligado: true });
+  await salvarDesejado(v.id, { ligado: true });
 
-  const persistir = (t: Tokens) => atualizarTokens(usuario.id, t);
+  const persistir = (t: Tokens) => atualizarTokens(v.id, t);
   const [cfg, d] = await Promise.all([
-    lerConfig(usuario.id).catch(() => undefined),
-    lerDesejado(usuario.id).catch(() => null),
+    lerConfig(v.id).catch(() => undefined),
+    lerDesejado(v.id).catch(() => null),
   ]);
-  sessaoDe(usuario.id).segurar(
-    usuario.id, v.tokens, shard, persistir, cfg, v.nomeJogador,
+  sessaoDe(v.id).segurar(
+    { conta: v.id, usuario: usuario.id },
+    v.tokens, shard, persistir, cfg, v.apelido ?? v.nomeJogador,
     d?.placar as never,
   );
 

@@ -16,8 +16,8 @@ import type { Tokens } from "@/lib/robo/jogo/auth";
  */
 type Resultado = "retomada" | "sem_vinculo" | "token_vencido" | "conta_recusada" | "sem_shard";
 
-async function retomarUma(userId: string, d: Desejado): Promise<Resultado> {
-  const v = await lerVinculo(userId);
+async function retomarUma(contaId: string, userId: string, d: Desejado): Promise<Resultado> {
+  const v = await lerVinculo(contaId);
   if (!v) return "sem_vinculo";
   if (v.status === "expired") return "token_vencido"; // so o dono resolve
   // Conta recusada pelo jogo: NAO religa. Reconectar nao desfaz ban, e insistir a
@@ -30,33 +30,35 @@ async function retomarUma(userId: string, d: Desejado): Promise<Resultado> {
     const r = await lerPokes(v.tokens, null).catch(() => null);
     if (!r) return "sem_shard";
     shard = r.shard;
-    await salvarShard(userId, shard).catch(() => {});
+    await salvarShard(contaId, shard).catch(() => {});
   }
 
-  const persistir = (t: Tokens) => atualizarTokens(userId, t);
+  const persistir = (t: Tokens) => atualizarTokens(contaId, t);
   // A config vem junto: retomar sem ela deixaria as automacoes desligadas ate
   // alguem abrir a tela — e "ninguem abre a tela" e exatamente a condicao em que
   // o robo trabalha.
-  const cfg = await lerConfig(userId).catch(() => undefined);
-  sessaoDe(userId).retomar(
-    userId, v.tokens, shard, d.slug, persistir, cfg, v.nomeJogador,
+  const cfg = await lerConfig(contaId).catch(() => undefined);
+  sessaoDe(contaId).retomar(
+    { conta: contaId, usuario: userId },
+    v.tokens, shard, d.slug, persistir, cfg, v.apelido ?? v.nomeJogador,
     d.placar as never,
   );
   return "retomada";
 }
 
 /**
- * Retoma TODAS as sessoes desejadas, ou so a de um usuario.
+ * Retoma TODAS as sessoes desejadas, ou so a de uma conta.
  *
- * A forma com `apenas` e a que o /conectar usa depois de vincular: religar so
- * quem reconectou, sem mexer na sessao dos outros assinantes.
+ * A forma com `apenas` e a que o /conectar usa depois de vincular: religar so a
+ * conta que reconectou, sem tocar nas outras — nem nas do mesmo assinante, que
+ * agora podem ser varias e estar no meio de uma cacada.
  */
 export async function retomarSessoes(apenas?: string): Promise<void> {
   const todas = await listarLigados();
-  const alvos = apenas ? todas.filter((x) => x.userId === apenas) : todas;
+  const alvos = apenas ? todas.filter((x) => x.contaId === apenas) : todas;
   if (!alvos.length) return;
 
-  const r = await Promise.allSettled(alvos.map((x) => retomarUma(x.userId, x.desejado)));
+  const r = await Promise.allSettled(alvos.map((x) => retomarUma(x.contaId, x.userId, x.desejado)));
 
   /**
    * O log conta o que ACONTECEU, e nao quantas promessas nao explodiram.
@@ -70,11 +72,11 @@ export async function retomarSessoes(apenas?: string): Promise<void> {
   for (const [i, res] of r.entries()) {
     if (res.status === "rejected") {
       conta.set("erro", (conta.get("erro") ?? 0) + 1);
-      console.error(`[robo] ${alvos[i].userId} nao retomou:`, res.reason);
+      console.error(`[robo] conta ${alvos[i].contaId} nao retomou:`, res.reason);
       continue;
     }
     conta.set(res.value, (conta.get(res.value) ?? 0) + 1);
   }
   const resumo = [...conta].map(([k, n]) => `${n} ${k}`).join(", ");
-  console.info(`[robo] boot: ${alvos.length} desejada(s) -> ${resumo}`);
+  console.info(`[robo] boot: ${alvos.length} conta(s) desejada(s) -> ${resumo}`);
 }

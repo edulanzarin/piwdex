@@ -8,6 +8,7 @@ import { compact } from "@/lib/labels";
 import { spriteUrl } from "@/lib/sprites";
 import { Cartao, ICONE, Medidor, TOM } from "@/components/robo/pecas";
 import type { ConfigAuto, EstadoHunt, PassoRota, Recomendacao } from "@/lib/robo/motor/tipos";
+import { useRota } from "@/components/robo/conta-atual";
 import type { HuntOpcao } from "@/components/robo/painel-tool";
 
 type Modo = "manual" | "dolares" | "nivel";
@@ -113,6 +114,8 @@ export function PainelObjetivo({
   ocupado: boolean;
   comandar: (rota: string, corpo?: unknown) => Promise<void>;
 }) {
+  // `url` e nao `rota`: neste painel `rota` ja e a subida planejada.
+  const url = useRota();
   const [previa, setPrevia] = useState<Recomendacao[] | null>(null);
   const [rota, setRota] = useState<PassoRota[] | null>(null);
   const [erroRota, setErroRota] = useState<string | null>(null);
@@ -159,7 +162,7 @@ export function PainelObjetivo({
     }
     let vivo = true;
     setCarregando(true);
-    void fetch("/api/robo/objetivo")
+    void fetch(url("/api/robo/objetivo"))
       .then((r) => (r.ok ? r.json() : null))
       .then((j: { recomendacoes?: Recomendacao[] } | null) => {
         if (vivo) setPrevia(j?.recomendacoes ?? []);
@@ -184,7 +187,7 @@ export function PainelObjetivo({
     let vivo = true;
     setCarregando(true);
     void (async () => {
-      const res = await fetch(`/api/robo/rota?alvo=${config.nivelAlvo}`).catch(() => null);
+      const res = await fetch(url(`/api/robo/rota?alvo=${config.nivelAlvo}`)).catch(() => null);
       const j = (await res?.json().catch(() => null)) as
         | { passos?: PassoRota[]; erro?: string }
         | null;
