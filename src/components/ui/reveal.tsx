@@ -26,6 +26,29 @@ import { cn } from "@/lib/cn";
  * desaparecendo e voltando, e reler vira perseguir. Revelacao e uma apresentacao,
  * nao um estado.
  *
+ * ## NADA que esta na tela fica invisivel
+ *
+ * Esta e a regra que manda nos dois numeros do gatilho, e ela foi escrita depois
+ * de a home aparecer com as artes boiando sobre o wallpaper e nenhum texto.
+ *
+ * O que havia aqui era `threshold: 0.15` com `rootMargin` de **-12% embaixo** — a
+ * raiz ENCOLHIA, ou seja, o gatilho disparava mais tarde, nao mais cedo (o
+ * comentario antigo afirmava o contrario do que o valor fazia). Junte as duas
+ * coisas e a conta fica assim: a peca so acende quando 15% dela ja passou de uma
+ * linha 12% acima do fim da janela.
+ *
+ * Numa janela alta isso e imperceptivel. Numa janela BAIXA e o defeito inteiro:
+ * com 470px de altura util e um bloco de 310px, o topo do bloco tinha de chegar a
+ * 293px pra acender — ou seja, havia sempre uma faixa de mais de cem pixels, no
+ * fim da tela, ocupada por conteudo em `opacity: 0`. A pessoa rolava e encontrava
+ * buraco.
+ *
+ * Agora: `threshold: 0` e margem **positiva** embaixo. A raiz se estende pra
+ * FORA da janela, entao a peca termina de aparecer antes de entrar na area de
+ * leitura — e nao ha estado em que algo visivel esteja transparente. O limiar
+ * some junto porque limiar por FRACAO nao serve pra bloco alto: ele exige mais
+ * pixels quanto maior a peca, que e exatamente ao contrario do que se quer.
+ *
  * ## `prefers-reduced-motion`
  *
  * Quem pediu menos movimento nao recebe transicao NENHUMA — e, o que importa
@@ -50,10 +73,11 @@ export interface RevealProps {
   efeito?: Efeito;
   /** atraso em ms — e como se faz cascata dentro de uma secao */
   delay?: number;
-  /** quanto da peca precisa entrar em cena pra disparar (0 a 1) */
+  /** quanto da peca precisa entrar em cena pra disparar (0 a 1).
+   *  Zero de proposito — ver o comentario de `margem`. */
   limiar?: number;
-  /** dispara ANTES de entrar de fato: margem negativa embaixo segura o gatilho
-   *  ate a peca estar de verdade na area de leitura, e nao na beirada */
+  /** margem do gatilho. POSITIVA embaixo: a raiz se estende ABAIXO da janela, e
+   *  a peca comeca a aparecer antes de entrar de fato. */
   margem?: string;
   duracao?: number;
   className?: string;
@@ -65,8 +89,8 @@ export function Reveal({
   children,
   efeito = "sobe",
   delay = 0,
-  limiar = 0.15,
-  margem = "0px 0px -12% 0px",
+  limiar = 0,
+  margem = "0px 0px 18% 0px",
   duracao = 620,
   className,
   style,
@@ -95,10 +119,16 @@ export function Reveal({
     const el = ref.current;
     if (!el) return;
 
-    // Ja esta em cena no primeiro quadro (peca acima da dobra): revela sem
-    // esperar o observer, senao o topo da pagina pisca antes de aparecer.
+    // Ja esta em cena no primeiro quadro: revela sem esperar o observer, senao o
+    // topo da pagina pisca antes de aparecer.
+    //
+    // O teste olha as DUAS bordas. So o topo nao basta: um bloco que comeca
+    // acima da janela e termina dentro dela (o caso de quem chega por link com
+    // ancora, ou recarrega a pagina no meio) tem `top` negativo, passava por
+    // aqui por acaso, e o de `top` grande com o rodape a mostra nao passava —
+    // ficava esperando um observer pra revelar coisa que ja esta na cara.
     const caixa = el.getBoundingClientRect();
-    if (caixa.top < window.innerHeight * 0.9) {
+    if (caixa.top < window.innerHeight && caixa.bottom > 0) {
       setVisivel(true);
       return;
     }

@@ -113,9 +113,14 @@ export function DisplayTitle({
     <Tag
       className={cn(
         "display uppercase italic leading-[0.92] tracking-[-0.01em] text-balance",
-        size === "md" && "text-[34px] sm:text-[44px]",
-        size === "lg" && "text-[42px] sm:text-[62px]",
-        size === "xl" && "text-[52px] sm:text-[84px]",
+        /* Tres degraus, e nao dois. O salto `sm` levava o titulo de cena pra
+           62px em qualquer janela acima de 640 — inclusive nas que passaram a
+           mostrar a faixa em DUAS colunas, onde a coluna tem ~450px e
+           "CALCULADORA" em 62px pede 620. O degrau do meio segura o corpo
+           enquanto a coluna e estreita e so solta em `lg`, quando ela cresce. */
+        size === "md" && "text-[34px] sm:text-[40px] lg:text-[44px]",
+        size === "lg" && "text-[42px] sm:text-[46px] lg:text-[62px]",
+        size === "xl" && "text-[52px] sm:text-[64px] lg:text-[84px]",
         className,
       )}
       style={tint ? { color: tint } : undefined}
@@ -179,16 +184,40 @@ export function FeatureSection({
         }}
       />
 
-      <div
+      {/* ---- UMA revelacao pra faixa inteira, e nao uma por metade ----
+
+          Eram duas: uma no texto, outra na arte, cada uma com seu observador. Em
+          janela alta ninguem nota, porque a faixa inteira entra em cena junto. Em
+          janela BAIXA e o defeito que apareceu na home: a faixa mede ~810px
+          (texto 310 + arte 340 + respiro) contra ~470px de altura util, entao
+          nenhuma ferramenta cabe na tela — e com dois gatilhos independentes
+          havia posicao de rolagem em que a arte enchia a tela com o texto da
+          MESMA faixa ainda em `opacity: 0`. A pagina lia como arte boiando sobre
+          o wallpaper, sem uma palavra.
+
+          Texto e arte sao uma composicao: o titulo nomeia a peca que esta do
+          lado. Revelar as duas metades por conta propria e tratar como duas
+          coisas o que so significa junto.
+
+          A ALTERNANCIA nao se perdeu — ela subiu de nivel. Em vez de as metades
+          entrarem por lados opostos, a faixa inteira entra pelo lado em que a
+          arte dela mora, e faixas vizinhas continuam entrando por lados
+          contrarios. */}
+      <Reveal
+        efeito={flip ? "esquerda" : "direita"}
+        /* Duas colunas a partir de `md` (768px), e nao de `lg` (1024).
+           Empilhada, a faixa mede ~810px — texto 310, arte 340 e o respiro — e
+           janela de notebook tem ~470px de altura util: a ferramenta NUNCA cabia
+           na tela, e o que se via era a arte sozinha com o titulo dela fora de
+           quadro. Lado a lado a faixa cai pra ~380px e a cena volta a ser uma
+           cena. Os 256px entre md e lg eram exatamente a faixa de janela em que
+           a home se desmontava. */
         className={cn(
           "mx-auto grid w-full max-w-6xl items-center gap-8 px-4 sm:px-6 lg:gap-16",
-          "lg:grid-cols-2",
+          "md:grid-cols-2",
         )}
       >
-        <Reveal
-          efeito={flip ? "direita" : "esquerda"}
-          className={cn("flex flex-col items-start gap-5", flip && "lg:order-2")}
-        >
+        <div className={cn("flex flex-col items-start gap-5", flip && "md:order-2")}>
           <Eyebrow tint={`color-mix(in oklab, ${tint} 70%, white)`}>{eyebrow}</Eyebrow>
           <DisplayTitle tint={tint}>{title}</DisplayTitle>
           <p className="max-w-lg text-[16px] leading-relaxed text-text-dim sm:text-[17px]">
@@ -196,19 +225,12 @@ export function FeatureSection({
           </p>
           {actions && <div className="flex flex-wrap items-center gap-3 pt-1">{actions}</div>}
           {footer}
-        </Reveal>
+        </div>
 
-        <Reveal
-          efeito={flip ? "esquerda" : "direita"}
-          delay={90}
-          className={cn(
-            "flex items-center justify-center",
-            flip && "lg:order-1",
-          )}
-        >
+        <div className={cn("flex items-center justify-center", flip && "md:order-1")}>
           {art}
-        </Reveal>
-      </div>
+        </div>
+      </Reveal>
     </FullBleed>
   );
 }
