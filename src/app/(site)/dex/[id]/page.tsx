@@ -168,8 +168,19 @@ export default async function CreaturePage({ params }: Props) {
       </nav>
 
       {/* ---- identidade ---- */}
-      <header className="panel scanline relative flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:gap-6">
-        <div className="relative grid shrink-0 place-items-center self-center">
+      {/* ---- a CHEGADA da ficha, no tratamento de pagina de campeao ----
+
+          Era um cabeçalho em linha: arte de 128 à esquerda, e à direita um bloco
+          de #número, nome de 24px, seis chips e um parágrafo — tudo alinhado à
+          esquerda, tudo do mesmo peso. Lia como registro de catálogo.
+
+          A referência resolve isso invertendo o eixo: a arte vira CENA (grande,
+          centralizada, com a cor por trás), o nome vem em corpo de display com
+          tracking largo, e o epíteto vem ABAIXO, pequeno, separado por um fio
+          com ornamento. Não é mais denso — é a mesma informação com uma ordem de
+          leitura declarada, e um lugar óbvio pra o olho pousar primeiro. */}
+      <header className="panel relative flex flex-col items-center gap-5 px-4 py-8 text-center sm:px-8 sm:py-10">
+        <div className="relative grid shrink-0 place-items-center">
           <span
             aria-hidden="true"
             className="anim-glow absolute h-28 w-28 rounded-full blur-2xl"
@@ -182,20 +193,51 @@ export default async function CreaturePage({ params }: Props) {
             src={spriteUrl(c.pokeId)}
             animatedSrc={animatedSpriteUrl(c.pokeId)}
             alt={c.name}
-            size={128}
+            size={176}
             priority
-            className="anim-float relative"
+            className="anim-float relative [--sprite:140px] sm:[--sprite:176px]"
           />
         </div>
 
-        <div className="flex min-w-0 flex-1 flex-col gap-2">
-          <span className="pix text-[12px] text-text-mute">
+        <div className="flex min-w-0 w-full flex-col items-center gap-3">
+          <span className="pix text-[11px] tracking-[0.18em] text-text-mute">
             #{String(c.pokeId).padStart(3, "0")}
             {c.area ? ` · ${c.area}` : ""}
           </span>
-          <h1 className="text-[24px] leading-none font-semibold text-text">{c.name}</h1>
 
-          <div className="flex flex-wrap items-center gap-1.5">
+          {/* O nome em corpo de CENA, com tracking largo. Ele nao usa o italico do
+              `DisplayTitle` de proposito: nome proprio de pokemon nao e manchete,
+              e inclinar um substantivo que a pessoa veio procurar atrapalha o
+              reconhecimento. O que da a escala e o corpo e o espaco entre letras,
+              nao a inclinacao. */}
+          <h1 className="pix text-[34px] leading-none tracking-[0.14em] text-text sm:text-[46px]">
+            {c.name}
+          </h1>
+
+          {/* O fio com ornamento, que e o que separa nome de epiteto na
+              referencia. O losango no meio nao e enfeite solto: ele marca o eixo
+              central e da ao fio um comeco e um fim, senao a linha parece uma
+              borda mal cortada. */}
+          <span aria-hidden="true" className="flex w-full max-w-md items-center gap-3">
+            <span
+              className="h-px flex-1"
+              style={{
+                background: `linear-gradient(90deg, transparent, ${RARITY_COLOR[c.rarity]})`,
+              }}
+            />
+            <span
+              className="h-1.5 w-1.5 rotate-45"
+              style={{ backgroundColor: RARITY_COLOR[c.rarity] }}
+            />
+            <span
+              className="h-px flex-1"
+              style={{
+                background: `linear-gradient(270deg, transparent, ${RARITY_COLOR[c.rarity]})`,
+              }}
+            />
+          </span>
+
+          <div className="flex flex-wrap items-center justify-center gap-1.5">
             {/* O selo de tipo vira LINK pro hub daquele tipo.
                 Nao e enfeite de navegacao: e o que liga esta folha as outras
                 do mesmo tipo sem passar pela lista filtrada, e o que da ao
@@ -232,11 +274,11 @@ export default async function CreaturePage({ params }: Props) {
               esse molde. No lugar dele entra a prosa DERIVADA do dado que esta
               nesta pagina: de onde ele vem, pra onde evolui, o drop mais
               frequente com a chance real, o que o abate paga. Ver `lib/prosa.ts`. */}
-          <p className="max-w-3xl text-[14px] leading-relaxed text-text-dim">
+          <p className="mx-auto max-w-2xl text-[14px] leading-relaxed text-text-dim">
             {resumo.frases.join(" ")}
           </p>
 
-          <dl className="mt-1 grid grid-cols-2 gap-px overflow-hidden rounded-pix border border-line bg-line sm:grid-cols-4">
+          <dl className="mt-2 grid w-full grid-cols-2 gap-px overflow-hidden rounded-pix border border-line bg-line sm:grid-cols-4">
             {[
               { label: "nível de caça", value: c.huntLevel || "—", icon: <IconLevel size={15} /> },
               {

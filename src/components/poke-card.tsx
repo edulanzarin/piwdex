@@ -7,7 +7,7 @@ import { spriteUrl } from "@/lib/sprites";
 import { Chip, IconCoin, IconPin, Sprite, Tooltip } from "@/components/ui";
 import { TypeBadge, TypeIcon } from "@/components/type-icon";
 import { IconBag, IconLevel, IconScale, IconTm, IconXp, STAT_ICONS } from "@/components/game-icons";
-import { ACQ_LABEL, RARITY_LABEL, ROLE_LABEL, STAT_LABEL, compact } from "@/lib/labels";
+import { ACQ_LABEL, RARITY_LABEL, ROLE_LABEL, STAT_LABEL, TYPE_LABEL, compact } from "@/lib/labels";
 
 /**
  * Card de especie da Pokedex.
@@ -189,16 +189,34 @@ export function PokeCard({
              eixo do meio; alinhar a esquerda deixaria o medalhao sozinho no
              centro brigando com o texto encostado na margem. */}
       <div className="relative flex flex-col items-center gap-1 border-t border-line bg-surface-2/70 px-3.5 pt-6 pb-3.5 text-center transition-colors duration-200 group-hover:bg-surface-3/70">
+        {/* Os DISCOS de tipo, montados na costura.
+            Eles substituem a fila de selos com a palavra escrita que ficava
+            abaixo do nome. A palavra custava caro: "Venenoso" ao lado de "Planta"
+            gastava a linha inteira da placa, e o tipo e a informacao que se
+            reconhece por COR e SIMBOLO antes de qualquer leitura — quem usa a dex
+            sabe o que e o disco roxo. Escrever era ensinar de novo, todo card,
+            uma coisa que a pessoa ja sabe na terceira tela.
+            Bitipo desenha dois discos; o segundo entra um pouco menor e atras,
+            porque a ORDEM importa (o primeiro tipo manda no STAB). */}
         <span
           aria-hidden="true"
-          className={cn(
-            "absolute -top-5 left-1/2 grid h-10 w-10 -translate-x-1/2 place-items-center",
-            "rounded-pill border-2 bg-surface shadow-elev-2",
-            "transition-transform duration-300 ease-out motion-safe:group-hover:scale-110",
-          )}
-          style={{ borderColor: TYPE_COLOR[e.type1], color: TYPE_COLOR[e.type1] }}
+          className="absolute -top-5 left-1/2 flex -translate-x-1/2 items-center"
         >
-          <TypeIcon type={e.type1} size={20} />
+          {[e.type1, e.type2].filter(Boolean).map((t, i) => (
+            <span
+              key={t as string}
+              className={cn(
+                "grid place-items-center rounded-pill border-2 bg-surface shadow-elev-2",
+                "transition-transform duration-300 ease-out",
+                i === 0 ? "h-10 w-10" : "-ml-2.5 h-8 w-8",
+                i === 0 ? "z-10 motion-safe:group-hover:scale-110" : "motion-safe:group-hover:scale-105",
+              )}
+              style={{ borderColor: TYPE_COLOR[t!], color: TYPE_COLOR[t!] }}
+              title={TYPE_LABEL[t!]}
+            >
+              <TypeIcon type={t!} size={i === 0 ? 20 : 16} />
+            </span>
+          ))}
         </span>
 
         <span
@@ -213,14 +231,6 @@ export function PokeCard({
         >
           {e.name}
         </h3>
-        {/* O segundo tipo continua visivel: o medalhao so cabe um, e monotipo e
-            bitipo e a diferenca que muda a caçada inteira. Quando ha dois, os
-            dois aparecem — o medalhao nao substitui a informacao, ele destaca a
-            principal. */}
-        <div className="flex flex-wrap justify-center gap-1.5 pt-1">
-          <TypeBadge type={e.type1} />
-          {e.type2 ? <TypeBadge type={e.type2} /> : null}
-        </div>
       </div>
 
       {/* ---- o bloco de DADO, que e o motivo de esta grade existir ---- */}

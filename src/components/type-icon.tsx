@@ -109,9 +109,14 @@ export function TypeBadge({
     <span
       style={{ borderColor: `${color}5c`, backgroundColor: `${color}1f`, color }}
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-[var(--radius-xs)] border whitespace-nowrap",
+        "inline-flex items-center gap-1.5 border whitespace-nowrap",
         size === "xs" ? "h-6 px-2 text-[11px]" : "h-7 px-2.5 text-[12px]",
         "font-medium tracking-wide",
+        // Com rotulo e uma PASTILHA (retangulo de canto miudo); sem rotulo e um
+        // DISCO. Nao e capricho: um quadrado de 28px com um glifo dentro le como
+        // botao de barra de ferramentas, e um disco le como emblema. O selo de
+        // tipo sem palavra e emblema — ele identifica, nao aciona.
+        showLabel ? "rounded-[var(--radius-xs)]" : "rounded-pill",
         !showLabel && (size === "xs" ? "w-6 justify-center px-0" : "w-7 justify-center px-0"),
         className,
       )}
