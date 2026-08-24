@@ -27,16 +27,7 @@ import { TypeBadge, TypeIcon, TypeMultChip } from "@/components/type-icon";
 import { caminhoDoTipo } from "@/lib/tipo-url";
 import { caminhoDaRaridade } from "@/lib/raridade-url";
 import { CategoryIcon, IconAtk, IconBag, IconDef as IconDefShield, IconLevel, IconScale, IconTarget, IconTm, IconWeak, IconXp, STAT_ICONS, SeloRaro } from "@/components/game-icons";
-import {
-  CATEGORY_LABEL,
-  RARITY_LABEL,
-  ROLE_LABEL,
-  STAT_LABEL,
-  TYPE_LABEL,
-  compact as gold,
-  multWord,
-  num,
-} from "@/lib/labels";
+import { CATEGORY_LABEL, RARITY_LABEL, ROLE_LABEL, STAT_LABEL, TYPE_LABEL, comInicial, compact as gold, multWord, num } from "@/lib/labels";
 
 // As ~910 fichas sao CACHEAVEIS, e isso e o maior ganho tecnico do site.
 //
@@ -200,7 +191,7 @@ export default async function CreaturePage({ params }: Props) {
         <div className="flex min-w-0 w-full flex-col items-center gap-3">
           <span className="pix text-[11px] tracking-[0.18em] text-text-mute">
             #{String(c.pokeId).padStart(3, "0")}
-            {c.area ? ` · ${c.area}` : ""}
+            {c.area ? ` · ${comInicial(c.area)}` : ""}
           </span>
 
           {/* O nome em corpo de CENA, com tracking largo. Ele nao usa o italico do
@@ -254,14 +245,20 @@ export default async function CreaturePage({ params }: Props) {
                 href={caminhoDoTipo(t!)}
                 aria-label={`Ver todos os pokémon de ${TYPE_LABEL[t!]}`}
                 title={TYPE_LABEL[t!]}
+                /* Os dois do MESMO tamanho.
+                   O segundo saia menor pra marcar que a ORDEM importa (o
+                   primeiro tipo e o que da STAB). Mas a ordem ja esta dita pela
+                   POSICAO — o primeiro e o que vem primeiro —, entao o tamanho
+                   repetia a mesma informacao por outro canal. Informacao repetida
+                   nao reforça: quem nao conhece a regra le como acidente, e foi
+                   exatamente essa a leitura. */
                 className={cn(
-                  "grid place-items-center rounded-pill border-2 bg-surface",
+                  "grid h-11 w-11 place-items-center rounded-pill border-2 bg-surface",
                   "transition-transform duration-200 motion-safe:hover:scale-110",
-                  i === 0 ? "h-11 w-11" : "h-9 w-9",
                 )}
                 style={{ borderColor: TYPE_COLOR[t!], color: TYPE_COLOR[t!] }}
               >
-                <TypeIcon type={t!} size={i === 0 ? 22 : 18} />
+                <TypeIcon type={t!} size={22} />
               </Link>
             ))}
           </div>
@@ -404,14 +401,19 @@ export default async function CreaturePage({ params }: Props) {
               );
             })}
           </div>
-          {/* So o DADO. A frase que explicava "IV e Quality sao por individuo,
-              o catalogo so define a base" saiu — quem joga ja sabe, e quem nao
-              sabe nao aprende num rodape de painel. */}
-          <Note flush icon={null} className="mt-3">
-            Nível 100, IV perfeito:{" "}
-            <span className="text-text-dim tabular">{perfect.sum}</span> de soma,{" "}
-            <span className="text-accent tabular">{perfect.power}</span> de Poder.
-          </Note>
+          {/* A nota de teto ("Nível 100, IV perfeito: 702 de soma, 702 de Poder")
+              saiu daqui.
+
+              Ela dizia o teto teorico da especie, e o problema nao era o dado —
+              era o CONTEXTO: aparecia como rodape do painel de stats BASE, que
+              mostra outra coisa (o valor do catalogo, sem nivel e sem IV). Dois
+              conjuntos de numeros no mesmo painel sem nada dizendo que sao
+              escalas diferentes, e os dois numeros iguais lado a lado ("702 e
+              702") reforçavam a confusao.
+
+              O lugar dela e a CALCULADORA, que existe justamente pra projetar
+              nivel e IV — e la ela ja aparece, com os controles ao lado que
+              explicam de onde o numero vem. */}
         </Panel>
 
         {/* ---- defesa ---- */}
@@ -582,7 +584,7 @@ export default async function CreaturePage({ params }: Props) {
                   <IconPin size={16} className="shrink-0 text-ok" />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-[14px] text-text">{h.name}</span>
-                    <span className="text-[12px] text-text-mute">{h.area}</span>
+                    <span className="text-[12px] text-text-mute">{comInicial(h.area)}</span>
                   </span>
                   <span className="pix shrink-0 text-[11px] text-text-dim tabular">nv {h.level}</span>
                 </li>

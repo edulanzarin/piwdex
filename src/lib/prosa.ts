@@ -19,7 +19,7 @@
 
 import type { DB } from "./data";
 import { buildItemEntry, killsPerUnit, cardSpeciesName, tmDiskType } from "./items";
-import { RARITY_LABEL, TYPE_LABEL } from "./labels";
+import { RARITY_LABEL, TYPE_LABEL, comInicial } from "./labels";
 import type { Creature, Item } from "./types";
 
 export interface Resumo {
@@ -35,7 +35,7 @@ const pt = (n: number): string => n.toLocaleString("pt-BR");
 const pct = (v: number): string =>
   (v >= 10 ? v.toFixed(0) : v >= 1 ? v.toFixed(1) : v.toFixed(2)).replace(".", ",") + "%";
 
-const area = (a: string): string => a.charAt(0).toUpperCase() + a.slice(1);
+const area = comInicial;
 
 /** Junta com virgula e "e" — lista de dois ou tres areas nao pode sair "a, b". */
 function lista(itens: string[]): string {

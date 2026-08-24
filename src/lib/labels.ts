@@ -227,3 +227,18 @@ export function compact(n: number): string {
   if (abs >= 1000) return cut(1000, "k");
   return String(n);
 }
+
+/**
+ * Inicial maiuscula.
+ *
+ * O catalogo do jogo entrega area em caixa baixa (`kanto`, `johto`), e isso e
+ * dado cru — nao decisao de escrita. Nome proprio de regiao aparece em frase
+ * ("aparece em Kanto") e em rotulo ("KANTO"), entao a normalizacao tem que
+ * acontecer na BORDA da tela, e nao no dado.
+ *
+ * Existia so dentro de `prosa.ts`, privado. Por isso a prosa dizia "Kanto" e o
+ * painel de onde caçar, na MESMA tela, dizia "kanto" — a mesma palavra com duas
+ * grafias a dez centimetros de distancia.
+ */
+export const comInicial = (t: string): string =>
+  t ? t.charAt(0).toUpperCase() + t.slice(1) : t;

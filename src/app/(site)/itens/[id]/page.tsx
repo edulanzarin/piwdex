@@ -40,12 +40,7 @@ import {
   ItemCategoryIcon,
 } from "@/components/game-icons";
 import { pctText } from "@/components/item-card";
-import {
-  CATEGORY_LABEL,
-  ITEM_CATEGORY_LABEL,
-  ITEM_ORIGIN_LABEL,
-  compact as gold,
-} from "@/lib/labels";
+import { CATEGORY_LABEL, ITEM_CATEGORY_LABEL, ITEM_ORIGIN_LABEL, comInicial, compact as gold } from "@/lib/labels";
 
 // As ~910 fichas sao CACHEAVEIS, e isso e o maior ganho tecnico do site.
 //
@@ -518,7 +513,7 @@ export default async function ItemPage({ params }: Props) {
                 >
                   <IconPin size={16} className="shrink-0 text-ok" />
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[14px] text-text">{a.area}</span>
+                    <span className="block truncate text-[14px] text-text">{comInicial(a.area)}</span>
                     <span className="block truncate text-[12px] text-text-mute">
                       {[...a.especies].slice(0, 3).join(", ")}
                       {a.especies.size > 3 ? ` +${a.especies.size - 3}` : ""}

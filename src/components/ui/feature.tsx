@@ -39,13 +39,16 @@ export function FullBleed({
   children,
   className,
   style,
+  id,
 }: {
   children: ReactNode;
   className?: string;
   style?: CSSProperties;
+  id?: string;
 }) {
   return (
     <div
+      id={id}
       className={cn("relative left-1/2 w-screen -translate-x-1/2", className)}
       style={style}
     >
@@ -135,6 +138,8 @@ export interface FeatureSectionProps {
   flip?: boolean;
   /** conteudo extra abaixo das acoes (numeros, chips) */
   footer?: ReactNode;
+  /** ancora da secao — a faixa e o alvo de link do menu quando ela abre a lista */
+  id?: string;
   className?: string;
 }
 
@@ -147,10 +152,11 @@ export function FeatureSection({
   tint,
   flip,
   footer,
+  id,
   className,
 }: FeatureSectionProps) {
   return (
-    <FullBleed className={cn("overflow-x-clip py-14 sm:py-20", className)}>
+    <FullBleed id={id} className={cn("scroll-mt-24 overflow-x-clip py-14 sm:py-20", className)}>
       {/* O brilho da faixa: um circulo enorme e muito diluido atras da arte. E o
           que da COR a cena sem pintar um retangulo — retangulo colorido volta a
           ser card, que e o que esta secao existe pra deixar de ser. */}

@@ -4,9 +4,7 @@ import Link from "next/link";
 import { getDexPayload } from "@/lib/dex-data";
 import { agora, fecharPiso } from "@/lib/pacing";
 import {
-  Badge,
   ButtonLink,
-  RuleTitle,
   DisplayTitle,
   Eyebrow,
   FeatureSection,
@@ -137,67 +135,9 @@ export default async function HomePage() {
             className="anim-in max-w-xl text-[17px] leading-relaxed text-text-dim"
             style={{ "--d": "150ms" } as CSSProperties}
           >
-            Stats, moveset, evolução e a chance{" "}
-            <span style={{ color: "var(--color-t-hunt)" }}>real</span> de cada drop. Onde
-            farmar cada item, em que área cada pokémon aparece, e o filtro que leva você
-            até ele em dois cliques.
+            Stats, drops, evolução e onde caçar cada espécie do jogo.
           </p>
-
-          {/* Os NUMEROS do catálogo, como faixa e não como painel.
-
-              Eles moravam num card de vidro ao lado, e o card era o problema: ele
-              disputava a metade direita da tela com a arte do wallpaper — que é o
-              que dá o clima —, e transformava um argumento de credibilidade
-              ("este catálogo está vivo") num widget de dashboard.
-
-              Como faixa fina embaixo do parágrafo, eles fazem o que vieram fazer:
-              provam a escala em uma linha, sem pedir uma coluna inteira. E o selo
-              de AO VIVO cola no primeiro número, que é o que ele qualifica.
-
-              O botão saiu junto: a primeira cena de ferramenta começa logo abaixo,
-              com arte grande e botão próprio. Um botão aqui mandaria pro mesmo
-              lugar que o scroll já entrega. */}
-          <div className="anim-in flex flex-wrap items-end gap-x-8 gap-y-4 pt-2" style={{ "--d": "210ms" } as CSSProperties}>
-            {[
-              { n: counts.creatures, label: "espécies", cor: "var(--color-t-dex)", selo: true },
-              { n: counts.items, label: "itens", cor: "var(--color-t-itens)" },
-              { n: counts.hunts, label: "locais de caça", cor: "var(--color-t-hunt)" },
-              { n: counts.drops, label: "registros de drop", cor: "var(--color-t-meta)" },
-            ].map((k) => (
-              <div key={k.label} className="flex flex-col gap-1">
-                <span className="flex items-center gap-2">
-                  <span
-                    className="num text-[28px] leading-none font-bold sm:text-[32px]"
-                    style={{ color: k.cor }}
-                  >
-                    {k.n.toLocaleString("pt-BR")}
-                  </span>
-                  {k.selo ? (
-                    <Badge
-                      tone={catalog.live ? "ok" : "warn"}
-                      pulse={catalog.live}
-                      title={
-                        catalog.live
-                          ? `Catálogo do jogo, publicado em ${catalog.generatedAt}`
-                          : `Fonte indisponível (${catalog.error ?? "motivo desconhecido"})`
-                      }
-                    >
-                      {catalog.live ? "AO VIVO" : "SNAPSHOT"}
-                    </Badge>
-                  ) : null}
-                </span>
-                <span className="pix text-[10px] tracking-[0.14em] text-text-mute">
-                  {k.label}
-                </span>
-              </div>
-            ))}
-          </div>
         </div>
-
-        {/* ---- o card do catálogo ----
-            Vidro sobre a parte movimentada da arte: a superfície separa o número
-            do neon atrás, coisa que sombra de texto sozinha não faria nesse
-            trecho (desvio de luminância 44). */}
       </section>
 
       {/* ================= as ferramentas, em CENAS =================
@@ -215,21 +155,20 @@ export default async function HomePage() {
           A revelação entra no scroll, e não na carga: animar o que está abaixo da
           dobra no carregamento é pagar o custo da animação enquanto ninguém
           olha. */}
-      {/* Titulo de CAPITULO, e nao de lista: fio dos dois lados, centralizado,
-          com a pokébola de marca em cima. Ele para a página, e por isso é o
-          ÚNICO da home — usado em toda seção, vira ritmo de slides e nada mais
-          parece importante. */}
-      <RuleTitle
-        id="ferramentas"
-        className="scroll-mt-24 pt-6"
-        emblem={<Pokeball size={26} className="text-[var(--color-t-dex)]" />}
-      >
-        Ferramentas
-      </RuleTitle>
+      {/* Sem título de capítulo antes das cenas.
+
+          O "FERRAMENTAS" com fio dos dois lados anunciava o que a primeira cena
+          já diz sozinha: ela chega com arte de 340px, nome em corpo display e
+          botão próprio. Um rótulo antes disso é a página explicando o que vem a
+          seguir para quem já está vendo o que vem a seguir.
+
+          A âncora `#ferramentas` continua existindo — ela desceu pra primeira
+          cena, porque é pra lá que o link do menu tem que levar. */}
 
       {FERRAMENTAS.map((t, i) => (
         <FeatureSection
           key={t.href}
+          id={i === 0 ? "ferramentas" : undefined}
           tint={t.cor}
           /* A alternância é o par/ímpar do índice, e não um campo no registro:
              de que lado a arte cai é decisão de LAYOUT desta página, e cravar
