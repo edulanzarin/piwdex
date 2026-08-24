@@ -139,31 +139,29 @@ export default async function HomePage() {
             até ele em dois cliques.
           </p>
 
-          {/* O herói não tinha saída: a pessoa lia e precisava rolar pra achar a
-              primeira ferramenta. Dois caminhos, na hierarquia certa — a Pokédex é
-              o que a maioria vem buscar. Largura cheia no estreito: lado a lado
-              eles ficavam com larguras diferentes (o rótulo é que mandava), e dois
-              botões de tamanhos distintos empilhados leem como hierarquia que não
-              existe. */}
+          {/* UM caminho, e nao dois.
+              O herói tinha "abrir a pokédex" e "ver as ferramentas" lado a lado.
+              Com as ferramentas virando cena logo abaixo — e a Pokédex sendo a
+              PRIMEIRA delas, com botão próprio e arte grande —, o primeiro botão
+              mandava pro mesmo lugar que a seção seguinte já entrega melhor. Dois
+              caminhos pro mesmo destino não são escolha, são hesitação: quem lê
+              para pra decidir entre opções que dão no mesmo. */}
           <div
             className="anim-in flex w-full flex-col items-stretch gap-2.5 sm:w-auto sm:flex-row sm:items-center"
             style={{ "--d": "210ms" } as CSSProperties}
           >
             <ButtonLink
-              href="/dex"
+              href="#ferramentas"
               variant="primary"
               size="lg"
               className="sheen group"
               iconRight={
                 <IconChevronRight
                   size={16}
-                  className="transition-transform duration-150 group-hover:translate-x-0.5"
+                  className="transition-transform duration-150 group-hover:translate-y-0.5 group-hover:rotate-90"
                 />
               }
             >
-              abrir a pokédex
-            </ButtonLink>
-            <ButtonLink href="#ferramentas" size="lg">
               ver as ferramentas
             </ButtonLink>
           </div>
@@ -283,9 +281,15 @@ export default async function HomePage() {
               <Sprite
                 src={`/images/icons/${t.arte}.png`}
                 alt=""
+                size={340}
                 /* A arte estoura a faixa: peça contida na própria caixa lê como
                    conteúdo, peça que vaza lê como cena. */
-                className="[--sprite:180px] drop-shadow-[0_24px_48px_rgba(0,0,0,0.55)] sm:[--sprite:260px]"
+                /* A arte da cena e GRANDE: 220 no estreito, 340 no largo.
+                   Ela estava saindo em 64px — o `[--sprite:...]` era ignorado
+                   porque a primitiva escrevia a variavel no style inline do mesmo
+                   elemento, e inline vence classe. Corrigido em `sprite.tsx`; o
+                   tamanho pedido aqui agora acontece de fato. */
+                className="[--sprite:220px] drop-shadow-[0_30px_60px_rgba(0,0,0,0.6)] sm:[--sprite:340px]"
                 fallback={<t.Icone size={120} strokeWidth={1.2} style={{ color: t.cor }} />}
               />
             </Parallax>
@@ -294,11 +298,8 @@ export default async function HomePage() {
             <ButtonLink
               href={t.href}
               size="lg"
-              className="border-transparent"
-              style={{
-                backgroundColor: t.cor,
-                color: "var(--color-bg)",
-              }}
+              variant="solido"
+              style={{ backgroundColor: t.cor }}
               iconRight={<IconChevronRight size={16} />}
             >
               Abrir {t.nome}

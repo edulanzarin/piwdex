@@ -92,6 +92,9 @@ export function Amostra() {
         <div className="flex flex-col gap-4">
           <Fileira>
             <Button variant="primary">Principal</Button>
+            <Button variant="solido" style={{ backgroundColor: "var(--color-t-dex)" }}>
+              Solido
+            </Button>
             <Button variant="neon">Neon</Button>
             <Button variant="outline">Contorno</Button>
             <Button variant="ghost">Fantasma</Button>

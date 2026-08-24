@@ -49,7 +49,11 @@ export function SiteNav() {
         onClick={onNav}
         aria-current={on ? "page" : undefined}
         className={cn(
-          "pix group relative flex items-center px-3 py-2 text-[12px] transition-colors",
+          // Subiu de 12 pra 13px e de px-3 pra px-4. Numa barra que agora abre
+          // pra uma pagina de CENA, item miudo e apertado le como menu de
+          // sistema — e o menu e a primeira coisa que a pessoa ve, entao ele
+          // define a expectativa do resto antes de qualquer conteudo aparecer.
+          "pix group relative flex items-center px-4 py-2 text-[13px] transition-colors",
           on ? "text-text" : "text-text-mute hover:text-text-dim",
         )}
       >
@@ -60,8 +64,12 @@ export function SiteNav() {
         <span
           aria-hidden="true"
           className={cn(
-            "absolute inset-x-2 -bottom-px h-0.5 origin-center transition-transform duration-150 ease-out",
-            on ? "scale-x-100" : "scale-x-0 group-hover:scale-x-50",
+            // A faixa corre o item INTEIRO (`inset-x-0`) e engrossou pra 3px. A
+            // versao anterior recuava 8px de cada lado e ficava com 2px: num
+            // trilho de seis, um tracinho curto e fino no meio de palavras
+            // parecidas obriga o olho a procurar qual esta aceso.
+            "absolute inset-x-0 bottom-0 h-[3px] origin-center transition-transform duration-150 ease-out",
+            on ? "scale-x-100" : "scale-x-0 group-hover:scale-x-60",
           )}
           style={{
             backgroundColor: f.cor,
@@ -73,8 +81,14 @@ export function SiteNav() {
   };
 
   return (
-    <header className="sticky top-0 z-40 border-b border-white/10 bg-bg/92 backdrop-blur-xl backdrop-saturate-150 shadow-[inset_0_-1px_0_0_rgb(255_255_255/0.04)]">
-      <div className="mx-auto flex h-14 w-full max-w-[1600px] items-center gap-1 px-3 sm:px-5">
+    /* A barra ficou mais ALTA (56 -> 64) e mais OPACA (92% -> 97%).
+       As duas mudam pela mesma razao, e ela e a pagina nova: com faixas de cena
+       sangrando ate a borda e arte grande passando por baixo, uma barra baixa e
+       translucida deixava o topo da tela virar sopa — a arte da secao seguinte
+       aparecia atras do menu e as duas competiam. Barra que flutua sobre cena
+       precisa ser superficie, nao vidro. */
+    <header className="sticky top-0 z-40 border-b border-white/10 bg-bg/97 backdrop-blur-xl backdrop-saturate-150 shadow-[inset_0_-1px_0_0_rgb(255_255_255/0.04)]">
+      <div className="mx-auto flex h-16 w-full max-w-[1600px] items-center gap-1 px-4 sm:px-6">
         <Link href="/" className="group mr-3 flex shrink-0 items-center gap-2">
           {/* A bola e VERMELHA — ela e uma pokebola, e essa e a unica cor de marca
               que sobrou depois que o roxo saiu do tema. Ela BALANCA no hover: a
@@ -86,7 +100,7 @@ export function SiteNav() {
           {/* `normal-case`: a marca e PIWdex — PIW em caixa alta (as iniciais do
               jogo) e "dex" em caixa baixa. O `.pix` poe caixa alta em tudo, entao
               aqui ele e desligado e a palavra vai literal. */}
-          <span className="pix text-[15px] normal-case text-text">
+          <span className="pix text-[17px] normal-case tracking-normal text-text">
             PIW<span className="text-accent">dex</span>
           </span>
         </Link>

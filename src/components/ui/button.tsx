@@ -12,55 +12,67 @@ import { cn } from "@/lib/cn";
  * layout esta errado.
  */
 
-type Variant = "primary" | "neon" | "outline" | "ghost" | "danger";
+type Variant = "primary" | "neon" | "solido" | "outline" | "ghost" | "danger";
 type Size = "sm" | "md" | "lg";
 
 /**
- * As variantes, e a hierarquia que elas passaram a ter.
+ * As variantes, e o erro que a versao solida cometeu.
  *
- * Antes as cinco eram a mesma receita com cores diferentes: fundo translucido,
- * borda da mesma cor, halo neon. Cinco botoes igualmente discretos numa tela nao
- * formam hierarquia — a acao principal nao ganhava de ninguem, e a tela ficava
- * sem um lugar obvio pra clicar.
+ * A passada anterior fez `primary` ser um preenchimento CHEIO de `--color-accent`,
+ * buscando hierarquia. Nao funcionou, e o motivo estava escrito no proprio token:
+ * o acento e um aco **quase neutro de proposito** — ele marca estado e sai da
+ * frente, pra a cor com significado (tipo, raridade, ferramenta) ter espaco.
  *
- * Agora `primary` e SOLIDO: fundo cheio, texto escuro, elevacao de verdade. Ele
- * e o unico assim de proposito, e e o que faz os outros quatro poderem ser
- * quietos sem sumirem. O halo neon saiu da superficie parada e virou estado — um
- * botao nao precisa acender pra existir, precisa pra responder.
+ * Cor quase neutra em area cheia nao vira destaque, vira BORRAO CINZA. Preenchimento
+ * solido so funciona com matiz saturado; com um cinza-azulado ele le como botao
+ * desabilitado de sistema operacional.
+ *
+ * A saida veio da referencia: fio fino, fundo quase transparente, caixa alta com
+ * tracking largo. O que da presenca ali nao e area de cor, e PRECISAO — a borda de
+ * 1px, o espaco entre as letras e o respiro interno generoso. Vale pro acento
+ * neutro justamente porque nao depende de saturacao pra existir.
+ *
+ * `solido` fica pra quando HA matiz de verdade: as cenas passam a cor da ferramenta
+ * por `style`, e vermelho, verde e ambar cheios funcionam onde o aco nao funcionava.
  */
 const VARIANT: Record<Variant, string> = {
   primary:
-    "bg-accent text-[#0c0e14] border-transparent font-semibold shadow-elev-2 " +
-    "hover:bg-[color-mix(in_oklab,var(--color-accent)_88%,white)] hover:shadow-elev-3 " +
-    "active:bg-[color-mix(in_oklab,var(--color-accent)_82%,black)] active:shadow-elev-1",
+    "border-accent/45 bg-accent/8 text-accent " +
+    "hover:border-accent/80 hover:bg-accent/16 hover:text-text " +
+    "active:bg-accent/24",
   neon:
-    "bg-neon text-[#06201f] border-transparent font-semibold shadow-elev-2 " +
-    "hover:bg-[color-mix(in_oklab,var(--color-neon)_88%,white)] hover:shadow-elev-3 " +
-    "active:bg-[color-mix(in_oklab,var(--color-neon)_82%,black)] active:shadow-elev-1",
+    "border-neon/45 bg-neon/8 text-neon " +
+    "hover:border-neon/80 hover:bg-neon/16 " +
+    "active:bg-neon/24",
+  solido:
+    // Sem cor propria: quem usa passa `style={{ backgroundColor }}`. O texto sai
+    // escuro porque toda cor de ferramenta desta paleta e clara o bastante pra
+    // pedir isso, e a sombra da o peso que o fio fino nao precisa ter.
+    "border-transparent text-[color:var(--color-bg)] font-semibold shadow-elev-2 " +
+    "hover:brightness-108 hover:shadow-elev-3 active:brightness-95 active:shadow-elev-1",
   outline:
-    "bg-surface-2/60 text-text-dim border-line hover:text-text hover:border-line-strong " +
-    "hover:bg-surface-2 active:bg-surface-3 shadow-elev-1 hover:shadow-elev-2",
+    "border-line bg-transparent text-text-dim " +
+    "hover:border-line-strong hover:bg-surface-2/60 hover:text-text active:bg-surface-3",
   ghost:
-    "bg-transparent text-text-dim border-transparent hover:text-text hover:bg-surface-2/70 " +
-    "active:bg-surface-3",
+    "border-transparent bg-transparent text-text-mute " +
+    "hover:text-text hover:bg-surface-2/60 active:bg-surface-3",
   danger:
-    "bg-danger/14 text-danger border-danger/35 hover:bg-danger/22 hover:border-danger/60 " +
-    "active:bg-danger/30",
+    "border-danger/40 bg-danger/8 text-danger " +
+    "hover:border-danger/75 hover:bg-danger/18 active:bg-danger/26",
 };
 
 /**
- * O degrau vale pro MOUSE; no dedo ele sobe.
+ * O respiro HORIZONTAL subiu muito mais que a altura, e isso e o desenho.
  *
- * `pointer-coarse` e a pergunta certa — "quem aponta e um dedo?" —, nao a
- * largura da janela: desktop com a janela estreita continua no mouse e nao
- * precisa de 44px, tablet grande com toque precisa. O enum continua fechado (o
- * chamador nao escolhe altura); o que muda e o valor de cada degrau por
- * apontador, e isso vive AQUI, num lugar so.
+ * Botao de fio fino vive da proporcao: com padding curto, o rotulo encosta na
+ * borda e a peca le como campo de formulario. Com o dobro de folga dos lados, o
+ * mesmo fio le como botao de site caro. E onde o tracking entra junto — caixa
+ * alta espacada precisa da folga, senao a ultima letra bate na borda.
  */
 const SIZE: Record<Size, string> = {
-  sm: "h-8 px-3 text-[13px] gap-1.5 rounded-[var(--radius-xs)] pointer-coarse:h-11 pointer-coarse:px-4",
-  md: "h-9.5 px-4 text-[14px] gap-2 rounded-pix pointer-coarse:h-11 pointer-coarse:px-5",
-  lg: "h-11 px-5 text-[15px] gap-2 rounded-pix pointer-coarse:h-12 pointer-coarse:px-6",
+  sm: "h-8 px-4 text-[11px] tracking-[0.11em] gap-1.5 rounded-[var(--radius-xs)] pointer-coarse:h-11 pointer-coarse:px-5",
+  md: "h-10 px-6 text-[12px] tracking-[0.12em] gap-2 rounded-pix pointer-coarse:h-11 pointer-coarse:px-7",
+  lg: "h-12 px-8 text-[13px] tracking-[0.13em] gap-2.5 rounded-pix pointer-coarse:h-13 pointer-coarse:px-9",
 };
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -82,7 +94,9 @@ function shell(variant: Variant, size: Size, block?: boolean, className?: string
     "inline-flex select-none items-center justify-center whitespace-nowrap",
     // O raio nao mora aqui: ele vem do DEGRAU, porque botao pequeno com o mesmo
     // raio do grande vira pastilha. Ver `SIZE`.
-    "border font-medium uppercase tracking-wide",
+    // `tracking` sai do DEGRAU e nao daqui: botao pequeno com o mesmo espacamento
+    // do grande fica com o rotulo esparramado numa caixa curta.
+    "border font-semibold uppercase",
     // O botao so tinha `transition-colors`, e cor de hover NAO EXISTE no dedo:
     // no celular o toque nao produzia resposta nenhuma ate a tela mudar, o que
     // le como "nao funcionou" e faz a pessoa tocar de novo. Um pixel de

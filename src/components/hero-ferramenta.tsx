@@ -1,26 +1,33 @@
 import type { CSSProperties, ReactNode } from "react";
-import { Sprite } from "@/components/ui";
+import { DisplayTitle, Eyebrow, Sprite } from "@/components/ui";
 import { ferramentaDe } from "@/lib/ferramentas";
 
 /**
  * A faixa de topo de uma ferramenta.
  *
- * O que existia antes era um ROTULO: arte de 44px, a palavra na cor da
- * ferramenta, e o resto da linha vazio. Abrir a Hunt e abrir a Meta davam a
- * mesma imagem com uma palavra trocada, e a tela que faz a conta mais pesada do
- * site comecava parecendo o cabecalho de um documento.
+ * ## O que ela responde
  *
- * A faixa agora responde as tres perguntas de quem acabou de chegar, na ordem
- * em que elas aparecem: onde eu estou (arte grande, com a cor pintando a faixa
- * inteira), como isso se chama (o titulo aceso) e o que isso faz (uma frase, a
- * `linha` da ferramenta). O quarto slot, `marcas`, e opcional e serve pra tela
- * dizer o TAMANHO do que ela tem — "482 espécies" prova o catalogo antes de
- * qualquer rolagem.
+ * As tres perguntas de quem acabou de chegar, na ordem em que aparecem: onde eu
+ * estou (a arte grande, com a cor pintando a faixa), como isso se chama (o nome
+ * em corpo de cena) e o que isso faz (uma frase, a `linha` da ferramenta). O
+ * quarto slot, `marcas`, e opcional e diz o TAMANHO do que a tela tem — "482
+ * especies" prova o catalogo antes de qualquer rolagem.
  *
- * A decoracao toda sai de `--tint`, escrita aqui uma vez. Wash, grade, facho,
- * cantoneira, halo, titulo e o fio de baixo leem essa variavel — trocar a cor da
- * ferramenta em `lib/ferramentas.ts` repinta a faixa inteira, e nao ha um hex
- * sequer neste arquivo.
+ * ## O que saiu, e por que
+ *
+ * A versao anterior vestia o dialeto de console-terminal: quatro cantoneiras de
+ * mira, um facho atravessando a faixa, LED quadrado piscando, grade de fundo. Era
+ * coerente enquanto o site inteiro tinha canto reto e brilho neon como unico
+ * recurso de profundidade.
+ *
+ * Com a home virando CENA — faixa que sangra, arte grande, titulo display — essa
+ * faixa passou a ser a peca que denuncia a passada antiga: a pessoa vinha de uma
+ * apresentacao e chegava numa mira de jogo de tiro. Enfeite que nao pertence nao
+ * le como "estilo diferente", le como tela que ninguem terminou.
+ *
+ * O que ficou e o que carrega significado: a cor da ferramenta pintando o
+ * ambiente, e a arte. Tudo sai de `--tint`, escrita uma vez — trocar a cor em
+ * `lib/ferramentas.ts` repinta a faixa, e nao ha um hex sequer aqui.
  */
 export function HeroFerramenta({
   href,
@@ -39,69 +46,53 @@ export function HeroFerramenta({
 
   return (
     <header
-      className="hero panel px-4 py-5 sm:px-6 sm:py-7"
+      className="panel relative overflow-hidden px-5 py-6 sm:px-8 sm:py-9"
       style={
         {
           "--tint": f.cor,
-          // A borda do painel entra na cor da ferramenta, senao a faixa fica
-          // pintada por dentro e cinza na moldura.
-          borderColor: `color-mix(in oklab, ${f.cor} 30%, var(--color-line))`,
+          borderColor: `color-mix(in oklab, ${f.cor} 22%, var(--color-line))`,
         } as CSSProperties
       }
     >
-      {/* O facho que atravessa: "console ligado". */}
-      <span className="hero-facho" aria-hidden="true" />
+      {/* O brilho de ambiente, atras da arte. E o mesmo recurso da faixa de cena
+          da home: circulo enorme e muito diluido em vez de retangulo colorido —
+          retangulo pintado volta a ser card com cor, que e o que saiu. */}
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 -z-10"
+        style={{
+          background:
+            `radial-gradient(52% 120% at 12% 50%, color-mix(in oklab, ${f.cor} 18%, transparent), transparent 72%)`,
+        }}
+      />
 
-      {/* As quatro cantoneiras. Cada uma so desenha os DOIS lados do seu canto —
-          quatro cantos marcados leem como mira; quatro caixinhas, como erro. */}
-      <span aria-hidden="true" className="pix-canto top-0 left-0 border-t-2 border-l-2" />
-      <span aria-hidden="true" className="pix-canto top-0 right-0 border-t-2 border-r-2" />
-      <span aria-hidden="true" className="pix-canto bottom-0 left-0 border-b-2 border-l-2" />
-      <span aria-hidden="true" className="pix-canto right-0 bottom-0 border-r-2 border-b-2" />
-
-      <div className="flex flex-wrap items-center gap-4 sm:gap-6">
-        {/* A arte tem tamanho de FIGURA e e o primeiro degrau da entrada. O
-            `anim-in` fica no involucro e o `anim-float` na arte: sao duas
-            animacoes, e duas animacoes no mesmo elemento significam uma so —
-            a ultima classe vence e a outra some sem aviso. */}
+      <div className="flex flex-wrap items-center gap-5 sm:gap-8">
         <span className="anim-in shrink-0" style={{ "--d": "40ms" } as CSSProperties}>
-          <span className="hero-halo anim-float grid place-items-center">
-            <Sprite
-              src={`/images/icons/${f.arte}.png`}
-              alt=""
-              size={88}
-              priority
-              className="[--sprite:64px] sm:[--sprite:88px]"
-              fallback={<Icone size={42} strokeWidth={1.6} style={{ color: f.cor }} />}
-            />
-          </span>
+          <Sprite
+            src={`/images/icons/${f.arte}.png`}
+            alt=""
+            size={104}
+            priority
+            /* A arte cresceu (88 -> 128 no largo). Ela e o "onde eu estou", e num
+               topo que agora tem titulo de cena ao lado, arte de 88 vira selo. */
+            className="[--sprite:84px] drop-shadow-[0_14px_28px_rgba(0,0,0,0.5)] sm:[--sprite:128px]"
+            fallback={<Icone size={56} strokeWidth={1.5} style={{ color: f.cor }} />}
+          />
         </span>
 
-        <div className="flex min-w-0 flex-1 flex-col gap-2">
-          <span
-            className="anim-in pix flex items-center gap-2 text-[10px] text-text-mute"
-            style={{ "--d": "90ms" } as CSSProperties}
-          >
-            {/* O LED e quadrado porque tudo aqui e: canto reto e a regra do tema,
-                e um circulo no meio de uma faixa de cantos retos chama atencao
-                pelo motivo errado. */}
-            <span
-              aria-hidden="true"
-              className="anim-led h-[6px] w-[6px] shrink-0"
-              style={{
-                backgroundColor: f.cor,
-                boxShadow: `0 0 8px 0 ${f.cor}`,
-              }}
-            />
-            ferramenta
+        <div className="flex min-w-0 flex-1 flex-col gap-2.5">
+          <span className="anim-in" style={{ "--d": "90ms" } as CSSProperties}>
+            <Eyebrow tint={`color-mix(in oklab, ${f.cor} 72%, white)`}>{f.chamada}</Eyebrow>
           </span>
 
-          <h1
-            className="anim-in pix tint-glow text-[27px] leading-none sm:text-[35px]"
-            style={{ color: f.cor, "--d": "150ms" } as CSSProperties}
-          >
-            {f.nome}
-          </h1>
+          <span className="anim-in" style={{ "--d": "150ms" } as CSSProperties}>
+            {/* Mesmo tratamento do titulo da cena na home, um degrau menor: e a
+                mesma peca, e a pessoa acabou de vir de la. Corpo diferente pra
+                mesma coisa faz a segunda tela parecer outro site. */}
+            <DisplayTitle as="h1" size="md" tint={f.cor}>
+              {f.nome}
+            </DisplayTitle>
+          </span>
 
           <p
             className="anim-in max-w-2xl text-[14px] leading-relaxed text-text-dim sm:text-[15px]"
@@ -113,7 +104,7 @@ export function HeroFerramenta({
 
         {marcas || acoes ? (
           <div
-            className="anim-in flex shrink-0 items-center gap-2"
+            className="anim-in flex shrink-0 items-center gap-3"
             style={{ "--d": "270ms" } as CSSProperties}
           >
             {marcas}
@@ -121,24 +112,19 @@ export function HeroFerramenta({
           </div>
         ) : null}
       </div>
-
-      {/* O fio de baixo na cor, esmaecendo pra direita: fecha a faixa sem uma
-          borda inteira, que competiria com as cantoneiras. */}
-      <span
-        aria-hidden="true"
-        className="absolute inset-x-0 bottom-0 h-px"
-        style={{ background: `linear-gradient(90deg, ${f.cor}, transparent 62%)` }}
-      />
     </header>
   );
 }
 
 /**
- * A pilula de escala do heroi.
+ * A pilula de escala da faixa.
  *
- * Numero grande em cima, o que ele conta embaixo. E o mesmo argumento do card
- * de catalogo da home, no tamanho de um selo: prova que a ferramenta tem
- * conteudo antes de a pessoa rolar pra ver.
+ * Numero grande em cima, o que ele conta embaixo — o mesmo argumento do bloco de
+ * catalogo da home, no tamanho de um selo.
+ *
+ * O numero vai no MONO (`.num`), como toda coluna de numero do site depois da
+ * troca de familia: a Lexend nao tem digito de largura fixa, e duas marcas lado
+ * a lado com larguras diferentes desalinham a base do rotulo embaixo.
  */
 export function HeroMarca({
   n,
@@ -151,9 +137,9 @@ export function HeroMarca({
   cor?: string;
 }) {
   return (
-    <span className="flex flex-col items-end gap-0.5 border-l border-line/80 py-1 pl-3">
+    <span className="flex flex-col items-end gap-1 border-l border-line/70 py-1 pl-4">
       <span
-        className="text-[20px] leading-none font-bold tabular sm:text-[24px]"
+        className="num text-[22px] leading-none font-bold sm:text-[26px]"
         style={cor ? { color: cor } : undefined}
       >
         {n.toLocaleString("pt-BR")}

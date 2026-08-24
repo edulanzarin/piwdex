@@ -87,14 +87,19 @@ export function Sprite({
   return (
     <span
       className={cn("relative grid shrink-0 place-items-center", className)}
-      /* O tamanho sai por VARIAVEL, nao direto em width/height.
-         Estilo inline vence classe utilitaria, entao com `width: size` cru o
-         chamador nao tinha como encolher a arte numa tela estreita — nem com
-         `!important`. Com a variavel, `size` continua sendo o padrao e quem
-         precisa faz `className="[--sprite:80px] sm:[--sprite:104px]"`. Foi o
-         que destravou o card da home a 320px, onde a arte de 104 mais o botao
-         nao cabiam na mesma linha. */
-      style={{ "--sprite": `${size}px`, width: "var(--sprite)", height: "var(--sprite)" } as CSSProperties}
+      /* O tamanho sai por VARIAVEL, e o padrao vai no FALLBACK da variavel —
+         nao numa declaracao inline dela.
+         A versao anterior escrevia `--sprite: <size>px` no style inline DESTE
+         mesmo elemento e ai punha `width: var(--sprite)`. Estilo inline vence
+         classe, entao a variavel inline vencia qualquer `[--sprite:180px]` que o
+         chamador escrevesse — o contrato documentado logo acima simplesmente nao
+         acontecia, e todo sprite ficava no `size` padrao. O sintoma era arte
+         pequena onde o chamador tinha pedido grande, sem erro nenhum: classe
+         ignorada nao avisa.
+         Com o padrao no fallback (`var(--sprite, 64px)`), a cascata volta a
+         funcionar como o texto diz — a classe do chamador define a variavel, e
+         quem nao define herda o `size`. */
+      style={{ width: `var(--sprite, ${size}px)`, height: `var(--sprite, ${size}px)` } as CSSProperties}
     >
       {state === "fail" && fallback ? (
         <span className="absolute text-line-strong">{fallback}</span>
