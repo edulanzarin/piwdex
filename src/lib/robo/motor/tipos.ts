@@ -364,6 +364,35 @@ export interface ConfigAuto {
   nivelAlvo: number;
 }
 
+/**
+ * O estoque que o piso compara.
+ *
+ * Escolher UM item muda a pergunta. "Repor Ultra Ball" com 555 Poke Ball na
+ * bolsa nao e uma bolsa cheia: e uma bolsa cheia da bola errada, e o auto-catch
+ * so joga a que foi escolhida. Somar a categoria inteira nesse caso e o robo
+ * olhando pro numero grande enquanto o jogo para de capturar por falta do
+ * numero pequeno.
+ *
+ * Sem item escolhido a pergunta volta a ser "tem alguma?", e ai a soma esta
+ * certa. Bola infinita fica fora dela — ela nunca acaba, mas tambem nao e a que
+ * o auto-catch usa.
+ *
+ * Mora aqui, e nao em `motor/jobs.ts`, porque a TELA precisa do mesmo numero:
+ * o cartao mostra o estoque ao lado do piso, e duas contas separadas dariam uma
+ * tela dizendo 596 e um robo decidindo por 0.
+ */
+export function estoqueDoAlvo(
+  itens: { id: number; quantidade: number; infinita?: boolean }[],
+  escolhido: number | null,
+): number {
+  if (escolhido) {
+    const i = itens.find((x) => x.id === escolhido);
+    if (!i) return 0;
+    return i.infinita ? Number.POSITIVE_INFINITY : i.quantidade;
+  }
+  return itens.reduce((s, i) => (i.infinita ? s : s + i.quantidade), 0);
+}
+
 export const CONFIG_PADRAO: ConfigAuto = {
   comprarBola: false,
   pisoBola: 150,

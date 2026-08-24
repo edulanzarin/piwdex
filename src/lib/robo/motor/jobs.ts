@@ -12,7 +12,7 @@ import {
   type ItemMochila,
   type Loja,
 } from "@/lib/robo/jogo/loja";
-import type { BolaEstoque } from "@/lib/robo/motor/tipos";
+import { estoqueDoAlvo, type BolaEstoque } from "@/lib/robo/motor/tipos";
 import type { ConfigAuto } from "@/lib/robo/motor/tipos";
 import { fetchSource } from "@/lib/source";
 
@@ -124,7 +124,10 @@ export async function rodarCompras(
 
   // --- bolas ---
   if (cfg.comprarBola) {
-    const estoque = bolas.reduce((s, b) => (b.infinita ? s : s + b.quantidade), 0);
+    // O piso conta a bola ESCOLHIDA quando ha uma. Somar todas escondia o caso
+    // que mais dava problema: 555 Poke Ball na bolsa, auto-catch em Ultra Ball
+    // com zero, e o robo nunca comprando porque o total estava alto.
+    const estoque = estoqueDoAlvo(bolas, cfg.bolaId);
     if (estoque <= cfg.pisoBola) {
       const alvo =
         (cfg.bolaId ? loja.bolas.find((b) => b.id === cfg.bolaId) : null) ??
@@ -196,7 +199,7 @@ export async function rodarCompras(
       { liga: cfg.comprarRevive, cat: "revive" as const, piso: cfg.pisoRevive, alvo: cfg.alvoRevive, id: cfg.reviveId, rotulo: "revive" },
     ]) {
       if (!alvoCfg.liga) continue;
-      const total = somar(separado[alvoCfg.cat]);
+      const total = estoqueDoAlvo(separado[alvoCfg.cat], alvoCfg.id);
       if (total > alvoCfg.piso) continue;
 
       const item =

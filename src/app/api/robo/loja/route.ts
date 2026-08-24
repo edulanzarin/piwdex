@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { exigirUsuarioApi } from "@/lib/robo/sessao";
 import { ehConsumivel, lerLoja, lerMochila } from "@/lib/robo/jogo/loja";
-import { separarConsumivel, somar } from "@/lib/robo/motor/jobs";
+import { separarConsumivel } from "@/lib/robo/motor/jobs";
 import { atualizarTokens, lerVinculo } from "@/lib/robo/vinculo";
 
 export const runtime = "nodejs";
@@ -45,19 +45,17 @@ export async function GET() {
       .filter((i) => i.quantidade > 0 && !ehConsumivel(i.categoria))
       .sort((a, b) => b.quantidade * b.precoNpc - a.quantidade * a.precoNpc),
     /**
-     * O que a bolsa tem de pocao e de revive, item a item e somado.
+     * O que a bolsa tem de pocao e de revive, ITEM A ITEM.
      *
-     * `null` quando o catalogo do jogo nao respondeu — a tela precisa poder
-     * dizer "não sei" em vez de desenhar um zero, que e o mesmo numero de uma
-     * bolsa vazia e leva a mexer no piso pra resolver o problema errado.
+     * Vai sem somar de proposito: quem soma e `estoqueDoAlvo`, a mesma funcao
+     * que o motor usa pra decidir a compra, e ela conta diferente quando ha um
+     * item escolhido. Mandar um total pronto daqui seria uma segunda contagem —
+     * e a que a tela mostra nao pode discordar da que o robo executa.
+     *
+     * `null` quando o catalogo do jogo nao respondeu: a tela precisa poder dizer
+     * "não sei" em vez de desenhar um zero, que e o mesmo numero de uma bolsa
+     * vazia e leva a mexer no piso pra resolver o problema errado.
      */
-    bolsa: bolsa
-      ? {
-          pocoes: bolsa.heal,
-          revives: bolsa.revive,
-          totalPocoes: somar(bolsa.heal),
-          totalRevives: somar(bolsa.revive),
-        }
-      : null,
+    bolsa: bolsa ? { pocoes: bolsa.heal, revives: bolsa.revive } : null,
   });
 }

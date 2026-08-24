@@ -6,7 +6,7 @@ import { Pokeball } from "@/components/ui/pokeball";
 import { ICONE, Secao, Valor } from "@/components/robo/pecas";
 import { compact, TIER_LABEL } from "@/lib/labels";
 import { qualityTier, TIER_COLOR, TIER_MIN, TIER_ORDER } from "@/lib/rarity";
-import type { ConfigAuto, EstadoHunt } from "@/lib/robo/motor/tipos";
+import { estoqueDoAlvo, type ConfigAuto, type EstadoHunt } from "@/lib/robo/motor/tipos";
 
 /**
  * A aba do BALCÃO: o que entra na conta por dólar e o que sai dela por dólar.
@@ -42,8 +42,6 @@ interface Loja {
 interface Bolsa {
   pocoes: ItemMochila[];
   revives: ItemMochila[];
-  totalPocoes: number;
-  totalRevives: number;
 }
 
 /**
@@ -84,10 +82,12 @@ function Consumivel({
   onItem: (n: number | null) => void;
   opcoes: { value: string; label: string }[];
   rotuloPadrao: string;
-  /** quanto a bolsa tem. `null` = não deu para conferir */
+  /** quanto a bolsa tem do que vai ser reposto. `null` = não deu para conferir */
   estoque: number | null;
 }) {
-  const abaixo = estoque != null && estoque <= piso;
+  const abaixo = estoque != null && Number.isFinite(estoque) && estoque <= piso;
+  const texto =
+    estoque == null ? "?" : estoque === Number.POSITIVE_INFINITY ? "∞" : compact(estoque);
   return (
     <div
       className="flex h-full flex-col gap-2 border border-line bg-bg-soft p-3 transition-colors"
@@ -110,9 +110,15 @@ function Consumivel({
                 ? "var(--color-warn)"
                 : "var(--color-text-dim)",
           }}
-          title={estoque == null ? "não consegui conferir a bolsa" : `${estoque} na bolsa`}
+          title={
+            estoque == null
+              ? "não consegui conferir a bolsa"
+              : itemId
+                ? "na bolsa, só do item escolhido"
+                : "na bolsa, somando o tipo inteiro"
+          }
         >
-          {estoque == null ? "?" : compact(estoque)}
+          {texto}
         </span>
       </div>
 
@@ -333,7 +339,7 @@ export function AbaLoja({
           <Consumivel
             titulo="bolas"
             unidade="un"
-            estoque={estoqueBolas}
+            estoque={estoqueDoAlvo(estado.bolas, rascunho.bolaId)}
             ligado={rascunho.comprarBola}
             onLigar={(v) => mudar({ comprarBola: v })}
             piso={rascunho.pisoBola}
@@ -348,7 +354,7 @@ export function AbaLoja({
           <Consumivel
             titulo="poções"
             unidade="un"
-            estoque={bolsa ? bolsa.totalPocoes : null}
+            estoque={bolsa ? estoqueDoAlvo(bolsa.pocoes, rascunho.pocaoId) : null}
             ligado={rascunho.comprarPocao}
             onLigar={(v) => mudar({ comprarPocao: v })}
             piso={rascunho.pisoPocao}
@@ -363,7 +369,7 @@ export function AbaLoja({
           <Consumivel
             titulo="revives"
             unidade="un"
-            estoque={bolsa ? bolsa.totalRevives : null}
+            estoque={bolsa ? estoqueDoAlvo(bolsa.revives, rascunho.reviveId) : null}
             ligado={rascunho.comprarRevive}
             onLigar={(v) => mudar({ comprarRevive: v })}
             piso={rascunho.pisoRevive}
