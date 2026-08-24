@@ -6,11 +6,8 @@ import { cn } from "@/lib/cn";
 import { RISK_COLOR, type MovesOf, type Species } from "@/lib/combat";
 import {
   RISK_LABEL,
-  economyOf,
   horasLabel,
   perHourLabel,
-  rankHunts,
-  withEconomy,
   type HuntEntrada,
   type HuntRow,
 } from "@/lib/hunt";
@@ -76,8 +73,7 @@ export function HuntGold({
   fighter,
   ivs,
   entrada,
-  payload,
-  movesOf,
+  rows: todas,
   tint,
 }: {
   state: HuntState;
@@ -88,35 +84,19 @@ export function HuntGold({
   entrada: HuntEntrada;
   payload: HuntPayload;
   movesOf: MovesOf;
+  /** os 342 alvos ja medidos contra o lutador — a conta vem pronta do `hunt-tool` */
+  rows: HuntRow[];
   tint: string;
 }) {
-  const econ = useMemo(
-    () =>
-      economyOf(payload.targets, {
-        day: entrada.day,
-        drops: payload.drops,
-        ballKey: entrada.ball,
-        vip: entrada.vip,
-        xpPct: entrada.xpPct,
-        lootPct: entrada.lootPct,
-      }),
-    [payload.targets, payload.drops, entrada.day, entrada.ball, entrada.vip, entrada.xpPct, entrada.lootPct],
-  );
-
+  /* Aqui a lista vira a de OURO: fora o que mata e o que nao paga, e em ordem
+     de ouro/h. O `filter` ja devolve array novo, entao o `sort` nao mexe no
+     `rows` que as outras abas recebem. */
   const rows = useMemo(
     () =>
-      rankHunts(fighter, {
-        targets: withEconomy(payload.targets, econ),
-        econ,
-        movesOf,
-        level: entrada.level,
-        ivs,
-        quality: entrada.quality,
-        pool: entrada.pool,
-      })
+      todas
         .filter((r) => r.est.threat.risk !== "deadly" && r.est.goldH > 0)
         .sort((a, b) => b.est.goldH - a.est.goldH),
-    [fighter, payload.targets, econ, movesOf, entrada.level, ivs, entrada.quality, entrada.pool],
+    [todas],
   );
 
   const melhor = rows[0] ?? null;

@@ -5,14 +5,12 @@ import { cn } from "@/lib/cn";
 import { buildRoute, RISK_COLOR, type MovesOf, type Species } from "@/lib/combat";
 import {
   RISK_LABEL,
-  economyOf,
   effLabel,
   horasLabel,
   perHourLabel,
-  withEconomy,
   type HuntEntrada,
 } from "@/lib/hunt";
-import type { HuntPayload } from "@/lib/hunt-data";
+import type { HuntPayload, HuntTarget } from "@/lib/hunt-data";
 import type { HuntState } from "@/lib/hunt-url";
 import { TYPE_COLOR } from "@/lib/typing";
 import { TYPE_LABEL } from "@/lib/labels";
@@ -30,7 +28,7 @@ import {
   Sprite,
   Tooltip,
 } from "@/components/ui";
-import { TypeBadge, TypeIcon } from "@/components/type-icon";
+import { TypeIcon } from "@/components/type-icon";
 import { IconLevel, IconXp } from "@/components/game-icons";
 
 /**
@@ -63,8 +61,8 @@ export function HuntRoute({
   fighter,
   ivs,
   entrada,
-  payload,
   movesOf,
+  alvos,
   tint,
 }: {
   state: HuntState;
@@ -75,22 +73,12 @@ export function HuntRoute({
   entrada: HuntEntrada;
   payload: HuntPayload;
   movesOf: MovesOf;
+  /** os alvos com a economia do cenario ja embutida — vem prontos do `hunt-tool`,
+   *  que monta isso uma vez pras tres abas */
+  alvos: HuntTarget[];
   tint: string;
 }) {
   const alvoValido = state.target > entrada.level;
-
-  const econ = useMemo(
-    () =>
-      economyOf(payload.targets, {
-        day: entrada.day,
-        drops: payload.drops,
-        ballKey: entrada.ball,
-        vip: entrada.vip,
-        xpPct: entrada.xpPct,
-        lootPct: entrada.lootPct,
-      }),
-    [payload.targets, payload.drops, entrada.day, entrada.ball, entrada.vip, entrada.xpPct, entrada.lootPct],
-  );
 
   const rota = useMemo(() => {
     if (!alvoValido) return [];
@@ -98,13 +86,13 @@ export function HuntRoute({
       fighter,
       entrada.level,
       state.target,
-      withEconomy(payload.targets, econ),
+      alvos,
       movesOf,
       entrada.quality,
       ivs,
       entrada.pool,
     );
-  }, [alvoValido, fighter, entrada, state.target, payload.targets, econ, movesOf, ivs]);
+  }, [alvoValido, fighter, entrada, state.target, alvos, movesOf, ivs]);
 
   // Horas e ouro ja vem integrados nivel a nivel do motor (`buildRoute`): o ritmo
   // sobe junto com o lutador, entao a faixa nao pode ser cobrada pela ponta.
@@ -197,30 +185,51 @@ export function HuntRoute({
             return (
               <div
                 key={`${step.from}-${e.pokeId}`}
-                className="flex flex-col gap-3 border border-line bg-surface/70 p-3 lg:flex-row lg:items-center lg:gap-4"
+                className="panel flex flex-col gap-3 p-3.5 lg:flex-row lg:items-center lg:gap-4"
               >
-                {/* a faixa de nivel: e o indice da rota, entao vem primeiro e fixo */}
-                <span className="flex shrink-0 items-center gap-2 lg:w-32 lg:flex-col lg:items-start lg:gap-1">
-                  <span className="pix text-[13px]" style={{ color: tint }}>
+                {/* ---- o degrau: a faixa e o preco dela ----
+                    A faixa e o indice da rota (vem primeiro e em largura fixa), mas
+                    o numero que a pessoa esta procurando na linha e o TEMPO — "de 54
+                    a 60 leva 38 minutos". Ele era 11px cinza, do mesmo tamanho do
+                    rotulo ao lado; agora ele lidera o degrau e a faixa vira a
+                    legenda dele. */}
+                <span className="flex shrink-0 items-baseline gap-2 lg:w-32 lg:flex-col lg:items-start lg:gap-0.5">
+                  <span className="pix text-[12px]" style={{ color: tint }}>
                     {step.from} → {step.to}
                   </span>
-                  <span className="pix text-[11px] text-text-mute">
+                  <span className="text-[17px] leading-none font-bold text-accent tabular">
                     {step.partial ? "—" : horasLabel(step.hours)}
                   </span>
                 </span>
 
-                <span className="flex min-w-0 flex-1 items-center gap-2.5 border-line/60 lg:border-l lg:pl-4">
-                  <Sprite src={spriteUrl(e.pokeId)} alt={e.name} size={38} />
-                  <span className="flex min-w-0 flex-col gap-1">
+                <span className="flex min-w-0 flex-1 items-center gap-3 border-line/60 lg:border-l lg:pl-4">
+                  <Sprite src={spriteUrl(e.pokeId)} alt={e.name} size={46} />
+                  <span className="flex min-w-0 flex-col gap-1.5">
                     <span className="flex flex-wrap items-baseline gap-x-2">
-                      <span className="text-[15px] text-text">{e.name}</span>
+                      <span className="text-[16px] font-semibold text-text">{e.name}</span>
                       <span className="pix text-[11px] text-text-mute">
                         {e.areas.join(", ")} · nível {e.huntLevel}
                       </span>
                     </span>
-                    <span className="flex gap-1">
-                      <TypeBadge type={e.t1} size="xs" />
-                      {e.t2 ? <TypeBadge type={e.t2} size="xs" /> : null}
+                    {/* Discos, e nao pastilhas com a palavra escrita: o tipo do ALVO
+                        e informacao de relance nesta linha, e a palavra "Voador"
+                        gastava 60px pra dizer o que o simbolo diz em 22. Os simbolos
+                        sao os oficiais do jogo, entao quem joga ja os tem
+                        decorados — ver `components/tipos/glifos.tsx`. */}
+                    <span aria-hidden="true" className="flex items-center gap-1">
+                      {[e.t1, e.t2].filter(Boolean).map((t) => (
+                        <span
+                          key={t as string}
+                          title={TYPE_LABEL[t!]}
+                          className="grid h-[26px] w-[26px] place-items-center rounded-pill border-2 bg-surface"
+                          style={{ borderColor: TYPE_COLOR[t!], color: TYPE_COLOR[t!] }}
+                        >
+                          <TypeIcon type={t!} size={16} />
+                        </span>
+                      ))}
+                    </span>
+                    <span className="sr-only">
+                      {[e.t1, e.t2].filter(Boolean).map((t) => TYPE_LABEL[t!]).join(" e ")}
                     </span>
                   </span>
                 </span>
@@ -232,7 +241,7 @@ export function HuntRoute({
                     <Chip size="xs" tint={TYPE_COLOR[est.moveName]} icon={<TypeIcon type={est.moveName} size={12} />}>
                       {TYPE_LABEL[est.moveName]}
                     </Chip>
-                    <span className={cn("text-[14px] font-semibold tabular", est.eff >= 2 ? "text-ok" : "text-text-dim")}>
+                    <span className={cn("text-[15px] font-semibold tabular", est.eff >= 2 ? "text-ok" : "text-text-dim")}>
                       {effLabel(est.eff)}
                     </span>
                   </span>
@@ -247,26 +256,43 @@ export function HuntRoute({
                   </span>
                 </span>
 
-                <span className="grid shrink-0 grid-cols-3 gap-3 border-line/60 text-right lg:w-64 lg:border-l lg:pl-4">
-                  <span className="flex flex-col gap-0.5">
-                    <span className="pix text-[10px] text-text-mute">abates/h</span>
-                    <span className="text-[14px] text-text-dim tabular">{Math.round(kosH)}</span>
-                  </span>
-                  <span className="flex flex-col gap-0.5">
-                    <span className="pix inline-flex items-center justify-end gap-1 text-[10px] text-text-mute">
-                      <IconXp size={11} />xp/h
-                    </span>
-                    <span className="text-[14px] text-ok tabular">{perHourLabel(xpH)}</span>
-                  </span>
-                  <span className="flex flex-col gap-0.5">
-                    <span className="pix inline-flex items-center justify-end gap-1 text-[10px] text-text-mute">
-                      <IconCoin size={11} />ouro/h
-                    </span>
-                    <span className={cn("text-[14px] tabular", goldH < 0 ? "text-danger" : "text-warn")}>
-                      {perHourLabel(goldH)}
-                    </span>
-                  </span>
-                </span>
+                {/* O ritmo da faixa, no mesmo formato de manchete do resto do site:
+                    numero grande em cima, rotulo pixel embaixo. Eram tres numeros de
+                    14px com rotulo de 10 espremidos numa coluna de 64px cada — do
+                    tamanho da legenda que os explicava, o que e o jeito mais rapido
+                    de fazer o olho nao achar nenhum. */}
+                <dl className="grid shrink-0 grid-cols-3 gap-px overflow-hidden rounded-pix border border-line bg-line lg:w-[17rem]">
+                  {[
+                    {
+                      label: "abates/h",
+                      value: Math.round(kosH).toLocaleString("pt-BR"),
+                      tone: "text-text-dim",
+                      icone: null,
+                    },
+                    {
+                      label: "xp/h",
+                      value: perHourLabel(xpH),
+                      tone: "text-ok",
+                      icone: <IconXp size={11} />,
+                    },
+                    {
+                      label: "ouro/h",
+                      value: perHourLabel(goldH),
+                      tone: goldH < 0 ? "text-danger" : "text-warn",
+                      icone: <IconCoin size={11} />,
+                    },
+                  ].map((k) => (
+                    <div key={k.label} className="bg-surface px-2.5 py-2">
+                      <dd className={cn("text-[15px] leading-none font-semibold tabular", k.tone)}>
+                        {k.value}
+                      </dd>
+                      <dt className="pix mt-1.5 flex items-center gap-1 text-[10px] text-text-mute">
+                        {k.icone}
+                        {k.label}
+                      </dt>
+                    </div>
+                  ))}
+                </dl>
               </div>
             );
           })}

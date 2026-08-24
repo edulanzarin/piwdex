@@ -127,6 +127,23 @@ export const IconRegistro = wrap(ScrollText, "IconRegistro");
 export const IconPin = glifo("IconPin",
   <><path d="M12 1.8a7.4 7.4 0 0 0-7.4 7.4c0 5.3 6.4 12.2 6.7 12.5a1 1 0 0 0 1.4 0c.3-.3 6.7-7.2 6.7-12.5A7.4 7.4 0 0 0 12 1.8zm0 4.6a2.9 2.9 0 1 1 0 5.8 2.9 2.9 0 0 1 0-5.8z"/></>,
 );
+/**
+ * A LISTA — glifo, e nao lucide, por vizinhanca.
+ *
+ * Ela e chrome pura: tres barras dizendo "ver como tabela". Pela regra deste
+ * arquivo isso ia de `wrap`. O que a puxa pro outro lado e onde ela mora: a fila
+ * de abas da Hunt, entre a moeda e a rota, que sao glifos solidos. Traco fino de
+ * 2,25 ao lado de duas manchas cheias, no mesmo corpo de 14px, e a inconsistencia
+ * optica que se ve antes de se explicar.
+ *
+ * O criterio, entao, nao e "isto e dominio": e que dentro de UM controle as pecas
+ * tem que ter o mesmo peso. Fora dali o resto da chrome continua lucide.
+ */
+export const IconLista = glifo("IconLista",
+  <><rect x="2.6" y="4.5" width="18.8" height="3.3" rx="1.1"/>
+    <rect x="2.6" y="10.35" width="18.8" height="3.3" rx="1.1"/>
+    <rect x="2.6" y="16.2" width="18.8" height="3.3" rx="1.1"/></>,
+);
 export const IconEvolve = wrap(Sparkles, "IconEvolve");
 /* As duas acoes que TODA ferramenta tem no cabecalho. Elas eram texto puro no
    meio de uma fila de botoes com glifo, e por isso liam como link solto em vez

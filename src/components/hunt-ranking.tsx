@@ -6,13 +6,10 @@ import { cn } from "@/lib/cn";
 import { RISK_COLOR, type Species, type MovesOf } from "@/lib/combat";
 import {
   RISK_LABEL,
-  economyOf,
   type HuntEntrada,
   effLabel,
   perHourLabel,
-  rankHunts,
   sortRows,
-  withEconomy,
   type HuntRow,
   type HuntSort,
 } from "@/lib/hunt";
@@ -81,6 +78,7 @@ export function HuntRanking({
   entrada,
   payload,
   movesOf,
+  rows,
   tint,
 }: {
   state: HuntState;
@@ -91,38 +89,12 @@ export function HuntRanking({
   entrada: HuntEntrada;
   payload: HuntPayload;
   movesOf: MovesOf;
+  /** os 342 alvos ja medidos contra o lutador — a conta vem pronta do `hunt-tool`,
+   *  que a faz uma vez pras tres abas e pro resumo do cabecalho */
+  rows: HuntRow[];
   tint: string;
 }) {
   const [aberto, setAberto] = useState<HuntRow | null>(null);
-
-  // A economia (Tipo do Dia + captura) e calculada uma vez e entra no motor pelo
-  // `goldEV` do alvo — assim o ouro/h ja sai completo sem o motor saber de bonus.
-  const econ = useMemo(
-    () =>
-      economyOf(payload.targets, {
-        day: entrada.day,
-        drops: payload.drops,
-        ballKey: entrada.ball,
-        vip: entrada.vip,
-        xpPct: entrada.xpPct,
-        lootPct: entrada.lootPct,
-      }),
-    [payload.targets, payload.drops, entrada.day, entrada.ball, entrada.vip, entrada.xpPct, entrada.lootPct],
-  );
-
-  const rows = useMemo(
-    () =>
-      rankHunts(fighter, {
-        targets: withEconomy(payload.targets, econ),
-        econ,
-        movesOf,
-        level: entrada.level,
-        ivs,
-        quality: entrada.quality,
-        pool: entrada.pool,
-      }),
-    [fighter, payload.targets, econ, movesOf, entrada.level, ivs, entrada.quality, entrada.pool],
-  );
 
   const filtradas = useMemo(
     () =>

@@ -188,6 +188,28 @@ export const IconLevel = glifo("IconLevel",
     <path d="M10.2 19.6h3.6a1 1 0 0 0 1-1V9.4a1 1 0 0 0-1-1h-3.6a1 1 0 0 0-1 1v9.2a1 1 0 0 0 1 1z"/>
     <path d="M17.4 19.6H21a1 1 0 0 0 1-1V4.4a1 1 0 0 0-1-1h-3.6a1 1 0 0 0-1 1v14.2a1 1 0 0 0 1 1z"/></>,
 );
+/**
+ * A ROTA — e por que ela e uma BANDEIRA, e nao uma trilha.
+ *
+ * Escada era o desenho obvio, e ele ja esta ocupado: `IconLevel` e o degrau de
+ * tres barras, e ele aparece a centimetros deste — o campo "nivel alvo" fica
+ * dentro da aba que este icone rotula. Dois glifos com a mesma silhueta na mesma
+ * tela viram a mesma mancha.
+ *
+ * As trilhas literais foram desenhadas e reprovadas na folha de contato: fita
+ * diagonal com dois marcos vira osso de desenho animado, e trilha pontilhada
+ * subindo pra um mastro vira COLCHEIA — em 14px o olho fecha a figura no simbolo
+ * que ele ja conhece, e o que ele conhece nao e uma rota.
+ *
+ * A bandeira e o que sobra e o que funciona: mancha unica, mesmo peso da moeda e
+ * da lista ao lado dela, e ilegivel de outro jeito. Ela nao desenha o caminho,
+ * desenha a CHEGADA — que e o que o controle da aba pede (o nivel alvo) e o que a
+ * palavra ao lado ja completa.
+ */
+export const IconRota = glifo("IconRota",
+  <><rect x="4.4" y="2.4" width="2.6" height="19.2" rx="1.3"/>
+    <path d="M7 3.6h12.4a1 1 0 0 1 .8 1.6l-2.6 3.4 2.6 3.4a1 1 0 0 1-.8 1.6H7z"/></>,
+);
 export const IconXp = glifo("IconXp",
   <><path d="m12 1.6 3.1 6.4 7 1-5 4.9 1.2 7-6.3-3.3-6.3 3.3 1.2-7-5-4.9 7-1z"/></>,
 );
