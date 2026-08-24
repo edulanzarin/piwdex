@@ -53,6 +53,39 @@ export function spriteUrl(pokeId: number, shiny = false): string | null {
 }
 
 /**
+ * A ARTE OFICIAL em alta — o render de catalogo da PokeAPI (~475px).
+ *
+ * Ela nao substitui a arte do jogo, e a distincao e a coisa mais importante deste
+ * arquivo. Cada uma responde uma pergunta diferente:
+ *
+ * - **Arte do jogo** (`gameSpriteUrl`) responde "e este que eu vejo jogando". Ela
+ *   e a fonte certa na GRADE, onde o trabalho e reconhecer: a pessoa varre 60
+ *   cards procurando o bicho que acabou de ver no campo.
+ * - **Arte oficial** responde "como esta especie e". Ela e a fonte certa onde ha
+ *   UMA peca grande e o nome ja esta escrito do lado — a chegada da ficha —,
+ *   porque ali nao ha nada a reconhecer e ha muito a mostrar.
+ *
+ * Duas ressalvas, e por isso ela nao vai pra grade:
+ *
+ * 1. **Variante nao tem arte oficial.** Os pokeId >= 10000 (Brave, Furious,
+ *    Ancient) compartilham o looktype da base no jogo, mas a PokeAPI so conhece a
+ *    forma base — entao "Brave Blastoise" sairia identico a "Blastoise", e a dex
+ *    passaria a afirmar que sao a mesma coisa.
+ * 2. **Peso.** Sao ~150 KB por render contra ~8 KB do webp recortado. Sessenta na
+ *    tela e a diferenca entre uma grade que abre e uma que carrega.
+ *
+ * `null` quando nao ha (variante, ou id fora da faixa) — e quem chama cai na arte
+ * do jogo, que e o comportamento certo: melhor a arte menor e CERTA do que a
+ * maior e de outro bicho.
+ */
+export function officialArtUrl(pokeId: number): string | null {
+  // Variante nao tem render proprio, e usar o da base seria dizer que sao iguais.
+  if (pokeId >= 1e4) return null;
+  if (pokeId <= 0) return null;
+  return `${SPRITE_BASE}/other/official-artwork/${pokeId}.png`;
+}
+
+/**
  * Sprite ANIMADO (gif gen5).
  *
  * A fonte so tem animacao ate o id **649** — pedir 14448 devolve 404, e um 404

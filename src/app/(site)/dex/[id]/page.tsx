@@ -8,7 +8,7 @@ import { getDexPayload } from "@/lib/dex-data";
 import { buildEntry, rolesOf } from "@/lib/dex";
 import { resumoDaEspecie } from "@/lib/prosa";
 import { JsonLd, trilha } from "@/lib/jsonld";
-import { animatedSpriteUrl, assetIconUrl, spriteUrl } from "@/lib/sprites";
+import { assetIconUrl, officialArtUrl, spriteUrl } from "@/lib/sprites";
 import { RARITY_COLOR, TYPE_COLOR, defensiveDetailed, offensiveDetailed } from "@/lib/typing";
 import { projectAll } from "@/lib/stats";
 import {
@@ -177,13 +177,23 @@ export default async function CreaturePage({ params }: Props) {
           {/* O gif animado do gen5 so existe ate ~id 649; acima disso o
               `Sprite` cai sozinho no estatico. Vale a tentativa: pokemon parado
               numa ficha e catalogo, pokemon que respira e jogo. */}
+          {/* Na CHEGADA da ficha entra a arte OFICIAL em alta, e nao o sprite do
+              jogo. Aqui nao ha nada a reconhecer — o nome esta escrito em 46px
+              logo abaixo — e ha muito a mostrar, que e o oposto da situacao da
+              grade. Ver `officialArtUrl` pro porque ela NAO vai pra grade.
+              Quando nao ha render (variante de skin), cai na arte do jogo
+              sozinho: melhor a arte menor e certa do que a maior e de outro
+              bicho. */}
           <Sprite
-            src={spriteUrl(c.pokeId)}
-            animatedSrc={animatedSpriteUrl(c.pokeId)}
+            src={officialArtUrl(c.pokeId) ?? spriteUrl(c.pokeId)}
             alt={c.name}
-            size={176}
+            size={240}
             priority
-            className="anim-float relative [--sprite:140px] sm:[--sprite:176px]"
+            /* `pixel={false}`: render em alta escalado com `image-rendering:
+               pixelated` fica serrilhado. A suavizacao e pra ele; o pixelado
+               continua valendo pro sprite do jogo, que e pixel art de verdade. */
+            pixel={!officialArtUrl(c.pokeId)}
+            className="anim-float relative [--sprite:180px] sm:[--sprite:240px]"
           />
         </div>
 
