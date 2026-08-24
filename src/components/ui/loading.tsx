@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { usePathname } from "next/navigation";
 import { cn } from "@/lib/cn";
+import { ferramentaDoCaminho } from "@/lib/ferramentas";
 import { Pokeball } from "./pokeball";
 
 /**
@@ -23,6 +25,19 @@ import { Pokeball } from "./pokeball";
  * INTENCIONAL, e o atributo existe exatamente pra esse caso. Trocar de pokemon na
  * hidratacao nao custa nada aqui — a tela e transitoria e o slot tem tamanho
  * fixo, entao nada salta.
+ *
+ * ## A cor sai da ROTA, e nao do arquivo
+ *
+ * O halo e a barra eram `--color-t-dex` cravado. Numa tela so isso passa; nas
+ * nove que existem, virava afirmacao errada — esperar a Calculadora abria uma
+ * cena vermelha, que e a cor da Pokedex, e a unica peca colorida da tela dizia
+ * "voce esta indo pra dex".
+ *
+ * A alternativa obvia era um `tint` por chamada, e ela e a errada: sao nove
+ * arquivos de uma linha, e o decimo nasceria sem. O caminho ja sabe a resposta —
+ * `usePathname` mais o registro de ferramentas — entao a cor se resolve sozinha
+ * e a rota nova acerta sem ninguem lembrar. Na home, que nao e ferramenta, cai
+ * no acento da marca.
  */
 
 const POKEMONS = [25, 133, 143, 94, 149, 6, 448, 196, 131, 59] as const;
@@ -42,6 +57,7 @@ export function Loading({
   const inline = size === "inline";
   const [id] = useState(() => POKEMONS[Math.floor(Math.random() * POKEMONS.length)]);
   const [caiu, setCaiu] = useState(false);
+  const cor = ferramentaDoCaminho(usePathname())?.cor ?? "var(--color-accent)";
 
   return (
     <div
@@ -57,9 +73,10 @@ export function Loading({
         <span
           aria-hidden="true"
           className={cn(
-            "anim-glow absolute rounded-full bg-[var(--color-t-dex)]/35 blur-2xl",
+            "anim-glow absolute rounded-full blur-2xl",
             inline ? "h-14 w-14" : "h-24 w-24",
           )}
+          style={{ backgroundColor: cor, opacity: 0.35 }}
         />
         {!caiu ? (
           <img
@@ -73,7 +90,11 @@ export function Loading({
             onError={() => setCaiu(true)}
           />
         ) : (
-          <Pokeball size={inline ? 36 : 64} spinning className="relative text-[var(--color-t-dex)]" />
+          /* A reserva veste a MESMA cor da rota: a bola herda `currentColor`, entao
+             pintar o `<span>` que a embrulha basta. */
+          <span className="relative" style={{ color: cor }}>
+            <Pokeball size={inline ? 36 : 64} spinning />
+          </span>
         )}
       </span>
 
@@ -81,11 +102,20 @@ export function Loading({
 
       {/* Barra INDETERMINADA de proposito: nao ha progresso real pra reportar, e
           barra que finge porcentagem e a que trava em 99%. */}
+      {/* Pilula, e nao retangulo: um trilho de 1px de canto reto era a ultima
+          peca desta tela ainda no dialeto antigo, e ela e a que mais se olha —
+          e a unica coisa que se mexe enquanto se espera. */}
       <span
         aria-hidden="true"
-        className={cn("h-1 overflow-hidden bg-surface-2 ring-1 ring-line", inline ? "w-40" : "w-56")}
+        className={cn(
+          "h-1 overflow-hidden rounded-pill bg-surface-2 ring-1 ring-line",
+          inline ? "w-40" : "w-56",
+        )}
       >
-        <span className="anim-bar block h-full bg-[var(--color-t-dex)]/80" />
+        <span
+          className="anim-bar block h-full rounded-pill"
+          style={{ backgroundColor: cor, opacity: 0.8 }}
+        />
       </span>
     </div>
   );

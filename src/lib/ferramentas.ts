@@ -132,6 +132,21 @@ export const FERRAMENTAS: Ferramenta[] = [
  * renderizar sem cor e sem arte por causa de um erro de digitacao na rota, o que
  * so seria descoberto olhando a tela.
  */
+/**
+ * A ferramenta a que um CAMINHO pertence, ou `null`.
+ *
+ * O irmao leniente do `ferramentaDe`: aquele exige a rota exata e explode no que
+ * nao conhece, que e o certo pra faixa de topo (a tela sabe qual ferramenta ela
+ * e). Aqui a pergunta e outra — "em que ferramenta este caminho cai?" —, e ela
+ * vem de quem so tem o `usePathname` na mao: a tela de espera, que roda tanto em
+ * `/dex` quanto em `/dex/6` quanto na home, onde a resposta certa e nenhuma.
+ */
+export function ferramentaDoCaminho(caminho: string): Ferramenta | null {
+  return (
+    FERRAMENTAS.find((f) => caminho === f.href || caminho.startsWith(`${f.href}/`)) ?? null
+  );
+}
+
 export function ferramentaDe(href: string): Ferramenta {
   const f = FERRAMENTAS.find((x) => x.href === href);
   if (!f) throw new Error(`ferramenta desconhecida: ${href}`);
