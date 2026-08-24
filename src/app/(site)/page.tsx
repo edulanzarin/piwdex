@@ -18,6 +18,7 @@ import {
   Sprite,
 } from "@/components/ui";
 import { FERRAMENTAS, arteUrl } from "@/lib/ferramentas";
+import { destaqueAtual } from "@/lib/destaque";
 
 // A home canonicaliza pra RAIZ. Ela e a unica pagina cujo canonical o layout
 // poderia acertar por acidente — e "por acidente" nao e contrato.
@@ -110,13 +111,31 @@ export default async function HomePage() {
    * discordam em silêncio, e a que ninguém revisa é a desta página.
    */
   const topo = ranking[0];
-  const destaque = topo
+
+  /**
+   * Quem aparece: o EM ALTA, e não mais o mais forte.
+   *
+   * O topo da tier list vira SEMENTE — quem assume na estreia e em qualquer
+   * janela de três dias que termine sem um voto sequer. É a resposta certa pro
+   * silêncio: se ninguém pesquisou nada, "o mais forte" continua sendo o melhor
+   * palpite disponível.
+   *
+   * A troca resolve o defeito que o Eduardo apontou: o mais forte do jogo não
+   * muda, então a home nunca mudava. Ver `lib/destaque.ts`.
+   *
+   * O eleito é procurado no ranking porque é de lá que saem a nota, o tier e a
+   * raridade que o card mostra. Se ele não estiver lá — saiu do catálogo, ou
+   * virou lendário e o escopo o excluiu —, cai no topo em vez de sumir.
+   */
+  const emAlta = await destaqueAtual(topo?.creature.pokeId ?? 1);
+  const escolhido = ranking.find((e) => e.creature.pokeId === emAlta.pokeId) ?? topo;
+  const destaque = escolhido
     ? {
-        id: topo.creature.pokeId,
-        name: topo.creature.name,
-        rarity: topo.creature.rarity,
-        nota: topo.score,
-        tier: topo.tier,
+        id: escolhido.creature.pokeId,
+        name: escolhido.creature.name,
+        rarity: escolhido.creature.rarity,
+        nota: escolhido.score,
+        tier: escolhido.tier,
       }
     : null;
 
@@ -283,7 +302,12 @@ export default async function HomePage() {
                 >
                   tier {destaque.tier}
                 </span>
-                Pokémon em destaque
+                {/* "Em alta" e não "o mais pesquisado": o rótulo tem de continuar
+                    verdadeiro quando houver empate, quando o campeão se reeleger
+                    e quando a janela terminar sem voto nenhum e a semente assumir.
+                    A segunda frase prometeria um método que esses três casos não
+                    cumprem. */}
+                Em alta
               </span>
             }
             name={

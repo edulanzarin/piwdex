@@ -19,6 +19,7 @@ import {
 } from "@/lib/breeding";
 import { gravarEstante, lerEstante, uid, type EstanteMon } from "@/lib/breed-store";
 import { lerIvs, textoIv, textoIvTotal, type IvReading } from "@/lib/iv-reading";
+import { pingDestaque } from "@/lib/destaque-cliente";
 import {
   EMPTY_BREED,
   EMPTY_PARENT,
@@ -515,7 +516,10 @@ function PainelPai({
         <div className="flex min-w-0 flex-1 flex-col gap-2">
           <Combobox
             value={estado.id}
-            onChange={(id) => onChange({ id })}
+            onChange={(id) => {
+              onChange({ id });
+              pingDestaque(id);
+            }}
             options={especies.map((e) => ({
               value: e.id,
               label: e.name,

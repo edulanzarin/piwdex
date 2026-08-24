@@ -7,6 +7,7 @@ import { cn } from "@/lib/cn";
 import type { PokeType, Rarity } from "@/lib/types";
 import { IV_MAX, projectAll } from "@/lib/stats";
 import { lerIvs, textoIv as textoIvDe } from "@/lib/iv-reading";
+import { pingDestaque } from "@/lib/destaque-cliente";
 import { TIER_COLOR, qualityTier } from "@/lib/rarity";
 import { TYPE_COLOR } from "@/lib/typing";
 import { spriteUrl } from "@/lib/sprites";
@@ -164,7 +165,13 @@ export function CalcTool({ especies }: { especies: CalcSpecies[] }) {
               <FieldLabel className="mb-1">Espécie</FieldLabel>
               <Combobox
                 value={s.id}
-                onChange={(id) => patch({ id })}
+                /* O ping do destaque entra AQUI e nao no `preencherExemplo`:
+                   ali o pokemon nao foi escolhido por ninguem. Ver
+                   `lib/destaque-cliente.ts`. */
+                onChange={(id) => {
+                  patch({ id });
+                  pingDestaque(id);
+                }}
                 options={especies.map((e) => ({
                   value: e.id,
                   label: e.name,

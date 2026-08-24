@@ -10,6 +10,7 @@ import {
   type MovePool,
 } from "@/lib/meta";
 import { IV_MAX } from "@/lib/stats";
+import { pingDestaque } from "@/lib/destaque-cliente";
 import { effLabel } from "@/lib/hunt";
 import type { MetaState } from "@/lib/meta-url";
 import { animatedSpriteUrl, spriteUrl } from "@/lib/sprites";
@@ -100,7 +101,10 @@ export function MetaDuel({
           quality={state.aQ}
           opcoes={opcoes}
           mon={a}
-          onId={(v) => patch({ a: v })}
+          onId={(v) => {
+            patch({ a: v });
+            pingDestaque(v);
+          }}
           onLevel={(v) => patch({ aLv: v })}
           onQuality={(v) => patch({ aQ: v })}
         />
@@ -111,7 +115,10 @@ export function MetaDuel({
           quality={state.bQ}
           opcoes={opcoes}
           mon={b}
-          onId={(v) => patch({ b: v })}
+          onId={(v) => {
+            patch({ b: v });
+            pingDestaque(v);
+          }}
           onLevel={(v) => patch({ bLv: v })}
           onQuality={(v) => patch({ bQ: v })}
           extra={

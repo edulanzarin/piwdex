@@ -24,6 +24,7 @@ import {
   Tooltip,
 } from "@/components/ui";
 import { TypeBadge, TypeIcon, TypeMultChip } from "@/components/type-icon";
+import { PingDestaque } from "@/components/ping-destaque";
 import { caminhoDoTipo } from "@/lib/tipo-url";
 import { caminhoDaRaridade } from "@/lib/raridade-url";
 import { CategoryIcon, IconAtk, IconBag, IconDef as IconDefShield, IconLevel, IconScale, IconTarget, IconTm, IconWeak, IconXp, STAT_ICONS, SeloRaro } from "@/components/game-icons";
@@ -138,6 +139,10 @@ export default async function CreaturePage({ params }: Props) {
   return (
     <div className="flex flex-col gap-4">
       <JsonLd dado={migalhas} />
+      {/* Conta a abertura da ficha pra o destaque da home. Precisa ser cliente:
+          esta pagina e `force-static`, entao o servidor a renderiza uma vez e
+          serve do cache — nao ha render por visita onde contar. */}
+      <PingDestaque id={c.pokeId} />
       <nav className="flex items-center gap-1.5 text-[13px] text-text-mute">
         <Link href="/dex" className="tap transition-colors hover:text-accent">
           Pokedex

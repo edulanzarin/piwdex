@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ehLendario, metaTable, playableSet, type MetaMon } from "@/lib/meta";
+import { pingDestaque } from "@/lib/destaque-cliente";
 import { unpackMon, type PackedMon } from "@/lib/meta-data";
 import { buildMetaSearch, parseMetaState, type MetaState } from "@/lib/meta-url";
 import { Field, FieldRow, Note, Panel, Segmented, Tabs } from "@/components/ui";
@@ -123,7 +124,10 @@ export function MetaTool({ mons: packed }: { mons: PackedMon[] }) {
           table={table}
           state={s}
           patch={patch}
-          onOpen={(m) => patch({ focus: m.pokeId })}
+          onOpen={(m) => {
+            patch({ focus: m.pokeId });
+            pingDestaque(m.pokeId);
+          }}
         />
       ) : s.view === "duelo" ? (
         <MetaDuel mons={jogaveis} state={s} patch={patch} pool={s.pool} />

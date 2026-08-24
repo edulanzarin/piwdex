@@ -6,6 +6,7 @@ import { cn } from "@/lib/cn";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { IV_MAX, powerOf } from "@/lib/stats";
 import { lerIvs } from "@/lib/iv-reading";
+import { pingDestaque } from "@/lib/destaque-cliente";
 import { SIM_IV } from "@/lib/combat";
 import { movesResolver, unpackSpecies, type HuntEntrada } from "@/lib/hunt";
 import { animatedSpriteUrl, spriteUrl } from "@/lib/sprites";
@@ -220,7 +221,10 @@ export function HuntTool({ payload }: { payload: HuntPayload }) {
             <Field label="Espécie" className="min-w-[16rem] flex-1">
               <Combobox
                 value={s.id}
-                onChange={(id) => patch({ id, page: 0 })}
+                onChange={(id) => {
+                  patch({ id, page: 0 });
+                  pingDestaque(id);
+                }}
                 options={payload.species.map((e) => ({
                   value: e.id,
                   label: e.name,

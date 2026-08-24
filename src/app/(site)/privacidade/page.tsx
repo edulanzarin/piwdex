@@ -33,9 +33,25 @@ export default function PrivacidadePage() {
           <section className="flex flex-col gap-2">
             <h2 className="pix text-[12px] text-text">O que eu guardo sobre você</h2>
             <p>
-              Nada. O PIWdex não tem cadastro, não tem login e não pede e-mail. Nenhuma
-              conta do jogo é conectada aqui, e nenhum dado seu do Poke Idle World passa
-              por este site.
+              Quase nada. O PIWdex não tem cadastro, não tem login e não pede e-mail.
+              Nenhuma conta do jogo é conectada aqui, e nenhum dado seu do Poke Idle World
+              passa por este site.
+            </p>
+            <p>
+              A única coisa que fica gravada é uma <strong className="text-text-dim">contagem
+              de quais pokémon foram consultados</strong>, que alimenta o card{" "}
+              <em>em alta</em> da página inicial. Junto de cada contagem vai um código
+              embaralhado, e ele existe só para o mesmo visitante não contar duas vezes no
+              mesmo dia.
+            </p>
+            <p>
+              Esse código é gerado a partir do seu endereço de IP, do navegador e da data
+              do dia, passados por uma função de mão única com um segredo do servidor.{" "}
+              <strong className="text-text-dim">O IP não é guardado</strong> — só o
+              resultado embaralhado, do qual não dá para voltar. Como a data entra na
+              conta, o código muda sozinho toda meia-noite: ele serve para não contar
+              repetido dentro do dia, e não serve para acompanhar ninguém de um dia para o
+              outro. A contagem é apagada depois de uma semana.
             </p>
           </section>
 
