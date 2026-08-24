@@ -145,7 +145,7 @@ export function Select<T extends string>({
                     onMouseEnter={() => setCursor(i)}
                     onClick={() => { onChange(o.value); close(); }}
                     className={cn(
-                      "flex w-full items-center gap-2 rounded-pix px-2 py-1.5 text-left text-[14px] transition-colors",
+                      "flex w-full items-center gap-2.5 rounded-[var(--radius-xs)] px-2.5 py-2 text-left text-[14px] transition-colors",
                       "disabled:pointer-events-none disabled:opacity-40",
                       i === cursor ? "bg-surface-2 text-text" : "text-text-dim",
                       on && "text-accent",

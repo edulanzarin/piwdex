@@ -59,7 +59,15 @@ export function Tooltip({
         {children}
       </span>
       <Popover open={open} onClose={hide} anchorRef={anchor} minWidth={0} maxHeight={220}>
-        <div id={id} role="tooltip" className="px-2.5 py-1.5 text-[13px] leading-relaxed text-text-dim">
+        <div
+          id={id}
+          role="tooltip"
+          /* Mais respiro e um degrau menor de corpo. O tooltip herdava o tamanho
+             do texto de tela (13px) num bloco apertado, e ai ele competia com o
+             conteudo em vez de comentar sobre ele — nota de rodape com corpo de
+             paragrafo nao le como nota. */
+          className="px-3.5 py-2.5 text-[12.5px] leading-relaxed text-text-dim"
+        >
           {content}
         </div>
       </Popover>

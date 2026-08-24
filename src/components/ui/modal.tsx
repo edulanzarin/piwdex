@@ -89,7 +89,11 @@ export function Modal({
 
   return createPortal(
     <div
-      className="anim-fade fixed inset-0 z-100 flex items-end justify-center bg-overlay/85 p-0 backdrop-blur-sm sm:items-center sm:p-4"
+      className=/* O veu: menos PRETO e mais BORRAO. 85% de opaco sobre uma cena que ja e escura
+         apagava o fundo por completo, e ai o modal flutuava sobre um vazio — perdia
+         a nocao de estar em cima de alguma coisa. Com 72% e blur maior, o que esta
+         atras continua sendo reconhecivel como pagina, sem competir. */
+      "anim-fade fixed inset-0 z-100 flex items-end justify-center bg-overlay/72 p-0 backdrop-blur-md sm:items-center sm:p-4"
       onPointerDown={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div
@@ -104,10 +108,20 @@ export function Modal({
         )}
       >
         {(title || eyebrow) && (
-          <header className="flex shrink-0 items-start justify-between gap-3 border-b border-line px-4 py-3">
-            <div className="min-w-0">
-              {eyebrow ? <p className="pix text-[11px] text-accent">{eyebrow}</p> : null}
-              {title ? <h2 className="truncate text-[17px] font-semibold text-text">{title}</h2> : null}
+          /* O respiro do modal subiu (px-4 -> px-6, py-3 -> py-4). Ele e a peca
+             que aparece SOZINHA na tela, com tudo atras borrado — e a unica em
+             que o aperto nao tem desculpa de densidade, porque nao ha vizinho
+             disputando espaco com ela. */
+          <header className="flex shrink-0 items-start justify-between gap-3 border-b border-line px-6 py-4">
+            <div className="flex min-w-0 flex-col gap-0.5">
+              {eyebrow ? (
+                <p className="pix text-[10px] tracking-[0.16em] text-accent">{eyebrow}</p>
+              ) : null}
+              {title ? (
+                <h2 className="truncate text-[18px] leading-tight font-semibold text-text">
+                  {title}
+                </h2>
+              ) : null}
             </div>
             <IconButton label="Fechar" size="sm" variant="ghost" onClick={onClose}>
               <IconClose size={16} />
@@ -116,12 +130,12 @@ export function Modal({
         )}
 
         {/* min-h-0 e o que permite o flex filho encolher e ganhar rolagem propria */}
-        <div className={cn("min-h-0 flex-1 overflow-y-auto overscroll-contain p-4", bodyClassName)}>
+        <div className={cn("min-h-0 flex-1 overflow-y-auto overscroll-contain p-6", bodyClassName)}>
           {children}
         </div>
 
         {footer ? (
-          <footer className="flex shrink-0 items-center justify-end gap-2 border-t border-line px-4 py-3">
+          <footer className="flex shrink-0 items-center justify-end gap-2.5 border-t border-line px-6 py-4">
             {footer}
           </footer>
         ) : null}

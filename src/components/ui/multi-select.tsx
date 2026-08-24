@@ -97,11 +97,11 @@ export function MultiSelect<T extends string>({
       </button>
 
       <Popover open={open} onClose={close} anchorRef={anchor} minWidth={230}>
-        <div className="flex items-center justify-between gap-2 border-b border-line px-2 py-1.5">
+        <div className="flex items-center justify-between gap-2 border-b border-line px-3 py-2.5">
           <span className="pix text-[11px] text-text-mute">{label}</span>
           <div className="flex items-center gap-1">
             {mode && onModeChange ? (
-              <div className="mr-1 flex overflow-hidden rounded-pix border border-line">
+              <div className="mr-1 flex overflow-hidden rounded-[var(--radius-xs)] border border-line">
                 {(["any", "all"] as const).map((m) => (
                   <button
                     key={m}
@@ -132,7 +132,7 @@ export function MultiSelect<T extends string>({
 
         <PopoverScroll>
           {shown.length === 0 ? (
-            <p className="px-2 py-3 text-center text-[13px] text-text-mute">nada bate com &quot;{q}&quot;</p>
+            <p className="px-3 py-5 text-center text-[13px] text-text-mute">nada bate com &quot;{q}&quot;</p>
           ) : (
             shown.map((o) => (
               <Checkbox

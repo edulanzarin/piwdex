@@ -118,7 +118,7 @@ export function Combobox<T extends string | number>({
       <Popover open={open} onClose={close} anchorRef={anchor} matchWidth maxHeight={340}>
         <PopoverScroll>
           {hits.length === 0 ? (
-            <p className="px-2 py-3 text-center text-[13px] text-text-mute">{emptyText}</p>
+            <p className="px-3 py-5 text-center text-[13px] text-text-mute">{emptyText}</p>
           ) : (
             hits.map((o, i) => (
               <button
@@ -127,7 +127,7 @@ export function Combobox<T extends string | number>({
                 onMouseEnter={() => setCursor(i)}
                 onClick={() => commit(o)}
                 className={cn(
-                  "flex w-full items-center gap-2 rounded-pix px-1.5 py-1 text-left text-[14px] transition-colors",
+                  "flex w-full items-center gap-2.5 rounded-[var(--radius-xs)] px-2.5 py-2 text-left text-[14px] transition-colors",
                   i === cursor ? "bg-surface-2 text-text" : "text-text-dim",
                   o.value === value && "text-accent",
                 )}
@@ -138,7 +138,7 @@ export function Combobox<T extends string | number>({
           )}
         </PopoverScroll>
         {q.trim() && hits.length >= limit ? (
-          <p className="border-t border-line px-2 py-1 text-[12px] text-text-mute">
+          <p className="border-t border-line px-3 py-2 text-[12px] text-text-mute">
             mostrando {limit} — refine a busca
           </p>
         ) : null}
