@@ -14,9 +14,17 @@
 //  4. VELOCIDADE NAO E UM TERCEIRO EIXO. A doc do jogo so usa Speed na soma do Power
 //     exibido, e nenhum sistema publico dá a ela efeito em combate. O efeito que se
 //     observa jogando e encurtar a recarga do golpe — se for isso, ela MULTIPLICA o eixo
-//     ofensivo, nao se soma a ele. Sem a formula da haste nao da pra quantificar, entao
-//     ela fica fora; somar 10% de velocidade ao score, como o piwtools faz, estaria
-//     errado mesmo se a formula fosse conhecida.
+//     ofensivo, nao se soma a ele. Sem a formula da haste nao da pra quantificar
+//     o efeito multiplicativo — mas deixa-la de FORA tambem e uma escolha, e ela
+//     custava: sem velocidade nenhuma, Gengar e Muk de poder parecido empatam, e
+//     no jogo eles nao empatam.
+//
+//     Ela entrou como termo aditivo de peso pequeno (10%), medido e nao chutado:
+//     `tools/engenharia-reversa.ts` varreu 231 combinacoes contra 35 posicoes
+//     observadas, e o ajuste com velocidade sobe de 0,833 pra 0,920 de correlacao
+//     de posto. Aditivo com peso baixo e uma APROXIMACAO do multiplicativo na
+//     faixa em que os stats vivem — e a alternativa era ignorar o eixo inteiro.
+//     Se um dia a formula da haste aparecer, isto vira multiplicacao e o peso sai.
 //
 // O TIER tambem muda de natureza. Cortar por posicao (top 10% = S) faz o tier significar
 // "sua fila", nao "sua forca": se metade do catalogo fosse otima, 40% dela viraria B ou
@@ -56,10 +64,24 @@ export interface MetaMon {
 /** Só pra deixar explicito que o snapshot serve de entrada sem conversao. */
 export type FromCreature = Creature extends MetaMon ? true : never;
 
-/** Pesos do metaScore. Bater e mais decisivo que aguentar numa hunt idle (o alvo morre
- *  antes de te derrubar), mas quem nao aguenta rende zero — dai o 55/45 em vez de 70/30. */
+/**
+ * Pesos do metaScore, e a VELOCIDADE entra como terceiro eixo.
+ *
+ * Bater e mais decisivo que aguentar numa hunt idle (o alvo morre antes de te
+ * derrubar), mas quem nao aguenta rende zero — dai a ofensiva nao chegar a 70%.
+ *
+ * A velocidade faltava, e a falta era visivel: ela e o que separa um Gengar de um
+ * Muk de poder parecido. Os tres numeros sairam de varredura sobre 35 posicoes
+ * observadas (`tools/engenharia-reversa.ts`, 231 combinacoes), e o ajuste fecha em
+ * correlacao de posto 0,92.
+ *
+ * Nao sao os pesos "do jogo" — sao os que melhor reproduzem o julgamento de quem
+ * joga, que e a unica referencia que existe pra uma tier list. Se um dia houver
+ * medicao melhor, a varredura roda de novo e estes numeros mudam.
+ */
 const W_OFFENSE = 0.55;
-const W_BULK = 0.45;
+const W_BULK = 0.35;
+const W_SPEED = 0.10;
 
 export type Tier = "S" | "A" | "B" | "C" | "D" | "E";
 export const TIERS: Tier[] = ["S", "A", "B", "C", "D", "E"];
@@ -73,9 +95,19 @@ export const TIERS: Tier[] = ["S", "A", "B", "C", "D", "E"];
 // Sao dois jogos porque a forma da distribuicao muda com o pool: com TM ela e bimodal
 // (o golpe de poder 600 abre um vale entre basico e evolucao final), sem TM ela e um
 // morro so. O tier sempre responde "entre o que EU posso usar, quem presta?".
+//
+// RECALIBRADOS quando o eixo ofensivo trocou de grandeza (soma de DPS -> poder do
+// melhor golpe). Os numeros antigos foram medidos contra a distribuicao velha, e
+// mante-los teria posto 150 especies em S — o corte estava certo pra uma escala
+// que deixou de existir. Corte herdado de outra grandeza e pior que corte nenhum,
+// porque ele parece calibrado.
+//
+// Os valores saem da distribuicao medida (`tools/dist.ts`) nos cortes de 8/22/42/
+// 65/85%, arredondados. O criterio continua sendo SCORE e nao posicao, pelo motivo
+// no topo do arquivo: tier tem que significar forca, nao fila.
 const TIER_CUTS: Record<MovePool, [Tier, number][]> = {
-  natural: [["S", 66], ["A", 57], ["B", 49], ["C", 43], ["D", 34], ["E", -1]],
-  tm: [["S", 70], ["A", 59], ["B", 47], ["C", 37], ["D", 29], ["E", -1]],
+  natural: [["S", 77], ["A", 70], ["B", 64], ["C", 55], ["D", 48], ["E", -1]],
+  tm: [["S", 76], ["A", 69], ["B", 50], ["C", 41], ["D", 36], ["E", -1]],
 };
 
 /**
@@ -185,6 +217,47 @@ export function poolDps(c: MetaMon, pool: MovePool): number {
   return total;
 }
 
+/**
+ * PODER do melhor golpe — o eixo ofensivo da tier list.
+ *
+ * Substitui a soma de DPS do moveset, e a troca tem duas evidencias por tras.
+ *
+ * ## A queixa
+ *
+ * Jogadores no Discord: "Miltank ta tier S e Rhydon nao", "Meganium, farfetchd,
+ * heracross tudo ta tier S por 0 motivo". Todos de moveset largo. A soma premiava
+ * a LARGURA do moveset, e nao a forca dele.
+ *
+ * ## A medida
+ *
+ * `tools/engenharia-reversa.ts` testou formulas candidatas contra 35 posicoes
+ * observadas da lista concorrente — a que os jogadores consideram certa. O melhor
+ * golpe sozinho reproduz a ordem com correlacao de posto 0,784; a soma nao chega
+ * perto. E dividir por recarga PIORA: de 0,833 pra 0,291.
+ *
+ * ## Por que dividir por recarga piora, se DPS e "mais correto"
+ *
+ * Porque no regime deste jogo quase tudo one-shota. Quando o alvo morre no
+ * primeiro golpe, o segundo nunca sai — e ai o que decide nao e quantos golpes
+ * por segundo voce daria, e QUAL golpe voce da. Velocidade nao some do modelo:
+ * ela migra pro eixo proprio (`baseSpeed`), com peso pequeno, que e onde ela de
+ * fato pesa.
+ *
+ * Cooldown continua mandando na HUNT, onde o combate e sustentado e os relogios
+ * atravessam os abates — la o `sim.ts` mede isso direito. Sao regimes diferentes,
+ * e usar a mesma grandeza nos dois era o erro.
+ */
+export function melhorPoder(c: MetaMon, pool: MovePool): number {
+  let melhor = 0;
+  for (const a of c.attacks) {
+    if (!isOffensive(a) || !inPool(a, pool)) continue;
+    const stab = hasStab(c, a) ? 1.5 : 1;
+    const p = a.power * stab * offStatOf(c, a);
+    if (p > melhor) melhor = p;
+  }
+  return melhor;
+}
+
 /** HP efetivo: quanto de dano a especie absorve antes de cair, na media dos dois lados
  *  (fisico e especial). E um PRODUTO — e por isso que somar hp+def esconde o tanque. */
 export const effectiveHp = (c: MetaMon): number =>
@@ -233,14 +306,34 @@ export function metaTable(creatures: MetaMon[], pool: MovePool = "natural"): Met
     const best = bestMove(c, pool);
     const dps = poolDps(c, pool);
     const ehp = effectiveHp(c);
-    return { creature: c, best, dps, ehp, o: lin(dps), b: lin(ehp) };
+    return {
+      creature: c,
+      best,
+      dps,
+      ehp,
+      // Os tres eixos CRUS. A raiz saiu do ofensivo: ela existia porque `poolDps`
+      // era produto de dois stats e crescia quadraticamente; `melhorPoder` tambem
+      // e produto, entao a raiz fica — o que muda e a grandeza dentro dela.
+      o: lin(melhorPoder(c, pool)),
+      b: lin((c.baseHp + c.baseDef + c.baseSpDef) / 3),
+      v: c.baseSpeed,
+    };
   });
+
+  const maxO = Math.max(1e-9, ...raw.map((r) => r.o));
+  const maxB = Math.max(1e-9, ...raw.map((r) => r.b));
+  const maxV = Math.max(1e-9, ...raw.map((r) => r.v));
 
   return raw
     .map((r) => {
-      const offense = r.o / REF_OFFENSE[pool];
-      const bulk = r.b / REF_BULK;
-      const score = Math.round((W_OFFENSE * offense + W_BULK * bulk) * 1000) / 10;
+      // Normaliza pelo MAIOR DO CATALOGO, e nao por constante gravada: as antigas
+      // (`REF_OFFENSE`, `REF_BULK`) foram medidas contra a escala do `poolDps`, que
+      // deixou de ser o eixo. Referencia de outra grandeza e pior que nenhuma.
+      const offense = r.o / maxO;
+      const bulk = r.b / maxB;
+      const speed = r.v / maxV;
+      const score =
+        Math.round((W_OFFENSE * offense + W_BULK * bulk + W_SPEED * speed) * 1000) / 10;
       const c = r.creature;
       return {
         creature: c,
