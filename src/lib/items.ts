@@ -15,7 +15,8 @@
 //   - o numero que decide se vale parar pra pegar nao e a chance crua, e quanto
 //     de ouro o item soma POR ABATE na melhor fonte farmavel.
 
-import type { Creature, Item } from "./types";
+import type { Creature, Item, Rarity } from "./types";
+import { RARITY_ORDER } from "./typing";
 
 /** Tira acento pra busca — mesma normalizacao dos dois lados (indice e digitado).
  *  Sem isso "pedra psiquica" nao acha "Pedra Psíquica" e a lista volta vazia com
@@ -68,7 +69,15 @@ export interface ItemEntry {
   name: string;
   icon: string;
   category: ItemCategory;
+  /** o interruptor do jogo — ver `itemTier` pro que ele NAO e */
   rare: boolean;
+  /**
+   * Faixa de raridade DERIVADA — a mesma escada de seis degraus da dex, e por
+   * isso do tipo `Rarity`. `null` quando o catalogo nao publica chance nenhuma:
+   * item de altar, cla, evento ou carta de shiny nao tem de onde tirar a faixa,
+   * e o que a tela mostra nesses e a ORIGEM.
+   */
+  tier: Rarity | null;
   /** o que o Mark paga por unidade */
   npcPrice: number;
   /** preco em ouro na loja; 0 = nao se compra */
@@ -115,6 +124,87 @@ const avgCount = (s: ItemSourceBrief): number => (s.minCount + s.maxCount) / 2;
 export const killsPerUnit = (s: ItemSourceBrief): number =>
   s.chancePct > 0 ? 100 / (s.chancePct * avgCount(s)) : Infinity;
 
+// ---------------------------------------------------------------------------
+// A RARIDADE do item
+// ---------------------------------------------------------------------------
+//
+// O jogo tem um campo `rare`, e ele nao serve de raridade. Ele e BOOLEANO e
+// esta ligado em 206 dos 428 itens; cruzado com a dificuldade real de tirar
+// uma unidade, 33 dos 92 itens MAIS FACEIS do catalogo estao marcados como
+// raros. Ele nao ordena, nao gradua e nao concorda com o dado ao lado dele.
+//
+// Enquanto a dex tinha escada de seis degraus com cor e o item tinha esse
+// interruptor, as duas telas do mesmo site respondiam "quao raro e isso?" em
+// linguas diferentes — a Pokedex com uma faixa colorida, os Itens com um selo
+// que ora aparecia ora nao, sem escala por tras.
+//
+// A escada aqui e DERIVADA, e a grandeza e a mesma que a tela ja mostra logo
+// abaixo do nome: quantos abates custa UMA unidade na melhor fonte que se pode
+// de fato cacar. Nao inventa eixo novo — gradua o que a pagina inteira ja e.
+//
+// **Ela reusa o `Rarity` da dex de proposito**, os seis nomes e as seis cores.
+// Uma escada de raridade por tela e o que faz a segunda parecer outro site;
+// alem disso, "Epico" ali e "Epico" aqui significam a mesma posicao na escada,
+// que e o unico jeito de a cor querer dizer alguma coisa.
+//
+// A regua e DECIMAL, e ela se le em voz alta. Cada degrau e uma ordem de
+// grandeza de abates:
+//
+//   COMMON      menos de 1     cai em quase todo abate
+//   UNCOMMON    1 a 10         alguns abates
+//   RARE        10 a 100       dezenas de abates
+//   EPIC        100 a 1.000    centenas de abates
+//   LEGENDARY   1.000 a 10.000 milhares de abates
+//   MYTHIC      10.000+        dezenas de milhares pra cima
+//
+// Decada e nao percentil aqui, e e o unico lugar do site onde a regra e essa: o
+// percentil e a regua certa quando o eixo nao tem significado proprio (poder de
+// golpe, stat), e "1.000 abates" tem. Percentil ainda mudaria de faixa a cada
+// patch do jogo sem nada ter mudado pro jogador.
+const TIER_MAX_KILLS: [Rarity, number][] = [
+  ["COMMON", 1],
+  ["UNCOMMON", 10],
+  ["RARE", 100],
+  ["EPIC", 1_000],
+  ["LEGENDARY", 10_000],
+];
+
+/**
+ * A faixa de um item, ou `null` quando nao ha de onde tirar.
+ *
+ * Sai da MESMA fonte que a linha de "1 a cada N abates" do card
+ * (`bestFarm ?? best`). Se saisse da melhor fonte absoluta, um item que so cai
+ * a 90% de uma especie sem ponto no mapa apareceria como comum ao lado da
+ * propria frase dizendo que ele nao se caca.
+ *
+ * Devolve `null` em dois casos, e os dois sao a fonte calada, nao o item facil:
+ *   - nenhuma especie dropa (altar, cla, evento, carta de shiny, loja);
+ *   - dropa mas o catalogo declara `chance: 0` (as 346 linhas de Strange
+ *     Pheromone). Chutar uma faixa em cima disso seria numero com cara de dado.
+ */
+export function itemTier(e: {
+  bestFarm: ItemSourceBrief | null;
+  best: ItemSourceBrief | null;
+}): Rarity | null {
+  const s = e.bestFarm ?? e.best;
+  if (!s || s.chancePct <= 0) return null;
+  const k = killsPerUnit(s);
+  if (!Number.isFinite(k)) return null;
+  for (const [tier, teto] of TIER_MAX_KILLS) if (k < teto) return tier;
+  return "MYTHIC";
+}
+
+/** O que cada degrau QUER DIZER, em abates. A cor sozinha nao ensina a escada:
+ *  quem chega precisa de uma frase pra descobrir que verde e barato. */
+export const ITEM_TIER_HINT: Record<Rarity, string> = {
+  COMMON: "cai em quase todo abate",
+  UNCOMMON: "alguns abates por unidade",
+  RARE: "dezenas de abates por unidade",
+  EPIC: "centenas de abates por unidade",
+  LEGENDARY: "milhares de abates por unidade",
+  MYTHIC: "dezenas de milhares de abates por unidade",
+};
+
 /**
  * Monta os campos derivados de UM item. Roda no servidor, uma vez por versao do
  * catalogo.
@@ -155,6 +245,7 @@ export function buildItemEntry(
   const best = pickBest(all);
   const bestFarm = pickBest(farm);
   const goldPrice = item.priceGold ?? 0;
+  const tier = itemTier({ best, bestFarm });
 
   // Mesma escada do `acquisitionOf` das especies: cai de alguem -> vem da loja
   // -> nao vem de nenhum dos dois, entao e exclusivo (altar, cla, evento).
@@ -167,6 +258,7 @@ export function buildItemEntry(
     icon: item.icon,
     category: asCategory(item.category),
     rare: Boolean(item.rare),
+    tier,
     npcPrice: item.npcPrice ?? 0,
     goldPrice,
     healAmount: item.healAmount ?? 0,
@@ -197,8 +289,14 @@ export interface ItemQuery {
   q: string;
   categories: ItemCategory[];
   origins: ItemOrigin[];
-  /** so os marcados como raros pelo jogo */
-  onlyRare: boolean;
+  /**
+   * Faixas de raridade (a escada derivada — ver `itemTier`).
+   *
+   * Ela substituiu a chave "so os raros", que filtrava pelo booleano do jogo.
+   * Manter as duas daria a mesma pergunta com duas respostas que discordam na
+   * metade do catalogo, e a tela teria de escolher em qual acreditar toda vez.
+   */
+  tiers: Rarity[];
   /** so o que tem alguma fonte com ponto no mapa */
   onlyFarmable: boolean;
   /** faixa fechada [min, max]; null = extremo aberto */
@@ -216,7 +314,7 @@ export const EMPTY_ITEM_QUERY: ItemQuery = {
   q: "",
   categories: [],
   origins: [],
-  onlyRare: false,
+  tiers: [],
   onlyFarmable: false,
   price: [null, null],
   chance: [null, null],
@@ -230,7 +328,7 @@ export function activeCount(q: ItemQuery): number {
   if (q.q.trim()) n++;
   if (q.categories.length) n++;
   if (q.origins.length) n++;
-  if (q.onlyRare) n++;
+  if (q.tiers.length) n++;
   if (q.onlyFarmable) n++;
   if (q.price[0] != null || q.price[1] != null) n++;
   if (q.chance[0] != null || q.chance[1] != null) n++;
@@ -247,7 +345,10 @@ export function matches(e: ItemEntry, q: ItemQuery): boolean {
   if (q.q.trim() && !e.haystack.includes(semAcento(q.q.trim()))) return false;
   if (q.categories.length && !q.categories.includes(e.category)) return false;
   if (q.origins.length && !q.origins.includes(e.origin)) return false;
-  if (q.onlyRare && !e.rare) return false;
+  // Item sem faixa nao passa num filtro de faixa. `null` nao e "comum": e a
+  // fonte calada, e cair dentro de qualquer selecao seria afirmar o degrau que
+  // a tela justamente se recusa a cravar.
+  if (q.tiers.length && (e.tier == null || !q.tiers.includes(e.tier))) return false;
   if (q.onlyFarmable && e.farmSources === 0) return false;
 
   if (!inRange(e.npcPrice, q.price)) return false;
@@ -271,13 +372,14 @@ export function matches(e: ItemEntry, q: ItemQuery): boolean {
 // ---------------------------------------------------------------------------
 
 export type ItemSortKey =
-  | "name" | "id" | "category" | "price" | "gold"
+  | "name" | "id" | "category" | "rarity" | "price" | "gold"
   | "sources" | "chance" | "farmLevel" | "goldPerKill";
 
 export const ITEM_SORT_LABEL: Record<ItemSortKey, string> = {
   name: "Nome",
   id: "Id do jogo",
   category: "Categoria",
+  rarity: "Raridade",
   price: "Valor de NPC",
   gold: "Preço em ouro",
   sources: "Quantas fontes",
@@ -291,6 +393,11 @@ function sortValue(e: ItemEntry, key: ItemSortKey): number | string {
     case "name": return e.name.toLowerCase();
     case "id": return e.id;
     case "category": return e.category;
+    // Pela POSICAO na escada, nao pelo nome: ordenar por texto poria "Comum"
+    // antes de "Epico" e a lista sairia em ordem alfabetica fingindo ser
+    // ranking. Sem faixa vai pro fim em crescente, junto do resto do que a
+    // fonte nao respondeu.
+    case "rarity": return e.tier ? RARITY_ORDER.indexOf(e.tier) : Infinity;
     case "price": return e.npcPrice;
     case "gold": return e.goldPrice;
     case "sources": return e.sources;

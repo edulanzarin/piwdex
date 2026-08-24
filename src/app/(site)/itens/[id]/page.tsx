@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { getData } from "@/lib/data";
 import {
+  ITEM_TIER_HINT,
   buildItemEntry,
   cardSpeciesName,
   killsPerUnit,
@@ -13,7 +14,7 @@ import {
 import { assetIconUrl, spriteUrl } from "@/lib/sprites";
 import { resumoDoItem } from "@/lib/prosa";
 import { JsonLd, trilha } from "@/lib/jsonld";
-import { TYPE_COLOR } from "@/lib/typing";
+import { RARITY_COLOR, TYPE_COLOR } from "@/lib/typing";
 import type { Attack, Creature, PokeType } from "@/lib/types";
 import {
   Chip,
@@ -28,6 +29,7 @@ import {
 import { TypeBadge } from "@/components/type-icon";
 import {
   CategoryIcon,
+  ITEM_CATEGORY_ART,
   IconChance,
   IconGem,
   IconHeal,
@@ -40,7 +42,7 @@ import {
   ItemCategoryIcon,
 } from "@/components/game-icons";
 import { pctText } from "@/components/item-card";
-import { CATEGORY_LABEL, ITEM_CATEGORY_LABEL, ITEM_ORIGIN_LABEL, comInicial, compact as gold } from "@/lib/labels";
+import { CATEGORY_LABEL, ITEM_CATEGORY_LABEL, ITEM_ORIGIN_LABEL, RARITY_LABEL, comInicial, compact as gold } from "@/lib/labels";
 
 // As ~910 fichas sao CACHEAVEIS, e isso e o maior ganho tecnico do site.
 //
@@ -180,6 +182,11 @@ export default async function ItemPage({ params }: Props) {
     }
   }
 
+  // A cor da ficha inteira sai da FAIXA — a mesma escada da dex, ver `itemTier`.
+  // Sem faixa publicada, o cinza de texto apagado: ficha sem degrau nao pode
+  // vestir a cor de um.
+  const tint = e.tier ? RARITY_COLOR[e.tier] : "var(--color-text-mute)";
+
   const melhor = e.bestFarm ?? e.best;
   // O catalogo lista a fonte e declara a chance como ZERO — nao e "nao cai", e
   // "a fonte nao diz". Toda derivacao em cima disso (abates por unidade, ouro
@@ -197,38 +204,88 @@ export default async function ItemPage({ params }: Props) {
         <span className="text-text-dim">{item.name}</span>
       </nav>
 
-      {/* ---- identidade ---- */}
-      <header className="panel scanline relative flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:gap-6">
-        <div className="relative grid shrink-0 place-items-center self-center">
+      {/* ---- a CHEGADA da ficha, no mesmo tratamento da ficha de especie ----
+
+          Era um cabecalho em LINHA: icone de 112 a esquerda e, a direita, um
+          bloco de id, nome de 24px, quatro chips e dois paragrafos — tudo
+          alinhado a esquerda, tudo do mesmo peso. Lia como registro de catalogo,
+          e era exatamente a forma que a ficha de especie tinha antes de virar
+          pagina de campeao. Duas fichas do mesmo site, a um clique uma da outra,
+          em dois idiomas.
+
+          O eixo inverte: a arte vira CENA (grande, centralizada, com a cor da
+          FAIXA por tras), o nome vem em corpo de display com tracking largo, e a
+          faixa vem abaixo como epiteto, separada pelo fio com ornamento. */}
+      <header className="panel relative flex flex-col items-center gap-5 px-4 py-8 text-center sm:px-8 sm:py-10">
+        <div className="relative grid shrink-0 place-items-center">
           <span
             aria-hidden="true"
-            className="anim-glow absolute h-24 w-24 rounded-full bg-[var(--color-t-itens)] blur-2xl"
+            className="anim-glow absolute h-28 w-28 rounded-full blur-2xl"
+            style={{ backgroundColor: tint }}
           />
           <Sprite
             src={assetIconUrl(item.icon)}
             alt={item.name}
-            size={112}
+            size={168}
             priority
-            fallback={<ItemCategoryIcon category={e.category} size={44} />}
-            className="anim-float relative"
+            fallback={
+              <Sprite
+                src={ITEM_CATEGORY_ART[e.category]}
+                alt=""
+                size={128}
+                fallback={<ItemCategoryIcon category={e.category} size={56} />}
+              />
+            }
+            className="anim-float relative [--sprite:128px] sm:[--sprite:168px]"
           />
         </div>
 
-        <div className="flex min-w-0 flex-1 flex-col gap-2">
-          <span className="pix text-[12px] text-text-mute">
-            id {item.id} · {ITEM_ORIGIN_LABEL[e.origin]}
+        <div className="flex w-full min-w-0 flex-col items-center gap-3">
+          <span className="pix text-[11px] tracking-[0.18em] text-text-mute">
+            {ITEM_CATEGORY_LABEL[e.category]} · {ITEM_ORIGIN_LABEL[e.origin]}
           </span>
-          <h1 className="text-[24px] leading-none font-semibold text-text">{item.name}</h1>
 
-          <div className="flex flex-wrap items-center gap-1.5">
-            <Chip icon={<ItemCategoryIcon category={e.category} size={14} />}>
-              {ITEM_CATEGORY_LABEL[e.category]}
-            </Chip>
-            {item.rare ? (
-              <Chip tone="accent" icon={<IconGem size={14} />}>
-                raro
-              </Chip>
-            ) : null}
+          {/* O nome em corpo de CENA. Sem italico: nome proprio de item nao e
+              manchete, e o que da a escala e o corpo e o espaco entre letras. */}
+          <h1 className="pix text-[28px] leading-none tracking-[0.12em] text-text sm:text-[40px]">
+            {item.name}
+          </h1>
+
+          {/* O fio com ornamento. O losango marca o eixo central e da ao fio um
+              comeco e um fim — sem ele a linha parece uma borda mal cortada. */}
+          <span aria-hidden="true" className="flex w-full max-w-md items-center gap-3">
+            <span
+              className="h-px flex-1"
+              style={{ background: `linear-gradient(90deg, transparent, ${tint})` }}
+            />
+            <span className="h-1.5 w-1.5 rotate-45" style={{ backgroundColor: tint }} />
+            <span
+              className="h-px flex-1"
+              style={{ background: `linear-gradient(270deg, transparent, ${tint})` }}
+            />
+          </span>
+
+          {/* O EPITETO: a faixa derivada, com a frase que ensina o degrau ao
+              lado. A cor sozinha nao ensina a escada, e esta e a unica tela em
+              que ha espaco pra dizer o que ela mede. */}
+          {e.tier ? (
+            <span className="flex flex-col items-center gap-1">
+              <span className="pix text-[13px] tracking-[0.2em]" style={{ color: tint }}>
+                {RARITY_LABEL[e.tier]}
+              </span>
+              <span className="text-[13px] text-text-mute">{ITEM_TIER_HINT[e.tier]}</span>
+            </span>
+          ) : (
+            /* Sem faixa a tela DIZ que nao ha, e diz por que. Deixar o espaco em
+               branco faria a ficha parecer quebrada; herdar um degrau faria ela
+               mentir. */
+            <span className="max-w-md text-[13px] text-text-mute">
+              Sem faixa de raridade: o catálogo do jogo não publica chance de drop
+              pra este item, e sem chance não há de onde tirar o degrau.
+            </span>
+          )}
+
+          <div className="flex flex-wrap items-center justify-center gap-1.5">
             {e.farmSources > 0 ? (
               <Chip tone="ok" icon={<IconPin size={14} />}>
                 dá pra farmar
@@ -240,6 +297,16 @@ export default async function ItemPage({ params }: Props) {
               <Chip tone="neon" icon={<IconShop size={14} />}>
                 {e.goldPrice} de ouro na loja
               </Chip>
+            ) : null}
+            {/* O selo de raro do JOGO volta a aparecer, e so aqui.
+                Ele saiu do card e da tabela porque ali competia com a faixa e
+                perdia: booleano ligado em metade do catalogo, sem concordar com
+                dificuldade nenhuma. Mas ele e um fato da fonte, e a ficha e onde
+                fato cabe — desde que diga de quem e a afirmacao. */}
+            {item.rare ? (
+              <Tooltip content="Marcação do próprio jogo. Ela é um interruptor, não uma escala: está ligada em 206 dos 428 itens, inclusive em vários que caem em quase todo abate. A faixa acima é que gradua.">
+                <Chip icon={<IconGem size={14} />}>o jogo marca como raro</Chip>
+              </Tooltip>
             ) : null}
           </div>
 
@@ -255,7 +322,7 @@ export default async function ItemPage({ params }: Props) {
             </p>
           ) : null}
 
-          <dl className="mt-1 grid grid-cols-2 gap-px overflow-hidden rounded-pix border border-line bg-line sm:grid-cols-4">
+          <dl className="mt-1 grid w-full grid-cols-2 gap-px overflow-hidden rounded-pix border border-line bg-line text-left sm:grid-cols-4">
             {[
               {
                 label: "valor de npc",

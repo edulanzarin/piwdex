@@ -13,6 +13,7 @@ import {
   type ItemQuery,
   type ItemSortKey,
 } from "./items";
+import type { Rarity } from "./types";
 
 export type ItemView = "grid" | "table";
 
@@ -55,7 +56,9 @@ export function parseItemsState(sp: URLSearchParams): ItemsState {
     q: sp.get("q") ?? "",
     categories: list(sp.get("c")) as ItemCategory[],
     origins: list(sp.get("o")) as ItemOrigin[],
-    onlyRare: sp.get("rare") === "1",
+    // `r`, a MESMA chave que a dex usa pra raridade: a escada e a mesma, entao
+    // a URL de uma tela se le com o que se aprendeu na outra.
+    tiers: list(sp.get("r")) as Rarity[],
     onlyFarmable: sp.get("farm") === "1",
     price: range(sp.get("pr")),
     chance: range(sp.get("ch")),
@@ -82,7 +85,7 @@ export function buildItemsSearch(s: ItemsState): string {
   if (q.q.trim()) p.set("q", q.q.trim());
   if (q.categories.length) p.set("c", q.categories.join(","));
   if (q.origins.length) p.set("o", q.origins.join(","));
-  if (q.onlyRare) p.set("rare", "1");
+  if (q.tiers.length) p.set("r", q.tiers.join(","));
   if (q.onlyFarmable) p.set("farm", "1");
 
   const ranges: [string, [number | null, number | null]][] = [

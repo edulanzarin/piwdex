@@ -37,12 +37,12 @@ import { ItemsFilters } from "@/components/items-filters";
 import { ItemCard, ItemRow } from "@/components/item-card";
 import {
   IconChance,
-  IconGem,
   IconLevel,
   IconLoot,
   ItemCategoryIcon,
 } from "@/components/game-icons";
-import { ITEM_CATEGORY_LABEL, ITEM_ORIGIN_LABEL, compact } from "@/lib/labels";
+import { ITEM_CATEGORY_LABEL, ITEM_ORIGIN_LABEL, RARITY_LABEL, compact } from "@/lib/labels";
+import { RARITY_COLOR } from "@/lib/typing";
 import { CardAnuncio } from "@/components/anuncio";
 import { ehAnuncio, intercalar } from "@/lib/ads";
 
@@ -59,7 +59,7 @@ const PAGE_SIZES = [24, 60, 120] as const;
 
 const SORT_OPTIONS: SelectOption<ItemSortKey>[] = (
   [
-    "name", "category", "price", "gold",
+    "name", "rarity", "category", "price", "gold",
     "sources", "chance", "farmLevel", "goldPerKill", "id",
   ] as ItemSortKey[]
 ).map((k) => ({ value: k, label: ITEM_SORT_LABEL[k] }));
@@ -75,6 +75,11 @@ type Col = {
 
 const COLUMNS: Col[] = [
   { key: "name", label: "Item" },
+  {
+    key: "rarity",
+    label: "Raridade",
+    hint: "Quantos abates custa uma unidade na melhor fonte farmável — a mesma escada de seis degraus da Pokédex",
+  },
   { key: "category", label: "Categoria" },
   { key: "price", label: "NPC", align: "right", icon: <IconCoin size={14} /> },
   { key: "gold", label: "Ouro", align: "right" },
@@ -153,6 +158,7 @@ export function ItemsBrowser({
   // sem saida.
   const categoryCounts = useMemo(() => countBy(entries, (e) => e.category), [entries]);
   const originCounts = useMemo(() => countBy(entries, (e) => e.origin), [entries]);
+  const tierCounts = useMemo(() => countBy(entries, (e) => e.tier), [entries]);
 
   const active = countActive(state.query);
   const setSort = (sort: ItemSortKey) => setState((s) => ({ ...s, sort, page: 0 }));
@@ -166,6 +172,7 @@ export function ItemsBrowser({
       bounds={bounds}
       categoryCounts={categoryCounts}
       originCounts={originCounts}
+      tierCounts={tierCounts}
       dexIndex={dexIndex}
       onClear={clear}
       activeCount={active}
@@ -307,7 +314,7 @@ export function ItemsBrowser({
         ) : (
           <Panel bodyClassName="p-0">
             <div className="max-h-[calc(100dvh-11rem)] overflow-auto">
-              <table className="w-full min-w-[900px] border-collapse text-left">
+              <table className="w-full min-w-[1010px] border-collapse text-left">
                 <thead className="sticky top-0 z-10 bg-surface-2/92 backdrop-blur-xl">
                   <tr className="border-b border-line-strong">
                     {COLUMNS.map((col) => {
@@ -467,10 +474,17 @@ function ActiveChips({
       </Chip>,
     );
 
-  if (q.onlyRare)
+  for (const t of q.tiers)
     chips.push(
-      <Chip key="rare" tone="accent" icon={<IconGem size={14} />} onRemove={() => onChange({ onlyRare: false })}>
-        só raros
+      /* `tint`, que e o slot que o Chip ja tem pra cor de DADO — e nao o
+         `tone="accent"` do chip de "só raros" que morava aqui. Acento e cor de
+         interface; a faixa tem cor propria, a mesma do card logo abaixo. */
+      <Chip
+        key={`t${t}`}
+        tint={RARITY_COLOR[t]}
+        onRemove={() => onChange({ tiers: q.tiers.filter((x) => x !== t) })}
+      >
+        {RARITY_LABEL[t]}
       </Chip>,
     );
   if (q.onlyFarmable)

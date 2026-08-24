@@ -4,11 +4,14 @@ import { useState, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import {
   ALL_CATEGORIES,
+  ITEM_TIER_HINT,
   type ItemBounds,
   type ItemCategory,
   type ItemOrigin,
   type ItemQuery,
 } from "@/lib/items";
+import { RARITY_COLOR, RARITY_ORDER } from "@/lib/typing";
+import type { Rarity } from "@/lib/types";
 import type { DexBrief } from "@/lib/items-data";
 import { spriteUrl } from "@/lib/sprites";
 import {
@@ -32,7 +35,7 @@ import {
   IconLoot,
   ItemCategoryIcon,
 } from "@/components/game-icons";
-import { ITEM_CATEGORY_LABEL, ITEM_ORIGIN_HINT, compact } from "@/lib/labels";
+import { ITEM_CATEGORY_LABEL, ITEM_ORIGIN_HINT, RARITY_LABEL, compact } from "@/lib/labels";
 
 /**
  * O trilho de filtros dos Itens — mesma forma da dex (trilho fixo, grupos
@@ -52,6 +55,7 @@ interface Props {
   bounds: ItemBounds;
   categoryCounts: Record<string, number>;
   originCounts: Record<string, number>;
+  tierCounts: Record<string, number>;
   /** especies que dropam alguma coisa, pro filtro inverso */
   dexIndex: DexBrief[];
   onClear: () => void;
@@ -104,6 +108,7 @@ export function ItemsFilters({
   bounds,
   categoryCounts,
   originCounts,
+  tierCounts,
   dexIndex,
   onClear,
   activeCount,
@@ -118,6 +123,17 @@ export function ItemsFilters({
         {ITEM_CATEGORY_LABEL[c]}
       </span>
     ),
+  }));
+
+  // A MESMA construcao do filtro de raridade da dex — os seis degraus com a cor
+  // de cada um no menu. Ela e o que ensina a escada sem gastar uma legenda: a
+  // pessoa ve verde ao lado de "Comum" aqui e reconhece o verde no card depois.
+  const tierOptions: MultiOption<Rarity>[] = RARITY_ORDER.map((r) => ({
+    value: r,
+    label: RARITY_LABEL[r],
+    tint: RARITY_COLOR[r],
+    count: tierCounts[r],
+    hint: ITEM_TIER_HINT[r],
   }));
 
   const span = (key: "chance" | "farmLevel" | "sources"): [number, number] => [
@@ -138,7 +154,7 @@ export function ItemsFilters({
       });
 
   const basicos =
-    (q.q.trim() ? 1 : 0) + (q.categories.length ? 1 : 0) + (q.onlyRare ? 1 : 0);
+    (q.q.trim() ? 1 : 0) + (q.categories.length ? 1 : 0) + (q.tiers.length ? 1 : 0);
   const origem = (q.origins.length ? 1 : 0) + (q.onlyFarmable ? 1 : 0);
   const numeros = has(q.price) + has(q.chance) + has(q.farmLevel) + has(q.sources);
   const quem = q.droppedBy != null ? 1 : 0;
@@ -169,11 +185,19 @@ export function ItemsFilters({
           onChange={(categories) => onChange({ categories })}
           options={categoryOptions}
         />
-        <Switch
-          checked={q.onlyRare}
-          onChange={(e) => onChange({ onlyRare: e.target.checked })}
-          label="Só os raros"
-          hint="o selo de raro é do próprio jogo"
+        {/* A escada DERIVADA, no lugar da chave "só os raros".
+            A chave lia o booleano `rare` do jogo, e ele esta ligado em metade do
+            catalogo sem graduar nada — inclusive em 31 dos 85 itens mais faceis
+            que existem. Marcar "só os raros" devolvia meia lista com Band Aid
+            dentro, e nada na tela explicava por que.
+            O que substitui mede o que a pagina inteira ja mede: quantos abates
+            custa uma unidade. Ver `itemTier`. */}
+        <MultiSelect
+          label="raridade"
+          unit="faixas"
+          value={q.tiers}
+          onChange={(tiers) => onChange({ tiers })}
+          options={tierOptions}
         />
       </FilterGroup>
 

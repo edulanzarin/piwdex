@@ -23,6 +23,14 @@ export interface MultiOption<T extends string> {
   /** cor de dado — pinta a caixa marcada com a cor da propria coisa */
   tint?: string;
   count?: number;
+  /**
+   * O que a opcao QUER DIZER, numa linha, abaixo do rotulo.
+   *
+   * Existe pra escada com cor: "Épico" pintado de rosa nao ensina que rosa e
+   * caro, e o menu de filtro e o unico lugar onde os seis degraus aparecem
+   * juntos — e portanto o unico onde da pra aprender a ordem sem legenda.
+   */
+  hint?: string;
 }
 
 export interface MultiSelectProps<T extends string> {
@@ -142,7 +150,15 @@ export function MultiSelect<T extends string>({
                 tint={o.tint}
                 label={
                   <span className="flex items-center justify-between gap-2">
-                    <span className="truncate">{o.render ?? o.label}</span>
+                    {/* `min-w-0` no lugar de `truncate` seco: a dica e uma
+                        segunda linha, e `truncate` no pai a esmagaria junto com
+                        o rotulo. Quem trunca agora e a linha do rotulo, so ela. */}
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate">{o.render ?? o.label}</span>
+                      {o.hint ? (
+                        <span className="block truncate text-[12px] text-text-mute">{o.hint}</span>
+                      ) : null}
+                    </span>
                     {o.count != null ? (
                       <span className="shrink-0 text-[12px] text-text-mute tabular">{o.count}</span>
                     ) : null}
