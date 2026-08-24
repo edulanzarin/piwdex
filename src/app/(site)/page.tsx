@@ -6,9 +6,13 @@ import { agora, fecharPiso } from "@/lib/pacing";
 import {
   Badge,
   ButtonLink,
+  DisplayTitle,
+  Eyebrow,
+  FeatureSection,
   IconChevronRight,
   MetricCell,
   MetricGrid,
+  Parallax,
   Pokeball,
   SectionTitle,
   Sprite,
@@ -106,19 +110,24 @@ export default async function HomePage() {
             </div>
           </div>
 
-          {/* Caixa alta e mais corpo: é a manchete da home, e em caixa baixa ela
-              competia de igual pra igual com o parágrafo logo abaixo. O tracking
-              desce em relação ao `.pix` padrão — caixa alta com tracking de
-              rótulo, nesse corpo, vira uma linha larga demais pra ler de uma vez.
-              `text-balance` distribui as linhas em vez de encher a primeira e
-              deixar a sobra sozinha embaixo. */}
-          <h2
-            className="anim-in pix text-[32px] leading-[1.12] tracking-[0.03em] text-balance text-text sm:text-[44px]"
+          {/* A manchete virou TITULO DE CENA: sobrelinha pequena, nome grande em
+              itálico. O bloco passa a ser uma frase que começa miúda e termina em
+              escala, em vez de um rótulo de 44px.
+
+              O itálico é de verdade (família própria, ver `layout.tsx`): pedir
+              itálico à Lexend faria o navegador inclinar a letra reta por
+              transformação, e nesse corpo a haste torta se vê de longe. */}
+          <div
+            className="anim-in flex flex-col gap-2"
             style={{ "--d": "80ms" } as CSSProperties}
           >
-            A dex <span style={{ color: "var(--color-t-dex)" }}>completa</span> do{" "}
-            <span style={{ color: "var(--color-t-meta)" }}>Poke Idle World</span>
-          </h2>
+            <Eyebrow>A dex completa do</Eyebrow>
+            <DisplayTitle as="h2" size="xl" className="text-text">
+              Poke{" "}
+              <span style={{ color: "var(--color-t-dex)" }}>Idle</span>{" "}
+              <span style={{ color: "var(--color-t-meta)" }}>World</span>
+            </DisplayTitle>
+          </div>
 
           <p
             className="anim-in max-w-xl text-[17px] leading-relaxed text-text-dim"
@@ -238,97 +247,65 @@ export default async function HomePage() {
         </aside>
       </section>
 
-      {/* ================= ferramentas ================= */}
-      <section id="ferramentas" className="flex flex-col gap-4 scroll-mt-20">
-        <SectionTitle>Ferramentas</SectionTitle>
-        <div className="grid gap-4 lg:grid-cols-2">
-          {FERRAMENTAS.map((t, i) => {
-            const Icone = t.Icone;
-            return (
-              <Link
-                key={t.href}
-                href={t.href}
-                className="panel anim-in group relative flex min-w-0 flex-col overflow-hidden p-4 transition-all duration-200 hover:brightness-110 sm:p-5"
-                style={
-                  {
-                    "--tint": t.cor,
-                    "--d": `${i * 55}ms`,
-                    borderColor: `color-mix(in oklab, ${t.cor} 40%, var(--color-line))`,
-                    boxShadow: `0 0 52px -26px ${t.cor}`,
-                  } as CSSProperties
-                }
-              >
-                {/* O wash da cor da ferramenta só acende no hover: em repouso os
-                    seis cards têm o mesmo peso, e é o ponteiro que escolhe qual
-                    deles está sob atenção. */}
-                <span
-                  aria-hidden="true"
-                  className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
-                  style={{
-                    background: `radial-gradient(420px 180px at 0% 0%, color-mix(in oklab, ${t.cor} 16%, transparent), transparent 70%)`,
-                  }}
-                />
+      {/* ================= as ferramentas, em CENAS =================
 
-                <div className="relative flex items-start gap-4 sm:gap-5">
-                  {/* A arte carrega a identidade da ferramenta e é a primeira
-                      coisa que o olho pega — então ela tem tamanho de figura,
-                      não de bullet. O `Sprite` já resolve carga e falha: sem o
-                      PNG, entra o ícone de linha no lugar. */}
-                  <span className="shrink-0 transition-transform duration-300 ease-out group-hover:-translate-y-1 group-hover:scale-105">
-                    <Sprite
-                      src={`/images/icons/${t.arte}.png`}
-                      alt=""
-                      size={104}
-                      priority
-                      /* A 320px a arte de 104 mais o botão não cabiam na linha e
-                         o card empurrava a página 17px pra fora da tela. Aqui ela
-                         encolhe em vez de o card vazar. */
-                      className="[--sprite:76px] sm:[--sprite:104px]"
-                      fallback={<Icone size={34} strokeWidth={1.8} style={{ color: t.cor }} />}
-                    />
-                  </span>
+          Era uma grade de seis cards. O card e a forma certa pra COMPARAR — seis
+          caixas iguais deixam o olho varrer e escolher — e a forma errada pra
+          APRESENTAR: na grade, cada ferramenta ganha um sexto da atenção e
+          nenhuma ganha um argumento, e a página lê como menu de sistema.
 
-                  <div className="flex min-w-0 flex-1 flex-col gap-2.5">
-                    {/* SEM glifo de linha ao lado do nome.
-                        Ele existia pra ensinar que o ícone da navegação é esta
-                        tela, e o preço disso era alto demais: traço fino de 16px
-                        encostado num sprite pixelado de 104px são duas linguagens
-                        de desenho na mesma linha, e a que perde é sempre a arte —
-                        o glifo lê como ícone de sistema e faz a peça feita à mão
-                        parecer enfeite. A arte já identifica a ferramenta, e ela
-                        identifica melhor. */}
-                    <h3 className="pix text-[19px] leading-none" style={{ color: t.cor }}>
-                      {t.nome}
-                    </h3>
+          Agora cada uma ocupa uma faixa inteira que sangra até a borda da janela,
+          com a arte grande de um lado e o argumento do outro, alternando o lado a
+          cada faixa. A alternância é o que impede a página de virar um trilho de
+          blocos idênticos descendo pela mesma coluna.
 
-                    <p className="text-[15px] leading-relaxed text-text-dim">{t.desc}</p>
+          A revelação entra no scroll, e não na carga: animar o que está abaixo da
+          dobra no carregamento é pagar o custo da animação enquanto ninguém
+          olha. */}
+      <SectionTitle id="ferramentas" className="scroll-mt-20">
+        Ferramentas
+      </SectionTitle>
 
-                    {/* O botão mora na COLUNA DO TEXTO, alinhado com a descrição.
-                        Solto no rodapé do card ele se descola da frase que explica
-                        pra onde vai. `min-h` no lugar de `h` fixo: o rótulo em
-                        caixa alta passa de 180px e não podia quebrar, então
-                        vazava. */}
-                    <span
-                      className="pix mt-1 inline-flex min-h-10 w-fit max-w-full items-center gap-2 border px-4 py-2 text-[13px] transition-all duration-200 group-hover:brightness-125"
-                      style={{
-                        borderColor: `color-mix(in oklab, ${t.cor} 60%, transparent)`,
-                        backgroundColor: `color-mix(in oklab, ${t.cor} 18%, transparent)`,
-                        color: t.cor,
-                      }}
-                    >
-                      abrir {t.nome.toLowerCase()}
-                      <IconChevronRight
-                        size={16}
-                        className="transition-transform duration-200 group-hover:translate-x-1"
-                      />
-                    </span>
-                  </div>
-                </div>
-              </Link>
-            );
-          })}
-        </div>
-      </section>
+      {FERRAMENTAS.map((t, i) => (
+        <FeatureSection
+          key={t.href}
+          tint={t.cor}
+          /* A alternância é o par/ímpar do índice, e não um campo no registro:
+             de que lado a arte cai é decisão de LAYOUT desta página, e cravar
+             isso na identidade da ferramenta faria a próxima tela herdar uma
+             escolha que só faz sentido aqui. */
+          flip={i % 2 === 1}
+          eyebrow={t.chamada}
+          title={t.nome}
+          lead={t.desc}
+          art={
+            <Parallax forca={0.06}>
+              <Sprite
+                src={`/images/icons/${t.arte}.png`}
+                alt=""
+                /* A arte estoura a faixa: peça contida na própria caixa lê como
+                   conteúdo, peça que vaza lê como cena. */
+                className="[--sprite:180px] drop-shadow-[0_24px_48px_rgba(0,0,0,0.55)] sm:[--sprite:260px]"
+                fallback={<t.Icone size={120} strokeWidth={1.2} style={{ color: t.cor }} />}
+              />
+            </Parallax>
+          }
+          actions={
+            <ButtonLink
+              href={t.href}
+              size="lg"
+              className="border-transparent"
+              style={{
+                backgroundColor: t.cor,
+                color: "var(--color-bg)",
+              }}
+              iconRight={<IconChevronRight size={16} />}
+            >
+              Abrir {t.nome}
+            </ButtonLink>
+          }
+        />
+      ))}
     </div>
   );
 }

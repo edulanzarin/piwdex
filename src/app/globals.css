@@ -124,6 +124,8 @@
      resolve por construcao, e nao por feature opcional da fonte. */
   --font-ui-stack: var(--font-ui), "Segoe UI", system-ui, sans-serif;
   --font-mono-stack: var(--font-mono), ui-monospace, "SF Mono", Menlo, monospace;
+  /* `display` e Archivo, e ela existe por causa do italico — ver `layout.tsx`. */
+  --font-display-stack: var(--font-display), var(--font-ui), system-ui, sans-serif;
 
   /* ---- elevacao: uma escada de sombra, e o brilho vira DETALHE ----
      Antes o unico recurso de profundidade era o halo neon, e halo neon nao
@@ -345,6 +347,17 @@
     /* 600 no lugar de 700: a Lexend tem semibold de verdade, e o bold cheio em
        caixa alta pesa demais num rotulo de 11px. */
     font-weight: 600;
+  }
+
+  /* ---- o titulo de CENA ----
+     Peso 900 e nao 700: em caixa alta italica grande, o bold comum le como texto
+     esticado, e o que da a impressao de PLACA e a haste cheia. O tracking entra
+     negativo porque toda familia abre demais em corpo display — a medida boa a
+     16px empurra as letras a 84px. */
+  .display {
+    font-family: var(--font-display-stack);
+    font-weight: 900;
+    font-style: italic;
   }
 
   /* ---- superficie base de qualquer bloco: VIDRO ----

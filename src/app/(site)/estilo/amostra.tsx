@@ -4,6 +4,9 @@ import { useState } from "react";
 import {
   Badge,
   Button,
+  DisplayTitle,
+  Eyebrow,
+  Reveal,
   Checkbox,
   DataList,
   DataRow,
@@ -369,6 +372,44 @@ export function Amostra() {
             <Divider />
             <p className="text-[13px] text-text-mute">Fio solto, pra dentro de painel.</p>
           </div>
+        </div>
+      </Bloco>
+
+      <Bloco
+        titulo="Titulo de cena"
+        nota="Sobrelinha pequena e nome grande em italico. O italico e de familia propria: a Lexend nao tem um, e o sintetizado torce a haste em corpo grande."
+      >
+        <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-2">
+            <Eyebrow tint="var(--color-t-dex)">Conheca cada</Eyebrow>
+            <DisplayTitle size="xl" tint="var(--color-t-dex)">
+              Pokedex
+            </DisplayTitle>
+          </div>
+          <div className="flex flex-col gap-2">
+            <Eyebrow>Escolha onde</Eyebrow>
+            <DisplayTitle size="md" className="text-text">
+              Cacar
+            </DisplayTitle>
+          </div>
+        </div>
+      </Bloco>
+
+      <Bloco
+        titulo="Revelacao no scroll"
+        nota="Dispara ao entrar em cena e se desliga na primeira vez. Reanimar a cada passagem faz reler uma frase virar perseguir a frase."
+      >
+        <div className="grid gap-3 sm:grid-cols-3">
+          {(["sobe", "esquerda", "cresce"] as const).map((e, i) => (
+            <Reveal key={e} efeito={e} delay={i * 90}>
+              <div className="rounded-pix border border-line bg-surface-2 p-4">
+                <p className="pix text-[12px] text-text-dim">{e}</p>
+                <p className="mt-1 text-[12px] text-text-mute">
+                  Rola pra fora e volta pra ver de novo — ele so anima uma vez.
+                </p>
+              </div>
+            </Reveal>
+          ))}
         </div>
       </Bloco>
 

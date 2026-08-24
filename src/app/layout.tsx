@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Lexend_Deca, JetBrains_Mono } from "next/font/google";
+import { Lexend_Deca, JetBrains_Mono, Archivo } from "next/font/google";
 import { SITE_URL } from "@/lib/site";
 import "./globals.css";
 
@@ -58,6 +58,31 @@ const lexend = Lexend_Deca({
   display: "swap",
 });
 
+/**
+ * ## O titulo: Archivo, e por que uma TERCEIRA familia
+ *
+ * Acrescentar familia e caro e quase sempre errado. Aqui ela paga por uma razao
+ * so, e e mecanica: **a Lexend Deca nao tem italico**. Nenhum corte dela publica
+ * um, entao pedir `font-style: italic` faz o navegador SINTETIZAR — ele inclina a
+ * letra reta por transformacao geometrica. Em corpo de 14px ninguem nota; num
+ * titulo de 84px a haste sai torta, o contraste entre grossura vai pro lugar
+ * errado e a curva do "S" quebra. O italico e a assinatura do titulo display
+ * desta passada, entao ou ele e de verdade, ou nao existe.
+ *
+ * A Archivo tem italico desenhado, peso ate 900, e e uma grotesca de mesma
+ * familia visual da Lexend — as duas convivem sem parecer que a pagina trocou de
+ * assunto no meio.
+ *
+ * Ela entra SO no display. Titulo de secao, corpo e rotulo continuam na Lexend.
+ */
+const display = Archivo({
+  weight: ["700", "800", "900"],
+  style: ["italic", "normal"],
+  subsets: ["latin", "latin-ext"],
+  variable: "--font-display",
+  display: "swap",
+});
+
 const mono = JetBrains_Mono({
   weight: ["400", "500", "700"],
   subsets: ["latin", "latin-ext"],
@@ -87,7 +112,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pt-BR" className={`${lexend.variable} ${mono.variable}`}>
+    <html lang="pt-BR" className={`${lexend.variable} ${display.variable} ${mono.variable}`}>
       {/* flex-col + filho que cresce: o rodape encosta no fim da JANELA quando a
           pagina e curta, em vez de subir e deixar uma faixa de fundo embaixo dele. */}
       <body className="flex min-h-dvh flex-col antialiased">{children}</body>

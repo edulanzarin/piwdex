@@ -25,6 +25,14 @@ export { Panel, FieldLabel } from "./panel";
 export { Pokeball } from "./pokeball";
 export { Popover, PopoverScroll } from "./popover";
 export { Range } from "./range";
+export {
+  DisplayTitle,
+  Eyebrow,
+  FeatureSection,
+  FullBleed,
+  type FeatureSectionProps,
+} from "./feature";
+export { Parallax, Reveal, type RevealProps } from "./reveal";
 export { Divider, PageHeader, SectionTitle } from "./section";
 export { Segmented, type SegmentedOption } from "./segmented";
 export { Select, type SelectOption } from "./select";

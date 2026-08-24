@@ -39,11 +39,21 @@ export interface Ferramenta {
   linha: string;
   /** o paragrafo do card da home */
   desc: string;
+  /**
+   * A SOBRELINHA da cena na home: a frase curta que prepara o nome grande.
+   *
+   * Ela mora aqui e nao na pagina pela mesma razao que o resto — e identidade da
+   * ferramenta, e identidade escrita na tela e identidade que a proxima tela nao
+   * herda. E ela e um VERBO de propósito: "escolha seu" antes de "POKEDEX" faz o
+   * bloco virar frase; sem ela o nome grande e so um rotulo enorme.
+   */
+  chamada: string;
 }
 
 export const FERRAMENTAS: Ferramenta[] = [
   {
     href: "/dex",
+    chamada: "Conheça cada",
     nome: "Pokédex",
     arte: "pokedex",
     cor: "var(--color-t-dex)",
@@ -55,6 +65,7 @@ export const FERRAMENTAS: Ferramenta[] = [
   },
   {
     href: "/itens",
+    chamada: "Descubra de quem cai",
     nome: "Itens",
     arte: "itens",
     cor: "var(--color-t-itens)",
@@ -66,6 +77,7 @@ export const FERRAMENTAS: Ferramenta[] = [
   },
   {
     href: "/calc",
+    chamada: "Meça o que o jogo esconde",
     nome: "Calculadora",
     arte: "calculadora",
     cor: "var(--color-t-calc)",
@@ -77,6 +89,7 @@ export const FERRAMENTAS: Ferramenta[] = [
   },
   {
     href: "/hunt",
+    chamada: "Escolha onde",
     nome: "Hunt",
     arte: "hunt",
     cor: "var(--color-t-hunt)",
@@ -88,6 +101,7 @@ export const FERRAMENTAS: Ferramenta[] = [
   },
   {
     href: "/breed",
+    chamada: "Planeje o próximo",
     nome: "Breeding",
     arte: "breeding",
     cor: "var(--color-t-breed)",
@@ -99,6 +113,7 @@ export const FERRAMENTAS: Ferramenta[] = [
   },
   {
     href: "/meta",
+    chamada: "Descubra quem vence no",
     nome: "Meta",
     arte: "meta",
     cor: "var(--color-t-meta)",
