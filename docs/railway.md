@@ -53,7 +53,7 @@ No serviço da **dex**, cinco variáveis. Todo o resto (`PORT`, `HOSTNAME`,
 | variável | quando é lida | se faltar |
 |---|---|---|
 | `NEXT_PUBLIC_SITE_URL` | build **e** runtime | cai em `https://piwdex.com.br` |
-| `NEXT_PUBLIC_ADSENSE_CLIENT` | **build** | site sem anúncio nenhum |
+| `NEXT_PUBLIC_ADSENSE_CLIENT` | **build** | site sem anúncio nenhum, e `/ads.txt` sem autorizar ninguém |
 | `NEXT_PUBLIC_ADSENSE_SLOT_RODAPE` | **build** | faixa do rodapé não existe |
 | `NEXT_PUBLIC_ADSENSE_SLOT_GRADE` | **build** | grade sem anúncio intercalado |
 | `NEXT_PUBLIC_ADSENSE_LAYOUT_GRADE` | **build** | unidade de feed sobe e não pinta |
@@ -142,7 +142,39 @@ Três coisas sobre essa linha:
   banco ocioso. Vale se você quer a reserva feita; não vale se é pra "já deixar
   pronto".
 
-## 3. Depois da aprovação no AdSense
+## 3. Verificação do AdSense: só a conta, nenhuma unidade
+
+Este é o passo em que o Google pede o script no `<head>` pra confirmar que o site
+é seu. Ele **não** precisa de unidade de anúncio nenhuma:
+
+```json
+{
+  "NEXT_PUBLIC_ADSENSE_CLIENT": "ca-pub-5164828819712988",
+  "NEXT_PUBLIC_ADSENSE_SLOT_RODAPE": "",
+  "NEXT_PUBLIC_ADSENSE_SLOT_GRADE": "",
+  "NEXT_PUBLIC_ADSENSE_LAYOUT_GRADE": ""
+}
+```
+
+Com a conta e sem slot, o site fica assim: o script do AdSense carrega, a meta
+`google-adsense-account` aparece no `<head>`, o `/ads.txt` passa a declarar a
+conta — e **nenhum espaço de anúncio é desenhado**, porque em produção um lugar
+sem slot não existe. É exatamente o que a verificação precisa e nada além.
+
+Conferir depois do deploy, os três de uma vez:
+
+```bash
+curl -s https://piwdex.com.br/ads.txt
+# google.com, pub-5164828819712988, DIRECT, f08c47fec0942fa0
+
+curl -s https://piwdex.com.br/ | grep -o 'adsbygoogle.js?client=[^"]*'
+curl -s https://piwdex.com.br/ | grep -o 'google-adsense-account[^>]*'
+```
+
+Se o `ads.txt` voltar só com comentário, a variável não estava presente no
+**build** — ver a armadilha do `NEXT_PUBLIC_*` mais abaixo.
+
+## 4. Depois da aprovação no AdSense
 
 ```json
 {
@@ -155,8 +187,14 @@ Três coisas sobre essa linha:
 }
 ```
 
-O `ads.txt` **não** é variável: é arquivo em `public/`, entra na imagem no build.
-Trocar a linha dele é commit, não painel.
+O `ads.txt` **é gerado** a partir do mesmo `NEXT_PUBLIC_ADSENSE_CLIENT`
+(`src/app/ads.txt/route.ts`), tirando o prefixo `ca-`. Não há nada pra editar à
+mão: preencher a variável liga o script e a autorização juntos, e esquecê-la
+desliga os dois juntos.
+
+Era arquivo em `public/` e virou rota justamente porque o id em dois lugares é o
+tipo de coisa que um dia não bate — e o modo de falha é caro: o site serve
+anúncio normalmente enquanto o AdSense trata o inventário como não autorizado.
 
 ## As armadilhas
 
