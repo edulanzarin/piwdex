@@ -146,6 +146,14 @@ const CAMPO_MUDO_MS = 12_000;
  * nada). Nao reenviar custa a noite inteira de cacada.
  */
 const CAMPO_TRAVADO_MS = 30_000;
+/**
+ * Quantas vezes reentrar antes de admitir que nao vai.
+ *
+ * Tres e o suficiente pra descartar um frame perdido; a quarta ja e o motor
+ * repetindo um comando que o jogo esta ignorando. Insistir contra o nao do
+ * servidor e ruido, e ruido em cima de um problema que ninguem consegue ver.
+ */
+const REENTRADAS_MAX = 3;
 
 /** Anti-flood do `field-revive` — o frame `field` chega ~2x por segundo. */
 const REVIVE_COOLDOWN_MS = 15_000;
@@ -328,6 +336,10 @@ export class SessaoJogo extends EventEmitter {
   private rotaConcluida = false;
   private rotaPlanejadaPara: string | null = null;
   private rotaTrocandoEm = 0;
+  /** quantas reentradas seguidas sem combate — o motor desiste em `REENTRADAS_MAX` */
+  private reentradas = 0;
+  /** por que o motor largou a cacada. Vai pra tela como esta. */
+  private explicacaoCampo: string | null = null;
   /** quando o motor reenviou o `enter-hunt` da ultima vez */
   private reentradaEm = 0;
 
@@ -393,7 +405,9 @@ export class SessaoJogo extends EventEmitter {
       motivoBloqueio: this.motivoBloqueio,
 
       fechamento: this.fechamento,
-      explicacao: this.explicacao ?? this.lerExplicacao(campoVivo),
+      // A desistencia de campo manda na frase: ela e o unico caso em que a
+      // sessao esta perfeita e a cacada foi largada de proposito.
+      explicacao: this.explicacaoCampo ?? this.explicacao ?? this.lerExplicacao(campoVivo),
       conectado: !!this.ws,
       campoVivo,
       reconexoes: this.reconexoes,
@@ -834,6 +848,9 @@ export class SessaoJogo extends EventEmitter {
    * snapshot, e o analyzer fica zerado pra sempre.
    */
   private entrarNoCampo(slug: string) {
+    // Caçada nova comeca com a ficha limpa: a desistencia era daquela hunt.
+    this.reentradas = 0;
+    this.explicacaoCampo = null;
     // Com o lider caido o jogo RECUSA a entrada. Entrar em cima do corpo era a
     // hunt "ligada" que nao matava nada. Levanta primeiro; a volta e automatica.
     if (this.liderCaido()) {
@@ -886,12 +903,52 @@ export class SessaoJogo extends EventEmitter {
     // A conexao acabou de abrir: da o mesmo prazo antes de cobrar o primeiro frame.
     if (this.desdeMs && agora - this.desdeMs < CAMPO_TRAVADO_MS) return;
 
+    /**
+     * A reentrada DESISTE.
+     *
+     * `enter-hunt` nao tem ack: o jogo aceita ou ignora, e a unica evidencia de
+     * que funcionou e o combate comecar. Quando ele nao comeca, reenviar o mesmo
+     * frame a cada 30s nao descobre nada — so enche o registro de "sem combate"
+     * e faz o robo parecer ocupado enquanto nao acontece nada.
+     *
+     * Tres tentativas, e depois a sessao FICA de pe dizendo o que se sabe. Ela
+     * nao cai: vender, repor, coletar e o chat seguem funcionando, e sao coisas
+     * que nao dependem do campo.
+     */
+    this.reentradas++;
+    if (this.reentradas > REENTRADAS_MAX) {
+      this.slug = null;
+      this.reentradas = 0;
+      this.explicacaoCampo =
+        "entrei nesta caçada 3 vezes e o jogo não mandou combate nenhum. " +
+        "Costuma ser hunt que a conta ainda não abriu, líder fraco demais para o " +
+        "ponto, ou a caçada recusada na entrada.";
+      this.registrar({
+        em: agora, tipo: "aviso",
+        especie: "desisti desta caçada: o jogo não manda combate",
+        shiny: false, xp: 0, loot: [],
+      });
+      if (this.userId) {
+        void registrarEvento(this.userId, this.contaId, {
+          tipo: "falha",
+          titulo: "caçada sem combate",
+          corpo: this.explicacaoCampo,
+        });
+      }
+      this.emitir();
+      return;
+    }
+
     this.reentradaEm = agora;
-    console.warn(`[robo] campo mudo ha ${CAMPO_TRAVADO_MS / 1000}s — reentrando em ${this.slug}`);
+    console.warn(
+      `[robo] campo mudo ha ${CAMPO_TRAVADO_MS / 1000}s — reentrando em ${this.slug} ` +
+        `(${this.reentradas}/${REENTRADAS_MAX})`,
+    );
     this.enviar({ type: "enter-hunt", slug: this.slug });
     this.enviar({ type: "pending-get" });
     this.registrar({
-      em: agora, tipo: "aviso", especie: "sem combate: entrei na caçada de novo",
+      em: agora, tipo: "aviso",
+      especie: `sem combate: entrei na caçada de novo (${this.reentradas}/${REENTRADAS_MAX})`,
       shiny: false, xp: 0, loot: [],
     });
   }
@@ -956,11 +1013,19 @@ export class SessaoJogo extends EventEmitter {
 
       case "field":
         this.ultimoCampoEm = Date.now();
+        // Chegou combate: a contagem de reentradas volta ao zero, senao uma
+        // hunt boa herdaria o cansaco de uma ruim que veio antes.
+        this.reentradas = 0;
+        this.explicacaoCampo = null;
         this.acompanharCampo(m);
         break;
 
       case "field-init":
         this.ultimoCampoEm = Date.now();
+        // Chegou combate: a contagem de reentradas volta ao zero, senao uma
+        // hunt boa herdaria o cansaco de uma ruim que veio antes.
+        this.reentradas = 0;
+        this.explicacaoCampo = null;
         this.emitir();
         break;
 
