@@ -121,7 +121,10 @@ export default async function HomePage() {
    * palpite disponível.
    *
    * A troca resolve o defeito que o Eduardo apontou: o mais forte do jogo não
-   * muda, então a home nunca mudava. Ver `lib/destaque.ts`.
+   * muda, então a home nunca mudava. E a janela é ROLANTE, de 24 horas — o
+   * primeiro desenho tinha mandato de três dias, e ele apontou que isso faz o
+   * card mostrar sempre o campeão da janela anterior, ou seja, o que estava em
+   * alta três dias atrás. Ver `lib/destaque.ts`.
    *
    * O eleito é procurado no ranking porque é de lá que saem a nota, o tier e a
    * raridade que o card mostra. Se ele não estiver lá — saiu do catálogo, ou

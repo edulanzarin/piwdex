@@ -221,7 +221,16 @@ function CartaoTier({ e, onOpen }: { e: MetaEntry; onOpen: () => void }) {
       title={`${monLabel(c)} — ${tipos.map((t) => TYPE_LABEL[t]).join(" / ")} — nota ${e.score}`}
       style={{ ["--tint" as string]: tint }}
       className={cn(
-        "panel-card group flex w-[76px] flex-col overflow-hidden text-center",
+        // 100px, e nao 76.
+        //
+        // A 76 a peca ficava fina e esmagada: o sprite saia a 48 dentro de um
+        // painel quadrado (sobrava mais moldura que bicho), e metade dos nomes
+        // do catalogo truncava — "Mega Alak...", "Kangaskh...", "Mega Luca...".
+        // Nome cortado num tile cuja funcao e RECONHECER anula o tile.
+        //
+        // O ganho de densidade que os 76 davam era falso: cabiam 16 por linha,
+        // mas quatro deles nao diziam quem eram.
+        "panel-card group flex w-[100px] flex-col overflow-hidden text-center",
         "transition-[border-color,box-shadow,transform] duration-200",
         "hover:-translate-y-0.5 hover:border-[color:var(--tint)] hover:shadow-elev-3",
         "focus-visible:border-[color:var(--tint)]",
@@ -233,13 +242,13 @@ function CartaoTier({ e, onOpen }: { e: MetaEntry; onOpen: () => void }) {
             navegador a rasterizar o desfoque a cada quadro. */}
         <span
           aria-hidden="true"
-          className="absolute h-14 w-14 origin-center scale-[0.7] rounded-full blur-xl transition-transform duration-300 ease-out group-hover:scale-100"
+          className="absolute h-[72px] w-[72px] origin-center scale-[0.72] rounded-full blur-xl transition-transform duration-300 ease-out group-hover:scale-100"
           style={{ backgroundColor: tint, opacity: 0.2 }}
         />
         <Sprite
           src={spriteUrl(c.pokeId)}
           alt={c.name}
-          size={48}
+          size={64}
           className="relative transition-transform duration-300 ease-out motion-safe:group-hover:scale-110"
         />
       </span>
@@ -262,17 +271,17 @@ function CartaoTier({ e, onOpen }: { e: MetaEntry; onOpen: () => void }) {
           da STAB). A palavra continua no `title`, e o `aria-hidden` mantem a
           faixa fora do leitor de tela — pra ele, o `title` do botao ja diz os
           dois tipos por extenso. */}
-      <span aria-hidden="true" className="flex h-[3px] w-full shrink-0">
+      <span aria-hidden="true" className="flex h-1 w-full shrink-0">
         {tipos.map((t) => (
           <span key={t} className="h-full flex-1" style={{ backgroundColor: TYPE_COLOR[t] }} />
         ))}
       </span>
 
-      <span className="relative flex flex-col items-center border-t border-line bg-surface-2/70 px-1 pt-1.5 pb-1.5 transition-colors duration-200 group-hover:bg-surface-3/70">
-        <span className="w-full truncate text-[11px] leading-tight text-text-dim transition-colors group-hover:text-text">
+      <span className="relative flex flex-col items-center gap-1 border-t border-line bg-surface-2/70 px-1.5 pt-2 pb-2 transition-colors duration-200 group-hover:bg-surface-3/70">
+        <span className="w-full truncate text-[12px] leading-tight text-text-dim transition-colors group-hover:text-text">
           {c.name}
         </span>
-        <span className="num flex items-baseline gap-1 text-[12px] leading-none text-text-mute tabular">
+        <span className="num flex items-baseline gap-1 text-[13px] leading-none text-text-mute tabular">
           {e.score}
           {/* Orre repete o nome da base com stats proprios: sem a marca, a mesma
               palavra aparece duas vezes na faixa com notas diferentes. */}

@@ -3,52 +3,68 @@ import { createHash } from "node:crypto";
 import { query, queryOne } from "@/lib/robo/db";
 
 /**
- * O DESTAQUE DA HOME — quem esta em alta, e nao quem e o mais forte.
+ * O DESTAQUE DA HOME — quem esta EM ALTA agora.
  *
  * A home mostrava o numero 1 da tier list. Como afirmacao era boa; como pagina
  * inicial, era estatica: o mais forte do jogo nao muda, entao a home nunca
- * mudava. Agora ela mostra o pokemon mais PESQUISADO, num reinado de tres dias.
+ * mudava. Agora ela mostra o pokemon mais pesquisado nas ultimas 24 horas.
  *
- * ## As regras, como o Eduardo desenhou
+ * ## O mandato de tres dias saiu, e por que ele estava errado
+ *
+ * O primeiro desenho contava tres dias e dava tres dias de reinado ao vencedor.
+ * Parecia razoavel e tinha um defeito de conceito: com mandato, o card mostra
+ * sempre o campeao da janela ANTERIOR — o que estava em alta tres dias atras.
+ * Um rotulo que diz "em alta" apontando pro passado e uma mentira educada.
+ *
+ * O que ficou nao tem mandato nem estado: "em alta" e uma CONSULTA sobre janela
+ * rolante, respondida na hora. Sem linha pra guardar, sem apuracao pra rodar,
+ * sem virada pra sincronizar — some junto a corrida entre duas visitas no
+ * instante da troca, que era a parte mais delicada da versao com mandato.
+ *
+ * ## As regras
  *
  * - conta uso nas ferramentas (calculadora, hunt, breeding, meta) e a abertura
  *   da ficha da dex, todos com o mesmo peso;
  * - **"preencher exemplo" NAO conta**: o pokemon dali nao foi escolhido por
  *   ninguem, e um botao que enche a tela pra ensinar. Contar ele faria o
- *   destaque medir o proprio tutorial;
- * - o reinado dura tres dias; no fim, quem teve mais votantes DENTRO do reinado
- *   assume os proximos tres;
- * - o campeao pode se reeleger. O rotulo na tela e "EM ALTA" e nao "o mais
- *   pesquisado" justamente por isso — a segunda frase promete um metodo que
- *   empate, repeticao e janela vazia nao cumprem.
+ *   destaque medir o proprio tutorial, e como o exemplo e sempre o mesmo, ele
+ *   ganharia pra sempre;
+ * - vence quem tem mais VOTANTES distintos na janela, nao mais eventos.
  *
- * ## Rotacao PREGUICOSA, sem agendador
+ * ## A escada de queda
  *
- * Nao ha cron no servico da dex, e nao precisa: a apuracao acontece na primeira
- * visita depois de o reinado vencer. Isso se auto-conserta (um dia sem visita
- * nenhuma nao deixa o sistema num estado invalido, so adia a troca) e nao
- * adiciona uma peca que pode falhar em silencio no meio da madrugada.
+ * 24 horas -> 7 dias -> semente. Site pequeno tem madrugada sem visita nenhuma,
+ * e "em alta" com zero voto nao pode virar tela vazia: a janela larga cobre o
+ * silencio curto, e a semente (o topo da tier list, que era o criterio antigo)
+ * cobre o silencio total.
  */
 
-/** Dias de reinado. */
-const DIAS = 3;
+/** A janela que responde "agora". */
+const JANELA_H = 24;
 
-/** Quanto tempo a home segura a resposta antes de reperguntar ao banco.
- *  A home e dinamica: sem isto, toda visita vira uma consulta pra ler uma linha
- *  que muda a cada tres dias. */
-const CACHE_MS = 60_000;
+/** A janela de RESERVA, pra quando as 24h vierem vazias. */
+const JANELA_LARGA_H = 24 * 7;
 
-/** Alem de quantos dias o registro de uso deixa de servir pra alguma coisa.
- *  Duas janelas de reinado: o suficiente pra apurar mesmo se uma apuracao
- *  atrasar, e pouco o bastante pra tabela nao crescer pra sempre. */
-const RETENCAO_DIAS = DIAS * 2 + 1;
+/**
+ * Quanto tempo a home segura a resposta antes de reperguntar.
+ *
+ * Cinco minutos e o meio-termo entre duas coisas que puxam pra lados opostos: a
+ * home e dinamica e sem cache toda visita vira consulta, e "em alta" que so muda
+ * de hora em hora nao e em alta. Cinco minutos tambem estabiliza a tela — dois
+ * pokemon trocando a lideranca nao fazem o card piscar a cada F5.
+ */
+const CACHE_MS = 5 * 60_000;
+
+/** Alem de quantos dias o registro de uso nao serve mais pra nada. Um a mais que
+ *  a janela larga: o que nao entra nem na reserva so ocupa espaco. */
+const RETENCAO_DIAS = 8;
 
 export interface Destaque {
   pokeId: number;
-  /** quando este reinado termina */
-  ate: Date;
-  /** quantos votantes distintos elegeram este — 0 quando veio da semente */
+  /** quantos votantes distintos o elegeram — 0 quando veio da semente */
   votos: number;
+  /** de que janela veio a resposta, pra a tela poder ser honesta se quiser */
+  janela: "24h" | "7d" | "semente";
 }
 
 /**
@@ -77,6 +93,7 @@ export async function registrarUso(pokeId: number, votante: string): Promise<voi
        ON CONFLICT DO NOTHING`,
       [pokeId, hoje(), votante],
     );
+    await podar();
   } catch {
     // Contagem de destaque nunca pode derrubar uma ferramenta. Ver `temBanco`.
   }
@@ -99,12 +116,12 @@ const temBanco = (): boolean => Boolean(process.env.DATABASE_URL);
 let cache: { valor: Destaque; ate: number } | null = null;
 
 /**
- * O destaque de agora.
+ * Quem esta em alta agora.
  *
- * `semente` e quem assume quando nao ha nada apurado — na estreia e em qualquer
- * janela que termine sem um voto sequer. Ela e o topo da tier list, que era o
- * criterio antigo: se ninguem pesquisou nada, "o mais forte" continua sendo a
- * melhor resposta disponivel.
+ * `semente` e quem assume quando nao ha voto nenhum nem na janela larga — na
+ * estreia, e em qualquer periodo de silencio total. Ela e o topo da tier list,
+ * que era o criterio antigo: se ninguem pesquisou nada, "o mais forte" continua
+ * sendo a melhor resposta disponivel.
  */
 export async function destaqueAtual(semente: number): Promise<Destaque> {
   const agora = Date.now();
@@ -117,64 +134,53 @@ export async function destaqueAtual(semente: number): Promise<Destaque> {
 
 const sementeComo = (pokeId: number): Destaque => ({
   pokeId,
-  ate: new Date(Date.now() + DIAS * 86_400_000),
   votos: 0,
+  janela: "semente",
 });
+
+/** O mais votado numa janela de N horas, ou null se a janela estiver vazia. */
+async function liderDe(horas: number): Promise<{ pokeId: number; votos: number } | null> {
+  const linha = await queryOne<{ poke_id: number; votos: string }>(
+    `SELECT poke_id, COUNT(*) AS votos
+       FROM destaque_uso
+      WHERE criado >= now() - ($1::int * interval '1 hour')
+      GROUP BY poke_id
+      -- O desempate e EXPLICITO, e nao capricho: sem ele o Postgres devolve o
+      -- que quiser entre os empatados, e a home passaria a mostrar um vencedor
+      -- diferente a cada consulta enquanto durasse o empate. Mais votos, depois
+      -- o voto mais recente (empate entre iguais vai pra quem esta subindo),
+      -- depois o menor id pra fechar de vez.
+      ORDER BY votos DESC, MAX(criado) DESC, poke_id ASC
+      LIMIT 1`,
+    [horas],
+  );
+  return linha ? { pokeId: linha.poke_id, votos: Number(linha.votos) } : null;
+}
 
 async function apurar(semente: number): Promise<Destaque> {
   if (!temBanco()) return sementeComo(semente);
 
-  const atual = await queryOne<{ poke_id: number; fim: Date }>(
-    "SELECT poke_id, fim FROM destaque_reinado WHERE id = 1",
-  );
+  const perto = await liderDe(JANELA_H);
+  if (perto) return { ...perto, janela: "24h" };
 
-  if (atual && atual.fim.getTime() > Date.now()) {
-    return { pokeId: atual.poke_id, ate: atual.fim, votos: 0 };
-  }
+  const longe = await liderDe(JANELA_LARGA_H);
+  if (longe) return { ...longe, janela: "7d" };
 
-  // O reinado venceu (ou nunca existiu): apura a janela que acabou.
-  //
-  // A janela e o proprio reinado. Contar "os ultimos tres dias" independente do
-  // reinado pareceria igual e nao e: numa apuracao atrasada, os dois recortes
-  // divergem e a home passaria a premiar uso que ja pertenceu a outro mandato.
-  const desde = atual?.fim ?? new Date(Date.now() - DIAS * 86_400_000);
-  const vencedor = await queryOne<{ poke_id: number; votos: string }>(
-    `SELECT poke_id, COUNT(*) AS votos
-       FROM destaque_uso
-      WHERE criado >= $1
-      GROUP BY poke_id
-      -- Empate desempata pelo MENOR id, e nao por ordem de chegada: sem o
-      -- criterio explicito o Postgres devolve o que quiser e a home passa a
-      -- mostrar um vencedor diferente a cada consulta durante o empate.
-      ORDER BY votos DESC, poke_id ASC
-      LIMIT 1`,
-    [desde],
-  );
+  return sementeComo(semente);
+}
 
-  const eleito = vencedor?.poke_id ?? atual?.poke_id ?? semente;
-  const votos = Number(vencedor?.votos ?? 0);
-  const fim = new Date(Date.now() + DIAS * 86_400_000);
-
-  // Grava so se o fim registrado continuar no passado. Duas visitas simultaneas
-  // no instante da virada disputam esta linha, e a condicao faz a segunda
-  // perder de forma inofensiva em vez de esticar o mandato do vencedor.
-  await query(
-    `INSERT INTO destaque_reinado (id, poke_id, inicio, fim)
-     VALUES (1, $1, now(), $2)
-     ON CONFLICT (id) DO UPDATE
-        SET poke_id = EXCLUDED.poke_id, inicio = now(), fim = EXCLUDED.fim
-      WHERE destaque_reinado.fim <= now()`,
-    [eleito, fim],
-  );
-
-  // Poda o que nao serve mais. Roda junto da apuracao — a cada tres dias, e nao
-  // a cada visita — entao nao precisa de rotina propria.
-  await query("DELETE FROM destaque_uso WHERE dia < current_date - $1::int", [RETENCAO_DIAS]);
-
-  const gravado = await queryOne<{ poke_id: number; fim: Date }>(
-    "SELECT poke_id, fim FROM destaque_reinado WHERE id = 1",
-  );
-  return gravado
-    ? { pokeId: gravado.poke_id, ate: gravado.fim, votos }
-    : { pokeId: eleito, ate: fim, votos };
+/**
+ * Poda o registro velho.
+ *
+ * Chamada pelo registro de uso, e nao pela leitura: a home e lida muitas vezes
+ * por minuto e um DELETE por visita seria absurdo, enquanto o registro acontece
+ * quando alguem escolhe um pokemon — bem mais raro. O sorteio faz isso rodar
+ * ~1 vez a cada 200 escolhas, que pra uma tabela que ganha algumas centenas de
+ * linhas por dia e mais que suficiente.
+ */
+async function podar(): Promise<void> {
+  if (Math.random() > 1 / 200) return;
+  await query("DELETE FROM destaque_uso WHERE criado < now() - ($1::int * interval '1 day')", [
+    RETENCAO_DIAS,
+  ]);
 }
