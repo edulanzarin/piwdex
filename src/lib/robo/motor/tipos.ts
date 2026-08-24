@@ -225,7 +225,17 @@ export type StatusSessao =
   | "chutado"
   | "erro"
   | "bloqueado"
-  | "vencido";
+  | "vencido"
+  /**
+   * Esperando VAGA, e nao recuperando de queda.
+   *
+   * O jogo limita conexoes por IP (fecha com `4006 ip-limit`), e o servidor tem
+   * um IP so. Sem um estado proprio, a conta excedente aparecia como "sessão
+   * perdida, tentando de novo em 4s" — que descreve um problema passageiro e faz
+   * quem le ficar esperando um conserto que nao vem: nada esta quebrado, so nao
+   * ha vaga.
+   */
+  | "na-fila";
 
 /**
  * O ULTIMO fechamento do socket, cru.

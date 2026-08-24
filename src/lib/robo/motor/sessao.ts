@@ -96,6 +96,14 @@ const JOBS_MS = 60_000;
  * Dez minutos ainda pega a virada do dia com folga.
  */
 const COLETA_MS = 10 * 60_000;
+/**
+ * Quanto a conta excedente espera por uma vaga no IP.
+ *
+ * Longo de proposito. Vaga so abre quando OUTRA conta desliga ou cai, e isso
+ * acontece na escala de horas — perguntar de cinco em cinco segundos seria
+ * repetir, com outro nome, a batida que o proprio limite existe pra conter.
+ */
+const FILA_MS = 90_000;
 /** Perfil do treinador (ouro e nivel) — REST, nao disputa a sessao. */
 const PERFIL_MS = 45_000;
 
@@ -190,14 +198,54 @@ const RECALCULO_MS = 10 * 60_000;
  *   parar   terminal, nao ha o que tentar
  *   tentar  queda comum, backoff normal
  */
-const FECHAMENTOS: Record<number, { acao: "token" | "shard" | "parar" | "tentar"; frase: string }> = {
+const FECHAMENTOS: Record<number, { acao: "token" | "shard" | "parar" | "tentar" | "esperar"; frase: string }> = {
   4001: { acao: "token", frase: "o jogo recusou o token desta conexão" },
   4002: { acao: "tentar", frase: "o jogo encerrou a conexão" },
   4003: { acao: "shard", frase: "shard errado — a conta foi remanejada" },
   4004: { acao: "parar", frase: "o jogo recusou a conta" },
+  /**
+   * `4006 ip-limit`: o jogo limita quantas conexoes aceita do MESMO IP.
+   *
+   * Nao e sobre a conta — as outras contas deste servidor estao conectadas
+   * agora mesmo. E uma regra do jogo, e a resposta certa e caber nela: esperar
+   * uma vaga, e nao bater na porta a cada cinco segundos.
+   *
+   * Sem esta linha ele caia em "queda comum" e o backoff normal ficava batendo
+   * — o que, num limite de IP, e exatamente o comportamento que faz o limite
+   * existir.
+   */
+  4006: { acao: "esperar", frase: "o jogo recusa mais conexões deste IP agora" },
   1008: { acao: "token", frase: "o jogo recusou a credencial" },
   1011: { acao: "tentar", frase: "erro interno do jogo" },
 };
+
+/**
+ * Quantas conexoes o jogo aceita deste IP.
+ *
+ * DESCOBERTO, e nao configurado: o numero e do jogo, muda quando ele quiser, e
+ * chutar aqui daria um teto que nao corresponde a nada. O motor aprende no
+ * unico momento em que o jogo o revela — o fechamento `4006` — e guarda quantas
+ * estavam conectadas naquele instante.
+ *
+ * Serve pra CABER no limite, e nao pra contorna-lo: com o teto conhecido, as
+ * contas excedentes esperam vaga em vez de todas baterem na porta ao mesmo
+ * tempo, que e o que transforma seis contas em seis sessoes instaveis.
+ *
+ * Vive no `globalThis` pela mesma razao do registro de sessoes: o hot reload do
+ * dev troca o modulo e o processo e o mesmo.
+ */
+const globalIp = globalThis as unknown as { _piwTetoIp?: number };
+
+export const tetoDeIp = (): number => globalIp._piwTetoIp ?? Number.POSITIVE_INFINITY;
+
+/** O jogo recusou com a Nesima conexao aberta: o teto e, no maximo, N. */
+function aprenderTetoIp(abertasNoMomento: number): void {
+  const visto = Math.max(1, abertasNoMomento);
+  if (visto < tetoDeIp()) {
+    globalIp._piwTetoIp = visto;
+    console.warn(`[robo] teto de conexoes por IP aprendido: ${visto}`);
+  }
+}
 
 /**
  * Quem manda numa sessao: a conta de jogo, e o assinante dono dela.
@@ -676,6 +724,29 @@ export class SessaoJogo extends EventEmitter {
 
   private conectar() {
     if (!this.tokens) return;
+
+    /**
+     * Cabe mais uma conexao neste IP?
+     *
+     * Enquanto o teto for desconhecido (`Infinity`), isto nao faz nada — o
+     * primeiro `4006` e que o ensina. Depois dele, a conta excedente ESPERA em
+     * vez de abrir: sem esta fila, seis contas com teto de quatro produzem seis
+     * sessoes instaveis em vez de quatro boas e duas paradas.
+     *
+     * `ehDe` exclui a propria: reconectar uma sessao que ja conta como aberta
+     * nao pede vaga nova.
+     */
+    const teto = tetoDeIp();
+    if (Number.isFinite(teto)) {
+      let abertas = 0;
+      for (const outra of sessoes.values()) if (outra !== this && outra.estado().conectado) abertas++;
+      if (abertas >= teto) {
+        this.definirStatus("na-fila", `o jogo aceita ${teto} conexões deste IP`);
+        this.agendarReconexao(FILA_MS);
+        return;
+      }
+    }
+
     this.definirStatus("conectando");
     this.desdeMs = Date.now();
     // Conexao nova = analyzer do jogo zerado. Sem base, o frame JA e so desta hunt.
@@ -1685,6 +1756,16 @@ export class SessaoJogo extends EventEmitter {
       return;
     }
 
+    // Limite de IP: o jogo revelou o teto AGORA, com N conexoes abertas. Aprende
+    // o numero e sai da frente — a proxima tentativa so acontece quando houver
+    // vaga, e nao no backoff de queda comum.
+    if (regra?.acao === "esperar") {
+      aprenderTetoIp(conexoesAbertas());
+      this.definirStatus("na-fila", frase ?? regra.frase);
+      this.agendarReconexao(FILA_MS);
+      return;
+    }
+
     if (regra?.acao === "shard") {
       this.shardErrado++;
       // Tres varreduras seguidas sem acertar o shard nao e shard: e o token
@@ -1764,10 +1845,12 @@ export class SessaoJogo extends EventEmitter {
     this.emitir();
   }
 
-  private agendarReconexao() {
+  /** `fixo` pula o backoff: esperar vaga no IP nao e recuperar de queda, e
+   *  dobrar o intervalo a cada tentativa afastaria a conta da fila pra sempre. */
+  private agendarReconexao(fixo?: number) {
     if (this.tReconexao) return;
-    const espera = Math.min(RECONEXAO_MAX_MS, RECONEXAO_BASE_MS * 2 ** this.tentativa);
-    this.tentativa++;
+    const espera = fixo ?? Math.min(RECONEXAO_MAX_MS, RECONEXAO_BASE_MS * 2 ** this.tentativa);
+    if (fixo == null) this.tentativa++;
     this.proximaTentativaEm = Date.now() + espera;
     this.emitir();
     this.tReconexao = setTimeout(() => {
@@ -1926,6 +2009,13 @@ export function soltarSessao(contaId: string): void {
   if (!s) return;
   s.parar();
   sessoes.delete(contaId);
+}
+
+/** Quantas sessoes tem socket ABERTO agora. E o numero que o teto de IP limita. */
+export function conexoesAbertas(): number {
+  let n = 0;
+  for (const s of sessoes.values()) if (s.estado().conectado) n++;
+  return n;
 }
 
 export function sessoesVivas(): { contaId: string; sessao: SessaoJogo }[] {

@@ -28,6 +28,8 @@ export interface ContaNaTela {
 /** O que a lista viva acrescenta ao cadastro. */
 export interface ContaViva extends ContaNaTela {
   ligada?: boolean;
+  /** esperando vaga no teto de conexoes por IP */
+  naFila?: boolean;
   conectada?: boolean;
   cacando?: string | null;
   nivel?: number | null;
@@ -40,6 +42,9 @@ function tomDe(c: ContaViva): { cor: string; texto: string } {
   if (c.status === "blocked") return { cor: TOM.perigo, texto: "recusada" };
   if (c.status === "expired") return { cor: TOM.ouro, texto: "reconectar" };
   if (c.conectada) return { cor: TOM.vida, texto: c.cacando ? "caçando" : "ligada" };
+  // Fila nao e queda: o jogo so nao tem vaga pra ela agora, e nao ha o que
+  // consertar. Pintar de vermelho junto com "no chão" mandaria procurar defeito.
+  if (c.naFila) return { cor: TOM.ouro, texto: "na fila" };
   if (c.ligada) return { cor: TOM.perigo, texto: "no chão" };
   return { cor: TOM.fraco, texto: "parada" };
 }

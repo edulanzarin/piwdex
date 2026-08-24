@@ -44,6 +44,7 @@ export async function GET() {
         ligada: !!desejos[i]?.ligado,
         /** o socket esta aberto AGORA */
         conectada: !!viva?.conectado,
+        naFila: viva?.status === "na-fila",
         cacando: viva?.slug ?? null,
         status: c.status,
         nivel: viva?.nivelLider ?? null,

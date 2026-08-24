@@ -41,6 +41,7 @@ export const ROTULO: Record<StatusSessao, { texto: string; cor: string }> = {
   erro: { texto: "erro", cor: "var(--color-danger)" },
   bloqueado: { texto: "conta recusada", cor: "var(--color-danger)" },
   vencido: { texto: "token vencido", cor: "var(--color-danger)" },
+  "na-fila": { texto: "na fila", cor: "var(--color-warn)" },
 };
 
 /**
@@ -148,6 +149,18 @@ export function Diagnostico({
       <Note className="mt-3">
         A sessão do jogo é sua. Escolha uma caçada acima, ou use o robô só para vender, repor e
         acompanhar o chat. A sua aba do jogo fica de fora enquanto isto durar.
+      </Note>
+    );
+  }
+
+  // O limite e do JOGO, e a conta esta inteira. Sem esta frase, "na fila" vira
+  // mais um estado que ninguem sabe se deve consertar.
+  if (status === "na-fila") {
+    return (
+      <Note tone="warn" className="mt-3">
+        O jogo limita quantas conexões aceita de um mesmo endereço, e as suas outras contas
+        já ocuparam as vagas. Esta espera a próxima — nada aqui está quebrado. Desligar uma
+        conta que você não está usando abre lugar na hora.
       </Note>
     );
   }
