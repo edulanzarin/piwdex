@@ -3,7 +3,7 @@ import { cn } from "@/lib/cn";
 import type { DexEntry } from "@/lib/dex";
 import { rolesOf } from "@/lib/dex";
 import { RARITY_COLOR, TYPE_COLOR } from "@/lib/typing";
-import { spriteUrl } from "@/lib/sprites";
+import { officialArtUrl, spriteUrl } from "@/lib/sprites";
 import { Chip, IconCoin, IconPin, Sprite, Tooltip } from "@/components/ui";
 import { TypeBadge, TypeIcon } from "@/components/type-icon";
 import { IconBag, IconLevel, IconScale, IconTm, IconXp, STAT_ICONS } from "@/components/game-icons";
@@ -101,6 +101,7 @@ export function PokeCard({
 }) {
   const tint = RARITY_COLOR[e.rarity];
   const roles = rolesOf(e);
+  const arte = officialArtUrl(e.id);
 
   // Os selos de contexto sao MUITOS (origem, estagio, papel, TM, drops) e
   // empilhados viram parede. Aqui so os dois que decidem se vale caçar; o resto
@@ -141,7 +142,11 @@ export function PokeCard({
           nos cantos DELE em vez de ocuparem uma linha antes: linha de cabecalho
           custava 28px de altura em cada um dos 60 cards da tela pra dizer duas
           coisas que cabem no canto de uma area que ja existe. */}
-      <div className="relative grid aspect-[5/4] w-full place-items-center overflow-hidden bg-bg-soft">
+      /* A area subiu de 5/4 pra 1/1. O render oficial e desenhado em quadrado e com
+          folga em volta; numa caixa mais larga que alta ele encolhe pra caber na
+          altura e sobra ar dos dois lados — a arte fica pequena num card grande,
+          que e o oposto do que ela veio fazer aqui. */
+        <div className="relative grid aspect-square w-full place-items-center overflow-hidden bg-bg-soft">
         <span
           aria-hidden="true"
           /* Caixa FIXA no tamanho MAIOR, e so `transform` anima. Animar h/w num
@@ -151,11 +156,23 @@ export function PokeCard({
           className="absolute h-28 w-28 origin-center scale-[0.857] rounded-full blur-2xl transition-transform duration-300 ease-out group-hover:scale-100"
           style={{ backgroundColor: tint, opacity: 0.22 }}
         />
+        {/* A arte OFICIAL na grade, caindo na do jogo quando nao ha render.
+            O medo do peso nao se confirmou: imagem fora da primeira dobra ja
+            nasce `loading="lazy"`, entao o navegador busca o que entra em tela e
+            nao as 482 — o custo e da primeira leva, e ela e a mesma que o sprite
+            do jogo pagava.
+            O que continua valendo e a regra da VARIANTE: `officialArtUrl` devolve
+            null pros pokeId >= 10000, e o `??` cai na arte do jogo. Sem isso,
+            "Brave Blastoise" sairia com o render do Blastoise comum e a grade
+            afirmaria que sao o mesmo bicho. */}
         <Sprite
-          src={spriteUrl(e.id)}
+          src={arte ?? spriteUrl(e.id)}
           alt={e.name}
-          size={104}
+          size={128}
           priority={priority}
+          /* Render em alta nao leva `pixelated` — escalar suavizado e o certo pra
+             ele. O sprite do jogo continua pixelado, que e o que ele e. */
+          pixel={!arte}
           className="relative transition-transform duration-300 ease-out motion-safe:group-hover:-translate-y-1 motion-safe:group-hover:scale-110"
         />
 
@@ -240,23 +257,32 @@ export function PokeCard({
         {/* ---- os tres numeros que decidem se vale caçar ---- */}
         <dl className="grid grid-cols-3 gap-2 border-t border-line pt-3 text-center">
           <div className="flex flex-col gap-1">
-            <dt className="pix flex items-center justify-center gap-1 text-[11px] text-text-mute">
-              <IconLevel size={15} />
+            <dt className="pix flex items-center justify-center gap-1 text-[10px] text-text-mute">
+              <IconLevel size={14} />
               Nível
             </dt>
-            <dd className="text-[17px] leading-none font-bold text-text">{e.level || "—"}</dd>
+            {/* O NIVEL manda mais que os outros dois, e agora a tela diz isso.
+                Ele nao e "mais um numero da fila": e o PORTAO — o jogo recusa
+                entrada em hunt acima do nivel do treinador, entao ele decide se
+                a linha inteira do card e sequer possivel hoje. Venda e XP so
+                importam depois que a resposta dele foi sim.
+                Tres numeros do mesmo corpo faziam a pessoa ler os tres pra
+                descobrir qual olhar primeiro. */}
+            <dd className="num text-[22px] leading-none font-bold text-text">
+              {e.level || "—"}
+            </dd>
           </div>
           <div className="flex flex-col gap-1 border-x border-line">
             {/* O rotulo muda com a GRANDEZA: "venda" e o que o jogo paga por
                 abate, "npc" e o preço do cassino. Sao eixos diferentes, e o mesmo
                 rotulo pros dois faz o card se contradizer entre especies. */}
-            <dt className="pix flex items-center justify-center gap-1 text-[11px] text-text-mute">
-              <IconCoin size={15} />
+            <dt className="pix flex items-center justify-center gap-1 text-[10px] text-text-mute">
+              <IconCoin size={14} />
               {e.valueFromNpc ? "NPC" : "Venda"}
             </dt>
             <dd
               className={cn(
-                "text-[17px] leading-none font-bold",
+                "num text-[16px] leading-none font-bold",
                 e.valueFromNpc ? "text-text-mute" : "text-warn",
               )}
             >
@@ -264,11 +290,11 @@ export function PokeCard({
             </dd>
           </div>
           <div className="flex flex-col gap-1">
-            <dt className="pix flex items-center justify-center gap-1 text-[11px] text-text-mute">
-              <IconXp size={15} />
+            <dt className="pix flex items-center justify-center gap-1 text-[10px] text-text-mute">
+              <IconXp size={14} />
               XP
             </dt>
-            <dd className="text-[17px] leading-none font-bold text-neon">{e.xp || "—"}</dd>
+            <dd className="num text-[16px] leading-none font-bold text-neon">{e.xp || "—"}</dd>
           </div>
         </dl>
       </div>
