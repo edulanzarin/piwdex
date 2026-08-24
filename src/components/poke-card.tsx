@@ -142,11 +142,11 @@ export function PokeCard({
           nos cantos DELE em vez de ocuparem uma linha antes: linha de cabecalho
           custava 28px de altura em cada um dos 60 cards da tela pra dizer duas
           coisas que cabem no canto de uma area que ja existe. */}
-      /* A area subiu de 5/4 pra 1/1. O render oficial e desenhado em quadrado e com
-          folga em volta; numa caixa mais larga que alta ele encolhe pra caber na
-          altura e sobra ar dos dois lados — a arte fica pequena num card grande,
-          que e o oposto do que ela veio fazer aqui. */
-        <div className="relative grid aspect-square w-full place-items-center overflow-hidden bg-bg-soft">
+      {/* A area subiu de 5/4 pra 1/1. O render oficial e desenhado em quadrado e
+          com folga em volta; numa caixa mais larga que alta ele encolhe pra caber
+          na altura e sobra ar dos dois lados — a arte fica pequena num card
+          grande, que e o oposto do que ela veio fazer aqui. */}
+      <div className="relative grid aspect-square w-full place-items-center overflow-hidden bg-bg-soft">
         <span
           aria-hidden="true"
           /* Caixa FIXA no tamanho MAIOR, e so `transform` anima. Animar h/w num

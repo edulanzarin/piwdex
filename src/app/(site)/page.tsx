@@ -11,8 +11,6 @@ import {
   Eyebrow,
   FeatureSection,
   IconChevronRight,
-  MetricCell,
-  MetricGrid,
   Parallax,
   Pokeball,
   Sprite,
@@ -85,11 +83,17 @@ export default async function HomePage() {
           Os números viram CARD com moldura própria: deixam de ser rodapé do
           herói e passam a ser o que sempre foram, a prova de que o catálogo está
           vivo. */}
-      <section className="grid items-center gap-8 py-10 lg:grid-cols-[1.15fr_minmax(0,0.85fr)] lg:gap-12 lg:py-16">
+      {/* Uma coluna só, agora que o painel do catálogo saiu. A grade de duas
+          existia pra equilibrar o card da direita; com um filho só ela deixaria o
+          texto esticar por toda a largura, e linha de 1400px não se lê.
+          O `max-w-3xl` segura a medida e o resto da faixa fica pra ARTE, que é a
+          troca inteira desta passada: o wallpaper deixa de disputar a metade
+          direita com um widget e volta a ser cenário. */}
+      <section className="flex min-h-[62vh] flex-col justify-center py-12 lg:py-20">
         {/* Cada bloco entra no seu tempo, na ordem em que se lê: marca, manchete,
             frase, botões. O atraso vem de `--d` e não de quatro classes
             diferentes — é a mesma animação, deslocada. */}
-        <div className="on-art flex flex-col items-start gap-6">
+        <div className="on-art flex max-w-3xl flex-col items-start gap-6">
           <div className="anim-in flex items-center gap-4" style={{ "--d": "0ms" } as CSSProperties}>
             {/* A bola é a marca. Ela flutua, não gira: girar é o que a pokebola
                 faz quando o site está CARREGANDO (o `Sprite` usa isso), e repetir
@@ -139,31 +143,54 @@ export default async function HomePage() {
             até ele em dois cliques.
           </p>
 
-          {/* UM caminho, e nao dois.
-              O herói tinha "abrir a pokédex" e "ver as ferramentas" lado a lado.
-              Com as ferramentas virando cena logo abaixo — e a Pokédex sendo a
-              PRIMEIRA delas, com botão próprio e arte grande —, o primeiro botão
-              mandava pro mesmo lugar que a seção seguinte já entrega melhor. Dois
-              caminhos pro mesmo destino não são escolha, são hesitação: quem lê
-              para pra decidir entre opções que dão no mesmo. */}
-          <div
-            className="anim-in flex w-full flex-col items-stretch gap-2.5 sm:w-auto sm:flex-row sm:items-center"
-            style={{ "--d": "210ms" } as CSSProperties}
-          >
-            <ButtonLink
-              href="#ferramentas"
-              variant="primary"
-              size="lg"
-              className="sheen group"
-              iconRight={
-                <IconChevronRight
-                  size={16}
-                  className="transition-transform duration-150 group-hover:translate-y-0.5 group-hover:rotate-90"
-                />
-              }
-            >
-              ver as ferramentas
-            </ButtonLink>
+          {/* Os NUMEROS do catálogo, como faixa e não como painel.
+
+              Eles moravam num card de vidro ao lado, e o card era o problema: ele
+              disputava a metade direita da tela com a arte do wallpaper — que é o
+              que dá o clima —, e transformava um argumento de credibilidade
+              ("este catálogo está vivo") num widget de dashboard.
+
+              Como faixa fina embaixo do parágrafo, eles fazem o que vieram fazer:
+              provam a escala em uma linha, sem pedir uma coluna inteira. E o selo
+              de AO VIVO cola no primeiro número, que é o que ele qualifica.
+
+              O botão saiu junto: a primeira cena de ferramenta começa logo abaixo,
+              com arte grande e botão próprio. Um botão aqui mandaria pro mesmo
+              lugar que o scroll já entrega. */}
+          <div className="anim-in flex flex-wrap items-end gap-x-8 gap-y-4 pt-2" style={{ "--d": "210ms" } as CSSProperties}>
+            {[
+              { n: counts.creatures, label: "espécies", cor: "var(--color-t-dex)", selo: true },
+              { n: counts.items, label: "itens", cor: "var(--color-t-itens)" },
+              { n: counts.hunts, label: "locais de caça", cor: "var(--color-t-hunt)" },
+              { n: counts.drops, label: "registros de drop", cor: "var(--color-t-meta)" },
+            ].map((k) => (
+              <div key={k.label} className="flex flex-col gap-1">
+                <span className="flex items-center gap-2">
+                  <span
+                    className="num text-[28px] leading-none font-bold sm:text-[32px]"
+                    style={{ color: k.cor }}
+                  >
+                    {k.n.toLocaleString("pt-BR")}
+                  </span>
+                  {k.selo ? (
+                    <Badge
+                      tone={catalog.live ? "ok" : "warn"}
+                      pulse={catalog.live}
+                      title={
+                        catalog.live
+                          ? `Catálogo do jogo, publicado em ${catalog.generatedAt}`
+                          : `Fonte indisponível (${catalog.error ?? "motivo desconhecido"})`
+                      }
+                    >
+                      {catalog.live ? "AO VIVO" : "SNAPSHOT"}
+                    </Badge>
+                  ) : null}
+                </span>
+                <span className="pix text-[10px] tracking-[0.14em] text-text-mute">
+                  {k.label}
+                </span>
+              </div>
+            ))}
           </div>
         </div>
 
@@ -171,78 +198,6 @@ export default async function HomePage() {
             Vidro sobre a parte movimentada da arte: a superfície separa o número
             do neon atrás, coisa que sombra de texto sozinha não faria nesse
             trecho (desvio de luminância 44). */}
-        <aside
-          className="panel anim-in flex flex-col gap-5 p-5 sm:p-6"
-          style={{ "--d": "260ms" } as CSSProperties}
-        >
-          <div className="flex items-center justify-between gap-3">
-            <h3 className="pix text-[12px] text-text-dim">o catálogo agora</h3>
-            {/* Selo de ESTADO do sistema, e nao categoria: por isso `Badge` e nao
-                `Chip`. O ponto pulsa quando esta ao vivo — o estado se le de canto
-                de olho, antes da palavra. */}
-            <Badge
-              tone={catalog.live ? "ok" : "warn"}
-              pulse={catalog.live}
-              icon={
-                <Sprite
-                  src={catalog.live ? "/images/icons/ao-vivo.png" : "/images/icons/snapshot.png"}
-                  alt=""
-                  size={14}
-                  fallback={null}
-                />
-              }
-              title={
-                catalog.live
-                  ? `Catálogo do jogo, publicado em ${catalog.generatedAt}`
-                  : `Fonte indisponível (${catalog.error ?? "motivo desconhecido"})`
-              }
-            >
-              {catalog.live ? "AO VIVO" : "SNAPSHOT"}
-            </Badge>
-          </div>
-
-          {/* A grade saiu daqui e virou primitiva. Ela ja existia duas vezes (aqui e
-              no painel do robo) com CSS diferente, e o fio entre celulas — que e
-              `gap-px` sobre fundo de linha, e nao borda por celula — e o tipo de
-              detalhe que a segunda copia nunca herda. */}
-          <MetricGrid>
-            {[
-              { n: counts.creatures, label: "espécies", cor: "var(--color-t-dex)" },
-              { n: counts.items, label: "itens", cor: "var(--color-t-itens)" },
-              { n: counts.hunts, label: "locais de caça", cor: "var(--color-t-hunt)" },
-              { n: counts.drops, label: "registros de drop", cor: "var(--color-t-meta)" },
-            ].map((k, i) => (
-              // As quatro células entram em cascata, uma a cada 60ms: o card se
-              // preenche, e preencher é o gesto que combina com "o catálogo agora".
-              <MetricCell
-                key={k.label}
-                value={k.n.toLocaleString("pt-BR")}
-                label={k.label}
-                tint={k.cor}
-                className="anim-in"
-                style={{ "--d": `${320 + i * 60}ms` } as CSSProperties}
-              />
-            ))}
-          </MetricGrid>
-
-          {/* Não falar no condicional sobre uma coisa que já aconteceu: com a
-              fonte fora do ar, "se a fonte cair" soa como se estivesse tudo bem,
-              logo abaixo de um selo que diz o contrário. */}
-          <p className="text-[13px] leading-relaxed text-text-mute">
-            {catalog.live ? (
-              <>
-                Números direto do catálogo do jogo, conferidos a cada visita. Se a fonte
-                cair, o site continua de pé com o último catálogo salvo e avisa aqui em
-                cima.
-              </>
-            ) : (
-              <>
-                A fonte do jogo não respondeu, então estes números são do último catálogo
-                salvo, de {catalog.generatedAt}. As ferramentas continuam funcionando.
-              </>
-            )}
-          </p>
-        </aside>
       </section>
 
       {/* ================= as ferramentas, em CENAS =================
