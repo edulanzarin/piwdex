@@ -4,7 +4,7 @@ import { getDexPayload } from "@/lib/dex-data";
 import { agora, fecharPiso } from "@/lib/pacing";
 import { DexBrowser } from "@/components/dex-browser";
 import { Panel, SkeletonGrid } from "@/components/ui";
-import { HeroFerramenta, HeroMarca } from "@/components/hero-ferramenta";
+import { HeroFerramenta } from "@/components/hero-ferramenta";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/dex" },
@@ -29,14 +29,7 @@ export default async function DexPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <HeroFerramenta
-        href="/dex"
-        marcas={
-          <HeroMarca n={entries.length} cor="var(--color-t-dex)">
-            espécies
-          </HeroMarca>
-        }
-      />
+      <HeroFerramenta href="/dex" />
 
       {/* useSearchParams precisa de fronteira de Suspense pra a pagina poder ser
           pre-renderizada; o esqueleto tem a forma do grid que vai chegar. */}

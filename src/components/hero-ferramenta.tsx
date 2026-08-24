@@ -9,9 +9,14 @@ import { ferramentaDe } from "@/lib/ferramentas";
  *
  * As tres perguntas de quem acabou de chegar, na ordem em que aparecem: onde eu
  * estou (a arte grande, com a cor pintando a faixa), como isso se chama (o nome
- * em corpo de cena) e o que isso faz (uma frase, a `linha` da ferramenta). O
- * quarto slot, `marcas`, e opcional e diz o TAMANHO do que a tela tem — "482
- * especies" prova o catalogo antes de qualquer rolagem.
+ * em corpo de cena) e o que isso faz (uma frase, a `linha` da ferramenta).
+ *
+ * Havia um quarto slot, `marcas`, com o TAMANHO do catalogo — "482 especies"
+ * grudado na ponta direita. Ele saiu, e o motivo e que ele respondia uma pergunta
+ * que ninguem fez ali: a faixa e CHEGADA, e a chegada diz onde estou e o que isso
+ * faz. Quantos itens existem e dado da LISTA, e a lista ja abre dizendo "428
+ * itens" na propria barra dela, tres centimetros abaixo. O mesmo numero duas
+ * vezes na mesma tela nao reforça — faz procurar a diferenca entre os dois.
  *
  * ## O que saiu, e por que
  *
@@ -31,13 +36,10 @@ import { ferramentaDe } from "@/lib/ferramentas";
  */
 export function HeroFerramenta({
   href,
-  marcas,
   acoes,
 }: {
   /** a rota da ferramenta; nome, arte, cor e frase saem do registro */
   href: string;
-  /** pilulas de escala ("482 espécies"), na direita */
-  marcas?: ReactNode;
   /** botao ou controle na ponta direita */
   acoes?: ReactNode;
 }) {
@@ -102,49 +104,15 @@ export function HeroFerramenta({
           </p>
         </div>
 
-        {marcas || acoes ? (
+        {acoes ? (
           <div
             className="anim-in flex shrink-0 items-center gap-3"
             style={{ "--d": "270ms" } as CSSProperties}
           >
-            {marcas}
             {acoes}
           </div>
         ) : null}
       </div>
     </header>
-  );
-}
-
-/**
- * A pilula de escala da faixa.
- *
- * Numero grande em cima, o que ele conta embaixo — o mesmo argumento do bloco de
- * catalogo da home, no tamanho de um selo.
- *
- * O numero vai no MONO (`.num`), como toda coluna de numero do site depois da
- * troca de familia: a Lexend nao tem digito de largura fixa, e duas marcas lado
- * a lado com larguras diferentes desalinham a base do rotulo embaixo.
- */
-export function HeroMarca({
-  n,
-  children,
-  cor,
-}: {
-  n: number;
-  children: ReactNode;
-  /** quando dado, o numero sai na cor da ferramenta em vez da neutra */
-  cor?: string;
-}) {
-  return (
-    <span className="flex flex-col items-end gap-1 border-l border-line/70 py-1 pl-4">
-      <span
-        className="num text-[22px] leading-none font-bold sm:text-[26px]"
-        style={cor ? { color: cor } : undefined}
-      >
-        {n.toLocaleString("pt-BR")}
-      </span>
-      <span className="pix text-[10px] whitespace-nowrap text-text-mute">{children}</span>
-    </span>
   );
 }

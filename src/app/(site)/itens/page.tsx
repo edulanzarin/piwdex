@@ -4,7 +4,7 @@ import { getItemsPayload } from "@/lib/items-data";
 import { agora, fecharPiso } from "@/lib/pacing";
 import { ItemsBrowser } from "@/components/items-browser";
 import { SkeletonItemGrid } from "@/components/ui";
-import { HeroFerramenta, HeroMarca } from "@/components/hero-ferramenta";
+import { HeroFerramenta } from "@/components/hero-ferramenta";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/itens" },
@@ -26,14 +26,7 @@ export default async function ItensPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <HeroFerramenta
-        href="/itens"
-        marcas={
-          <HeroMarca n={entries.length} cor="var(--color-t-itens)">
-            itens
-          </HeroMarca>
-        }
-      />
+      <HeroFerramenta href="/itens" />
 
       <Suspense
         fallback={

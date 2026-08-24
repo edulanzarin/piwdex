@@ -5,7 +5,7 @@ import { agora, fecharPiso } from "@/lib/pacing";
 import { HuntTool } from "@/components/hunt-tool";
 import { HowTo, Panel, SkeletonForm } from "@/components/ui";
 import { COMO_USAR_HUNT } from "@/lib/how-to";
-import { HeroFerramenta, HeroMarca } from "@/components/hero-ferramenta";
+import { HeroFerramenta } from "@/components/hero-ferramenta";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/hunt" },
@@ -29,14 +29,7 @@ export default async function HuntPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <HeroFerramenta
-        href="/hunt"
-        marcas={
-          <HeroMarca n={payload.targets.length} cor="var(--color-t-hunt)">
-            alvos
-          </HeroMarca>
-        }
-      />
+      <HeroFerramenta href="/hunt" />
 
       {/* O manual vem antes da ferramenta: esta tela abre VAZIA pedindo um pokemon,
           e sem manual a tela mais util do site e a que mais parece inacabada. */}

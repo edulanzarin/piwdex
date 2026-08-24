@@ -5,7 +5,7 @@ import { agora, fecharPiso } from "@/lib/pacing";
 import { BreedTool, type BreedSpecies } from "@/components/breed-tool";
 import { HowTo, Panel, SkeletonForm } from "@/components/ui";
 import { COMO_USAR_BREED } from "@/lib/how-to";
-import { HeroFerramenta, HeroMarca } from "@/components/hero-ferramenta";
+import { HeroFerramenta } from "@/components/hero-ferramenta";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/breed" },
@@ -38,14 +38,7 @@ export default async function BreedPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <HeroFerramenta
-        href="/breed"
-        marcas={
-          <HeroMarca n={especies.length} cor="var(--color-t-breed)">
-            espécies
-          </HeroMarca>
-        }
-      />
+      <HeroFerramenta href="/breed" />
 
       <HowTo {...COMO_USAR_BREED} tint="var(--color-t-breed)" />
 

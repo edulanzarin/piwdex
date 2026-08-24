@@ -8,13 +8,12 @@ import type { PokeType, Rarity } from "@/lib/types";
 import { IV_MAX, projectAll } from "@/lib/stats";
 import { lerIvs, textoIv as textoIvDe } from "@/lib/iv-reading";
 import { TIER_COLOR, qualityTier } from "@/lib/rarity";
-import { RARITY_COLOR, TYPE_COLOR } from "@/lib/typing";
-import { animatedSpriteUrl, spriteUrl } from "@/lib/sprites";
+import { TYPE_COLOR } from "@/lib/typing";
+import { spriteUrl } from "@/lib/sprites";
 import { buildCalcSearch, parseCalcState, EMPTY_CALC, type CalcState } from "@/lib/calc-url";
 import { baixarImagem, copiarImagem, desenharCartao } from "@/lib/share-card";
 import {
   Button,
-  Chip,
   Combobox,
   Empty,
   FieldLabel,
@@ -30,7 +29,7 @@ import {
   StatTile,
   Tooltip,
 } from "@/components/ui";
-import { TypeBadge } from "@/components/type-icon";
+import { TypeIcon } from "@/components/type-icon";
 import {
   IconGem,
   IconLevel,
@@ -255,21 +254,41 @@ export function CalcTool({ especies }: { especies: CalcSpecies[] }) {
           />
         </Panel>
       ) : (
-        <section className="panel scanline relative flex flex-col">
-          {/* ---- cabecalho de perfil ----
-              Sprite grande, nome, tipo e as tres manchetes ANTES de qualquer
-              stat. Quem abre a calculadora quer ver o pokemon dele; tabela e o
-              formato de quem ja sabe o que procura. */}
+        <section className="panel relative flex flex-col">
+          {/* ---- a CHEGADA do resultado ----
+
+              O `scanline` saiu: ele e o brilho de console do dialeto antigo, e as
+              duas fichas que este bloco tem de parecer — a de especie e a de item —
+              nao o usam mais. (O breed ainda usa; fica pra quando ele passar.)
+
+              O arranjo continua em LINHA, e nao centralizado como as fichas, e a
+              diferenca e de funcao: ficha e uma pagina SOBRE aquilo, e a chegada
+              dela pode ocupar a tela. Aqui o bloco e o resultado de uma conta, e a
+              resposta de verdade — a leitura de IV — vem logo abaixo. Centralizar
+              empurraria a resposta pra fora da dobra pra dar palco ao cabecalho.
+              O que se copia e o VOCABULARIO (arte com halo, epiteto na cor,
+              discos de tipo), nao a altura. */}
           <header className="flex flex-col gap-5 border-b border-line p-5 sm:flex-row sm:items-center sm:gap-7">
             <div className="relative grid shrink-0 place-items-center self-center">
+              {/* O halo sai da faixa da QUALITY, e nao da raridade da especie.
+                  Antes o halo dizia uma coisa (a especie e Lendaria) e o chip ao
+                  lado dizia outra (este individuo e Epico), sem nenhuma das duas
+                  declarar de que eixo falava. Sao duas grandezas que compartilham
+                  os mesmos seis nomes, e esta tela e de INDIVIDUO: quem manda aqui
+                  e a quality digitada. Ver o aviso no topo de `lib/rarity.ts`. */}
               <span
                 aria-hidden="true"
                 className="anim-glow absolute h-40 w-40 rounded-full blur-3xl"
-                style={{ backgroundColor: RARITY_COLOR[especie.rarity] }}
+                style={{ backgroundColor: TIER_COLOR[tier] }}
               />
+              {/* A ARTE OFICIAL, como no resto do site.
+                  O `animatedSrc` saiu daqui e era ele que segurava a tela no
+                  passado: `spriteUrl` ja devolve o render em alta, mas o gif
+                  animado do gen5 entra por cima assim que carrega — entao a
+                  calculadora era a unica tela que ainda mostrava o sprite pixel
+                  de 96px enquanto a dex ao lado mostrava o render de 475. */}
               <Sprite
                 src={spriteUrl(especie.id)}
-                animatedSrc={animatedSpriteUrl(especie.id)}
                 alt={especie.name}
                 size={168}
                 priority
@@ -278,8 +297,44 @@ export function CalcTool({ especies }: { especies: CalcSpecies[] }) {
             </div>
 
             <div className="flex min-w-0 flex-1 flex-col gap-3">
-              <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                <h2 className="text-[30px] leading-none font-bold text-text">{especie.name}</h2>
+              {/* O EPITETO acima do nome, na cor da faixa — o mesmo arranjo do
+                  card e da ficha. Ele era um chip na fila de baixo, e chip no fim
+                  da fila e selo administrativo; dito antes do nome, e identidade.
+                  E carrega o numero que o gerou (a quality), porque aqui a faixa
+                  nao e um traco do bicho: e leitura do que a pessoa digitou. */}
+              <span className="pix text-[10px] tracking-[0.18em]" style={{ color: TIER_COLOR[tier] }}>
+                {TIER_LABEL[tier]} · quality {s.quality}
+              </span>
+
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                {/* Os DISCOS de tipo, montados ao lado do nome.
+                    Eram pastilhas com a palavra escrita ("Fogo", "Voador"), e a
+                    palavra e o que a grade e a ficha ja pararam de gastar: tipo se
+                    reconhece por cor e simbolo antes de qualquer leitura. Aqui
+                    eles ficam grandes o bastante pro glifo passar do piso de 14px,
+                    que e o que reprovou o disco no tile do meta. */}
+                <span aria-hidden="true" className="flex shrink-0 items-center">
+                  {[especie.type1, especie.type2].filter(Boolean).map((t, i) => (
+                    <span
+                      key={t as string}
+                      title={TYPE_LABEL[t!]}
+                      className={cn(
+                        "grid place-items-center rounded-pill border-2 bg-surface shadow-elev-2",
+                        i === 0 ? "z-10 h-9 w-9" : "-ml-2 h-8 w-8",
+                      )}
+                      style={{ borderColor: TYPE_COLOR[t!], color: TYPE_COLOR[t!] }}
+                    >
+                      <TypeIcon type={t!} size={i === 0 ? 18 : 16} />
+                    </span>
+                  ))}
+                </span>
+                <span className="sr-only">
+                  {[especie.type1, especie.type2].filter(Boolean).map((t) => TYPE_LABEL[t!]).join(" e ")}
+                </span>
+
+                <h2 className="pix text-[24px] leading-none tracking-[0.08em] text-text">
+                  {especie.name}
+                </h2>
                 <span className="pix text-[13px]" style={{ color: tint }}>
                   nível {s.level}
                 </span>
@@ -292,18 +347,10 @@ export function CalcTool({ especies }: { especies: CalcSpecies[] }) {
                 </Link>
               </div>
 
-              <div className="flex flex-wrap items-center gap-1.5">
-                <TypeBadge type={especie.type1} />
-                {especie.type2 ? <TypeBadge type={especie.type2} /> : null}
-                <Chip tint={TIER_COLOR[tier]} icon={<IconGem size={14} />}>
-                  {TIER_LABEL[tier]} · {s.quality}
-                </Chip>
-              </div>
-
               {/* As tres manchetes. O percentual so aparece quando a leitura
                   fecha — nota derivada de entrada impossivel e pior que nota
                   nenhuma. */}
-              <dl className="grid grid-cols-3 gap-px overflow-hidden border border-line bg-line">
+              <dl className="grid grid-cols-3 gap-px overflow-hidden rounded-pix border border-line bg-line">
                 {[
                   {
                     label: "do IV máximo",
@@ -374,7 +421,7 @@ export function CalcTool({ especies }: { especies: CalcSpecies[] }) {
 
             <div>
               <FieldLabel className="mb-1.5">Faixa do IV total</FieldLabel>
-              <dl className="grid grid-cols-3 gap-px overflow-hidden border border-line bg-line">
+              <dl className="grid grid-cols-3 gap-px overflow-hidden rounded-pix border border-line bg-line">
                 {[
                   // Os tres campos caem juntos quando a leitura e impossivel:
                   // travado em 0..IV_MAX o trio virava "192 / — / 192", que le
