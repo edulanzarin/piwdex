@@ -2,6 +2,7 @@ import Link from "next/link";
 import { BookOpen, Calculator, Egg, Package, Radar, Swords } from "lucide-react";
 import { ButtonLink, IconChevronRight, Pokeball, Sprite } from "@/components/ui";
 import { CascaSite } from "@/components/casca-site";
+import { arteUrl } from "@/lib/ferramentas";
 
 /**
  * O 404.
@@ -138,7 +139,7 @@ export default function NaoEncontrado() {
                       pokebola padrao do `Sprite`: uma pokebola no lugar do icone de
                       Itens diria que faltou um pokemon, que nao e o caso. */}
                   <Sprite
-                    src={`/images/icons/${f.arte}.svg`}
+                    src={arteUrl(f.arte)}
                     alt=""
                     size={52}
                     className="shrink-0 transition-transform duration-300 group-hover:scale-105"

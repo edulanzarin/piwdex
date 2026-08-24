@@ -17,7 +17,7 @@ import {
   Pokeball,
   Sprite,
 } from "@/components/ui";
-import { FERRAMENTAS } from "@/lib/ferramentas";
+import { FERRAMENTAS, arteUrl } from "@/lib/ferramentas";
 
 // A home canonicaliza pra RAIZ. Ela e a unica pagina cujo canonical o layout
 // poderia acertar por acidente — e "por acidente" nao e contrato.
@@ -89,7 +89,27 @@ export default async function HomePage() {
    */
   const { mons } = await getMetaPayload();
   const ranking = metaTable(mons.map(unpackMon), "natural");
-  const topo = ranking.find((e) => e.creature.pokeId < 1e4) ?? ranking[0];
+  /**
+   * O TOPO é o topo, e ponto.
+   *
+   * Havia aqui um `find(e => e.creature.pokeId < 1e4)`: a home pulava tudo acima
+   * de 10000 e mostrava o segundo colocado. A intenção era boa — pokeId alto é a
+   * faixa das VARIANTES de skin (Brave Blastoise e companhia), que não são linha
+   * própria do catálogo e apareceriam com a arte da base. Mas o critério estava
+   * errado, e o sintoma foi o Eduardo perguntando por que a tier list dizia Mega
+   * Alakazam em primeiro e a home mostrava Gengar.
+   *
+   * Sete espécies acima de 10000 têm `captureBase` nulo e looktype próprio — os
+   * Megas, o Castform de Fogo: são linha própria, com stats e arte próprias
+   * (`/game-sprites/2050.webp` para o Mega Alakazam, e não o sprite do Alakazam).
+   * O `pokeId` nunca foi o critério; quem separa skin de espécie é o
+   * `captureBase`, e o `playableSet` já aplica isso antes de a tabela existir.
+   *
+   * A lição que fica é maior que a linha: a home tinha uma SEGUNDA definição de
+   * "quem conta", diferente da que o motor usa. Duas regras para a mesma pergunta
+   * discordam em silêncio, e a que ninguém revisa é a desta página.
+   */
+  const topo = ranking[0];
   const destaque = topo
     ? {
         id: topo.creature.pokeId,
@@ -324,7 +344,7 @@ export default async function HomePage() {
           art={
             <Parallax forca={0.06}>
               <Sprite
-                src={`/images/icons/${t.arte}.svg`}
+                src={arteUrl(t.arte)}
                 alt=""
                 size={340}
                 /* A arte estoura a faixa: peça contida na própria caixa lê como

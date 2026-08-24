@@ -1,6 +1,6 @@
 import type { CSSProperties, ReactNode } from "react";
 import { DisplayTitle, Eyebrow, Sprite } from "@/components/ui";
-import { ferramentaDe } from "@/lib/ferramentas";
+import { arteUrl, ferramentaDe } from "@/lib/ferramentas";
 
 /**
  * A faixa de topo de uma ferramenta.
@@ -71,7 +71,7 @@ export function HeroFerramenta({
       <div className="flex flex-wrap items-center gap-5 sm:gap-8">
         <span className="anim-in shrink-0" style={{ "--d": "40ms" } as CSSProperties}>
           <Sprite
-            src={`/images/icons/${f.arte}.svg`}
+            src={arteUrl(f.arte)}
             alt=""
             size={104}
             priority

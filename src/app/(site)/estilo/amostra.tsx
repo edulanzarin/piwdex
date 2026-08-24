@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { arteUrl } from "@/lib/ferramentas";
 import {
   ArtCard,
   Badge,
@@ -476,7 +477,7 @@ export function Amostra() {
               tint={cor}
               art={
                 <Sprite
-                  src={`/images/icons/${arte}.svg`}
+                  src={arteUrl(arte)}
                   alt=""
                   size={120}
                   className="[--sprite:96px]"

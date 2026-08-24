@@ -141,6 +141,30 @@ export const FERRAMENTAS: Ferramenta[] = [
  * vem de quem so tem o `usePathname` na mao: a tela de espera, que roda tanto em
  * `/dex` quanto em `/dex/6` quanto na home, onde a resposta certa e nenhuma.
  */
+/**
+ * A VERSAO da arte de ferramenta, e por que ela existe.
+ *
+ * Arquivo em `public/` NAO leva hash de build. Republicar a arte com o mesmo
+ * nome nao invalida nada: quem ja visitou continua servindo a copia velha do
+ * disco, e a troca simplesmente "nao acontece" — sem erro, sem 404, sem nada
+ * pra debugar. O `/images/` deste projeto sai com `max-age=86400` e
+ * `stale-while-revalidate` de 30 dias, entao a janela e larga.
+ *
+ * O caso que obrigou a escrever isto: os SVG foram publicados com um defeito
+ * (comentario XML com `--`, que e ilegal e faz o navegador recusar a imagem
+ * inteira). O defeito foi corrigido em minutos, mas quem tinha aberto a pagina
+ * na janela errada ficou com o arquivo quebrado preso no cache e continuou
+ * vendo o icone de reserva — no computador de quem consertou, ja estava certo.
+ *
+ * A regra que fica: arte autoral em `public/` se serve por AQUI, nunca por
+ * caminho escrito a mao. Republicou, sobe o numero.
+ */
+const VERSAO_ARTE = 2;
+
+/** URL da arte de uma ferramenta, com a versao. */
+export const arteUrl = (arte: string): string =>
+  `/images/icons/${arte}.svg?v=${VERSAO_ARTE}`;
+
 export function ferramentaDoCaminho(caminho: string): Ferramenta | null {
   return (
     FERRAMENTAS.find((f) => caminho === f.href || caminho.startsWith(`${f.href}/`)) ?? null

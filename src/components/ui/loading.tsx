@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/cn";
-import { ferramentaDoCaminho } from "@/lib/ferramentas";
+import { arteUrl, ferramentaDoCaminho } from "@/lib/ferramentas";
 import { Pokeball } from "./pokeball";
 
 /**
@@ -77,7 +77,7 @@ export function Loading({
         />
         {f && !caiu ? (
           <img
-            src={`/images/icons/${f.arte}.svg`}
+            src={arteUrl(f.arte)}
             alt=""
             width={inline ? 64 : 112}
             height={inline ? 64 : 112}
