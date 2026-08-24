@@ -107,10 +107,14 @@ export function MetaProfile({
     >
       <div className="flex flex-col gap-5">
         {/* ---- a nota e de onde ela vem ---- */}
-        <div className="flex flex-wrap items-center gap-4 border border-line-strong bg-surface-2/60 p-3">
+        <div className="flex flex-wrap items-center gap-4 rounded-pix border border-line-strong bg-surface-2/60 p-3">
           <span
-            className="pix grid h-14 w-14 shrink-0 place-items-center border text-[28px]"
-            style={{ color: TIER_COLOR[entry.tier], borderColor: TIER_COLOR[entry.tier] }}
+            className="pix grid h-14 w-14 shrink-0 place-items-center rounded-pix border-2 text-[28px]"
+            style={{
+              color: TIER_COLOR[entry.tier],
+              borderColor: TIER_COLOR[entry.tier],
+              backgroundColor: `color-mix(in oklab, ${TIER_COLOR[entry.tier]} 12%, transparent)`,
+            }}
           >
             {entry.tier}
           </span>
@@ -197,8 +201,15 @@ function Eixo({ label, valor, cor }: { label: string; valor: number; cor: string
   return (
     <span className="flex items-center gap-2">
       <span className="pix w-24 shrink-0 text-[11px] text-text-mute">{label}</span>
-      <span className="h-2 min-w-0 flex-1 bg-bg-soft ring-1 ring-line">
-        <span className="block h-full" style={{ width: `${Math.round(valor * 100)}%`, backgroundColor: cor }} />
+      {/* Pilula, e nao retangulo. `h-2` de canto reto era o dialeto antigo
+          sobrevivendo aqui — a espinha de stats do card da dex ja fez essa troca,
+          e num trilho de 8px de altura o raio cheio custa nada e e a diferenca
+          entre "medidor" e "risco". */}
+      <span className="h-2 min-w-0 flex-1 overflow-hidden rounded-pill bg-bg-soft ring-1 ring-line">
+        <span
+          className="block h-full rounded-pill"
+          style={{ width: `${Math.round(valor * 100)}%`, backgroundColor: cor }}
+        />
       </span>
       <span className="w-9 shrink-0 text-right text-[12px] text-text-dim tabular">
         {Math.round(valor * 100)}
