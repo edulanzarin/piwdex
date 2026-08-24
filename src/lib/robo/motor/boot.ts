@@ -58,7 +58,27 @@ export async function retomarSessoes(apenas?: string): Promise<void> {
   const alvos = apenas ? todas.filter((x) => x.contaId === apenas) : todas;
   if (!alvos.length) return;
 
-  const r = await Promise.allSettled(alvos.map((x) => retomarUma(x.contaId, x.userId, x.desejado)));
+  /**
+   * As contas retomam UMA DE CADA VEZ.
+   *
+   * Em paralelo, seis contas sem shard cacheado disparavam seis descobertas
+   * juntas — e cada descoberta abre sockets. O jogo conta CONEXOES por endereco,
+   * entao o boot era o instante mais provavel de levar `4006 ip-limit`, logo
+   * quando o robo mais precisa subir.
+   *
+   * Serializar custa segundos no boot e vale cada um: uma conta que nao sobe
+   * fica parada ate alguem abrir a tela, e quem usa o robo nao fica olhando a
+   * tela — que e o motivo de este arquivo existir.
+   */
+  const r: PromiseSettledResult<Resultado>[] = [];
+  for (const x of alvos) {
+    r.push(
+      await retomarUma(x.contaId, x.userId, x.desejado).then(
+        (value) => ({ status: "fulfilled", value }) as PromiseFulfilledResult<Resultado>,
+        (reason) => ({ status: "rejected", reason }) as PromiseRejectedResult,
+      ),
+    );
+  }
 
   /**
    * O log conta o que ACONTECEU, e nao quantas promessas nao explodiram.

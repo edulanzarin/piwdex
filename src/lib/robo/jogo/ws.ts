@@ -86,36 +86,82 @@ function abrirShard(shard: number, token: string, timeoutMs: number): Promise<Re
 }
 
 /** Varre os 64 em paralelo e resolve no primeiro que mandar `pokes`. */
-function varrerShards(token: string, timeoutMs: number): Promise<BuscaShard> {
+/**
+ * Quantos shards sondar POR VEZ.
+ *
+ * Era 64 — todos de uma vez. A sondagem paralela e rapida por isso, e foi
+ * exatamente isso que quebrou: o jogo conta CONEXOES por endereco, e uma
+ * varredura sozinha abria 64 de um IP so. No boot, com varias contas sem shard
+ * cacheado, davam centenas ao mesmo tempo.
+ *
+ * O sintoma era `4006 ip-limit` disparando sem padrao — as vezes com duas contas
+ * ligadas, as vezes com cinco. O que variava nao era o numero de contas: era ter
+ * ou nao uma varredura no ar naquele instante. Passamos meses achando que o
+ * limite era do jogo, e ele era nosso.
+ *
+ * Seis por lote mantem a descoberta em ~2s no pior caso e cabe em qualquer
+ * orcamento de conexao.
+ */
+const LOTE = 6;
+
+/**
+ * Uma varredura POR PROCESSO, de cada vez.
+ *
+ * Sem isto, seis contas religando no boot varrem juntas e o lote de 6 vira 36 —
+ * o problema de volta com outro numero. A fila serializa: cada conta espera a
+ * anterior, e o custo disso e segundos, contra um `ip-limit` que custa a sessao.
+ */
+const globalVarredura = globalThis as unknown as { _piwVarrendo?: Promise<unknown> };
+
+async function naFila<T>(f: () => Promise<T>): Promise<T> {
+  const anterior = globalVarredura._piwVarrendo ?? Promise.resolve();
+  const minha = anterior.catch(() => {}).then(f);
+  globalVarredura._piwVarrendo = minha.catch(() => {});
+  return minha;
+}
+
+/**
+ * Os shards que ja responderam neste processo.
+ *
+ * Contas do mesmo jogador costumam cair perto, e tentar o que ja funcionou custa
+ * um lote em vez de onze. Nao e cache de verdade — e uma ordem de tentativa.
+ */
+const globalVistos = globalThis as unknown as { _piwShardsVistos?: number[] };
+
+function lembrarShard(n: number): void {
+  const l = globalVistos._piwShardsVistos ?? [];
+  globalVistos._piwShardsVistos = [n, ...l.filter((x) => x !== n)].slice(0, 8);
+}
+
+/** A ordem em que vale sondar: o que ja respondeu primeiro, o resto depois. */
+function ordemDeSondagem(): number[] {
+  const vistos = globalVistos._piwShardsVistos ?? [];
+  const resto: number[] = [];
+  for (let n = 1; n <= SHARDS; n++) if (!vistos.includes(n)) resto.push(n);
+  return [...vistos, ...resto];
+}
+
+/** Sonda UM lote e resolve no primeiro que mandar `pokes`. */
+function sondarLote(
+  numeros: number[],
+  token: string,
+  timeoutMs: number,
+  codigos: Map<number, number>,
+): Promise<ResultadoPokes | null> {
   return new Promise((resolve) => {
     const sockets: WebSocket[] = [];
     let fechado = false;
-    // O que os 64 responderam. E daqui que sai a diferenca entre "nao achei" e
-    // "a sua credencial morreu".
-    const codigos = new Map<number, number>();
-    let frase: string | null = null;
-
-    const fim = (r: BuscaShard) => {
+    const fim = (r: ResultadoPokes | null) => {
       if (fechado) return;
       fechado = true;
-      // Fechar TODOS: os 63 restantes sao sessoes abertas na conta do jogador.
+      clearTimeout(to);
+      // Fechar TODOS: os que sobram sao sessoes abertas na conta do jogador.
       sockets.forEach((w) => { try { w.close(); } catch { /* noop */ } });
       resolve(r);
     };
+    const to = setTimeout(() => fim(null), timeoutMs);
 
-    const desistir = () => {
-      // 4001 em massa e credencial, nao shard: nenhum dos 64 aceitou o token.
-      // 4004 e recusa de conta, e nenhuma das duas melhora com nova tentativa.
-      const motivo: MotivoSemShard = codigos.has(4004)
-        ? "bloqueado"
-        : codigos.has(4001)
-          ? "vencido"
-          : "nenhum";
-      const codigo = codigos.has(4004) ? 4004 : codigos.has(4001) ? 4001 : null;
-      fim({ ok: false, falha: { motivo, codigo, frase } });
-    };
-
-    for (let n = 1; n <= SHARDS; n++) {
+    for (const n of numeros) {
       let ws: WebSocket;
       try { ws = new WebSocket(`${WS_BASE}/ws${n}?token=${encodeURIComponent(token)}`); } catch { continue; }
       sockets.push(ws);
@@ -123,17 +169,44 @@ function varrerShards(token: string, timeoutMs: number): Promise<BuscaShard> {
         try {
           const j = JSON.parse(typeof ev.data === "string" ? ev.data : "") as { type?: string; list?: unknown };
           if (j?.type === "pokes" && Array.isArray(j.list)) {
-            fim({ ok: true, dado: { pokes: j.list as Record<string, unknown>[], shard: n } });
+            lembrarShard(n);
+            fim({ pokes: j.list as Record<string, unknown>[], shard: n });
           }
         } catch { /* noop */ }
       });
       ws.addEventListener("close", (ev: CloseEvent) => {
         codigos.set(ev.code, (codigos.get(ev.code) ?? 0) + 1);
-        if (!frase && ev.reason) frase = ev.reason;
       });
-      ws.addEventListener("error", () => { /* shard que recusa e o esperado: 63 deles */ });
+      ws.addEventListener("error", () => { /* shard que recusa e o esperado */ });
     }
-    setTimeout(desistir, timeoutMs);
+  });
+}
+
+function varrerShards(token: string, timeoutMs: number): Promise<BuscaShard> {
+  return naFila(async () => {
+    const codigos = new Map<number, number>();
+    const ordem = ordemDeSondagem();
+    // O orcamento total e o mesmo de antes; o que muda e nao gastar tudo de uma
+    // vez. Por lote, o suficiente pro jogo responder o snapshot.
+    const porLote = Math.max(1200, Math.floor(timeoutMs / Math.ceil(SHARDS / LOTE)));
+
+    for (let i = 0; i < ordem.length; i += LOTE) {
+      const achado = await sondarLote(ordem.slice(i, i + LOTE), token, porLote, codigos);
+      if (achado) return { ok: true, dado: achado } as BuscaShard;
+      // 4001/4004 em massa nao melhoram no proximo lote: e credencial, e nao
+      // shard. Continuar varreria 64 sockets pra colecionar o mesmo nao.
+      if (codigos.has(4001) || codigos.has(4004)) break;
+    }
+
+    const motivo: MotivoSemShard = codigos.has(4004)
+      ? "bloqueado"
+      : codigos.has(4001)
+        ? "vencido"
+        : "nenhum";
+    return {
+      ok: false,
+      falha: { motivo, codigo: codigos.has(4004) ? 4004 : codigos.has(4001) ? 4001 : null, frase: null },
+    } as BuscaShard;
   });
 }
 
