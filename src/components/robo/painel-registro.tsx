@@ -23,6 +23,7 @@ const CORES: Record<TipoEvento, string> = {
   "venda-item": TOM.vida,
   "venda-poke": TOM.vida,
   compra: "var(--color-t-robo)",
+  coleta: TOM.diamante,
   cura: "var(--color-accent)",
   religou: TOM.fraco,
   meta: "var(--color-t-robo)",
@@ -36,6 +37,7 @@ const ROTULOS: Record<TipoEvento, string> = {
   "venda-item": "venda",
   "venda-poke": "venda",
   compra: "compra",
+  coleta: "coleta",
   cura: "cura",
   religou: "religou",
   meta: "meta",
@@ -50,7 +52,7 @@ type Grupo = "tudo" | "shiny" | "dinheiro" | "problema";
 const GRUPO: Record<Grupo, (t: TipoEvento) => boolean> = {
   tudo: () => true,
   shiny: (t) => t === "shiny" || t === "shiny-mundo",
-  dinheiro: (t) => t === "venda-item" || t === "venda-poke" || t === "compra",
+  dinheiro: (t) => t === "venda-item" || t === "venda-poke" || t === "compra" || t === "coleta",
   problema: (t) => t === "falha" || t === "recusado",
 };
 

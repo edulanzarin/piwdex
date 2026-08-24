@@ -145,7 +145,15 @@ export interface Escrita<T = unknown> {
   mudou: boolean;
 }
 
-async function escrever<T = unknown>(path: string, tokens: Tokens, corpo: unknown): Promise<Escrita<T>> {
+/**
+ * Um POST ao jogo, com a recusa preservada.
+ *
+ * Exportado porque `jogo/extras.ts` fala com os mesmos verbos (coletar diaria,
+ * pegar tier, vender pedra) e a parte cara aqui e a mesma: LER o corpo tambem no
+ * erro, que e onde o jogo explica a recusa. Uma segunda copia disso divergiria
+ * na primeira vez que alguem esquecesse esse detalhe.
+ */
+export async function escrever<T = unknown>(path: string, tokens: Tokens, corpo: unknown): Promise<Escrita<T>> {
   const r = await enviarAoJogo(path, tokens, corpo);
   // O corpo e lido TAMBEM no erro: e nele que o jogo explica a recusa, e essa
   // frase e a unica coisa que transforma "não deu certo" em algo acionavel.

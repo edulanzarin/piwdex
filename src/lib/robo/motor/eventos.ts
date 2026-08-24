@@ -24,6 +24,7 @@ export type TipoEvento =
   | "venda-item" // vendeu drop
   | "venda-poke" // vendeu pokemon
   | "compra" // repos consumivel
+  | "coleta" // pegou diaria, missao ou tier do passe
   | "cura" // passou na Joy / usou Revive
   | "religou" // a conexao caiu e voltou sozinha
   | "meta" // a cacada automatica chegou no nivel alvo

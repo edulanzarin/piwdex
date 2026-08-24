@@ -14,6 +14,15 @@ import {
 } from "@/lib/robo/jogo/loja";
 import { estoqueDoAlvo, type BolaEstoque } from "@/lib/robo/motor/tipos";
 import type { ConfigAuto } from "@/lib/robo/motor/tipos";
+import {
+  coletarDiaria,
+  coletarMissao,
+  coletarTier,
+  lerDiaria,
+  lerFlint,
+  lerPasse,
+  venderPedra,
+} from "@/lib/robo/jogo/extras";
 import { fetchSource } from "@/lib/source";
 
 /**
@@ -42,7 +51,7 @@ import { fetchSource } from "@/lib/source";
 
 export interface Recado {
   ok: boolean;
-  tipo: "compra" | "venda-item" | "venda-poke";
+  tipo: "compra" | "venda-item" | "venda-poke" | "coleta";
   /** a linha que aparece no feed, ja pronta */
   texto: string;
   detalhe?: string | null;
@@ -374,5 +383,145 @@ export async function rodarVendaPokes(
     if (!v.ok) break;
   }
 
+  return recados;
+}
+
+/**
+ * Coleta o que o jogo ja deu: diaria, missoes do passe e tiers alcancados.
+ *
+ * Nada aqui gasta nem destroi — e premio guardado esperando um clique. Por isso
+ * e a unica automacao do robo que nao pede lista branca nem teto: recusar um
+ * presente nao protege ninguem de nada.
+ *
+ * O que ela pede e RITMO. Diaria e uma vez por dia e o passe muda quando a
+ * cacada avanca, entao rodar isso a cada minuto seriam mil chamadas por dia pra
+ * ouvir "já coletou". O intervalo mora em `sessao.ts`, junto do relogio.
+ */
+export async function rodarColeta(
+  tokens: Tokens,
+  cfg: ConfigAuto,
+  aoTrocarTokens: (t: Tokens) => Promise<void>,
+): Promise<Recado[]> {
+  const recados: Recado[] = [];
+  let t = tokens;
+
+  if (cfg.coletarDiaria) {
+    const d = await lerDiaria(t);
+    if (d) {
+      t = d.tokens;
+      if (d.mudou) await aoTrocarTokens(t);
+      // `podeColetar` do jogo manda. Tentar sem ele so colecionaria recusa.
+      if (d.dado.podeColetar && !d.dado.jaColetouHoje) {
+        const c = await coletarDiaria(t);
+        t = c.tokens;
+        if (c.mudou) await aoTrocarTokens(t);
+        const premio = c.dado?.claimed;
+        recados.push({
+          ok: c.ok,
+          tipo: "coleta",
+          texto: c.ok
+            ? `diária: ${premio ? `${Number(premio.qty ?? 1)}x ${String(premio.label ?? "prêmio")}` : "coletada"}`
+            : "não consegui coletar a diária",
+          detalhe: c.motivo,
+          ouro: 0,
+        });
+      }
+    }
+  }
+
+  if (cfg.coletarPasse) {
+    const p = await lerPasse(t);
+    if (p) {
+      t = p.tokens;
+      if (p.mudou) await aoTrocarTokens(t);
+
+      for (const m of p.dado.missoes) {
+        const c = await coletarMissao(t, m.id);
+        t = c.tokens;
+        if (c.mudou) await aoTrocarTokens(t);
+        recados.push({
+          ok: c.ok,
+          tipo: "coleta",
+          texto: c.ok ? `missão: ${m.rotulo}` : `não consegui coletar "${m.rotulo}"`,
+          detalhe: c.ok ? `+${m.bpp} pontos de passe` : c.motivo,
+          ouro: 0,
+        });
+        // Uma recusa aqui costuma valer pras seguintes (passe fechado, evento
+        // encerrado). Insistir gastaria chamadas pra colecionar o mesmo erro.
+        if (!c.ok) break;
+      }
+
+      for (const tier of p.dado.tiers) {
+        for (const [premium, premio] of [
+          [false, tier.gratis],
+          [true, tier.premium],
+        ] as [boolean, string | null][]) {
+          if (!premio) continue;
+          const c = await coletarTier(t, tier.tier, premium);
+          t = c.tokens;
+          if (c.mudou) await aoTrocarTokens(t);
+          recados.push({
+            ok: c.ok,
+            tipo: "coleta",
+            texto: c.ok ? `tier ${tier.tier}: ${premio}` : `não consegui pegar o tier ${tier.tier}`,
+            detalhe: c.ok ? (premium ? "trilha premium" : "trilha grátis") : c.motivo,
+            ouro: 0,
+          });
+        }
+      }
+    }
+  }
+
+  return recados;
+}
+
+/**
+ * Vende pedra pro Flint, o NPC de Pewter.
+ *
+ * Ele e um comprador SEPARADO da loja, e paga por unidade um preco que a venda
+ * comum nao paga — por isso pedra nao pode cair na mesma lista de drop: vendida
+ * no balcao errado, ela rende uma fracao.
+ *
+ * Lista BRANCA, como o drop, e por uma razao mais forte: pedra e material de
+ * evolucao. Vender a Moon Stone que faltava pro Clefable e irreversivel, e "o
+ * robo vendeu sozinho" e a frase que faz alguem desligar tudo pra sempre.
+ */
+export async function rodarFlint(
+  tokens: Tokens,
+  cfg: ConfigAuto,
+  aoTrocarTokens: (t: Tokens) => Promise<void>,
+): Promise<Recado[]> {
+  if (!cfg.venderPedra || !cfg.pedraIds.length) return [];
+
+  const r = await lerFlint(tokens);
+  if (!r) return [];
+  let t = r.tokens;
+  if (r.mudou) await aoTrocarTokens(t);
+
+  const permitidas = new Set(cfg.pedraIds);
+  const lote = r.dado.pedras.filter((p) => p.quantidade > 0 && permitidas.has(p.id));
+  if (!lote.length) return [];
+
+  const recados: Recado[] = [];
+  for (const p of lote) {
+    // Guarda uma reserva: vender ATE o piso deixa material de evolucao na mao.
+    // Zero e uma escolha legitima, e por isso o piso e configuravel e nao fixo.
+    const qtd = Math.max(0, p.quantidade - cfg.guardarPedra);
+    if (qtd <= 0) continue;
+
+    const v = await venderPedra(t, p.id, qtd);
+    t = v.tokens;
+    if (v.mudou) await aoTrocarTokens(t);
+    const ouro = qtd * p.precoUnidade;
+    recados.push({
+      ok: v.ok,
+      tipo: "venda-item",
+      texto: v.ok ? `${qtd}x ${p.nome} pro Flint` : `o Flint não comprou ${p.nome}`,
+      detalhe: v.ok ? `${ouroTxt(p.precoUnidade)} por unidade` : v.motivo,
+      ouro: v.ok ? ouro : 0,
+      quantidade: v.ok ? qtd : 0,
+    });
+    if (!v.ok) break;
+  }
   return recados;
 }

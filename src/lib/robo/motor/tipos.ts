@@ -192,6 +192,8 @@ export interface Perfil {
 
 /** O que as automacoes fizeram NESTA sessao. */
 export interface Placar {
+  /** premios da diaria e do passe recolhidos nesta sessao */
+  coletas: number;
   itensVendidos: number;
   ouroVendas: number;
   pokesVendidos: number;
@@ -203,6 +205,7 @@ export interface Placar {
 }
 
 export const placarZero = (): Placar => ({
+  coletas: 0,
   itensVendidos: 0, ouroVendas: 0, pokesVendidos: 0, ouroPokes: 0,
   bolasCompradas: 0, pocoesCompradas: 0, revivesComprados: 0, ouroCompras: 0,
 });
@@ -328,6 +331,29 @@ export interface ConfigAuto {
   /** teto de gasto por rodada de compra — a trava que impede zerar o ouro */
   tetoOuro: number;
 
+  // --- o que o jogo ja deu (REST: nao disputa a sessao) ---
+  /**
+   * Coletar a diaria e os premios do passe.
+   *
+   * Nao tem lista branca nem teto, e e a unica automacao daqui sem eles: nada
+   * disto gasta ouro nem destroi pokemon — e premio guardado esperando clique, e
+   * recusar presente nao protege ninguem de nada.
+   */
+  coletarDiaria: boolean;
+  coletarPasse: boolean;
+
+  // --- venda de pedra pro Flint (o NPC de Pewter) ---
+  /**
+   * Ele e um comprador SEPARADO da loja e paga por unidade um preco que a venda
+   * comum nao paga. Por isso pedra nao entra na lista de drop: vendida no balcao
+   * errado, rende uma fracao.
+   */
+  venderPedra: boolean;
+  /** lista BRANCA: pedra e material de evolucao, e vender e irreversivel */
+  pedraIds: number[];
+  /** quantas de cada uma ficam na mochila, aconteca o que acontecer */
+  guardarPedra: number;
+
   // --- venda de drop ---
   venderDrop: boolean;
   /** os itens que PODEM ser vendidos. Lista branca de proposito: uma lista
@@ -419,6 +445,13 @@ export const CONFIG_PADRAO: ConfigAuto = {
 
   tetoOuro: 50_000,
 
+  coletarDiaria: false,
+  coletarPasse: false,
+
+  venderPedra: false,
+  pedraIds: [],
+  guardarPedra: 0,
+
   venderDrop: false,
   dropIds: [],
 
@@ -473,6 +506,13 @@ export function normalizarConfig(bruto: unknown): ConfigAuto {
 
     tetoOuro: inteiro(c.tetoOuro, p.tetoOuro, 0, 100_000_000),
 
+    coletarDiaria: Boolean(c.coletarDiaria),
+    coletarPasse: Boolean(c.coletarPasse),
+
+    venderPedra: Boolean(c.venderPedra),
+    pedraIds: idsDe(c.pedraIds),
+    guardarPedra: inteiro(c.guardarPedra, p.guardarPedra, 0, 100_000),
+
     venderDrop: Boolean(c.venderDrop),
     dropIds: idsDe(c.dropIds),
 
@@ -499,9 +539,10 @@ export function normalizarConfig(bruto: unknown): ConfigAuto {
   if (cfg.alvoPocao <= cfg.pisoPocao) cfg.alvoPocao = cfg.pisoPocao + 1;
   if (cfg.alvoRevive <= cfg.pisoRevive) cfg.alvoRevive = cfg.pisoRevive + 1;
 
-  // Vender drop sem lista branca venderia nada — mas com a chave ligada a tela
+  // Vender sem lista branca venderia nada — mas com a chave ligada a tela
   // diria "ligado" e o usuario esperaria venda. Desliga e nao mente.
   if (cfg.venderDrop && !cfg.dropIds.length) cfg.venderDrop = false;
+  if (cfg.venderPedra && !cfg.pedraIds.length) cfg.venderPedra = false;
 
   return cfg;
 }

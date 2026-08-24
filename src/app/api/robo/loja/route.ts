@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { exigirConta } from "@/lib/robo/conta";
 import { ehConsumivel, lerLoja, lerMochila } from "@/lib/robo/jogo/loja";
 import { separarConsumivel } from "@/lib/robo/motor/jobs";
+import { lerFlint } from "@/lib/robo/jogo/extras";
 import { atualizarTokens, lerVinculo } from "@/lib/robo/vinculo";
 
 export const runtime = "nodejs";
@@ -25,7 +26,13 @@ export async function GET(req: Request) {
   const { usuario, conta: v } = alvo;
 
 
-  const [loja, mochila] = await Promise.all([lerLoja(v.tokens), lerMochila(v.tokens)]);
+  const [loja, mochila, flint] = await Promise.all([
+    lerLoja(v.tokens),
+    lerMochila(v.tokens),
+    // O Flint e outro balcao, com preco proprio por unidade. A tela precisa
+    // dele pra lista de venda de pedra deixar de ser uma lista de ids.
+    lerFlint(v.tokens).catch(() => null),
+  ]);
   if (!loja) return NextResponse.json({ erro: "jogo_fora_do_ar" }, { status: 502 });
   if (loja.mudou) await atualizarTokens(v.id, loja.tokens).catch(() => {});
 
@@ -56,5 +63,7 @@ export async function GET(req: Request) {
      * vazia e leva a mexer no piso pra resolver o problema errado.
      */
     bolsa: bolsa ? { pocoes: bolsa.heal, revives: bolsa.revive } : null,
+    /** as pedras que o Flint compra E que a bolsa tem, com o preco DELE */
+    pedras: flint?.dado.pedras ?? [],
   });
 }

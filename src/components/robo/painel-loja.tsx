@@ -44,6 +44,14 @@ interface Bolsa {
   pocoes: ItemMochila[];
   revives: ItemMochila[];
 }
+/** O que o Flint, o NPC de Pewter, compra — com o preco DELE por unidade. */
+interface Pedra {
+  id: number;
+  nome: string;
+  icone: string;
+  quantidade: number;
+  precoUnidade: number;
+}
 
 /**
  * Um consumível e as três decisões que ele carrega: repor ou não, entre que
@@ -190,6 +198,7 @@ export function AbaLoja({
   const [loja, setLoja] = useState<Loja | null>(null);
   const [mochila, setMochila] = useState<ItemMochila[]>([]);
   const [bolsa, setBolsa] = useState<Bolsa | null>(null);
+  const [pedras, setPedras] = useState<Pedra[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [rodando, setRodando] = useState(false);
 
@@ -415,6 +424,146 @@ export function AbaLoja({
             O robô nunca gasta além disso de uma vez, mesmo com a conta cheia.
           </p>
         </div>
+      </Secao>
+
+      {/* ---------------- o que o jogo já deu ---------------- */}
+      <Secao
+        titulo="Coleta"
+        icone={<ICONE.diamante size={14} />}
+        hint="Prêmio que já é seu e está esperando um clique. Não gasta nem destrói nada — é a única parte desta tela sem lista e sem teto."
+        acao={
+          estado.placar.coletas ? (
+            <span className="pix text-[11px] text-text-mute">
+              {estado.placar.coletas} nesta sessão
+            </span>
+          ) : undefined
+        }
+      >
+        <div className="grid items-stretch gap-3 sm:grid-cols-2">
+          <div className="flex items-center border border-line bg-bg-soft p-3">
+            <Switch
+              block
+              checked={rascunho.coletarDiaria}
+              onChange={(e) => mudar({ coletarDiaria: e.currentTarget.checked })}
+              label="pegar a diária"
+              hint="uma vez por dia, e o dia que passa não volta"
+            />
+          </div>
+          <div className="flex items-center border border-line bg-bg-soft p-3">
+            <Switch
+              block
+              checked={rascunho.coletarPasse}
+              onChange={(e) => mudar({ coletarPasse: e.currentTarget.checked })}
+              label="pegar o passe"
+              hint="missão concluída e tier alcançado, grátis e premium"
+            />
+          </div>
+        </div>
+      </Secao>
+
+      {/* ---------------- pedra: o Flint paga melhor ---------------- */}
+      <Secao
+        titulo="Venda de pedra"
+        icone={<ICONE.ouro size={14} />}
+        hint="O Flint, em Pewter, é um comprador separado e paga por unidade um preço que a loja comum não paga. Pedra é material de evolução — marque só o que sobra."
+        acao={
+          pedras.length ? (
+            <div className="flex shrink-0 gap-2">
+              <Button variant="ghost" size="sm" onClick={() => mudar({ pedraIds: pedras.map((p) => p.id) })}>
+                marcar tudo
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={!rascunho.pedraIds.length}
+                onClick={() => mudar({ pedraIds: [], venderPedra: false })}
+              >
+                limpar
+              </Button>
+            </div>
+          ) : undefined
+        }
+      >
+        <Switch
+          block
+          checked={rascunho.venderPedra}
+          disabled={!rascunho.pedraIds.length}
+          onChange={(e) => mudar({ venderPedra: e.currentTarget.checked })}
+          label="vender as pedras marcadas pro Flint"
+          hint={
+            rascunho.pedraIds.length
+              ? `${rascunho.pedraIds.length} marcadas · ${compact(
+                  pedras
+                    .filter((p) => rascunho.pedraIds.includes(p.id))
+                    .reduce((s, p) => s + Math.max(0, p.quantidade - rascunho.guardarPedra) * p.precoUnidade, 0),
+                )} em dólares parados`
+              : "marque pelo menos uma pedra abaixo"
+          }
+        />
+
+        {pedras.length === 0 ? (
+          <Empty title="Nenhuma pedra na bolsa" hint="Elas caem das caçadas e aparecem aqui." />
+        ) : (
+          <>
+            <ul className="grid max-h-[260px] content-start gap-1 overflow-y-auto sm:grid-cols-2">
+              {pedras.map((p) => {
+                const marcada = rascunho.pedraIds.includes(p.id);
+                const sai = Math.max(0, p.quantidade - rascunho.guardarPedra);
+                return (
+                  <li key={p.id}>
+                    <label
+                      className="flex h-11 cursor-pointer select-none items-center gap-2 border bg-bg-soft px-2 transition-colors hover:border-line-strong"
+                      style={{
+                        borderColor: marcada
+                          ? "color-mix(in srgb, var(--color-ok) 45%, transparent)"
+                          : "var(--color-line)",
+                      }}
+                    >
+                      <Checkbox
+                        checked={marcada}
+                        onChange={() =>
+                          mudar({
+                            pedraIds: marcada
+                              ? rascunho.pedraIds.filter((x) => x !== p.id)
+                              : [...rascunho.pedraIds, p.id],
+                          })
+                        }
+                      />
+                      {p.icone ? (
+                        <Sprite src={p.icone} alt="" size={20} />
+                      ) : (
+                        <span className="h-5 w-5 shrink-0 border border-line" />
+                      )}
+                      <span className="min-w-0 flex-1 truncate text-[13px] text-text">{p.nome}</span>
+                      <span className="shrink-0 text-right text-[11px] tabular text-text-mute">
+                        {compact(p.quantidade)}x · {compact(sai * p.precoUnidade)}
+                      </span>
+                    </label>
+                  </li>
+                );
+              })}
+            </ul>
+
+            <div className="flex flex-wrap items-end gap-3 border-t border-line pt-3">
+              <label className="flex flex-col gap-1">
+                <span className="pix text-[10px] text-text-mute">guardar de cada uma</span>
+                <NumberField
+                  value={rascunho.guardarPedra}
+                  onChange={(n) => mudar({ guardarPedra: n })}
+                  min={0}
+                  max={100000}
+                  wrapClassName="w-28"
+                  className="text-center"
+                  suffix="un"
+                />
+              </label>
+              <p className="max-w-sm pb-1 text-[11px] text-text-mute">
+                Sobra na mochila, aconteça o que acontecer. Zero vende tudo — e evolução que precisa
+                da pedra não desfaz.
+              </p>
+            </div>
+          </>
+        )}
       </Secao>
 
       {/* As duas vendas lado a lado: uma esvazia a mochila, a outra o box, e a

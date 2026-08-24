@@ -27,7 +27,14 @@ import {
 import { marcarBloqueado, marcarVencido, salvarShard, salvarTime } from "@/lib/robo/vinculo";
 import { salvarPlacar, salvarStatus } from "@/lib/robo/motor/desejado";
 import { CONFIG_PADRAO, type ConfigAuto } from "@/lib/robo/motor/config";
-import { rodarCompras, rodarVendaDrops, rodarVendaPokes, type Recado } from "@/lib/robo/motor/jobs";
+import {
+  rodarColeta,
+  rodarCompras,
+  rodarFlint,
+  rodarVendaDrops,
+  rodarVendaPokes,
+  type Recado,
+} from "@/lib/robo/motor/jobs";
 import { registrarEvento } from "@/lib/robo/motor/eventos";
 import { passoDoNivel, planejarRota } from "@/lib/robo/motor/rota";
 import { melhores } from "@/lib/robo/motor/objetivo";
@@ -80,6 +87,15 @@ const ANALYZER_MS = 2_000;
 const POKES_MS = 20_000;
 /** Varredura das automacoes de loja (o gatilho ao vivo e o principal). */
 const JOBS_MS = 60_000;
+/**
+ * O ritmo da COLETA, e ele e outro.
+ *
+ * Diaria e uma vez por dia; missao e tier do passe mudam quando a cacada avanca,
+ * o que leva horas. No ritmo de um minuto seriam mais de mil chamadas por dia
+ * pra ouvir "já coletou" — e o jogo nao deve nada a quem pergunta mil vezes.
+ * Dez minutos ainda pega a virada do dia com folga.
+ */
+const COLETA_MS = 10 * 60_000;
 /** Perfil do treinador (ouro e nivel) — REST, nao disputa a sessao. */
 const PERFIL_MS = 45_000;
 
@@ -291,6 +307,8 @@ export class SessaoJogo extends EventEmitter {
   private cfg: ConfigAuto = CONFIG_PADRAO;
   private placar: Placar = placarZero();
   private compraGatilhoEm = 0;
+  /** ultima vez que a coleta rodou — ela tem ritmo proprio */
+  private coletaEm = 0;
   private jobRodando = false;
   private vendaRodando = false;
 
@@ -1518,6 +1536,20 @@ export class SessaoJogo extends EventEmitter {
       if (this.cfg.venderDrop) {
         recados.push(...(await rodarVendaDrops(this.tokens, this.cfg, trocar)));
       }
+      // O Flint e outro balcao: pedra vendida na loja comum rende uma fracao.
+      if (this.cfg.venderPedra) {
+        recados.push(...(await rodarFlint(this.tokens, this.cfg, trocar)));
+      }
+      // A coleta tem relogio proprio — ver `COLETA_MS`. `forcado` fura, porque
+      // "rodar agora" e um pedido explicito e nao a varredura.
+      const agora = Date.now();
+      if (
+        (this.cfg.coletarDiaria || this.cfg.coletarPasse) &&
+        (forcado || agora - this.coletaEm >= COLETA_MS)
+      ) {
+        this.coletaEm = agora;
+        recados.push(...(await rodarColeta(this.tokens, this.cfg, trocar)));
+      }
       this.aplicarRecados(recados);
     } catch (e) {
       console.error("[robo] automação falhou:", e);
@@ -1554,7 +1586,9 @@ export class SessaoJogo extends EventEmitter {
     if (!recados.length) return;
     for (const r of recados) {
       if (r.ok) {
-        if (r.tipo === "compra") {
+        if (r.tipo === "coleta") {
+          this.placar.coletas += 1;
+        } else if (r.tipo === "compra") {
           this.placar.ouroCompras += r.ouro;
           this.placar.bolasCompradas += r.bolas ?? 0;
           this.placar.pocoesCompradas += r.pocoes ?? 0;
@@ -1569,7 +1603,7 @@ export class SessaoJogo extends EventEmitter {
       }
       this.registrar({
         em: Date.now(),
-        tipo: r.ok ? (r.tipo === "compra" ? "compra" : "venda") : "aviso",
+        tipo: r.ok ? (r.tipo === "compra" ? "compra" : r.tipo === "coleta" ? "cura" : "venda") : "aviso",
         especie: r.texto,
         shiny: false,
         xp: 0,
@@ -1578,7 +1612,15 @@ export class SessaoJogo extends EventEmitter {
       });
       if (this.userId) {
         void registrarEvento(this.userId, this.contaId, {
-          tipo: r.ok ? (r.tipo === "compra" ? "compra" : r.tipo === "venda-item" ? "venda-item" : "venda-poke") : "falha",
+          tipo: r.ok
+            ? r.tipo === "compra"
+              ? "compra"
+              : r.tipo === "coleta"
+                ? "coleta"
+                : r.tipo === "venda-item"
+                  ? "venda-item"
+                  : "venda-poke"
+            : "falha",
           titulo: r.texto,
           corpo: r.detalhe ?? null,
           dado: { ouro: r.ouro, quantidade: r.quantidade ?? null },
