@@ -7,7 +7,7 @@ import { getDexPayload } from "@/lib/dex-data";
 import { buildEntry, rolesOf } from "@/lib/dex";
 import { resumoDaEspecie } from "@/lib/prosa";
 import { JsonLd, trilha } from "@/lib/jsonld";
-import { animatedSpriteUrl, spriteUrl } from "@/lib/sprites";
+import { animatedSpriteUrl, assetIconUrl, spriteUrl } from "@/lib/sprites";
 import { RARITY_COLOR, TYPE_COLOR, defensiveDetailed, offensiveDetailed } from "@/lib/typing";
 import { projectAll } from "@/lib/stats";
 import {
@@ -298,12 +298,19 @@ export default async function CreaturePage({ params }: Props) {
                 tone: "text-accent",
               },
             ].map((s) => (
-              <div key={s.label} className="bg-surface px-3 py-2">
-                <dd className={`flex items-center gap-1 text-[18px] leading-none font-semibold tabular ${s.tone ?? "text-text"}`}>
+              /* Numero e rotulo no MESMO eixo.
+                 O rotulo herdou o `text-center` do cabeçalho novo e o número não
+                 — ficou colado à esquerda com a palavra centralizada embaixo, e
+                 duas âncoras diferentes na mesma célula fazem a grade parecer
+                 desalinhada mesmo com as quatro células do mesmo tamanho. */
+              <div key={s.label} className="flex flex-col items-center gap-1 bg-surface px-3 py-2.5">
+                <dd
+                  className={`num flex items-center gap-1.5 text-[19px] leading-none font-semibold ${s.tone ?? "text-text"}`}
+                >
                   {s.icon}
                   {s.value}
                 </dd>
-                <dt className="pix mt-1 text-[11px] text-text-mute">{s.label}</dt>
+                <dt className="pix text-[10px] tracking-[0.14em] text-text-mute">{s.label}</dt>
               </div>
             ))}
           </dl>
@@ -418,31 +425,56 @@ export default async function CreaturePage({ params }: Props) {
           className="h-full"
         >
           {chain.length > 1 ? (
-            <ol className="flex flex-wrap items-stretch gap-2">
+            /* A linha OCUPA o painel, em vez de se espremer no canto esquerdo.
+               Era `flex-wrap` com caixas de largura fixa (`w-26`): três estágios
+               num painel de 780px deixavam quase metade dele vazio à direita, e
+               o bloco lia como conteúdo que sobrou de outra coluna.
+               Agora é uma grade de frações iguais — cada estágio recebe o mesmo
+               pedaço do que existe, com a seta ocupando a coluna entre eles. A
+               largura fixa saiu junto: era ela que existia pra o nome não decidir
+               o tamanho da caixa, e com fração igual o nome não decide mais
+               nada. */
+            <ol
+              className="grid items-center gap-x-2 gap-y-3"
+              style={{ gridTemplateColumns: `repeat(${chain.length}, minmax(0, 1fr))` }}
+            >
               {chain.map((s, i) => (
-                <li key={s.creature.pokeId} className="flex items-center gap-2">
+                <li key={s.creature.pokeId} className="relative flex items-center justify-center">
+                  {/* A seta e o nivel moram ENTRE as celulas, ancorados na borda
+                      esquerda desta — assim eles nao consomem uma coluna da grade
+                      e os estagios continuam do mesmo tamanho. */}
                   {i > 0 ? (
-                    <span className="flex w-11 shrink-0 flex-col items-center gap-0.5 text-text-mute">
+                    <span className="absolute top-1/2 -left-1 z-10 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-0.5 text-text-mute">
                       <IconChevronRight size={16} />
                       {s.evolveLevel ? (
-                        <span className="text-[11px] whitespace-nowrap">nv {s.evolveLevel}</span>
+                        <span className="num text-[10px] whitespace-nowrap">
+                          nv {s.evolveLevel}
+                        </span>
                       ) : null}
                     </span>
                   ) : null}
-                  {/* Largura FIXA: o nome nao pode decidir o tamanho da caixa.
-                      Com `w-auto`, "Bulbasaur" e "Ivysaur" davam caixas de
-                      tamanhos diferentes na mesma fila. */}
                   <Link
                     href={`/dex/${s.creature.pokeId}`}
                     title={s.creature.name}
                     className={cn(
-                      "flex w-26 shrink-0 flex-col items-center gap-1.5 rounded-pix border p-2.5 transition-colors",
+                      "flex w-full flex-col items-center gap-2 rounded-pix border px-2 py-4",
+                      "transition-[border-color,background-color,transform] duration-200",
+                      "motion-safe:hover:-translate-y-0.5",
                       s.creature.pokeId === c.pokeId
                         ? "border-accent/60 bg-accent/10"
                         : "border-line hover:border-accent/40 hover:bg-surface-2",
                     )}
                   >
-                    <Sprite src={spriteUrl(s.creature.pokeId)} alt={s.creature.name} size={52} />
+                    {/* A arte cresceu de 52 pra 72: com o espaco da grade
+                        disponivel, sprite pequeno num cartao largo deixa um vazio
+                        no meio que e pior que o vazio da direita que a gente
+                        acabou de resolver. */}
+                    <Sprite
+                      src={spriteUrl(s.creature.pokeId)}
+                      alt={s.creature.name}
+                      size={72}
+                      className="[--sprite:56px] sm:[--sprite:72px]"
+                    />
                     <span className="w-full truncate text-center text-[12px] text-text-dim">
                       {s.creature.name}
                     </span>
@@ -585,7 +617,27 @@ export default async function CreaturePage({ params }: Props) {
                         {/* A ponte de volta: daqui se chega em QUEM MAIS dropa o
                             mesmo item. A ficha da especie so sabe metade do par
                             — a outra metade e a pagina do item. */}
-                        <span className="flex items-center gap-1.5">
+                        <span className="flex items-center gap-2">
+                          {/* O ICONE do item, do proprio jogo.
+                              A tabela listava seis nomes em texto puro enquanto a
+                              grade de itens, o card e a ficha do item mostram a
+                              arte — a mesma coisa aparecia com duas caras no
+                              mesmo site. E aqui ela paga dobrado: quem le a lista
+                              de drops esta decidindo o que farmar, e reconhecer
+                              "Bag of Pollen" pela arte e mais rapido que ler.
+                              Quando o item nao esta no catalogo (nome que a fonte
+                              traz e a lista nao tem), nao ha icone nem reserva —
+                              uma reserva generica afirmaria que o item existe e
+                              que a arte falhou, e o caso e o contrario. */}
+                          {item ? (
+                            <Sprite
+                              src={assetIconUrl(item.icon)}
+                              alt=""
+                              size={22}
+                              fallback={null}
+                              className="shrink-0"
+                            />
+                          ) : null}
                           {item ? (
                             <Link
                               href={`/itens/${item.id}`}
