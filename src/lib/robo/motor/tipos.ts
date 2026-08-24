@@ -128,6 +128,14 @@ export interface EstadoAuto {
   autoRevive: boolean;
   selectedBallId: number;
   vipNoJogo: boolean;
+  /**
+   * Como o jogo chama o campo "qual poção" — descoberto no payload da conta,
+   * nunca fixado aqui (ver `jogo/auto.ts`). `null` = esta conta não trouxe o
+   * campo, e aí a tela diz isso em vez de desenhar um seletor decorativo.
+   */
+  campoPocao: string | null;
+  /** a poção escolhida no Auto-Helper. 0 = "Automático (melhor)" */
+  pocaoId: number;
 }
 
 /** Uma faixa da subida: de que nivel a que nivel, cacando o que, e onde. */

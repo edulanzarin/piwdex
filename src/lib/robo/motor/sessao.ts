@@ -946,6 +946,13 @@ export class SessaoJogo extends EventEmitter {
           autoRevive: Boolean(m.autoRevive),
           selectedBallId: Number(m.selectedBallId ?? 0),
           vipNoJogo: Boolean(m.isVip),
+          // O frame nao e a fonte deste campo: quem descobre o nome dele e o
+          // REST (`jogo/auto.ts`). Preservar o que ja foi lido evita o frame
+          // apagar a escolha da tela a cada `autohelper`.
+          campoPocao: this.auto?.campoPocao ?? null,
+          pocaoId: this.auto?.campoPocao
+            ? Number(m[this.auto.campoPocao] ?? this.auto.pocaoId ?? 0)
+            : (this.auto?.pocaoId ?? 0),
         };
         if (Array.isArray(m.balls)) this.bolas = lerBolas(m.balls);
         this.emitir();

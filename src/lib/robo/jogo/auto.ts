@@ -37,8 +37,40 @@ export const CAMPOS_AUTO = {
 } as const;
 export type CampoAuto = keyof typeof CAMPOS_AUTO;
 
+/**
+ * O campo que guarda QUAL pocao o Auto-Helper usa.
+ *
+ * O jogo tem essa escolha: a UI dele monta tres seletores — `Pokébola:`,
+ * `Pokébola (shiny):` e `Potion:` — e o padrao do terceiro e "Automático
+ * (melhor)". O revive nao tem seletor nenhum, e a dica do proprio jogo diz por
+ * que: "usa Revive ao desmaiar", o item, no singular.
+ *
+ * O que o bundle publico NAO entrega e o nome do campo — a i18n vem num chunk,
+ * o componente que chama a API so carrega depois do login. Fixar um palpite
+ * (`autoPotionId`? `autoPotionItemId`?) seria implementar contra suposicao: o
+ * patch sairia daqui, o jogo responderia 200 ignorando a chave desconhecida, e
+ * a tela mostraria uma escolha que nunca aconteceu — o pior dos dois mundos,
+ * porque parece funcionar.
+ *
+ * Entao o campo se DESCOBRE no payload da conta, pela forma: fala de pocao e
+ * termina em id. Achou, o seletor aparece e escreve de volta na MESMA chave que
+ * leu. Nao achou, a tela diz que o jogo nao ofereceu a escolha, que e a verdade
+ * verificavel — e nao um seletor decorativo.
+ */
+export const CHAVE_POCAO = /potion.*id$/i;
+
+function acharCampoPocao(c: Record<string, unknown>): string | null {
+  for (const k of Object.keys(c)) {
+    if (!CHAVE_POCAO.test(k)) continue;
+    const v = c[k];
+    if (typeof v === "number" || v === null) return k;
+  }
+  return null;
+}
+
 function lerEstado(bruto: unknown): EstadoAuto {
   const c = ((bruto as { character?: unknown })?.character ?? bruto ?? {}) as Record<string, unknown>;
+  const campoPocao = acharCampoPocao(c);
   return {
     autoCatch: Boolean(c.autoCatch),
     autoCatchBallId: num(c.autoCatchBallId),
@@ -49,6 +81,9 @@ function lerEstado(bruto: unknown): EstadoAuto {
     autoRevive: Boolean(c.autoRevive),
     selectedBallId: num(c.selectedBallId),
     vipNoJogo: Boolean(c.isVip),
+    campoPocao,
+    // 0 = "Automático (melhor)", que e o padrao do jogo.
+    pocaoId: campoPocao ? num(c[campoPocao]) : 0,
   };
 }
 
@@ -113,7 +148,7 @@ export async function lerAuto(inicial: Tokens): Promise<LeituraAuto | { vencido:
 /** Aplica um patch de config. A resposta ja devolve o estado novo. */
 export async function aplicarAuto(
   inicial: Tokens,
-  patch: Partial<Record<CampoAuto, number | boolean>>,
+  patch: Record<string, number | boolean>,
 ): Promise<{ ok: boolean; status: number; leitura?: LeituraAuto; tokens: Tokens; mudou: boolean }> {
   const r = await enviarAoJogo("/api/game/auto-helper", inicial, patch);
   if (!r.res.ok) return { ok: false, status: r.res.status, tokens: r.tokens, mudou: r.mudou };
@@ -134,9 +169,9 @@ export async function aplicarAuto(
 
 /** Sanea um patch vindo da tela contra `CAMPOS_AUTO`. O que nao casa cai fora —
  *  a rota nunca repassa campo desconhecido pro jogo. */
-export function limparPatch(bruto: unknown): Partial<Record<CampoAuto, number | boolean>> {
+export function limparPatch(bruto: unknown): Record<string, number | boolean> {
   const entrada = (bruto ?? {}) as Record<string, unknown>;
-  const saida: Partial<Record<CampoAuto, number | boolean>> = {};
+  const saida: Record<string, number | boolean> = {};
   for (const [campo, forma] of Object.entries(CAMPOS_AUTO) as [CampoAuto, string][]) {
     const v = entrada[campo];
     if (v === undefined) continue;
@@ -145,6 +180,14 @@ export function limparPatch(bruto: unknown): Partial<Record<CampoAuto, number | 
     if (forma === "pct" && typeof v === "number" && Number.isFinite(v)) {
       saida[campo] = Math.max(0, Math.min(100, Math.round(v)));
     }
+  }
+  // O campo da pocao nao cabe na tabela fixa porque o NOME dele vem do payload
+  // da conta (ver `CHAVE_POCAO`). Ele entra pela forma, e continua lista branca:
+  // fala de pocao, termina em id, e vai como inteiro. O que nao casa nao chega
+  // ao jogo, igual antes.
+  for (const [k, v] of Object.entries(entrada)) {
+    if (k in CAMPOS_AUTO) continue;
+    if (CHAVE_POCAO.test(k) && typeof v === "number" && Number.isFinite(v)) saida[k] = Math.trunc(v);
   }
   return saida;
 }

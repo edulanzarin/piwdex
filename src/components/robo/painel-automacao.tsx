@@ -21,6 +21,59 @@ import type { BolaEstoque, EstadoAuto, EstadoHunt } from "@/lib/robo/motor/tipos
  * decisão de quanto gastar a três rolagens da de quanto se recebe.
  */
 
+interface ItemBolsa {
+  id: number;
+  nome: string;
+  icone: string;
+  quantidade: number;
+}
+
+/**
+ * O seletor de poção do Auto-Helper.
+ *
+ * Escolhe entre o que a BOLSA tem, como o de bola — o catálogo da loja mostraria
+ * poção que você não tem e esconderia a que você tem. Zero é "Automático
+ * (melhor)", que é o padrão do próprio jogo.
+ */
+function PocaoSelect({
+  valor,
+  onMudar,
+  pocoes,
+  desabilitado,
+}: {
+  valor: number;
+  onMudar: (id: number) => void;
+  pocoes: ItemBolsa[];
+  desabilitado: boolean;
+}) {
+  return (
+    <Select
+      value={String(valor || "")}
+      onChange={(v) => onMudar(Number(v) || 0)}
+      disabled={desabilitado}
+      options={[
+        { value: "", label: "automática (a melhor)" },
+        ...pocoes.map((i) => ({
+          value: String(i.id),
+          label: `${i.nome} · ${compact(i.quantidade)} na bolsa`,
+          render: (
+            <span className="flex min-w-0 items-center gap-2">
+              {i.icone ? <Sprite src={i.icone} alt="" size={18} /> : null}
+              <span className="min-w-0 flex-1 truncate">{i.nome}</span>
+              <span
+                className="shrink-0 text-[11px] tabular"
+                style={{ color: i.quantidade > 0 ? "var(--color-text-mute)" : "var(--color-danger)" }}
+              >
+                {compact(i.quantidade)}
+              </span>
+            </span>
+          ),
+        })),
+      ]}
+    />
+  );
+}
+
 function BolaSelect({
   valor,
   onMudar,
@@ -92,6 +145,9 @@ export function AbaAutomacao({ estado }: { estado: EstadoHunt }) {
   const [auto, setAuto] = useState<EstadoAuto | null>(estado.auto);
   const [rascunho, setRascunho] = useState<EstadoAuto | null>(null);
   const [bolas, setBolas] = useState<BolaEstoque[]>(estado.bolas);
+  const [pocoes, setPocoes] = useState<ItemBolsa[]>([]);
+  const [revives, setRevives] = useState<ItemBolsa[]>([]);
+  const [bolsaLida, setBolsaLida] = useState(false);
   const [carregando, setCarregando] = useState(true);
   const [salvando, setSalvando] = useState(false);
   const [recado, setRecado] = useState<string | null>(null);
@@ -110,10 +166,19 @@ export function AbaAutomacao({ estado }: { estado: EstadoHunt }) {
     void (async () => {
       const a = (await fetch("/api/robo/auto")
         .then((r) => (r.ok ? r.json() : null))
-        .catch(() => null)) as { auto?: EstadoAuto; bolas?: BolaEstoque[] } | null;
+        .catch(() => null)) as {
+        auto?: EstadoAuto;
+        bolas?: BolaEstoque[];
+        pocoes?: ItemBolsa[];
+        revives?: ItemBolsa[];
+        bolsaLida?: boolean;
+      } | null;
       if (!vivo) return;
       if (a?.auto) setAuto(a.auto);
       if (a?.bolas?.length) setBolas(a.bolas);
+      setPocoes(a?.pocoes ?? []);
+      setRevives(a?.revives ?? []);
+      setBolsaLida(!!a?.bolsaLida);
       setCarregando(false);
     })();
     return () => {
@@ -138,6 +203,11 @@ export function AbaAutomacao({ estado }: { estado: EstadoHunt }) {
     ];
     const out: Record<string, number | boolean> = {};
     for (const c of campos) if (rascunho[c] !== auto[c]) out[c] = rascunho[c] as number | boolean;
+    // A poção vai na chave do JOGO, não na nossa: `pocaoId` é o nome interno, e
+    // o campo real foi descoberto no payload da conta (ver `jogo/auto.ts`).
+    if (auto.campoPocao && rascunho.pocaoId !== auto.pocaoId) {
+      out[auto.campoPocao] = rascunho.pocaoId;
+    }
     return out;
   }, [rascunho, auto]);
 
@@ -159,6 +229,11 @@ export function AbaAutomacao({ estado }: { estado: EstadoHunt }) {
   const catchVazio = atual ? semBola(atual.autoCatch, atual.autoCatchBallId) : null;
   const shinyVazio = atual ? semBola(atual.autoCatchShiny, atual.autoCatchShinyBallId) : null;
   const zeradas = [...new Set([catchVazio, shinyVazio].filter(Boolean))] as string[];
+
+  // O próprio jogo avisa isto na tela dele ("Você não tem nenhum Revive na
+  // bolsa"). Só vale quando a bolsa foi LIDA: falha de leitura não é bolsa vazia.
+  const semRevive =
+    !!atual?.autoRevive && bolsaLida && !revives.some((r) => r.quantidade > 0);
 
   async function salvar() {
     setSalvando(true);
@@ -195,7 +270,7 @@ export function AbaAutomacao({ estado }: { estado: EstadoHunt }) {
       <Secao
         titulo="Automação do jogo"
         icone={<Pokeball size={14} />}
-        hint="Captura, poção e revive automáticos rodam no servidor do jogo — o robô só liga o interruptor. A bola é a única coisa que se escolhe: para poção e revive o jogo usa o que estiver na bolsa, e não expõe a escolha. Qual comprar, e a partir de quanto, é na aba Loja."
+        hint="Captura, poção e revive automáticos rodam no servidor do jogo — o robô só liga o interruptor. Dá para escolher a bola e a poção; o revive não, o jogo usa o da bolsa. Manter a bolsa cheia é trabalho da aba Loja."
       >
         {!atual ? (
           <Note tone="warn">Não consegui ler a configuração do jogo. Reconecte a conta.</Note>
@@ -205,6 +280,13 @@ export function AbaAutomacao({ estado }: { estado: EstadoHunt }) {
               <Note tone="warn">
                 A captura automática é recurso VIP do jogo, e esta conta não tem. O interruptor abaixo
                 não vai pegar até o VIP entrar lá.
+              </Note>
+            ) : null}
+
+            {semRevive ? (
+              <Note tone="warn">
+                O Auto-Revive está ligado e não há nenhum Revive na bolsa — ele não levanta ninguém
+                assim. Ligue a reposição de revive na aba Loja.
               </Note>
             ) : null}
 
@@ -265,21 +347,32 @@ export function AbaAutomacao({ estado }: { estado: EstadoHunt }) {
               <Cartao
                 controle={
                   atual.autoPotion ? (
-                    /* Em LINHA, e não com o rótulo empilhado: o campo tem que
-                       ocupar a mesma altura que o select da bola ao lado, senão
-                       os quatro cartões deixam de formar uma grade. */
-                    <label className="flex items-center gap-2">
-                      <span className="pix shrink-0 text-[10px] text-text-mute">abaixo de</span>
+                    <div className="flex flex-col gap-2">
+                      {atual.campoPocao ? (
+                        <PocaoSelect
+                          valor={atual.pocaoId}
+                          onMudar={(pocaoId) => mudar({ pocaoId })}
+                          pocoes={pocoes}
+                          desabilitado={salvando}
+                        />
+                      ) : (
+                        <p className="text-[11px] text-text-mute">
+                          Esta conta não trouxe o campo de qual poção — o jogo decide sozinho.
+                        </p>
+                      )}
+                      {/* Rótulo e unidade DENTRO da casca do campo: soltos ao
+                          lado, viravam três peças numa linha onde o cartão
+                          vizinho tem uma só, e a grade se desfazia. */}
                       <NumberField
                         value={atual.autoPotionThreshold}
                         onChange={(n) => mudar({ autoPotionThreshold: n })}
                         min={0}
                         max={100}
-                        wrapClassName="w-20"
+                        iconLeft={<span className="pix text-[10px]">abaixo de</span>}
+                        suffix="% da vida"
                         className="text-center"
                       />
-                      <span className="pix shrink-0 text-[10px] text-text-mute">% da vida</span>
-                    </label>
+                    </div>
                   ) : null
                 }
               >
@@ -292,7 +385,20 @@ export function AbaAutomacao({ estado }: { estado: EstadoHunt }) {
                 />
               </Cartao>
 
-              <Cartao>
+              <Cartao
+                controle={
+                  atual.autoRevive ? (
+                    /* Não há seletor porque o jogo não tem: a dica dele é "usa
+                       Revive ao desmaiar", o item, no singular. Dizer isso aqui
+                       é a diferença entre um cartão vazio e um cartão que
+                       explica por que está vazio. */
+                    <p className="text-[11px] text-text-mute">
+                      O jogo usa o Revive da bolsa e não deixa escolher qual.
+                      {bolsaLida ? ` Você tem ${compact(revives.reduce((n, r) => n + r.quantidade, 0))}.` : ""}
+                    </p>
+                  ) : null
+                }
+              >
                 <Switch
                   block
                   checked={atual.autoRevive}

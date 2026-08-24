@@ -11,6 +11,15 @@ import { IconClose, IconSearch } from "./icons";
  */
 export interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, "size"> {
   iconLeft?: ReactNode;
+  /**
+   * A unidade, DENTRO da casca.
+   *
+   * "50" e "% da vida" sao uma grandeza so, e a unidade solta do lado do campo
+   * vira uma terceira peca na linha: o cartao passa a ter rotulo, caixa e
+   * sufixo onde o vizinho tem um select, e a grade se desfaz. Dentro da casca,
+   * o controle inteiro tem o mesmo peso visual de qualquer outro campo.
+   */
+  suffix?: ReactNode;
   /** botao de limpar; so aparece com valor */
   onClear?: () => void;
   invalid?: boolean;
@@ -18,7 +27,7 @@ export interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
-  { iconLeft, onClear, invalid, className, wrapClassName, ...props },
+  { iconLeft, suffix, onClear, invalid, className, wrapClassName, ...props },
   ref,
 ) {
   const filled = String(props.value ?? "").length > 0;
@@ -43,6 +52,9 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
         )}
         {...props}
       />
+      {suffix ? (
+        <span className="pix shrink-0 text-[10px] text-text-mute">{suffix}</span>
+      ) : null}
       {onClear && filled ? (
         <button
           type="button"

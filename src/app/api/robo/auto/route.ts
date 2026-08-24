@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { exigirUsuarioApi } from "@/lib/robo/sessao";
 import { aplicarAuto, lerAuto, limparPatch } from "@/lib/robo/jogo/auto";
+import { lerMochila } from "@/lib/robo/jogo/loja";
+import { separarConsumivel } from "@/lib/robo/motor/jobs";
 import { atualizarTokens, lerVinculo, marcarVencido } from "@/lib/robo/vinculo";
 
 export const runtime = "nodejs";
@@ -26,7 +28,26 @@ export async function GET() {
     return NextResponse.json({ erro: "vinculo_vencido" }, { status: 409 });
   }
   if (r.mudou) await atualizarTokens(usuario.id, r.tokens).catch(() => {});
-  return NextResponse.json({ auto: r.auto, bolas: r.bolas });
+
+  /**
+   * A bolsa, so pocao e revive.
+   *
+   * O seletor de pocao do jogo escolhe entre o que a CONTA tem, como o de bola —
+   * oferecer o catalogo da loja mostraria pocao que nao esta na bolsa e esconderia
+   * a que esta (ver a mesma armadilha em `Duas listas parecidas...`). E o revive
+   * vem junto por outra razao: sem nenhum na bolsa o Auto-Revive nao levanta
+   * ninguem, e o proprio jogo avisa isso.
+   */
+  const bolsa = await lerMochila(r.tokens).then((m) => (m ? separarConsumivel(m.itens) : null)).catch(() => null);
+
+  return NextResponse.json({
+    auto: r.auto,
+    bolas: r.bolas,
+    pocoes: bolsa?.heal ?? [],
+    revives: bolsa?.revive ?? [],
+    /** `false` = nao deu pra conferir a bolsa; a tela nao pode ler isso como vazia */
+    bolsaLida: !!bolsa,
+  });
 }
 
 export async function POST(req: Request) {
