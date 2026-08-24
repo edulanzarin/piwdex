@@ -122,38 +122,28 @@ export function ItemCard({
       href={`/itens/${e.id}`}
       style={{ ["--i" as string]: index }}
       className={cn(
-        "panel-card sheen anim-enter group relative flex flex-col gap-3 p-3.5",
+        // Mesma silhueta do card de especie: painel de arte, placa, dado. Os dois
+        // vivem em grades irmas e sao lidos na mesma sessao — forma diferente pra
+        // funcao igual faz a segunda grade parecer outro site.
+        "panel-card anim-enter group relative flex flex-col overflow-hidden",
         "transition-[border-color,box-shadow,transform] duration-200",
-        "hover:-translate-y-0.5 hover:border-[var(--color-t-itens)]/55",
-        "hover:shadow-[0_0_34px_-12px_var(--color-t-itens)]",
-        "focus-visible:border-[var(--color-t-itens)]",
+        "hover:-translate-y-0.5 hover:border-[var(--color-t-itens)]",
+        "hover:shadow-elev-3 focus-visible:border-[var(--color-t-itens)]",
       )}
     >
-      <header className="flex items-center justify-between gap-2">
-        <span className="pix flex items-center gap-1.5 text-[11px] text-text-mute">
-          <ItemCategoryIcon category={e.category} size={15} />
-          {ITEM_CATEGORY_LABEL[e.category]}
-        </span>
-        {e.rare ? (
-          <Chip size="xs" tone="accent" icon={<IconGem size={14} />}>
-            raro
-          </Chip>
-        ) : null}
-      </header>
-
-      <div className="relative grid place-items-center py-1">
+      {/* ---- o painel de ARTE ----
+          A categoria e o selo de raro flutuam nos cantos dele. A linha de
+          cabecalho que existia antes gastava 28px de altura em cada um dos 48
+          cards da tela pra dizer duas coisas que cabem no canto de uma area que
+          ja existe. */}
+      <div className="relative grid aspect-[5/4] w-full place-items-center overflow-hidden bg-bg-soft">
         <span
           aria-hidden="true"
-          /* Caixa FIXA no tamanho MAIOR, e so `transform` anima. Animar h/w
-               num elemento com `blur-2xl` obriga o navegador a rasterizar o
-               desfoque de novo a cada quadro, e o grid tem ate 48 destes na
-               tela ao mesmo tempo — era a animacao mais cara da pagina, e ela
-               e enfeite de hover. `scale` reusa a textura ja borrada. */
+          /* Caixa FIXA no tamanho MAIOR, e so `transform` anima. Animar h/w num
+             elemento com `blur-2xl` rasteriza o desfoque a cada quadro, e sao ate
+             48 destes na tela. */
           className="absolute h-24 w-24 origin-center scale-[0.833] rounded-full bg-[var(--color-t-itens)] opacity-15 blur-2xl transition-transform duration-300 ease-out group-hover:scale-100"
         />
-        {/* O icone vem do proprio jogo. Quando ele nao vem, o marcador e a
-            categoria — uma pokebola diria que faltou um POKEMON, que e outra
-            coisa. */}
         <Sprite
           src={assetIconUrl(e.icon)}
           alt={e.name}
@@ -173,16 +163,32 @@ export function ItemCard({
           }
           className="relative transition-transform duration-300 ease-out group-hover:-translate-y-1 group-hover:scale-110"
         />
+
+        <span className="pix absolute top-2 left-2.5 flex items-center gap-1.5 text-[10px] text-text-mute">
+          <ItemCategoryIcon category={e.category} size={13} />
+          {ITEM_CATEGORY_LABEL[e.category]}
+        </span>
+        {e.rare ? (
+          <span className="absolute top-2 right-2">
+            <Chip size="xs" tone="accent" icon={<IconGem size={13} />}>
+              raro
+            </Chip>
+          </span>
+        ) : null}
       </div>
 
-      <h3
-        className="truncate text-[17px] leading-tight font-bold text-text transition-colors group-hover:text-[var(--color-t-itens)]"
-        title={e.name}
-      >
-        {e.name}
-      </h3>
+      {/* A PLACA: superficie propria e fio em cima. Solida, e nao flutuando sobre
+          a arte — nome sobre icone some sempre que o icone tem area clara ali. */}
+      <div className="border-t border-line bg-surface-2/70 px-3.5 py-3 transition-colors duration-200 group-hover:bg-surface-3/70">
+        <h3
+          className="truncate text-[16px] leading-tight font-bold text-text transition-colors group-hover:text-[var(--color-t-itens)]"
+          title={e.name}
+        >
+          {e.name}
+        </h3>
+      </div>
 
-      <dl className="grid grid-cols-2 gap-2 border-t border-line pt-3 text-center">
+      <dl className="grid grid-cols-2 gap-2 px-3.5 pt-3 text-center">
         <div className="flex flex-col gap-1">
           <dt className="pix flex items-center justify-center gap-1 text-[11px] text-text-mute">
             <IconCoin size={15} />
@@ -213,7 +219,7 @@ export function ItemCard({
         </div>
       </dl>
 
-      <div className="mt-auto flex flex-col gap-2 border-t border-line pt-3">
+      <div className="mt-auto flex flex-col gap-2 border-t border-line px-3.5 pt-3 pb-3">
         <Origem e={e} />
         {kills ? (
           <span className="pix text-[11px] text-text-mute">{kills}</span>

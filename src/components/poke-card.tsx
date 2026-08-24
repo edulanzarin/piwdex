@@ -114,47 +114,65 @@ export function PokeCard({
   return (
     <Link
       href={`/dex/${e.id}`}
-      style={{ ["--i" as string]: index }}
+      style={{ ["--i" as string]: index, ["--tint" as string]: tint }}
       className={cn(
-        "panel-card sheen anim-enter group relative flex flex-col gap-3 p-3.5",
+        // O card perdeu o padding EXTERNO e virou uma pilha de faixas: painel de
+        // arte, placa de identidade, bloco de numeros, rodape. E a silhueta do
+        // cartao de personagem da referencia, e ela nao e so estetica — com a arte
+        // encostando nas bordas, a peca que o olho procura primeiro para de
+        // flutuar num quadrado de respiro e passa a MANDAR no card.
+        //
+        // O dado nao encolheu: os oito campos continuam todos aqui. Trocar a
+        // grade densa por cartao so de arte seria copiar a referencia no ponto em
+        // que ela NAO se aplica — a dela apresenta, a nossa e ferramenta de
+        // consulta, e quem filtra 900 especies quer os numeros na grade.
+        "panel-card anim-enter group relative flex flex-col overflow-hidden",
         "transition-[border-color,box-shadow,transform] duration-200",
-        "hover:-translate-y-0.5 hover:border-accent/55 hover:shadow-[0_0_34px_-12px_var(--color-accent)]",
-        "focus-visible:border-accent",
+        "hover:-translate-y-0.5 hover:border-[color:var(--tint)]",
+        "hover:shadow-elev-3 focus-visible:border-accent",
       )}
     >
-      {/* ---- cabecalho: identidade e raridade ---- */}
-      <header className="flex items-center justify-between gap-2">
-        <span className="pix text-[12px] text-text-mute">#{String(e.id).padStart(3, "0")}</span>
-        <Chip size="sm" tint={tint} icon={<IconGem size={14} />}>
-          {RARITY_LABEL[e.rarity]}
-        </Chip>
-      </header>
-
-      {/* ---- sprite: a peca que o olho procura primeiro, entao ganha espaco ---- */}
-      <div className="relative grid place-items-center py-1">
+      {/* ---- o painel de ARTE ----
+          Fundo proprio, mais escuro que o card. O numero e a raridade flutuam
+          nos cantos DELE em vez de ocuparem uma linha antes: linha de cabecalho
+          custava 28px de altura em cada um dos 60 cards da tela pra dizer duas
+          coisas que cabem no canto de uma area que ja existe. */}
+      <div className="relative grid aspect-[5/4] w-full place-items-center overflow-hidden bg-bg-soft">
         <span
           aria-hidden="true"
-          /* Caixa FIXA no tamanho MAIOR, e so `transform` anima. Animar h/w
-               num elemento com `blur-2xl` obriga o navegador a rasterizar o
-               desfoque de novo a cada quadro, e o grid tem ate 60 destes na
-               tela ao mesmo tempo — era a animacao mais cara da pagina, e ela
-               e enfeite de hover. `scale` reusa a textura ja borrada. */
+          /* Caixa FIXA no tamanho MAIOR, e so `transform` anima. Animar h/w num
+             elemento com `blur-2xl` obriga o navegador a rasterizar o desfoque de
+             novo a cada quadro, e o grid tem ate 60 destes na tela — era a
+             animacao mais cara da pagina, e ela e enfeite de hover. */
           className="absolute h-28 w-28 origin-center scale-[0.857] rounded-full blur-2xl transition-transform duration-300 ease-out group-hover:scale-100"
           style={{ backgroundColor: tint, opacity: 0.22 }}
         />
         <Sprite
           src={spriteUrl(e.id)}
           alt={e.name}
-          size={96}
+          size={104}
           priority={priority}
-          className="relative transition-transform duration-300 ease-out group-hover:-translate-y-1 group-hover:scale-115"
+          className="relative transition-transform duration-300 ease-out motion-safe:group-hover:-translate-y-1 motion-safe:group-hover:scale-110"
         />
+
+        <span className="pix absolute top-2 left-2.5 text-[11px] text-text-mute">
+          #{String(e.id).padStart(3, "0")}
+        </span>
+        <span className="absolute top-2 right-2">
+          <Chip size="xs" tint={tint} icon={<IconGem size={13} />}>
+            {RARITY_LABEL[e.rarity]}
+          </Chip>
+        </span>
       </div>
 
-      {/* ---- nome e tipo ---- */}
-      <div className="flex flex-col gap-2">
+      {/* ---- a PLACA de identidade ----
+          Superficie propria e fio em cima, separando da arte. Ela nao flutua
+          sobre a imagem com gradiente: nome sobre sprite depende do que o sprite
+          tem naquele trecho, e numa grade de 60 artes diferentes ele some em boa
+          parte delas. A placa solida custa altura e nunca falha. */}
+      <div className="flex flex-col gap-2 border-t border-line bg-surface-2/70 px-3.5 py-3 transition-colors duration-200 group-hover:bg-surface-3/70">
         <h3
-          className="truncate text-[18px] leading-tight font-bold text-text transition-colors group-hover:text-accent"
+          className="truncate text-[17px] leading-tight font-bold text-text transition-colors group-hover:text-[color:var(--tint)]"
           title={e.name}
         >
           {e.name}
@@ -165,50 +183,52 @@ export function PokeCard({
         </div>
       </div>
 
-      {/* ---- perfil de stats ---- */}
-      <StatSpine stats={e.stats} ceiling={ceiling} tint={TYPE_COLOR[e.type1]} />
+      {/* ---- o bloco de DADO, que e o motivo de esta grade existir ---- */}
+      <div className="flex flex-col gap-3 px-3.5 pt-3">
+        <StatSpine stats={e.stats} ceiling={ceiling} tint={TYPE_COLOR[e.type1]} />
 
-      {/* ---- os tres numeros que decidem se vale caçar ---- */}
-      <dl className="grid grid-cols-3 gap-2 border-t border-line pt-3 text-center">
-        <div className="flex flex-col gap-1">
-          <dt className="pix flex items-center justify-center gap-1 text-[11px] text-text-mute">
-            <IconLevel size={15} />
-            Nível
-          </dt>
-          <dd className="text-[17px] leading-none font-bold text-text">{e.level || "—"}</dd>
-        </div>
-        <div className="flex flex-col gap-1 border-x border-line">
-          {/* O rotulo muda com a GRANDEZA: "venda" e o que o jogo paga por
-              abate, "npc" e o preço do cassino. Sao eixos diferentes, e o mesmo
-              rotulo pros dois faz o card se contradizer entre especies. */}
-          <dt className="pix flex items-center justify-center gap-1 text-[11px] text-text-mute">
-            <IconCoin size={15} />
-            {e.valueFromNpc ? "NPC" : "Venda"}
-          </dt>
-          <dd
-            className={cn(
-              "text-[17px] leading-none font-bold",
-              e.valueFromNpc ? "text-text-mute" : "text-warn",
-            )}
-          >
-            {e.value > 0 ? gold(e.value) : "—"}
-          </dd>
-        </div>
-        <div className="flex flex-col gap-1">
-          <dt className="pix flex items-center justify-center gap-1 text-[11px] text-text-mute">
-            <IconXp size={15} />
-            XP
-          </dt>
-          <dd className="text-[17px] leading-none font-bold text-neon">{e.xp || "—"}</dd>
-        </div>
-      </dl>
+        {/* ---- os tres numeros que decidem se vale caçar ---- */}
+        <dl className="grid grid-cols-3 gap-2 border-t border-line pt-3 text-center">
+          <div className="flex flex-col gap-1">
+            <dt className="pix flex items-center justify-center gap-1 text-[11px] text-text-mute">
+              <IconLevel size={15} />
+              Nível
+            </dt>
+            <dd className="text-[17px] leading-none font-bold text-text">{e.level || "—"}</dd>
+          </div>
+          <div className="flex flex-col gap-1 border-x border-line">
+            {/* O rotulo muda com a GRANDEZA: "venda" e o que o jogo paga por
+                abate, "npc" e o preço do cassino. Sao eixos diferentes, e o mesmo
+                rotulo pros dois faz o card se contradizer entre especies. */}
+            <dt className="pix flex items-center justify-center gap-1 text-[11px] text-text-mute">
+              <IconCoin size={15} />
+              {e.valueFromNpc ? "NPC" : "Venda"}
+            </dt>
+            <dd
+              className={cn(
+                "text-[17px] leading-none font-bold",
+                e.valueFromNpc ? "text-text-mute" : "text-warn",
+              )}
+            >
+              {e.value > 0 ? gold(e.value) : "—"}
+            </dd>
+          </div>
+          <div className="flex flex-col gap-1">
+            <dt className="pix flex items-center justify-center gap-1 text-[11px] text-text-mute">
+              <IconXp size={15} />
+              XP
+            </dt>
+            <dd className="text-[17px] leading-none font-bold text-neon">{e.xp || "—"}</dd>
+          </div>
+        </dl>
+      </div>
 
       {/* ---- rodape de contexto ----
           `mt-auto` cola o rodape no fundo: sem ele, um card com um chip a mais
           empurra o proprio rodape pra baixo e a linha inteira do grid perde o
           alinhamento. E a contagem de drops fica FORA do container que quebra
           linha, senao ela cai sozinha numa segunda linha e estica o card. */}
-      <div className="mt-auto flex items-start justify-between gap-2 border-t border-line pt-3">
+      <div className="mt-auto flex items-start justify-between gap-2 border-t border-line px-3.5 py-3">
         <div className="flex min-w-0 flex-wrap items-center gap-1.5">
           {contexto.map((c) => (
             <Chip key={c.label} size="sm" tone={c.tone} icon={c.icon}>

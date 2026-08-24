@@ -6,7 +6,6 @@ import { agora, fecharPiso } from "@/lib/pacing";
 import {
   Badge,
   ButtonLink,
-  ExploreLink,
   RuleTitle,
   DisplayTitle,
   Eyebrow,
@@ -313,15 +312,6 @@ export default async function HomePage() {
             >
               Abrir {t.nome}
             </ButtonLink>
-          }
-          footer={
-            /* O link mora ABAIXO das ações e não ao lado: ele não é uma segunda
-               opção do mesmo peso — é a saída lateral pra quem não quer abrir a
-               ferramenta ainda. Ao lado do botão, dois alvos parecidos disputam
-               a mesma decisão. */
-            <ExploreLink href={t.href} tint={t.cor} className="pt-1">
-              O que dá pra fazer aqui
-            </ExploreLink>
           }
         />
       ))}
