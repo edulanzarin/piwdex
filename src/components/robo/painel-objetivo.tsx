@@ -442,7 +442,12 @@ export function PainelObjetivo({
                   : erroRota === "ja_passou"
                     ? "Esse pokémon já passou do nível pedido. Escolha um alvo mais alto."
                     : erroRota
-                      ? "Não consegui montar uma rota para este pokémon."
+                      ? /* Beco sem saida vira instrucao: "não consegui" nao
+                           diz o que fazer, e as duas causas reais pedem coisas
+                           opostas — uma se resolve mudando o alvo, a outra
+                           esperando o catalogo do jogo mudar. */
+                        "Não achei nenhuma caçada que sirva para este pokémon até esse nível. " +
+                        "Tente um nível alvo mais baixo, ou escolha outro pokémon do time."
                       : "Montando a subida…"}
               </Note>
             ) : (
@@ -458,7 +463,7 @@ export function PainelObjetivo({
                         borderColor: atual
                           ? "color-mix(in srgb, var(--color-t-robo) 55%, transparent)"
                           : "var(--color-line)",
-                        opacity: passou ? 0.45 : 1,
+                        opacity: passou ? 0.45 : p.travado ? 0.6 : 1,
                       }}
                     >
                       <Sprite src={spriteUrl(p.speciesId)} alt="" size={24} />
@@ -466,11 +471,15 @@ export function PainelObjetivo({
                         {p.de}–{p.ate}
                       </span>
                       <span className="min-w-0 flex-1 truncate text-[13px] text-text">{p.alvo}</span>
+                      {/* Travado nao e "sem rota": e uma faixa que ABRE quando o
+                          treinador chegar lá — e ele chega caçando as de baixo.
+                          Dizer o número é a diferença entre um plano e um muro. */}
                       <span
                         className="pix w-16 shrink-0 text-[10px]"
-                        style={{ color: RISCO[p.risco]?.cor }}
+                        style={{ color: p.travado ? TOM.ouro : RISCO[p.risco]?.cor }}
+                        title={p.travado ? `o ponto exige treinador nível ${p.exigeNivel}` : undefined}
                       >
-                        {RISCO[p.risco]?.texto}
+                        {p.travado ? `treino ${p.exigeNivel}` : RISCO[p.risco]?.texto}
                       </span>
                       <span
                         className="w-20 shrink-0 text-right text-[11px] tabular"

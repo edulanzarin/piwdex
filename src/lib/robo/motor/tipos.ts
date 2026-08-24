@@ -140,6 +140,17 @@ export interface EstadoAuto {
 
 /** Uma faixa da subida: de que nivel a que nivel, cacando o que, e onde. */
 export interface PassoRota {
+  /**
+   * O nivel de TREINADOR que o ponto exige.
+   *
+   * A rota e um plano ao longo do tempo, e o treinador sobe cacando: filtrar as
+   * faixas pelo nivel de AGORA matava o plano inteiro de uma conta nova — que e
+   * justamente quem mais precisa dele. A faixa fica na lista, marcada, e quem
+   * decide o que da pra executar agora e o motor.
+   */
+  exigeNivel: number;
+  /** o treinador ainda nao chegou la — o jogo recusa a entrada */
+  travado: boolean;
   de: number;
   ate: number;
   slug: string;

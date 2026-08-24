@@ -115,15 +115,8 @@ export async function planejarRota(
   const pontos = await pontosPorEspecie();
   const teto = opcoes.nivelTreinador ?? null;
   const passos: PassoRota[] = [];
-  let travadasPorNivel = 0;
   for (const p of passosCrus) {
     const ponto = pontos.get(p.enemy.pokeId);
-    // O ponto existe, mas a conta ainda nao pode entrar nele. Nao e buraco de
-    // dado: e progresso que falta, e a tela precisa poder dizer isso.
-    if (ponto && teto != null && ponto.level > teto) {
-      travadasPorNivel++;
-      continue;
-    }
     const slug = ponto?.slug;
     // Faixa sem slug é faixa que o robô não consegue executar. Ela sai do plano e
     // marca o buraco, em vez de virar um passo que trava a caçada na hora de
@@ -139,6 +132,11 @@ export async function planejarRota(
       goldH: Math.round(p.est.goldH),
       horas: p.hours,
       risco: p.est.threat.risk,
+      exigeNivel: ponto?.level ?? 0,
+      // O jogo recusa entrada acima do nivel do TREINADOR. A faixa continua no
+      // plano — ela abre quando o treinador chegar la, e ele chega cacando as
+      // de baixo.
+      travado: teto != null && (ponto?.level ?? 0) > teto,
     });
   }
   if (!passos.length) return null;
@@ -151,5 +149,21 @@ export async function planejarRota(
 }
 
 /** O passo que vale para um nível. `null` quando o nível já passou do plano. */
-export const passoDoNivel = (passos: PassoRota[], nivel: number): PassoRota | null =>
-  passos.find((p) => nivel >= p.de && nivel < p.ate) ?? null;
+/**
+ * A faixa que vale AGORA.
+ *
+ * Duas condicoes, e a segunda chegou com a regra do jogo: a faixa tem que
+ * conter o nivel do pokemon E estar destravada. Uma faixa travada e o jogo
+ * recusando a entrada — mandar `enter-hunt` nela produz o silencio que ja
+ * custou uma investigacao inteira ("sem combate", reentrando pra sempre).
+ *
+ * Quando a faixa certa esta travada, cai na ULTIMA destravada abaixo dela: o
+ * treinador sobe cacando, e cacar onde da e o que destrava a de cima. Parar
+ * seria esperar um nivel que so chega cacando.
+ */
+export const passoDoNivel = (passos: PassoRota[], nivel: number): PassoRota | null => {
+  const naFaixa = passos.find((p) => nivel >= p.de && nivel < p.ate && !p.travado);
+  if (naFaixa) return naFaixa;
+  const abaixo = passos.filter((p) => !p.travado && p.de <= nivel);
+  return abaixo[abaixo.length - 1] ?? passos.find((p) => !p.travado) ?? null;
+};
