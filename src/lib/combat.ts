@@ -27,6 +27,7 @@ import { projectStat } from "./stats";
 import { effectiveness } from "./typing";
 import type { AttackCategory, PokeType } from "./types";
 import { xpForLevelUp } from "./xp";
+import { ritmoDeCacada } from "./sim";
 
 export const SIM_IV = 21;
 
@@ -327,9 +328,39 @@ export function estimateHunt(
 ): HuntEstimate | null {
   const bm = movesetDps(species, level, fs, e, pool);
   if (!bm) return null;
+
+  /**
+   * O tempo de combate sai da SIMULACAO, e nao mais de `hp / dps_somado`.
+   *
+   * A divisao assumia que os oito golpes do moveset caem em sequencia contra um
+   * alvo que, no caso mais comum deste jogo, morre no primeiro. Medido pelo
+   * `npm run prever`: Golem nv 422 one-shotava o Furious Scyther e o modelo ainda
+   * cobrava 2,13 segundos de porrada, derrubando o kos/h de ~800 pra 663 contra
+   * 763 observados em conta real.
+   *
+   * `sim.ts` anda evento a evento com a recarga de cada golpe, entao o one-shot
+   * termina a luta no primeiro evento sem precisar de caso especial — e a recarga
+   * passa a importar, que e o que separa dois movesets de mesmo DPS somado.
+   */
+  const ritmo = ritmoDeCacada(
+    {
+      nivel: level, t1: species.t1, t2: species.t2,
+      hp: fs.hp, atk: fs.atk, spa: fs.spa, def: fs.def, spDef: fs.spDef,
+      golpes: species.moves.filter((m) => m.power > 0 && m.learn <= level && inPool(m, pool)),
+    },
+    {
+      nivel: e.huntLevel, t1: e.t1, t2: e.t2,
+      hp: e.hp, atk: e.atk, spa: e.spAtk, def: e.def, spDef: e.spDef,
+      golpes: enemyMoves.filter((m) => m.power > 0),
+    },
+    OVERHEAD_S,
+  );
+
   const hits = Math.max(1, Math.ceil(e.hp / bm.dmg));
-  const combatS = e.hp / bm.total;
-  const ttkS = combatS + OVERHEAD_S;
+  // Inviavel = nao mata dentro do teto. Cai na conta antiga so pra a tela nao
+  // ficar sem numero; o `risk` e quem diz que aquilo nao se caca.
+  const combatS = ritmo.viavel ? ritmo.combateS : e.hp / bm.total;
+  const ttkS = ritmo.viavel ? ritmo.segundosPorAbate : combatS + OVERHEAD_S;
   const threat = threatOf(species, level, ivs, quality, e, enemyMoves, combatS, ttkS, fs);
   const kosH = (3600 / ttkS) * threat.uptime;
   return {
