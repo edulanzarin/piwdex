@@ -23,7 +23,7 @@ import {
   StatBar,
   Tooltip,
 } from "@/components/ui";
-import { TypeBadge, TypeMultChip } from "@/components/type-icon";
+import { TypeBadge, TypeIcon, TypeMultChip } from "@/components/type-icon";
 import { caminhoDoTipo } from "@/lib/tipo-url";
 import { caminhoDaRaridade } from "@/lib/raridade-url";
 import { CategoryIcon, IconAtk, IconBag, IconDef as IconDefShield, IconGem, IconLevel, IconScale, IconTarget, IconTm, IconWeak, IconXp, STAT_ICONS, SeloRaro } from "@/components/game-icons";
@@ -240,14 +240,30 @@ export default async function CreaturePage({ params }: Props) {
                 Nao e enfeite de navegacao: e o que liga esta folha as outras
                 do mesmo tipo sem passar pela lista filtrada, e o que da ao
                 rastreador um caminho curto entre as ~910 fichas. */}
-            <Link href={caminhoDoTipo(c.type1)} aria-label={`Ver todos os pokémon de ${TYPE_LABEL[c.type1]}`}>
-              <TypeBadge type={c.type1} />
-            </Link>
-            {c.type2 ? (
-              <Link href={caminhoDoTipo(c.type2)} aria-label={`Ver todos os pokémon de ${TYPE_LABEL[c.type2]}`}>
-                <TypeBadge type={c.type2} />
+            {/* DISCOS, como na grade — e nao o selo com a palavra escrita.
+                Coerencia entre as duas telas conta dobrado aqui: a pessoa clica
+                num card onde o tipo era um disco e chega numa ficha onde ele
+                virou pastilha com texto. Mesma informacao, duas formas, a um
+                clique de distancia.
+                O disco continua sendo LINK pro hub do tipo, e o `aria-label`
+                carrega a palavra que saiu da tela — quem usa leitor de tela nao
+                perde nada. */}
+            {[c.type1, c.type2].filter(Boolean).map((t, i) => (
+              <Link
+                key={t as string}
+                href={caminhoDoTipo(t!)}
+                aria-label={`Ver todos os pokémon de ${TYPE_LABEL[t!]}`}
+                title={TYPE_LABEL[t!]}
+                className={cn(
+                  "grid place-items-center rounded-pill border-2 bg-surface",
+                  "transition-transform duration-200 motion-safe:hover:scale-110",
+                  i === 0 ? "h-11 w-11" : "h-9 w-9",
+                )}
+                style={{ borderColor: TYPE_COLOR[t!], color: TYPE_COLOR[t!] }}
+              >
+                <TypeIcon type={t!} size={i === 0 ? 22 : 18} />
               </Link>
-            ) : null}
+            ))}
             {/* Mesma logica do selo de tipo: o chip de raridade leva ao hub
                 dela. Cada ficha passa a ter DUAS saidas pra outras fichas. */}
             <Link
@@ -453,7 +469,12 @@ export default async function CreaturePage({ params }: Props) {
                     >
                       <IconChevronRight size={18} />
                       {s.evolveLevel ? (
-                        <span className="num text-[10px] whitespace-nowrap">
+                        /* O gatilho da evolucao e a informacao mais util deste
+                           painel — "quando isso acontece" —, e estava em 10px na
+                           cor mais apagada da escada, encostado na seta. Ele nao
+                           e legenda da seta: e o DADO. Agora tem casca propria,
+                           corpo maior e a cor de texto normal. */
+                        <span className="num rounded-pill border border-line bg-surface-2 px-2 py-0.5 text-[11px] whitespace-nowrap text-text-dim">
                           nv {s.evolveLevel}
                         </span>
                       ) : null}

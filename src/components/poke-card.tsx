@@ -257,7 +257,7 @@ export function PokeCard({
         {/* ---- os tres numeros que decidem se vale caçar ---- */}
         <dl className="grid grid-cols-3 gap-2 border-t border-line pt-3 text-center">
           <div className="flex flex-col gap-1">
-            <dt className="pix flex items-center justify-center gap-1 text-[10px] text-text-mute">
+            <dt className="pix flex items-center justify-center gap-1 text-[11px] text-text-mute">
               <IconLevel size={14} />
               Nível
             </dt>
@@ -276,13 +276,13 @@ export function PokeCard({
             {/* O rotulo muda com a GRANDEZA: "venda" e o que o jogo paga por
                 abate, "npc" e o preço do cassino. Sao eixos diferentes, e o mesmo
                 rotulo pros dois faz o card se contradizer entre especies. */}
-            <dt className="pix flex items-center justify-center gap-1 text-[10px] text-text-mute">
+            <dt className="pix flex items-center justify-center gap-1 text-[11px] text-text-mute">
               <IconCoin size={14} />
               {e.valueFromNpc ? "NPC" : "Venda"}
             </dt>
             <dd
               className={cn(
-                "num text-[16px] leading-none font-bold",
+                "num text-[18px] leading-none font-bold",
                 e.valueFromNpc ? "text-text-mute" : "text-warn",
               )}
             >
@@ -290,11 +290,16 @@ export function PokeCard({
             </dd>
           </div>
           <div className="flex flex-col gap-1">
-            <dt className="pix flex items-center justify-center gap-1 text-[10px] text-text-mute">
+            <dt className="pix flex items-center justify-center gap-1 text-[11px] text-text-mute">
               <IconXp size={14} />
               XP
             </dt>
-            <dd className="num text-[16px] leading-none font-bold text-neon">{e.xp || "—"}</dd>
+            {/* O XP subiu de 16 pra 18 e o rotulo dele voltou pro degrau de
+                cima. Ao destacar o NIVEL eu baixei os outros dois de uma vez, e
+                exagerei: a fila passou a ter um numero legivel e dois quase
+                apagados, quando o certo era um numero DOMINANTE e dois
+                secundarios — secundario ainda precisa ser lido. */}
+            <dd className="num text-[18px] leading-none font-bold text-neon">{e.xp || "—"}</dd>
           </div>
         </dl>
       </div>
