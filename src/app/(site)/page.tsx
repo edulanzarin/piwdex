@@ -234,7 +234,7 @@ export default async function HomePage() {
                 >
                   tier {destaque.tier}
                 </span>
-                <Eyebrow tint="var(--color-text-mute)">O mais forte do jogo</Eyebrow>
+                <Eyebrow tint="var(--color-text-mute)">Pokémon em destaque</Eyebrow>
               </span>
               <span
                 className="pix text-[24px] tracking-[0.1em] text-text transition-colors group-hover:text-[color:var(--cor)]"
@@ -243,7 +243,7 @@ export default async function HomePage() {
                 {destaque.name}
               </span>
               <span className="num text-[11px] text-text-mute">
-                nota {destaque.nota.toFixed(1)} · sem TM
+                #{String(destaque.id).padStart(3, "0")}
               </span>
             </span>
           </Link>
