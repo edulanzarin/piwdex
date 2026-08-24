@@ -30,10 +30,16 @@ import { Reveal } from "./reveal";
  * Sai do container e vai de borda a borda da janela.
  *
  * A conta (`50%` menos `50vw`) e a saida padrao pra isso, e ela tem um detalhe
- * que sempre morde: `100vw` inclui a barra de rolagem em alguns navegadores, o
- * que cria um estouro horizontal de uns 15px. O `overflow-x-clip` no pai corta
- * isso sem criar contexto de rolagem novo — `hidden` criaria, e ai `position:
- * sticky` de dentro pararia de funcionar.
+ * que sempre morde: `100vw` mede a janela INTEIRA, com a canaleta da barra de
+ * rolagem junto. Como o site reserva essa canaleta sempre
+ * (`scrollbar-gutter: stable`), a faixa nasce uns 10px mais larga que o lugar
+ * onde ela cabe, e a sobra do lado de fora vira barra horizontal.
+ *
+ * O corte NAO mora aqui: quem apara e `html { overflow-x: clip }`, no
+ * `globals.css`, e a razao esta escrita la — a faixa precisa passar da largura
+ * do `main`, entao cortar em qualquer ancestral mais proximo mataria o
+ * sangramento. O `overflow-x-clip` que a `FeatureSection` poe nela mesma e outra
+ * coisa: e o que segura a ARTE que estoura a borda da faixa.
  */
 export function FullBleed({
   children,

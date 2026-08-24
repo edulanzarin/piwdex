@@ -206,6 +206,26 @@
     /* Rolagem estavel: a barra some/aparece entre paginas e a grade inteira
        pulava 15px pro lado. */
     scrollbar-gutter: stable;
+    /* ---- e o corte que a linha de cima obriga ----
+
+       `scrollbar-gutter: stable` reserva a canaleta da barra SEMPRE, entao a
+       largura util da pagina e a da janela menos a barra. E `100vw` nao sabe
+       disso: ele mede a janela inteira, canaleta incluida. Toda faixa que sangra
+       de borda a borda (`FullBleed`, em `ui/feature.tsx`) nasce, portanto, uns
+       10px mais larga que o lugar onde ela cabe — 5px pra cada lado, e o de
+       DENTRO a pagina ignora, mas o de fora vira barra de rolagem horizontal.
+       Era o fiapo de barra que aparecia na home.
+
+       O corte tem que morar aqui e nao na propria faixa: ela precisa passar da
+       largura do `main` (que e `max-w-[1600px]`), entao cortar no ancestral mais
+       proximo mataria justamente o sangramento. Aqui em cima o unico ancestral
+       largo o bastante e a raiz.
+
+       `clip` e nao `hidden` de proposito: `hidden` faz o elemento virar
+       container de rolagem, e ai `position: sticky` la dentro (a navegacao, o
+       cabecalho das tabelas, o trilho de filtro) deixa de grudar. `clip` corta
+       sem criar rolagem nenhuma. O eixo Y continua livre. */
+    overflow-x: clip;
   }
 
   body {
