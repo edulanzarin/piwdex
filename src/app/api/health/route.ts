@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { SERVE_BOT } from "@/lib/robo/papel";
+import { saudeDaGuarda } from "@/lib/robo/motor/guarda";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -32,6 +34,15 @@ export async function GET() {
       uptimeSeconds: Math.round((Date.now() - BOOT) / 1000),
       startedAt: new Date(BOOT).toISOString(),
       now: new Date().toISOString(),
+      /**
+       * Quanto a guarda de processo ja aparou (so no servico do robo).
+       *
+       * Sobreviver a exceção nao e o mesmo que estar bem: um numero que sobe e o
+       * robo mascarando defeito que precisa de conserto na origem. Sem publica-lo
+       * aqui, a rede de seguranca viraria exatamente o que ela nao pode ser — um
+       * jeito silencioso de o erro deixar de aparecer.
+       */
+      ...(SERVE_BOT ? { guarda: saudeDaGuarda() } : {}),
     },
     { headers: { "cache-control": "no-store" } },
   );

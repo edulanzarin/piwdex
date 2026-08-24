@@ -20,6 +20,13 @@ export async function register() {
   if (!SERVE_BOT) return;
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
 
+  // A rede vem ANTES do boot, e nao junto: a retomada e o momento mais provavel
+  // de erro do processo inteiro (varias contas, token velho, jogo mudando de
+  // forma), e instalar a guarda depois dela seria proteger tudo menos a parte
+  // que mais quebra.
+  const { instalarGuarda } = await import("@/lib/robo/motor/guarda");
+  instalarGuarda();
+
   setTimeout(() => {
     void import("@/lib/robo/motor/boot")
       .then((m) => m.retomarSessoes())

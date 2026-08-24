@@ -195,6 +195,15 @@ const CHAT_MAX = 300;
  * segundo, por aba aberta, durante horas. A tela mostra quarenta.
  */
 const FILA_NO_ESTADO = 60;
+/**
+ * De quanto em quanto a MESMA falha volta pro feed do dono.
+ *
+ * Erro que se repete a cada ciclo do timer registraria centenas de linhas por
+ * hora, e o teto de 800 do feed apagaria o historico de venda e shiny pra caber
+ * a mesma mensagem repetida. Dez minutos ainda avisa; nao entope.
+ */
+const FALHA_REGISTRO_MS = 10 * 60_000;
+
 /** Anti-flood do chat do JOGO (~1 msg/min). Barrar aqui evita gastar a janela
  *  do servidor com uma mensagem que ele vai recusar. */
 const CHAT_COOLDOWN_MS = 60_000;
@@ -334,6 +343,9 @@ export class SessaoJogo extends EventEmitter {
 
   /** ver `anotarDesconhecido` */
   private desconhecidos = new Map<string, { chaves: string[]; amostra: string; em: number }>();
+
+  /** trabalho -> quando a falha dele foi registrada por ultimo. Ver `aoFalhar`. */
+  private falhaEm = new Map<string, number>();
 
   private chat: Mensagem[] = [];
   private chatIds = new Set<string>();
@@ -633,7 +645,7 @@ export class SessaoJogo extends EventEmitter {
       this.rotaConcluida = false;
       // Objetivo desligado no meio de uma cacada que ELE escolheu: a cacada
       // continua. Desligar o piloto nao e pousar o aviao.
-      void this.cuidarDaRota();
+      this.protegido("cuidar da rota", () => this.cuidarDaRota());
     }
     this.emitir();
   }
@@ -833,21 +845,38 @@ export class SessaoJogo extends EventEmitter {
       this.definirStatus("rodando");
       if (this.slug) this.entrarNoCampo(this.slug);
       this.rearmarTimers();
-      void this.lerPerfil();
+      this.protegido("ler o perfil", () => this.lerPerfil());
       // Com objetivo ligado, o robo nao espera alguem abrir a tela pra decidir
       // onde cacar: assim que o time chegar (`pokes`), ele escolhe e vai.
       this.rotaTrocandoEm = 0;
     });
+    /**
+     * Daqui pra baixo tudo corre PROTEGIDO, e o `message` e a razao.
+     *
+     * Ele e a unica superficie do robo que roda codigo nosso em cima de dado que
+     * o JOGO escolheu — e o jogo muda de forma quando quiser, sem avisar. Um
+     * campo que virou null, um array que virou objeto, e o `throw` sobe pelo
+     * emissor do WebSocket, onde nao ha nada pra pega-lo: no Node isso e o
+     * processo inteiro, com a cacada de todas as contas dentro.
+     *
+     * O frame que quebrou vira registro e a sessao segue viva. Perder um frame e
+     * barato — o proximo poll do analyzer traz o estado de novo.
+     */
     ws.addEventListener("message", (ev: MessageEvent) => {
-      if (minhaGeracao === this.geracao) this.aoReceber(ev);
+      if (minhaGeracao === this.geracao) {
+        this.protegido("processar uma mensagem do jogo", () => this.aoReceber(ev));
+      }
     });
     ws.addEventListener("close", (ev: unknown) => {
       if (minhaGeracao !== this.geracao) return;
       const e = ev as { code?: number; reason?: string } | undefined;
-      this.aoFechar(e?.code ?? null, e?.reason ?? null);
+      this.protegido("tratar o fechamento da conexão", () =>
+        this.aoFechar(e?.code ?? null, e?.reason ?? null));
     });
     ws.addEventListener("error", () => {
-      if (minhaGeracao === this.geracao) this.aoFechar(null, "erro de rede");
+      if (minhaGeracao === this.geracao) {
+        this.protegido("tratar o erro de rede", () => this.aoFechar(null, "erro de rede"));
+      }
     });
   }
 
@@ -873,7 +902,7 @@ export class SessaoJogo extends EventEmitter {
     // hunt "ligada" que nao matava nada. Levanta primeiro; a volta e automatica.
     if (this.liderCaido()) {
       this.deveVoltarAoCampo = true; // divida registrada ANTES de tentar levantar
-      void this.levantarLider();
+      this.protegido("levantar o líder", () => this.levantarLider());
       return;
     }
     this.enviar({ type: "enter-hunt", slug });
@@ -896,13 +925,13 @@ export class SessaoJogo extends EventEmitter {
       this.enviar({ type: "analyzer-get" });
       this.tAnalyzer = setInterval(() => {
         this.enviar({ type: "analyzer-get" });
-        this.conferirCampo();
+        this.protegido("conferir o campo", () => this.conferirCampo());
       }, ANALYZER_MS);
     }
     setTimeout(() => this.enviar({ type: "pokes-get" }), 500);
     this.tPokes = setInterval(() => this.enviar({ type: "pokes-get" }), POKES_MS);
-    this.tJobs = setInterval(() => void this.rodarJobs(), JOBS_MS);
-    this.tPerfil = setInterval(() => void this.lerPerfil(), PERFIL_MS);
+    this.tJobs = setInterval(() => this.protegido("rodar as automações", () => this.rodarJobs()), JOBS_MS);
+    this.tPerfil = setInterval(() => this.protegido("ler o perfil", () => this.lerPerfil()), PERFIL_MS);
   }
 
   /**
@@ -1019,7 +1048,7 @@ export class SessaoJogo extends EventEmitter {
           this.nivelLider = Number(m.level);
           // Subiu de nivel: e o unico instante em que a rota pode precisar trocar.
           // Testar aqui evita esperar os 20s do proximo `pokes`.
-          if (m.leveledUp || (antes != null && this.nivelLider > antes)) void this.cuidarDaRota();
+          if (m.leveledUp || (antes != null && this.nivelLider > antes)) this.protegido("cuidar da rota", () => this.cuidarDaRota());
         }
         const nome = String(m.speciesName ?? "?");
         this.registrar({
@@ -1101,7 +1130,7 @@ export class SessaoJogo extends EventEmitter {
             this.heroMaxHp = lider.maxHp;
           }
           if (lider) this.nivelLider = lider.level;
-          if (lider && lider.maxHp > 0 && lider.hp <= 0) void this.levantarLider(lider.name);
+          if (lider && lider.maxHp > 0 && lider.hp <= 0) this.protegido("levantar o líder", () => this.levantarLider(lider.name));
           else this.liderDePe();
           if (this.userId) {
             void salvarTime(this.contaId!, this.time, todos.length).catch(() => {});
@@ -1109,9 +1138,9 @@ export class SessaoJogo extends EventEmitter {
           this.emitir();
           // A venda de pokemon le a lista que ACABOU de chegar: vender assim que
           // coleta e o que impede o box de encher entre uma varredura e outra.
-          if (this.cfg.venderPoke) void this.rodarVendaPokes();
+          if (this.cfg.venderPoke) this.protegido("vender pokémon", () => this.rodarVendaPokes());
           // A rota tambem: o nivel do lider so muda aqui e no `field-kill`.
-          void this.cuidarDaRota();
+          this.protegido("cuidar da rota", () => this.cuidarDaRota());
         }
         break;
 
@@ -1373,7 +1402,8 @@ export class SessaoJogo extends EventEmitter {
       this.liderDePe();
       return;
     }
-    void this.levantarLider(typeof m.heroName === "string" ? m.heroName : undefined);
+    this.protegido("levantar o líder", () =>
+      this.levantarLider(typeof m.heroName === "string" ? m.heroName : undefined));
   }
 
   /**
@@ -1669,7 +1699,7 @@ export class SessaoJogo extends EventEmitter {
     const estoque = this.bolas.reduce((s, b) => (b.infinita ? s : s + b.quantidade), 0);
     if (estoque > this.cfg.pisoBola) return;
     this.compraGatilhoEm = agora;
-    void this.rodarJobs();
+    this.protegido("rodar as automações", () => this.rodarJobs());
   }
 
   /**
@@ -1788,7 +1818,7 @@ export class SessaoJogo extends EventEmitter {
       }
     }
     // Compra e venda mudam o ouro: pede o numero novo em vez de estimar.
-    void this.lerPerfil();
+    this.protegido("ler o perfil", () => this.lerPerfil());
     // O placar e NOSSO, e um restart nao pode apaga-lo: o que o robo fez de
     // madrugada e justamente o que ninguem viu acontecer.
     if (this.contaId) void salvarPlacar(this.contaId, this.placar).catch(() => {});
@@ -1841,7 +1871,7 @@ export class SessaoJogo extends EventEmitter {
     if (!this.ligado) return;
 
     if (regra?.acao === "parar") {
-      void this.recusadoDeVez(frase ?? regra.frase);
+      this.protegido("encerrar a conta recusada", () => this.recusadoDeVez(frase ?? regra.frase));
       return;
     }
 
@@ -1859,7 +1889,7 @@ export class SessaoJogo extends EventEmitter {
       // Tres varreduras seguidas sem acertar o shard nao e shard: e o token
       // sendo recusado com outro nome. Cai pro caminho do token.
       if (this.shardErrado <= 3) {
-        void this.redescobrirShard();
+        this.protegido("redescobrir o shard", () => this.redescobrirShard());
         return;
       }
     }
@@ -1867,7 +1897,7 @@ export class SessaoJogo extends EventEmitter {
     if (regra?.acao === "token" || this.shardErrado > 3) {
       this.recusasDeToken++;
       if (this.recusasDeToken >= 2) {
-        void this.tokenMorreu();
+        this.protegido("tratar o token vencido", () => this.tokenMorreu());
         return;
       }
     }
@@ -1961,7 +1991,7 @@ export class SessaoJogo extends EventEmitter {
     this.emitir();
     this.tReconexao = setTimeout(() => {
       this.tReconexao = null;
-      void this.tentarReconectar();
+      this.protegido("reconectar", () => this.tentarReconectar());
     }, espera);
   }
 
@@ -2071,6 +2101,60 @@ export class SessaoJogo extends EventEmitter {
   private gravarStatus(erro?: string | null) {
     if (!this.contaId) return Promise.resolve();
     return salvarStatus(this.contaId, this.status, erro ?? null).catch(() => {});
+  }
+
+  /**
+   * Roda um trabalho da sessao sem deixar o erro dele escapar.
+   *
+   * Substitui o `void this.algumaCoisa()`, que era o desenho de antes e tinha um
+   * defeito calado: uma promessa rejeitada sem `catch` derruba o processo no Node
+   * moderno — e o processo e UM so, com a cacada de todo mundo dentro. Uma venda
+   * que falha numa conta nao pode parar a cacada das outras dezenove.
+   *
+   * O erro nao e engolido, e essa e a diferenca entre isto e um `catch {}`: ele
+   * vai pro log com a CONTA junto (senao um "TypeError" solto no log de um
+   * processo com vinte sessoes nao diz de quem foi), e vira evento `falha` no
+   * feed — porque o dono acordar e ver "a reposicao nao rodou as 4h12" e o minimo
+   * que o robo deve a quem foi dormir confiando nele.
+   *
+   * Serve trabalho SINCRONO tambem (os handlers do socket), e por isso recebe uma
+   * funcao em vez de uma promessa: `protegido(() => this.fn())` ainda pega um
+   * `throw` imediato, enquanto `protegido(this.fn())` ja teria explodido antes de
+   * entrar aqui.
+   */
+  private protegido(oQue: string, fn: () => unknown): void {
+    try {
+      const r = fn();
+      if (r instanceof Promise) r.catch((e) => this.aoFalhar(oQue, e));
+    } catch (e) {
+      this.aoFalhar(oQue, e);
+    }
+  }
+
+  /**
+   * O que fazer com um erro que ninguem previu.
+   *
+   * O registro no feed e ESTRANGULADO por trabalho, e nao por economia de banco:
+   * erro de verdade se repete a cada ciclo do timer, e sem o estrangulamento uma
+   * unica falha teimosa enche as 800 linhas do teto em minutos — apagando
+   * justamente o historico de venda e shiny que a tabela existe pra guardar.
+   *
+   * O log NAO e estrangulado: la o volume e o sintoma, e esconde-lo tiraria a
+   * unica pista de que algo esta batendo em laco.
+   */
+  private aoFalhar(oQue: string, e: unknown): void {
+    console.error(`[robo] conta ${this.contaId ?? "?"}: falhou ao ${oQue}:`, e);
+
+    const agora = Date.now();
+    if (agora - (this.falhaEm.get(oQue) ?? 0) < FALHA_REGISTRO_MS) return;
+    this.falhaEm.set(oQue, agora);
+
+    if (!this.userId) return;
+    void registrarEvento(this.userId, this.contaId, {
+      tipo: "falha",
+      titulo: `erro inesperado ao ${oQue}`,
+      corpo: e instanceof Error ? e.message : String(e),
+    });
   }
 
   private emitir() {
