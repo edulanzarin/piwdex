@@ -74,6 +74,21 @@ Comprar e vender vao por REST, e por isso podem acontecer com a cacada correndo:
 REST nao disputa a sessao. Tudo que MUTA a conta em campo sai pelo socket ja
 aberto — abrir um segundo derrubaria a propria cacada.
 
+### A sessao e do robo enquanto ele estiver ligado
+
+Ligado, ele NAO cede pro navegador: se voce abrir o jogo numa aba, o robo reclama
+a sessao de volta em cerca de um segundo. Quem quer jogar desliga o robo antes —
+e isso e regra, nao efeito colateral.
+
+Ceder sozinho era o desenho antigo, e produzia um robo que se desligava sem o
+dono saber por que. Zerar o backoff tambem nao bastava: a espera caia pra 5s, e
+cinco segundos e tempo de sobra pra aba assumir. Na pratica o robo cedia devagar
+enquanto a tela prometia o contrario.
+
+Com VARIAS contas, o teto de conexoes por IP do jogo (`4006`) manda: o motor
+aprende o numero no primeiro fechamento e poe as contas excedentes numa fila, em
+vez de todas baterem na porta.
+
 Nenhuma automacao nasce ligada.
 
 ### A cacada automatica reusa o motor da dex
@@ -96,6 +111,8 @@ motor recebe, e cada um pede o oposto do outro:
 | `4003 wrong-shard` | redescobre o shard por sondagem paralela e reconecta |
 | `4001 unauthorized` | renova o par; recusado de novo, PARA e marca o vinculo `expired` |
 | `4004` | recusa de conta: terminal |
+| `4006 ip-limit` | o jogo recusa mais conexoes deste IP: aprende o teto e ENTRA NA FILA |
+| chute rapido | outra aba tomou a sessao: reclama em ~1s, sem backoff |
 | queda comum | backoff exponencial ate 60s |
 
 Ignorar esse codigo (o desenho antigo) produzia um robo que reconecta pra sempre

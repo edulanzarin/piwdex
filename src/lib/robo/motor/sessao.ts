@@ -131,6 +131,15 @@ const ABERTURA_MS = 15_000;
  * deploy em cima de deploy — 13 < 25, e o log nao dizia nada.
  */
 const CONTESTADA_MS = 25_000;
+/**
+ * Quanto o robo demora pra reclamar a sessao de volta.
+ *
+ * Curto de proposito, e nao e teimosia: a regra do produto e que a sessao
+ * pertence ao robo enquanto ele estiver ligado, e quem quer jogar no navegador
+ * desliga ele antes. Uma espera longa aqui deixaria as duas pontas empatadas, e
+ * o dono sem saber qual das duas esta valendo.
+ */
+const RECLAMAR_MS = 1_200;
 
 /** Sem frame `field` por este tempo, a hunt esta ligada e parada. */
 const CAMPO_MUDO_MS = 12_000;
@@ -1856,7 +1865,25 @@ export class SessaoJogo extends EventEmitter {
     // Por isso o chute rapido zera o backoff: reclamar a sessao na hora, e nao
     // daqui a um minuto. Backoff exponencial fica pros chutes por rede, onde
     // insistir rapido so queima tentativa.
-    if (chuteRapido) this.tentativa = 0;
+    if (chuteRapido) {
+      /**
+       * A sessao e do ROBO ate alguem desliga-lo aqui.
+       *
+       * Zerar o backoff nao bastava: com `tentativa = 0` a espera ainda era a
+       * base (5s), e cinco segundos e tempo de sobra pra aba do navegador
+       * assumir e jogar. Na pratica o robo cedia, so que devagar — e a tela
+       * prometia o contrario ("a sua aba do jogo fica de fora enquanto isto
+       * durar").
+       *
+       * Reclamar em ~1s honra a promessa. Nao ha risco de duas sessoes NOSSAS
+       * se revezando aqui: uma conta de jogo tem uma linha so (`cmid`), e o
+       * teto de IP tem caminho proprio, que sai antes deste.
+       */
+      this.tentativa = 0;
+      this.explicacao = "outra aba pegou a sessão — reclamando de volta";
+      this.agendarReconexao(RECLAMAR_MS);
+      return;
+    }
     this.agendarReconexao();
   }
 

@@ -37,7 +37,12 @@ export const ROTULO: Record<StatusSessao, { texto: string; cor: string }> = {
    * Quem sabe se ha cacada e o `slug`, e nao o status: ver `rotuloDe`.
    */
   rodando: { texto: "ligado", cor: "var(--color-ok)" },
-  chutado: { texto: "sessão perdida", cor: "var(--color-warn)" },
+  /**
+   * "perdida" era a palavra errada: a sessao nao se perde, ela e DISPUTADA — e o
+   * robo a reclama de volta em ~1s enquanto estiver ligado. Quem lia "perdida"
+   * entendia que precisava fazer alguma coisa; nao precisa.
+   */
+  chutado: { texto: "retomando", cor: "var(--color-warn)" },
   erro: { texto: "erro", cor: "var(--color-danger)" },
   bloqueado: { texto: "conta recusada", cor: "var(--color-danger)" },
   vencido: { texto: "token vencido", cor: "var(--color-danger)" },
