@@ -5,8 +5,8 @@ import { rolesOf } from "@/lib/dex";
 import { RARITY_COLOR, TYPE_COLOR } from "@/lib/typing";
 import { spriteUrl } from "@/lib/sprites";
 import { Chip, IconCoin, IconPin, Sprite, Tooltip } from "@/components/ui";
-import { TypeBadge } from "@/components/type-icon";
-import { IconBag, IconGem, IconLevel, IconScale, IconTm, IconXp, STAT_ICONS } from "@/components/game-icons";
+import { TypeBadge, TypeIcon } from "@/components/type-icon";
+import { IconBag, IconLevel, IconScale, IconTm, IconXp, STAT_ICONS } from "@/components/game-icons";
 import { ACQ_LABEL, RARITY_LABEL, ROLE_LABEL, STAT_LABEL, compact } from "@/lib/labels";
 
 /**
@@ -162,11 +162,6 @@ export function PokeCard({
         <span className="pix absolute top-2 left-2.5 text-[11px] text-text-mute">
           #{String(e.id).padStart(3, "0")}
         </span>
-        <span className="absolute top-2 right-2">
-          <Chip size="xs" tint={tint} icon={<IconGem size={13} />}>
-            {RARITY_LABEL[e.rarity]}
-          </Chip>
-        </span>
       </div>
 
       {/* ---- a PLACA de identidade ----
@@ -174,14 +169,55 @@ export function PokeCard({
           sobre a imagem com gradiente: nome sobre sprite depende do que o sprite
           tem naquele trecho, e numa grade de 60 artes diferentes ele some em boa
           parte delas. A placa solida custa altura e nunca falha. */}
-      <div className="flex flex-col gap-2 border-t border-line bg-surface-2/70 px-3.5 py-3 transition-colors duration-200 group-hover:bg-surface-3/70">
+      {/* ---- a PLACA, no arranjo do cartao de campeao ----
+
+          Tres coisas foram copiadas da referencia, e cada uma resolve algo que a
+          versao anterior fazia pior:
+
+          1. **O medalhao montado na COSTURA.** Ele fica metade sobre a arte,
+             metade sobre a placa, e e o que costura as duas faixas numa peca so —
+             sem ele, arte e placa sao dois retangulos empilhados que por acaso
+             tem a mesma largura. Aqui ele carrega o TIPO, que e a identidade que
+             o jogador procura primeiro depois do nome.
+
+          2. **A raridade virou EPITETO**, acima do nome, na cor dela. Ela era um
+             chip no canto da arte — e chip no canto e um selo administrativo,
+             enquanto epiteto e identidade. "Mitico" dito acima do nome pertence
+             ao bicho; dito num cantinho, pertence ao sistema.
+
+          3. **Centralizado.** A placa tem duas linhas curtas e um medalhao no
+             eixo do meio; alinhar a esquerda deixaria o medalhao sozinho no
+             centro brigando com o texto encostado na margem. */}
+      <div className="relative flex flex-col items-center gap-1 border-t border-line bg-surface-2/70 px-3.5 pt-6 pb-3.5 text-center transition-colors duration-200 group-hover:bg-surface-3/70">
+        <span
+          aria-hidden="true"
+          className={cn(
+            "absolute -top-5 left-1/2 grid h-10 w-10 -translate-x-1/2 place-items-center",
+            "rounded-pill border-2 bg-surface shadow-elev-2",
+            "transition-transform duration-300 ease-out motion-safe:group-hover:scale-110",
+          )}
+          style={{ borderColor: TYPE_COLOR[e.type1], color: TYPE_COLOR[e.type1] }}
+        >
+          <TypeIcon type={e.type1} size={20} />
+        </span>
+
+        <span
+          className="pix text-[9px] tracking-[0.18em]"
+          style={{ color: tint }}
+        >
+          {RARITY_LABEL[e.rarity]}
+        </span>
         <h3
-          className="truncate text-[17px] leading-tight font-bold text-text transition-colors group-hover:text-[color:var(--tint)]"
+          className="w-full truncate text-[16px] leading-tight font-bold text-text transition-colors group-hover:text-[color:var(--tint)]"
           title={e.name}
         >
           {e.name}
         </h3>
-        <div className="flex flex-wrap gap-1.5">
+        {/* O segundo tipo continua visivel: o medalhao so cabe um, e monotipo e
+            bitipo e a diferenca que muda a caçada inteira. Quando ha dois, os
+            dois aparecem — o medalhao nao substitui a informacao, ele destaca a
+            principal. */}
+        <div className="flex flex-wrap justify-center gap-1.5 pt-1">
           <TypeBadge type={e.type1} />
           {e.type2 ? <TypeBadge type={e.type2} /> : null}
         </div>
