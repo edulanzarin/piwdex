@@ -43,7 +43,11 @@ export function Segmented<T extends string>({
         // a casca esticava ate a largura do irmao mais largo (no breeding, a frase de
         // ganho por breed). O botao ficava com um vao morto a direita — "um tantao pra
         // direita". `inline-flex` nao segura isso; `self-start` segura.
-        "inline-flex shrink-0 self-start items-center gap-0.5 rounded-pix border border-line bg-bg-soft p-0.5",
+        // Pilula por fora, pilula por dentro. O trilho e o polegar de um segmentado
+        // sao a mesma familia de forma do switch — os tres dizem "escolha que
+        // desliza", e o raio e o que os agrupa. Com o degrau de controle (10px)
+        // num trilho de 40px de altura, sobrava um retangulo de canto mordido.
+        "inline-flex shrink-0 self-start items-center gap-1 rounded-pill border border-line bg-bg-soft p-1",
         size === "sm" ? "h-8 pointer-coarse:h-12" : "h-10 pointer-coarse:h-12",
         className,
       )}
@@ -59,13 +63,18 @@ export function Segmented<T extends string>({
             title={o.title}
             onClick={() => onChange(o.value)}
             className={cn(
-              "pix inline-flex items-center justify-center gap-1.5 rounded-pix transition-colors",
+              "pix inline-flex items-center justify-center gap-1.5 rounded-pill",
+              "transition-[background-color,color,box-shadow] duration-200",
               size === "sm"
-                ? "h-full px-2 text-[11px] pointer-coarse:px-4"
-                : "h-full px-3 text-[12px] pointer-coarse:px-5",
+                ? "h-full px-3.5 text-[10px] tracking-[0.1em] pointer-coarse:px-5"
+                : "h-full px-4.5 text-[11px] tracking-[0.11em] pointer-coarse:px-6",
               on
-                ? "bg-accent/25 text-accent shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--color-accent)_55%,transparent)]"
-                : "text-text-mute hover:bg-surface-2 hover:text-text-dim",
+                // O ativo e SUPERFICIE ELEVADA, e nao um retangulo de cor. O polegar
+                // parece pousado sobre o trilho — que e a leitura certa pra um
+                // controle que "desliza" —, enquanto o fundo tingido lia como um
+                // botao aceso ao lado de outros apagados.
+                ? "bg-surface-3 text-text shadow-elev-2"
+                : "text-text-mute hover:text-text-dim",
             )}
           >
             {o.label}

@@ -36,11 +36,25 @@ export function Checkbox({ label, indeterminate, tint, boxed, className, ...prop
       <input type="checkbox" className="peer sr-only" {...props} />
       <span
         aria-hidden="true"
-        style={tint && (on || indeterminate) ? { borderColor: tint, backgroundColor: `${tint}33`, color: tint } : undefined}
+        /* Com cor de DADO, a caixa enche na cor e a marca sai escura — o mesmo
+           trato do estado ligado padrao. Antes o `tint` pintava um fundo de 20%
+           com a marca NA cor, e marca colorida sobre fundo da mesma cor e o pior
+           contraste possivel: a 18px, o simbolo sumia. */
+        style={
+          tint && (on || indeterminate)
+            ? { borderColor: tint, backgroundColor: tint, color: "var(--color-bg)" }
+            : undefined
+        }
         className={cn(
-          "grid h-4 w-4 shrink-0 place-items-center rounded-pix border border-line-strong bg-bg-soft",
-          "transition-colors group-hover:border-accent/50",
-          "peer-checked:border-accent peer-checked:bg-accent/25 peer-checked:text-accent",
+          // 18px e raio miudo. A caixa tinha 16px com o raio de CONTROLE (10px)
+          // — num quadrado de 16, um raio de 10 arredonda quase tudo e a peca
+          // vira uma bolha, que e a forma do radio e nao a do checkbox. A
+          // distincao entre "escolha uma" e "marque varias" mora na silhueta,
+          // antes de qualquer rotulo.
+          "grid h-[18px] w-[18px] shrink-0 place-items-center rounded-[var(--radius-xs)]",
+          "border border-line-strong bg-bg-soft",
+          "transition-[border-color,background-color] duration-150 group-hover:border-accent/50",
+          "peer-checked:border-accent peer-checked:bg-accent peer-checked:text-[color:var(--color-bg)]",
           "peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent",
         )}
       >
@@ -49,7 +63,17 @@ export function Checkbox({ label, indeterminate, tint, boxed, className, ...prop
         {indeterminate ? (
           <IconMinus size={14} />
         ) : (
-          <IconCheck size={14} className="opacity-0 transition-opacity group-has-[:checked]:opacity-100" />
+          /* A marca ENTRA crescendo em vez de so aparecer. Sao 120ms e um salto
+             de 0.6 pra 1 — o suficiente pro olho registrar que ALGO respondeu ao
+             clique, que e o que falta num checkbox que so troca de cor. */
+          <IconCheck
+            size={13}
+            className={cn(
+              "scale-60 opacity-0 transition-[opacity,transform] duration-[120ms] ease-out",
+              "group-has-[:checked]:scale-100 group-has-[:checked]:opacity-100",
+              "motion-reduce:transition-none",
+            )}
+          />
         )}
       </span>
       {label ? <span className="min-w-0 flex-1 truncate group-has-[:checked]:text-text">{label}</span> : null}

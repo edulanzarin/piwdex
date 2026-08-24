@@ -47,7 +47,11 @@ export function Tabs<T extends string>({
             disabled={t.disabled}
             onClick={() => onChange(t.value)}
             className={cn(
-              "pix group/aba relative flex shrink-0 items-center gap-1.5 px-3 py-2 text-[12px] transition-colors",
+              // Mais respiro e tracking maior: a aba passou a dividir tela com
+              // titulo de capitulo e botao de fio, e nessa companhia um rotulo
+              // apertado de 12px le como aba de planilha.
+              "pix group/aba relative flex shrink-0 items-center gap-2 px-5 py-2.5 text-[11px] tracking-[0.12em]",
+              "transition-colors duration-200",
               // no dedo a aba ganha altura de alvo; no mouse segue rente ao trilho
               "pointer-coarse:min-h-11 pointer-coarse:px-4",
               "disabled:pointer-events-none disabled:opacity-40",
@@ -67,7 +71,15 @@ export function Tabs<T extends string>({
             ) : null}
             {t.label}
             {t.count != null ? (
-              <span className={cn("text-[11px] tabular", on ? "text-accent/70" : "text-text-mute")}>
+              /* A contagem vira PILULA e sai do mono corrido: numero solto ao
+                 lado do rotulo em caixa alta se lia como parte do nome da aba
+                 ("Caçada 12"). Com casca, ele vira metadado. */
+              <span
+                className={cn(
+                  "num rounded-pill px-1.5 py-0.5 text-[10px] leading-none transition-colors",
+                  on ? "bg-accent/18 text-accent" : "bg-surface-2 text-text-mute",
+                )}
+              >
                 {t.count}
               </span>
             ) : null}
@@ -78,8 +90,12 @@ export function Tabs<T extends string>({
                 sinal que conta pra onde a selecao foi. */}
             <span
               className={cn(
-                "absolute inset-x-0 -bottom-px h-0.5 origin-center bg-accent transition-transform duration-150 ease-out",
-                on ? "scale-x-100 shadow-[0_0_10px_0_var(--color-accent)]" : "scale-x-0",
+                "absolute inset-x-0 -bottom-px h-[2px] origin-center bg-accent",
+                "transition-transform duration-200 ease-out motion-reduce:transition-none",
+                // O halo saiu. Ele existia pra a barra de 2px se ver num tema
+                // onde tudo brilhava; agora que o brilho e reservado a ESTADO e a
+                // barra corre a aba inteira, o halo so borrava a linha.
+                on ? "scale-x-100" : "scale-x-0 group-hover/aba:scale-x-40",
               )}
             />
           </button>

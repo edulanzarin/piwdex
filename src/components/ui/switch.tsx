@@ -9,8 +9,21 @@ import { cn } from "@/lib/cn";
  *
  * Ela vem SEMPRE com a casca dos campos (`.field`), e isso nao e enfeite: o switch
  * e um controle solto — sem casca ele boia numa fila de filtros e muda de cara de
- * tela pra tela (com moldura na Hunt, sem moldura na dex e no breeding). Um
- * controle, um visual. Com `hint` a casca cresce em vez de cortar o texto.
+ * tela pra tela. Um controle, um visual. Com `hint` a casca cresce em vez de
+ * cortar o texto.
+ *
+ * ## A chave virou PILULA, e por que ela nao podia ser quadrada
+ *
+ * Ela era um retangulo de raio 10 com miolo quadrado de 12px — sobra do tempo em
+ * que o raio do tema inteiro era zero. Um interruptor e a unica peca de interface
+ * que IMITA um objeto fisico, e o objeto que ele imita e redondo e desliza. Com
+ * canto reto e miolo quadrado, o gesto se perde: a peca deixa de parecer algo que
+ * corre num trilho e vira duas caixinhas que trocam de cor.
+ *
+ * Ela e tambem a excecao consciente a escada de raio do tema: enquanto botao e
+ * campo usam o degrau de controle, aqui e pilula cheia. A escada existe pra dar
+ * coerencia entre pecas do mesmo tipo, e este e o unico controle que representa um
+ * objeto — a coerencia dele e com o mundo, nao com o formulario.
  */
 export interface SwitchProps extends Omit<InputHTMLAttributes<HTMLInputElement>, "type" | "size"> {
   label?: ReactNode;
@@ -33,7 +46,7 @@ export function Switch({ label, hint, block, className, ...props }: SwitchProps)
         // `w-auto self-start`: a casca dos campos nasce com `width: 100%`, e o switch
         // carrega o proprio rotulo — esticado, ele vira uma faixa vazia atras do texto.
         // O `self-start` e o que segura de verdade: em coluna flex o padrao estica.
-        "field cursor-pointer select-none gap-2.5",
+        "field cursor-pointer select-none gap-3",
         block ? "w-full" : "w-auto self-start",
         // com dica a caixa cresce (a altura fixa cortaria a segunda linha), mas o
         // piso continua sendo a altura de campo — a fila nao desalinha por causa dela
@@ -44,28 +57,35 @@ export function Switch({ label, hint, block, className, ...props }: SwitchProps)
       )}
     >
       <input type="checkbox" className="peer sr-only" {...props} />
-      {/* A chave em si. Ela cresceu: a anterior tinha 8px de curso e um miolo de
-          10px, e a diferenca entre ligada e desligada dependia de enxergar dois
-          pixels de deslocamento. Agora o estado se le pela COR de fundo e pela
-          posicao, e o alvo de clique e a linha inteira. */}
+
+      {/* ---- o trilho ---- */}
       <span
         aria-hidden="true"
         className={cn(
-          "relative h-5 w-10 shrink-0 rounded-pix border transition-colors",
-          "border-line-strong bg-surface-2",
+          "relative h-6 w-11 shrink-0 rounded-pill border transition-colors duration-200",
+          "border-line-strong bg-bg-soft",
           // com dica o texto tem duas linhas: a chave acompanha a PRIMEIRA delas
-          hint && "mt-0.5",
-          "peer-checked:border-accent peer-checked:bg-accent/35",
+          hint && "mt-px",
+          "peer-checked:border-transparent peer-checked:bg-accent",
           "peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent",
-          "after:absolute after:top-[3px] after:left-[3px] after:h-[12px] after:w-[12px]",
-          "after:bg-text-mute after:transition-all after:content-['']",
-          "peer-checked:after:left-[21px] peer-checked:after:bg-accent",
+
+          // ---- o miolo ----
+          // Ele anda por `translate` e nao por `left`: `left` faz layout a cada
+          // quadro, `translate` compoe. Numa tela de filtros com dez chaves isso e
+          // a diferenca entre deslizar e pular.
+          "after:absolute after:top-1/2 after:left-[3px] after:h-[18px] after:w-[18px]",
+          "after:-translate-y-1/2 after:rounded-pill after:content-['']",
+          "after:bg-text-mute after:shadow-elev-1",
+          "after:transition-[transform,background-color] after:duration-200 after:ease-out",
+          "peer-checked:after:translate-x-[20px] peer-checked:after:bg-[color:var(--color-bg)]",
+          "motion-reduce:after:transition-none",
         )}
       />
+
       {(label || hint) && (
         <span className="min-w-0">
           {/* O rotulo ACENDE quando ligado: sem isso, uma grade de seis chaves
-              obriga a conferir seis miolos de 12px pra saber o que esta ativo. */}
+              obriga a conferir seis miolos pra saber o que esta ativo. */}
           {label ? (
             <span className="block text-[14px] text-text-dim peer-checked:text-text">{label}</span>
           ) : null}
