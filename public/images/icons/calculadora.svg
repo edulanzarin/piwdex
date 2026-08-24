@@ -1,0 +1,47 @@
+<svg viewBox="0 0 128 128" width="128" height="128" xmlns="http://www.w3.org/2000/svg" role="img">
+  <title>Calculadora</title>
+  <!-- #5b9dff color-t-calc · #3665b0 sombra · #9cc4ff luz
+       #2f2a25 surface-2 · #221e1a oclusão · #453d35 surface-3 · luz: alto-esquerda -->
+  <ellipse cx="64" cy="118" rx="33" ry="6.5" fill="#000" opacity=".3"/>
+
+  <rect x="24" y="10" width="80" height="106" rx="11" fill="#171310"/>
+  <rect x="27" y="13" width="74" height="100" rx="9" fill="#2f2a25"/>
+  <path d="M92 13a9 9 0 0 1 9 9v82a9 9 0 0 1-9 9h-7c8 0 12-4 12-11V24c0-7-4-11-12-11z" fill="#221e1a"/>
+  <path d="M36 13h52v3.4H39A7.6 7.6 0 0 0 31.4 24H27v-2a9 9 0 0 1 9-9z" fill="#453d35"/>
+
+  <!-- o visor ACESO: é o detalhe frio e é o que identifica o objeto de longe -->
+  <rect x="34" y="21" width="60" height="26" rx="4" fill="#171310"/>
+  <rect x="36.5" y="23.5" width="55" height="21" rx="2.5" fill="#12325a"/>
+  <rect x="36.5" y="23.5" width="55" height="4" rx="2" fill="#1c4a80"/>
+  <g fill="#5b9dff">
+    <rect x="55" y="30" width="12" height="3.4" rx="1.7"/>
+    <rect x="55" y="36" width="12" height="3.4" rx="1.7"/>
+    <rect x="71" y="30" width="12" height="3.4" rx="1.7"/>
+    <rect x="71" y="36" width="12" height="3.4" rx="1.7"/>
+    <rect x="41" y="36" width="8" height="3.4" rx="1.7" opacity=".5"/>
+  </g>
+  <rect x="36.5" y="23.5" width="24" height="21" fill="#9cc4ff" opacity=".07"/>
+
+  <!-- teclado: três colunas de tecla clara e uma coluna de ação na cor -->
+  <g>
+    <g fill="#171310">
+      <rect x="34" y="55" width="15" height="12" rx="3"/><rect x="53" y="55" width="15" height="12" rx="3"/><rect x="72" y="55" width="15" height="12" rx="3"/>
+      <rect x="34" y="72" width="15" height="12" rx="3"/><rect x="53" y="72" width="15" height="12" rx="3"/><rect x="72" y="72" width="15" height="12" rx="3"/>
+      <rect x="34" y="89" width="15" height="12" rx="3"/><rect x="53" y="89" width="15" height="12" rx="3"/><rect x="72" y="89" width="15" height="12" rx="3"/>
+      <rect x="91" y="55" width="12" height="46" rx="3"/>
+    </g>
+    <g fill="#cdbba3">
+      <rect x="35.5" y="56" width="12" height="9.5" rx="2"/><rect x="54.5" y="56" width="12" height="9.5" rx="2"/><rect x="73.5" y="56" width="12" height="9.5" rx="2"/>
+      <rect x="35.5" y="73" width="12" height="9.5" rx="2"/><rect x="54.5" y="73" width="12" height="9.5" rx="2"/><rect x="73.5" y="73" width="12" height="9.5" rx="2"/>
+      <rect x="35.5" y="90" width="12" height="9.5" rx="2"/><rect x="54.5" y="90" width="12" height="9.5" rx="2"/><rect x="73.5" y="90" width="12" height="9.5" rx="2"/>
+    </g>
+    <g fill="#f0ecea" opacity=".5">
+      <rect x="35.5" y="56" width="12" height="2.4" rx="1.2"/><rect x="54.5" y="56" width="12" height="2.4" rx="1.2"/><rect x="73.5" y="56" width="12" height="2.4" rx="1.2"/>
+      <rect x="35.5" y="73" width="12" height="2.4" rx="1.2"/><rect x="54.5" y="73" width="12" height="2.4" rx="1.2"/><rect x="73.5" y="73" width="12" height="2.4" rx="1.2"/>
+      <rect x="35.5" y="90" width="12" height="2.4" rx="1.2"/><rect x="54.5" y="90" width="12" height="2.4" rx="1.2"/><rect x="73.5" y="90" width="12" height="2.4" rx="1.2"/>
+    </g>
+    <rect x="92.5" y="56" width="9" height="43.5" rx="2" fill="#5b9dff"/>
+    <rect x="92.5" y="79" width="9" height="20.5" rx="2" fill="#3665b0"/>
+    <rect x="92.5" y="56" width="9" height="2.6" rx="1.3" fill="#9cc4ff"/>
+  </g>
+</svg>

@@ -1,0 +1,74 @@
+<svg viewBox="0 0 128 128" width="128" height="128" xmlns="http://www.w3.org/2000/svg" role="img">
+  <title>Pokédex</title>
+  <!-- paleta, com o token de origem ao lado — trocar o tema é trocar estas linhas
+       #171310 contorno · #2f2a25 color-surface-2 · #453d35 color-surface-3
+       #ff5c72 color-t-dex · #c03a50 sombra · #ff8494 luz · #8a2437 oclusão
+       #7fd0f5 / #3aa0d8 o detalhe frio · #cdbba3 color-accent -->
+  <!-- luz: alto-esquerda, e ela manda em todas as superfícies -->
+
+  <ellipse id="sombra" cx="64" cy="118" rx="36" ry="6.5" fill="#000" opacity=".3"/>
+
+  <g id="contorno">
+    <rect x="20" y="12" width="88" height="102" rx="11" fill="#171310"/>
+  </g>
+
+  <g id="casco">
+    <rect x="23" y="15" width="82" height="96" rx="9" fill="#2f2a25"/>
+    <path d="M32 15h64a9 9 0 0 1 9 9v78a9 9 0 0 1-9 9h-6c8 0 11-4 11-11V26c0-7-3-11-11-11z" fill="#221e1a"/>
+    <path d="M32 15h58v3H35a8 8 0 0 0-8 8v76h-4V24a9 9 0 0 1 9-9z" fill="#453d35"/>
+  </g>
+
+  <g id="tampa">
+    <path d="M23 24a9 9 0 0 1 9-9h64a9 9 0 0 1 9 9v33H23z" fill="#ff5c72"/>
+    <path d="M96 15a9 9 0 0 1 9 9v33h-9V24c0-5-3-9-9-9z" fill="#c03a50"/>
+    <path d="M32 15h52v3.5H35A7.5 7.5 0 0 0 27.5 26H23v-2a9 9 0 0 1 9-9z" fill="#ff8494"/>
+    <rect x="23" y="52" width="82" height="5" fill="#8a2437"/>
+  </g>
+
+  <g id="lente">
+    <circle cx="47" cy="36" r="17" fill="#171310"/>
+    <circle cx="47" cy="36" r="14" fill="#3aa0d8"/>
+    <path d="M47 22a14 14 0 0 1 0 28 14 14 0 0 0 0-28z" fill="#1d6b96"/>
+    <circle cx="47" cy="36" r="9" fill="#7fd0f5"/>
+    <ellipse cx="42" cy="30" rx="5" ry="3.4" fill="#fff" opacity=".9" transform="rotate(-30 42 30)"/>
+    <circle cx="52" cy="42" r="2.2" fill="#fff" opacity=".35"/>
+  </g>
+
+  <g id="luzes">
+    <circle cx="74" cy="30" r="4.5" fill="#171310"/><circle cx="74" cy="30" r="3" fill="#8a2437"/>
+    <circle cx="86" cy="30" r="4.5" fill="#171310"/><circle cx="86" cy="30" r="3" fill="#cdbba3"/>
+    <circle cx="98" cy="30" r="4.5" fill="#171310"/><circle cx="98" cy="30" r="3" fill="#8fd9c8"/>
+    <circle cx="85" cy="29" r="1" fill="#fff" opacity=".8"/>
+  </g>
+
+  <g id="visor">
+    <rect x="31" y="64" width="66" height="34" rx="4" fill="#171310"/>
+    <rect x="34" y="67" width="60" height="28" rx="2.5" fill="#123a34"/>
+    <rect x="34" y="67" width="60" height="4" rx="2" fill="#1e5a51"/>
+    <g id="bola">
+      <circle cx="64" cy="81" r="10" fill="#8fd9c8"/>
+      <path d="M64 71a10 10 0 0 1 0 20 10 10 0 0 0 0-20z" fill="#4e9c8f"/>
+      <rect x="54" y="79.5" width="20" height="3" fill="#123a34"/>
+      <circle cx="64" cy="81" r="3.4" fill="#123a34"/>
+      <circle cx="64" cy="81" r="1.8" fill="#d8f5ee"/>
+      <circle cx="60" cy="76" r="1.6" fill="#d8f5ee" opacity=".7"/>
+    </g>
+    <g fill="#2a6f64">
+      <rect x="37" y="90" width="7" height="2" rx="1"/>
+      <rect x="47" y="90" width="4" height="2" rx="1"/>
+      <rect x="54" y="90" width="9" height="2" rx="1"/>
+    </g>
+  </g>
+
+  <g id="controles">
+    <path id="cruz" d="M40 104h5v-5h6v5h5v6h-5v5h-6v-5h-5z" fill="#171310"/>
+    <path d="M41.5 105.2h5v-5h3.6v5h5v3.6h-5v5h-3.6v-5h-5z" fill="#cdbba3"/>
+    <path d="M41.5 105.2h5v-5h3.6v1.6h-2v5h-6.6z" fill="#f0ecea"/>
+    <rect x="76" y="100" width="13" height="10" rx="2.5" fill="#171310"/>
+    <rect x="78" y="102" width="9" height="6" rx="1.5" fill="#ff5c72"/>
+    <rect x="78" y="102" width="9" height="2" rx="1" fill="#ff8494"/>
+    <rect x="92" y="100" width="13" height="10" rx="2.5" fill="#171310"/>
+    <rect x="94" y="102" width="9" height="6" rx="1.5" fill="#8fd9c8"/>
+    <rect x="94" y="102" width="9" height="2" rx="1" fill="#c9f0e6"/>
+  </g>
+</svg>

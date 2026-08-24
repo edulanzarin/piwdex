@@ -1,0 +1,50 @@
+<svg viewBox="0 0 128 128" width="128" height="128" xmlns="http://www.w3.org/2000/svg" role="img">
+  <title>Hunt</title>
+  <!-- #ffb454 color-t-hunt · #c07f2e sombra · #ffd49a luz · #8a5518 oclusão
+       #7fd0f5 o detalhe frio · luz: alto-esquerda -->
+  <ellipse cx="64" cy="118" rx="30" ry="6" fill="#000" opacity=".3"/>
+
+  <!-- A MIRA é a moldura, e a pegada é o assunto. A primeira versão pôs a pegada
+       fora do eixo e um ponto frio solto no canto: a peça lia como frigideira.
+       Assunto no CENTRO, moldura em volta, e o detalhe frio encostado na moldura
+       em vez de boiando no meio. -->
+  <g id="marcas" fill="#171310">
+    <rect x="58" y="4" width="12" height="20" rx="4"/><rect x="58" y="88" width="12" height="20" rx="4"/>
+    <rect x="4" y="50" width="20" height="12" rx="4"/><rect x="88" y="50" width="20" height="12" rx="4"/>
+  </g>
+  <g fill="#ffb454">
+    <rect x="60" y="6" width="8" height="17" rx="3"/><rect x="60" y="89" width="8" height="17" rx="3"/>
+    <rect x="6" y="52" width="17" height="8" rx="3"/><rect x="89" y="52" width="17" height="8" rx="3"/>
+  </g>
+  <g fill="#ffd49a">
+    <rect x="60" y="6" width="8" height="5" rx="2.5"/><rect x="6" y="52" width="5" height="8" rx="2.5"/>
+  </g>
+
+  <circle cx="64" cy="56" r="42" fill="#171310"/>
+  <circle cx="64" cy="56" r="35" fill="#1f1c18"/>
+  <circle cx="64" cy="56" r="38.5" fill="none" stroke="#ffb454" stroke-width="7"/>
+  <path d="M64 17.5a38.5 38.5 0 0 1 0 77" fill="none" stroke="#c07f2e" stroke-width="7"/>
+  <path d="M36 28a38.5 38.5 0 0 1 22-10" fill="none" stroke="#ffd49a" stroke-width="7" stroke-linecap="round"/>
+
+  <!-- a PEGADA, centrada e grande: é ela que diz caça e não só mira -->
+  <g fill="#8a5518">
+    <ellipse cx="64" cy="70" rx="13.5" ry="11.5"/>
+    <ellipse cx="47" cy="53" rx="6" ry="7"/><ellipse cx="57" cy="45" rx="6.2" ry="7.4"/>
+    <ellipse cx="71" cy="45" rx="6.2" ry="7.4"/><ellipse cx="81" cy="53" rx="6" ry="7"/>
+  </g>
+  <g fill="#ffb454">
+    <ellipse cx="64" cy="68" rx="13.5" ry="11.5"/>
+    <ellipse cx="47" cy="51" rx="6" ry="7"/><ellipse cx="57" cy="43" rx="6.2" ry="7.4"/>
+    <ellipse cx="71" cy="43" rx="6.2" ry="7.4"/><ellipse cx="81" cy="51" rx="6" ry="7"/>
+  </g>
+  <g fill="#ffd49a" opacity=".85">
+    <ellipse cx="57" cy="63" rx="5" ry="4" transform="rotate(-25 57 63)"/>
+    <ellipse cx="55" cy="40.5" rx="2.6" ry="3" /><ellipse cx="45.5" cy="48.5" rx="2.4" ry="2.8"/>
+  </g>
+
+  <!-- o ponto FRIO encostado na moldura: onde a mira travou -->
+  <circle cx="92" cy="84" r="11" fill="#171310"/>
+  <circle cx="92" cy="84" r="7.5" fill="#3aa0d8"/>
+  <circle cx="92" cy="84" r="3.8" fill="#7fd0f5"/>
+  <circle cx="90" cy="82" r="1.6" fill="#fff" opacity=".9"/>
+</svg>

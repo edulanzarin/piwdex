@@ -1,0 +1,36 @@
+<svg viewBox="0 0 128 128" width="128" height="128" xmlns="http://www.w3.org/2000/svg" role="img">
+  <title>Breeding</title>
+  <!-- #f472b6 color-t-breed · #b04a80 sombra · #f9a8d4 luz
+       #cdbba3 / #927b5d o ninho · luz: alto-esquerda -->
+  <ellipse cx="64" cy="117" rx="36" ry="6.5" fill="#000" opacity=".3"/>
+
+  <!-- corações: dois, tamanhos diferentes. Três viram confete. -->
+  <g fill="#f472b6">
+    <path d="M96 20c3-4 9-3 9 2 0 5-9 11-9 11s-9-6-9-11c0-5 6-6 9-2z" opacity=".9"/>
+    <path d="M28 34c2-3 6-2 6 1.4 0 3.4-6 7.6-6 7.6s-6-4.2-6-7.6C22 32 26 31 28 34z" opacity=".65"/>
+  </g>
+
+  <!-- o OVO. Ele é mais estreito em cima: ovo simétrico lê como bola. -->
+  <path d="M64 16c17 0 30 22 30 40 0 21-13 34-30 34S34 77 34 56c0-18 13-40 30-40z" fill="#171310"/>
+  <path d="M64 19.5c15 0 26.5 20.5 26.5 36.5 0 19-11.5 30.5-26.5 30.5S37.5 75 37.5 56C37.5 40 49 19.5 64 19.5z" fill="#f2e6dd"/>
+  <path d="M64 19.5c15 0 26.5 20.5 26.5 36.5 0 19-11.5 30.5-26.5 30.5-2.4 0-4.7-.3-6.8-.9C69.5 82 79 71 79 54c0-14-8-30.5-19.4-34.2 1.4-.2 2.9-.3 4.4-.3z" fill="#d9c7bb"/>
+  <path d="M52 30c4-6 9-9 13-9-6 1-12 6-16 14-4 8-6 16-5.6 22C40 51 46 38 52 30z" fill="#fffaf6"/>
+  <g fill="#f472b6">
+    <ellipse cx="52" cy="52" rx="7" ry="6"/><ellipse cx="72" cy="41" rx="5.5" ry="4.8"/>
+    <ellipse cx="74" cy="65" rx="6.5" ry="5.6"/><ellipse cx="55" cy="73" rx="5" ry="4.4"/>
+  </g>
+  <g fill="#b04a80" opacity=".5">
+    <ellipse cx="74" cy="66.5" rx="6.5" ry="4"/><ellipse cx="72" cy="42.5" rx="5.5" ry="3"/>
+  </g>
+
+  <!-- o NINHO: é ele que ancora o ovo. Sem base, o ovo boia. -->
+  <path d="M18 80c0-6 7-9 16-10 9-1 20 2 30 2s21-3 30-2c9 1 16 4 16 10 0 17-15 31-46 31S18 97 18 80z" fill="#171310"/>
+  <path d="M21.5 81c0-4 6-6.6 13.5-7.5 7.5-.9 18 2 29 2s21.5-2.9 29-2c7.5.9 13.5 3.5 13.5 7.5 0 15-13.5 27-42.5 27S21.5 96 21.5 81z" fill="#927b5d"/>
+  <path d="M64 108c29 0 42.5-12 42.5-27 0-1.8-1.2-3.4-3.4-4.7C102 90 89 101 64 101s-38-11-39.1-24.7c-2.2 1.3-3.4 2.9-3.4 4.7 0 15 13.5 27 42.5 27z" fill="#5e4c39"/>
+  <g stroke="#cdbba3" stroke-width="3.4" stroke-linecap="round" fill="none">
+    <path d="M27 82q16 9 37 9t37-9"/>
+    <path d="M25 91q17 11 39 11t39-11" opacity=".75"/>
+    <path d="M31 76q14 6 30 6t30-6" opacity=".5"/>
+    <path d="M34 99q13 6 30 6t30-6" opacity=".45"/>
+  </g>
+</svg>

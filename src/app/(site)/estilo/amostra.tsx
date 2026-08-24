@@ -476,7 +476,7 @@ export function Amostra() {
               tint={cor}
               art={
                 <Sprite
-                  src={`/images/icons/${arte}.png`}
+                  src={`/images/icons/${arte}.svg`}
                   alt=""
                   size={120}
                   className="[--sprite:96px]"

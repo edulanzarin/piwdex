@@ -138,7 +138,7 @@ export default function NaoEncontrado() {
                       pokebola padrao do `Sprite`: uma pokebola no lugar do icone de
                       Itens diria que faltou um pokemon, que nao e o caso. */}
                   <Sprite
-                    src={`/images/icons/${f.arte}.png`}
+                    src={`/images/icons/${f.arte}.svg`}
                     alt=""
                     size={52}
                     className="shrink-0 transition-transform duration-300 group-hover:scale-105"

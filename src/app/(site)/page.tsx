@@ -317,7 +317,7 @@ export default async function HomePage() {
           art={
             <Parallax forca={0.06}>
               <Sprite
-                src={`/images/icons/${t.arte}.png`}
+                src={`/images/icons/${t.arte}.svg`}
                 alt=""
                 size={340}
                 /* A arte estoura a faixa: peça contida na própria caixa lê como

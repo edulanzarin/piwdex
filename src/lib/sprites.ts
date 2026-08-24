@@ -162,5 +162,9 @@ export function itemIconUrl(item: Item): string {
  */
 export function ehPixelArt(src: string | null): boolean {
   if (!src) return false;
+  // SVG nunca e pixel art. Os icones das ferramentas viraram vetor, e sem esta
+  // linha eles herdavam `image-rendering: pixelated` pela regra do `else` —
+  // serrilhando justamente a arte que existe pra escalar limpa.
+  if (src.endsWith(".svg")) return false;
   return !src.includes("official-artwork");
 }

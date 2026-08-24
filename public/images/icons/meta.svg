@@ -1,0 +1,53 @@
+<svg viewBox="0 0 128 128" width="128" height="128" xmlns="http://www.w3.org/2000/svg" role="img">
+  <title>Meta</title>
+  <!-- #2ee6d6 color-t-meta · #1a9c92 sombra · #7ff2e8 luz · #0f5f59 oclusão
+       #cdbba3 punho · luz: alto-esquerda -->
+  <ellipse cx="64" cy="119" rx="30" ry="6" fill="#000" opacity=".3"/>
+
+  <!-- As espadas atrás só existem se APARECEREM. Na primeira versão o escudo
+       tinha 84 de largura num quadro de 128 e engolia as lâminas inteiras —
+       sobravam duas pontas que ninguém identificava. O escudo encolheu pra 68 e
+       as lâminas passaram a atravessar de canto a canto. Elemento escondido não
+       é sutileza: é peso de arquivo. -->
+  <g id="espadas">
+    <g stroke="#171310" stroke-width="13" stroke-linecap="round">
+      <path d="M20 108 108 14"/><path d="M108 108 20 14"/>
+    </g>
+    <g stroke="#8f9aa8" stroke-width="7.5" stroke-linecap="round">
+      <path d="M24 104 104 18"/><path d="M104 104 24 18"/>
+    </g>
+    <g stroke="#dbe2ea" stroke-width="2.6" stroke-linecap="round">
+      <path d="M27 100 100 21"/><path d="M101 100 28 21"/>
+    </g>
+    <g fill="#171310">
+      <rect x="9" y="98" width="28" height="14" rx="7" transform="rotate(-47 23 105)"/>
+      <rect x="91" y="98" width="28" height="14" rx="7" transform="rotate(47 105 105)"/>
+    </g>
+    <g fill="#cdbba3">
+      <rect x="11" y="101" width="24" height="8.5" rx="4.2" transform="rotate(-47 23 105)"/>
+      <rect x="93" y="101" width="24" height="8.5" rx="4.2" transform="rotate(47 105 105)"/>
+    </g>
+    <g fill="#927b5d">
+      <rect x="11" y="105.5" width="24" height="4" rx="2" transform="rotate(-47 23 105)"/>
+      <rect x="93" y="105.5" width="24" height="4" rx="2" transform="rotate(47 105 105)"/>
+    </g>
+  </g>
+
+  <!-- o ESCUDO, na frente -->
+  <path d="M64 16 100 28v27c0 23-14 39-36 48-22-9-36-25-36-48V28z" fill="#171310"/>
+  <path d="M64 21 95.5 31.5V55c0 20-12 34.5-31.5 42.5C44.5 89.5 32.5 75 32.5 55V31.5z" fill="#2ee6d6"/>
+  <path d="M64 21 95.5 31.5V55c0 20-12 34.5-31.5 42.5z" fill="#1a9c92"/>
+  <path d="M64 21 95.5 31.5v5.4L64 26.5 32.5 36.9v-5.4z" fill="#7ff2e8"/>
+  <path d="M37 36.5 64 27.5v6.5L37 43z" fill="#7ff2e8" opacity=".4"/>
+
+  <!-- a bola no brasão: a marca do site, e o que faz o escudo ser DESTE site -->
+  <circle cx="64" cy="55" r="19" fill="#0f5f59"/>
+  <circle cx="64" cy="55" r="16" fill="#f0ecea"/>
+  <path d="M48 55a16 16 0 0 1 32 0z" fill="#ff5c72"/>
+  <path d="M64 39a16 16 0 0 1 16 16h-8a8 8 0 0 0-8-8z" fill="#c03a50"/>
+  <rect x="48" y="52" width="32" height="6.2" fill="#171310"/>
+  <circle cx="64" cy="55" r="6.6" fill="#171310"/>
+  <circle cx="64" cy="55" r="3.9" fill="#f0ecea"/>
+  <circle cx="62" cy="53" r="1.4" fill="#fff"/>
+  <path d="M52 46a16 16 0 0 1 8-6 16 16 0 0 0-10 9z" fill="#fff" opacity=".6"/>
+</svg>

@@ -71,7 +71,7 @@ export function HeroFerramenta({
       <div className="flex flex-wrap items-center gap-5 sm:gap-8">
         <span className="anim-in shrink-0" style={{ "--d": "40ms" } as CSSProperties}>
           <Sprite
-            src={`/images/icons/${f.arte}.png`}
+            src={`/images/icons/${f.arte}.svg`}
             alt=""
             size={104}
             priority

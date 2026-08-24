@@ -9,22 +9,22 @@ import { Pokeball } from "./pokeball";
 /**
  * Tela de carregamento.
  *
- * O gif e SELF-HOSTADO (`public/images/loading/`). Puxar de CDN de terceiro
- * numa tela de espera e a pior troca possivel: se a rede estiver lenta — que e
- * exatamente quando esta tela aparece — o indicador de carregamento fica
- * carregando.
+ * ## O gif de pokemon saiu
  *
- * O sorteio acontece no PRIMEIRO RENDER, nao no mount. A versao anterior
- * sorteava num `useEffect` e o resultado era o oposto do pedido: no carregamento
- * inicial — justamente quando esta tela aparece — o HTML saia do servidor com a
- * pokebola parada, e o gif so entrava depois da hidratacao, que e depois de a
- * espera ter acabado. Ou seja: a animacao nunca era vista.
+ * Ela sorteava um dos dez gifs animados do gen5 e mostrava o bicho se mexendo.
+ * Era carisma, e era tambem a ultima peca do site em pixel: com a dex, a ficha,
+ * o card e o cartao ja em arte suavizada, e os icones de ferramenta em vetor,
+ * abrir uma tela e receber um sprite de 96px serrilhado dizia "a pagina que vem
+ * e de outro site".
  *
- * Sortear no render faz servidor e cliente escolherem pokemons diferentes, e e por
- * isso que o `<img>` leva `suppressHydrationWarning`: a diferenca e
- * INTENCIONAL, e o atributo existe exatamente pra esse caso. Trocar de pokemon na
- * hidratacao nao custa nada aqui — a tela e transitoria e o slot tem tamanho
- * fixo, entao nada salta.
+ * O que entra no lugar e o icone da PROPRIA ferramenta. Ele resolve duas coisas
+ * de uma vez: a espera passa a mostrar pra onde se esta indo (esperar a Hunt
+ * mostra a mira, nao um Gengar sorteado), e a arte e a mesma que a faixa de topo
+ * vai mostrar um segundo depois — a tela de espera vira o primeiro quadro da
+ * tela que chega, e nao um intervalo com outro assunto dentro.
+ *
+ * Na home, que nao e ferramenta, fica a pokebola girando: ali nao ha destino
+ * unico pra anunciar.
  *
  * ## A cor sai da ROTA, e nao do arquivo
  *
@@ -36,11 +36,8 @@ import { Pokeball } from "./pokeball";
  * A alternativa obvia era um `tint` por chamada, e ela e a errada: sao nove
  * arquivos de uma linha, e o decimo nasceria sem. O caminho ja sabe a resposta —
  * `usePathname` mais o registro de ferramentas — entao a cor se resolve sozinha
- * e a rota nova acerta sem ninguem lembrar. Na home, que nao e ferramenta, cai
- * no acento da marca.
+ * e a rota nova acerta sem ninguem lembrar.
  */
-
-const POKEMONS = [25, 133, 143, 94, 149, 6, 448, 196, 131, 59] as const;
 
 /** `page` toma a tela inteira (navegacao); `inline` espera DENTRO de um painel —
  *  mesma cena, um terco da altura. Sem a variante, um calculo de 700ms abria 60vh
@@ -55,9 +52,9 @@ export function Loading({
   className?: string;
 }) {
   const inline = size === "inline";
-  const [id] = useState(() => POKEMONS[Math.floor(Math.random() * POKEMONS.length)]);
   const [caiu, setCaiu] = useState(false);
-  const cor = ferramentaDoCaminho(usePathname())?.cor ?? "var(--color-accent)";
+  const f = ferramentaDoCaminho(usePathname());
+  const cor = f?.cor ?? "var(--color-accent)";
 
   return (
     <div
@@ -78,15 +75,13 @@ export function Loading({
           )}
           style={{ backgroundColor: cor, opacity: 0.35 }}
         />
-        {!caiu ? (
+        {f && !caiu ? (
           <img
-            src={`/images/loading/${id}.gif`}
+            src={`/images/icons/${f.arte}.svg`}
             alt=""
             width={inline ? 64 : 112}
             height={inline ? 64 : 112}
-            data-pixel="true"
             className="anim-float relative h-full w-full object-contain"
-            suppressHydrationWarning
             onError={() => setCaiu(true)}
           />
         ) : (
