@@ -97,6 +97,15 @@ export interface Hunt {
 export interface Snapshot {
   generatedAt: string;
   source: string;
+  /** Qual versao da ingestao produziu este arquivo — ver PIPELINE em patches.ts.
+   *  Ausente nos snapshots anteriores ao diario, e ai vale 1. E o que impede o
+   *  diario de anunciar uma mudanca MINHA de normalizacao como patch do jogo. */
+  pipeline?: number;
+  /** Quando o JOGO publicou este catalogo (Last-Modified da fonte). E a data que
+   *  o diario carimba no patch — `generatedAt` e so a hora em que EU olhei. */
+  publicadoEm?: string;
+  /** ETag da fonte no momento da captura. */
+  versao?: string | null;
   counts: { creatures: number; items: number; hunts: number };
   map: { w: number; h: number } | null;
   creatures: Creature[];
