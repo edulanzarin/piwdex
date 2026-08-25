@@ -104,6 +104,19 @@ export interface LadoSim {
   nivel: number;
   t1: PokeType;
   t2: PokeType | null;
+  /**
+   * O lado nao tem TIPO — e o que o jogo chama de "Elemento: Neutro".
+   *
+   * Boss e assim: a ficha do Ancient Aero no jogo diz `Elemento: Neutro`, e nao
+   * Pedra/Voador como o Aerodactyl de que ele e feito. Sem isto, um Golem batia
+   * de Pedra num "Voador" que nao existe e a tela prometia 2,5x de vantagem
+   * numa luta que na verdade e 1x nos dois sentidos.
+   *
+   * Neutro vale pros DOIS lados da conta: ninguem tem vantagem contra ele, e o
+   * golpe dele nao tem vantagem contra ninguem. STAB tambem some — nao ha tipo
+   * proprio pro golpe combinar.
+   */
+  neutro?: boolean;
   hp: number;
   atk: number;
   spa: number;
@@ -141,7 +154,16 @@ export interface ResultadoLuta {
 const TETO_S = 60;
 
 /** STAB: o golpe do mesmo tipo do lutador bate 1,5x. Regra da serie, confirmada no jogo. */
-const stabDe = (l: LadoSim, g: GolpeSim): number => (g.type === l.t1 || g.type === l.t2 ? 1.5 : 1);
+const stabDe = (l: LadoSim, g: GolpeSim): number =>
+  !l.neutro && (g.type === l.t1 || g.type === l.t2) ? 1.5 : 1;
+
+/** Efetividade do golpe de `de` contra `para`, com o Neutro dos dois lados.
+ *  Exportada porque a tela nomeia a efetividade que o motor usou — se ela
+ *  recalculasse por fora, a etiqueta e a conta poderiam discordar. */
+export function efetividadeEntre(de: LadoSim, para: LadoSim, g: GolpeSim): number {
+  if (de.neutro || para.neutro) return 1;
+  return huntEffectiveness(g.type, para.t1, para.t2);
+}
 
 /** O dano que `de` aplica em `para` com este golpe, ja com tipo e STAB.
  *
@@ -150,7 +172,7 @@ const stabDe = (l: LadoSim, g: GolpeSim): number => (g.type === l.t1 || g.type =
  *  que o lado do jogador troca de lutador. O laco e outro; a formula de dano tem
  *  de ser a MESMA, senao a mesma dupla sai com numeros diferentes em duas telas. */
 export function danoEntre(de: LadoSim, para: LadoSim, g: GolpeSim): number {
-  const eff = huntEffectiveness(g.type, para.t1, para.t2);
+  const eff = efetividadeEntre(de, para, g);
   if (eff <= 0) return 0; // imune: nao entra na fila
   const ataque = g.category === "SPECIAL" ? de.spa : de.atk;
   const defesa = g.category === "SPECIAL" ? para.spDef : para.def;

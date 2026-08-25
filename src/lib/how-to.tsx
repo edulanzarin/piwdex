@@ -369,9 +369,9 @@ export const COMO_USAR_STADIUM: Omit<HowToProps, "tint"> = {
         "Fatia é quanto do boss aquele pokémon leva embora antes de cair. É o número que se soma de cabeça: três de 40% derrubam. Dano por segundo alto pode virar fatia zero, e não é erro de conta: cada golpe tem recarga própria, e quem cai em dez segundos nunca chega a disparar o de quarenta.",
     },
     {
-      titulo: "Confira o nível antes de trocar de espécie",
+      titulo: "Encha os seis lugares antes de trocar de espécie",
       texto:
-        "Boss começa no nível 300 e vai até o 625. Na maior parte dos casos o que separa o time de uma queda rápida é o nível: subir vinte costuma mexer mais no resultado do que trocar o time inteiro.",
+        "Boss começa no nível 300 e vai até o 625, e o jogo cobra caro por lugar vazio: o dano que você toma é multiplicado por 3 elevado ao que falta de força. Um sozinho no nível toma 243x. Encher os seis e subir o nível mexe mais no resultado do que qualquer troca de espécie.",
     },
     {
       titulo: "Ligue o TM só se você tem a máquina",
@@ -401,12 +401,18 @@ export const COMO_USAR_STADIUM: Omit<HowToProps, "tint"> = {
       que ganhar no duelo do Meta.
     </>,
     <>
-      Falta uma peça, e ela é grande. O jogo aplica uma penalidade de GRUPO que não está
-      publicada: a resposta dele traz <code>mult</code> e <code>deficit</code> por boss, e a
-      relação entre os dois é exata (<code>mult = 3^deficit</code>). O que ninguém publicou é
-      como a força do grupo se calcula e o que esse fator multiplica. Um fator dessa ordem
-      dominaria todo o resto do resultado, então ele fica de fora da conta em vez de entrar
-      como chute.
+      A penalidade de GRUPO está na conta, e é ela que decide a luta. O jogo multiplica o
+      dano que você TOMA por <code>3^(6 − força)</code>, onde a força soma, nos seis
+      lugares, o quanto cada um está no nível do boss. Com um pokémon no nível e cinco
+      lugares vazios são 243x — o que faz um Golem que “aguenta infinito” no papel morrer no
+      primeiro golpe. A própria ficha do boss no jogo mostra esse número, então dá pra
+      conferir um contra o outro.
+    </>,
+    <>
+      Os stats do boss é que continuam de fora. O jogo não publica nenhum, e a projeção
+      sobre a espécie erra por ordem de grandeza: o Ancient Aero tem 72 mil de vida, e a
+      conta sobre o Aerodactyl dá 4,6 mil. Por isso os seis números do alvo são editáveis —
+      digite o que você viu na barra de vida dele, e fica guardado por boss.
     </>,
   ],
 };

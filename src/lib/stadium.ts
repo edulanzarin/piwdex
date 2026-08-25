@@ -23,25 +23,39 @@
 // cai. A fórmula de dano é a do `sim.ts` (`danoEntre`), importada e não copiada:
 // a mesma dupla tem de sair com o mesmo número aqui e no Duelo.
 //
-// ## O que este motor NÃO sabe
+// ## A PENALIDADE DE GRUPO, que é quem decide a luta
 //
-// O jogo aplica uma penalidade de GRUPO que não está publicada. O
-// `/api/game/boss` devolve, por boss, algo como
-// `{members: 6, strength: 2.46, deficit: 3.54, mult: 48.69}` — e `mult` é
-// exatamente `3^deficit`, com `deficit = members - strength`. Ou seja: faltar
-// "força" no grupo multiplica alguma coisa por dezenas de vezes.
+// O jogo multiplica o dano que VOCÊ TOMA quando o grupo está fraco pro boss, e o
+// fator é brutal. A própria tela do jogo diz, na ficha do boss:
 //
-// O que a fonte não diz é DUAS coisas: como `strength` é calculada, e o que
-// `mult` multiplica (HP do boss? dano que ele dá? recompensa?). Sem as duas, pôr
-// o fator na conta seria inventar um número com três casas de precisão em cima de
-// um mecanismo que ninguém mediu — e ele é grande o bastante pra dominar todo o
-// resto do resultado.
+//     Seu time: 2.5/6 no nível · dano recebido ×48.51
+//     leve 6 Pokémon no nível do boss (Nv. 300) para tomar menos dano
 //
-// Fica de fora da conta e DENTRO da tela, como aviso. A alternativa (embutir um
-// chute) devolveria um combate cujo resultado é a penalidade, não o time.
+// Cruzando isso com o `/api/game/boss` (`{members: 6, strength: 2.46,
+// deficit: 3.54, mult: 48.69}`), a relação fecha exata em duas observações
+// independentes: a base implícita dá 2,9999 e 2,9969.
+//
+//     força   = soma, nos seis lugares, de min(1, nível do seu / nível do boss)
+//     mult    = 3 ^ (6 − força)      e ele multiplica o DANO QUE VOCÊ TOMA
+//
+// A escala explica o que nenhum modelo de tipo explicava: com UM pokémon no
+// nível e cinco lugares vazios, `mult` é 3^5 = 243. Um Golem que "aguenta
+// infinito" no papel morre no primeiro golpe. Foi exatamente o que aconteceu
+// quando o motor rodava sem ela.
+//
+// Empatar o resto e errar isto é errar a luta inteira, então ela entra na conta —
+// e o número aparece na tela do mesmo jeito que o jogo mostra, pra dar pra
+// conferir um contra o outro.
+//
+// ## O que este motor ainda NÃO sabe
+//
+// Os stats do boss. O jogo não publica nenhum: nem vida, nem ataque, nem defesa.
+// O Ancient Aero tem 72 mil de vida, e nenhuma conta sobre a espécie Aerodactyl
+// chega perto disso. Por isso os seis números do alvo são EDITÁVEIS e ficam
+// guardados por boss — quem lutou uma vez sabe mais do que qualquer estimativa,
+// e o lugar desse conhecimento é a tela, não um palpite no código.
 
-import { danoEntre, type GolpeSim, type LadoSim } from "./sim";
-import { huntEffectiveness } from "./combat";
+import { danoEntre, efetividadeEntre, type GolpeSim, type LadoSim } from "./sim";
 import { projectAll } from "./stats";
 import type { MetaMon, MovePool } from "./meta";
 import type { Attack, PokeType } from "./types";
@@ -86,6 +100,52 @@ export interface ArenaMon {
 /** O alvo. `reforco` liga o que o jogo dá a selvagem e boss: HP x5 e dano x1.8. */
 export interface ArenaAlvo extends ArenaMon {
   reforco: boolean;
+  /** `Elemento: Neutro` na ficha do jogo: ninguém tem vantagem, nos dois sentidos */
+  neutro?: boolean;
+  /**
+   * Quanto o jogo multiplica o dano que VOCÊ TOMA. 1 = grupo completo no nível.
+   * Sai de `forcaDoGrupo`; ver o cabeçalho pra de onde a fórmula veio.
+   */
+  multDanoRecebido?: number;
+}
+
+/** Membros que o jogo exige no grupo pra não haver penalidade. */
+export const MEMBROS_EXIGIDOS = 6;
+
+export interface ForcaGrupo {
+  /** soma de min(1, nível do seu / nível do boss) nos seis lugares */
+  forca: number;
+  /** quantos lugares estão preenchidos */
+  membros: number;
+  /** `MEMBROS_EXIGIDOS − força` */
+  deficit: number;
+  /** o que o jogo multiplica no dano que você toma: `3 ^ deficit` */
+  mult: number;
+}
+
+/**
+ * A força do grupo contra este boss.
+ *
+ * Cada um dos seis lugares vale, no máximo, 1 — e vale menos na proporção do
+ * nível: um pokémon de nível 150 contra um boss 300 entrega meio ponto. Lugar
+ * vazio entrega zero, e é por isso que o jogo insiste em "leve 6": cada vaga
+ * aberta multiplica o dano que você toma por três.
+ *
+ * O teto em 1 por membro é o que a tela do jogo descreve ("no nível do boss"):
+ * levar alguém muito acima não compra crédito pros outros.
+ */
+export function forcaDoGrupo(niveis: number[], nivelAlvo: number): ForcaGrupo {
+  const base = Math.max(1, nivelAlvo);
+  const forca = niveis
+    .slice(0, MEMBROS_EXIGIDOS)
+    .reduce((soma, n) => soma + Math.min(1, Math.max(0, n) / base), 0);
+  const deficit = Math.max(0, MEMBROS_EXIGIDOS - forca);
+  return {
+    forca,
+    membros: niveis.filter((n) => n > 0).length,
+    deficit,
+    mult: Math.pow(3, deficit),
+  };
 }
 
 /** A passagem de UM membro pelo ringue — do momento em que entra ao em que sai. */
@@ -175,11 +235,12 @@ function golpesDe(a: ArenaMon, pool: MovePool): GolpeSim[] {
  * lutador (o boss tem cinco vidas), não do golpe. Já o reforço de DANO fica de
  * fora: ele multiplica o golpe, e quem aplica é quem bate.
  */
-function ladoDe(a: ArenaMon, pool: MovePool, reforcoHp = false): LadoSim {
+function ladoDe(a: ArenaMon, pool: MovePool, reforcoHp = false, neutro = false): LadoSim {
   return {
     nivel: a.level,
     t1: a.mon.type1,
     t2: a.mon.type2,
+    neutro,
     hp: a.stats[0] * (reforcoHp ? REFORCO_HP : 1),
     atk: a.stats[1],
     spa: a.stats[3],
@@ -244,11 +305,14 @@ export function simularArena(
   if (!time.length) return vazio;
 
   // A TM é do jogador: o boss bate sempre com o moveset natural da espécie dele.
-  const ladoAlvo = ladoDe(alvo, "natural", alvo.reforco);
+  const ladoAlvo = ladoDe(alvo, "natural", alvo.reforco, alvo.neutro);
   const hpAlvoCheio = ladoAlvo.hp;
   if (hpAlvoCheio <= 0) return vazio;
 
-  const multAlvo = alvo.reforco ? REFORCO_DANO : 1;
+  // O dano do alvo carrega DUAS coisas: o reforço de selvagem (documentado) e a
+  // penalidade de grupo (medida na própria tela do jogo). A segunda costuma ser
+  // uma ordem de grandeza maior que a primeira, e é ela que decide a luta.
+  const multAlvo = (alvo.reforco ? REFORCO_DANO : 1) * (alvo.multDanoRecebido ?? 1);
 
   // O relógio do boss nasce na própria recarga e NÃO é reiniciado entre membros:
   // é a mecânica 2 do cabeçalho deste arquivo. Ele é indexado pelo moveset do
@@ -375,7 +439,7 @@ export function fichaDe(
   pool: MovePool = "natural",
 ): FichaMembro {
   const lado = ladoDe(membro, pool);
-  const ladoAlvo = ladoDe(alvo, "natural", alvo.reforco);
+  const ladoAlvo = ladoDe(alvo, "natural", alvo.reforco, alvo.neutro);
 
   let golpe: Attack | null = null;
   let maiorDano = 0;
@@ -398,7 +462,13 @@ export function fichaDe(
     mon: membro.mon,
     golpe,
     tipo: golpe?.type ?? null,
-    eff: golpe ? huntEffectiveness(golpe.type, alvo.mon.type1, alvo.mon.type2) : 0,
+    // A etiqueta sai da MESMA função que o dano usou. Calcular por fora aqui foi
+    // o que deixou a tela prometer 2,5x contra um boss Neutro.
+    eff: golpe
+      ? efetividadeEntre(lado, ladoAlvo, {
+          type: golpe.type, power: golpe.power, category: golpe.category, cooldownMs: golpe.cooldownMs,
+        })
+      : 0,
     maiorDano,
     dps,
     ttkSozinho: solo.vitoria ? solo.segundos : Infinity,
@@ -426,15 +496,5 @@ export function melhorDoTime(fichas: FichaMembro[]): FichaMembro | null {
   return melhor;
 }
 
-/**
- * A penalidade de grupo do jogo, como ela é observada — e nada além disso.
- *
- * O `/api/game/boss` devolve `mult` e `deficit` por boss, e a relação entre os
- * dois é exata: `mult = 3^deficit`. Isto está aqui pra a tela poder DIZER o
- * tamanho do que ela não está calculando ("faltando 3,5 de força, o jogo
- * multiplica por ~49"), e não pra entrar em conta nenhuma — ver o cabeçalho.
- */
-export const penalidadeDeGrupo = (deficit: number): number => Math.pow(3, Math.max(0, deficit));
-
-export const ARENA_MEMBROS = 6;
+export const ARENA_MEMBROS = MEMBROS_EXIGIDOS;
 export { REFORCO_HP, REFORCO_DANO };

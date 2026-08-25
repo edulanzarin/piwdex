@@ -43,8 +43,18 @@ export interface StadiumState {
   alvo: number | null;
   alvoLv: number;
   alvoQ: number;
-  /** o alvo leva o reforço do jogo: HP x5 e dano x1.8 */
+  /** o alvo leva o reforço de SELVAGEM: HP x5 e dano x1.8 */
   reforco: boolean;
+  /**
+   * Os seis stats do alvo, quando se conhece.
+   *
+   * Vazio (tudo zero) = a tela projeta de nível, quality e IV. Preenchido = são
+   * os números que a pessoa leu no jogo, e aí não se projeta nada — é o caso do
+   * boss, cuja vida só aparece na barra durante o combate.
+   */
+  alvoStats: number[];
+  /** `Elemento: Neutro` na ficha do boss: ninguém tem vantagem, nos dois sentidos */
+  neutro: boolean;
   time: SlotState[];
   pool: "natural" | "tm";
   /** IV suposto pro ALVO, que é o único lado sem stats publicados */
@@ -85,6 +95,10 @@ export const EMPTY_STADIUM: StadiumState = {
   // reforçado. Abrir sem reforço mostraria um combate que não existe e faria
   // todo time parecer melhor do que é.
   reforco: true,
+  alvoStats: [0, 0, 0, 0, 0, 0],
+  // Boss no jogo é Neutro (a ficha do Ancient Aero diz isso), e o Stadium abre
+  // em boss. Alvo montado à mão desliga.
+  neutro: true,
   time: Array.from({ length: SLOTS }, () => slotVazio()),
   pool: "natural",
   iv: "medio",
@@ -139,6 +153,11 @@ export function parseStadiumState(sp: URLSearchParams): StadiumState {
     // Ausente é o PADRÃO (ligado), e só o "0" explícito desliga. Escrever a
     // ausência como desligado deixaria todo link antigo abrir sem reforço.
     reforco: sp.get("reforco") !== "0",
+    alvoStats: (() => {
+      const b = (sp.get("as") ?? "").split("-");
+      return Array.from({ length: 6 }, (_, i) => Math.max(0, Math.round(num(b[i] ?? null, 0))));
+    })(),
+    neutro: sp.get("neutro") !== "0",
     time: Array.from({ length: SLOTS }, (_, i) => parseSlot(bruto[i] ?? "")),
     pool: oneOf(sp.get("golpes"), POOLS, EMPTY_STADIUM.pool),
     iv: oneOf(sp.get("iv"), IVS, EMPTY_STADIUM.iv),
@@ -167,6 +186,8 @@ export function buildStadiumSearch(s: StadiumState): string {
   put("alv", s.alvoLv, EMPTY_STADIUM.alvoLv);
   put("aq", Number(s.alvoQ.toFixed(3)), EMPTY_STADIUM.alvoQ);
   if (!s.reforco) p.set("reforco", "0");
+  if (s.alvoStats.some((v) => v > 0)) p.set("as", s.alvoStats.join("-"));
+  if (!s.neutro) p.set("neutro", "0");
   const time = s.time.map(writeSlot);
   // `replace` tira só as vírgulas do FIM: slot vazio no meio continua ocupando a
   // casa dele.

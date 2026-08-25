@@ -8,11 +8,13 @@ import { spriteUrl, assetIconUrl } from "@/lib/sprites";
 import { projectAll, IV_MAX } from "@/lib/stats";
 import { DEFAULT_IV } from "@/lib/meta";
 import { REFORCO_HP, REFORCO_DANO } from "@/lib/stadium";
-import { STAT_SHORT, compact, monLabel, num } from "@/lib/labels";
+import { STAT_LABEL, STAT_SHORT, compact, monLabel, num } from "@/lib/labels";
 import {
+  Button,
   Chip,
   Combobox,
   Field,
+  FieldLabel,
   NumberField,
   Note,
   Panel,
@@ -22,7 +24,7 @@ import {
   type ComboOption,
 } from "@/components/ui";
 import { TypeBadge } from "@/components/type-icon";
-import { IconGem, IconLevel } from "@/components/game-icons";
+import { IconGem, IconLevel, STAT_ICONS } from "@/components/game-icons";
 
 const TINT = "var(--color-t-stadium)";
 
@@ -111,14 +113,34 @@ export function StadiumAlvo({
     patch({ boss: key, alvoLv: b.level, ...(b.mon != null ? { alvo: b.mon } : {}) });
   };
 
-  const stats = alvo
+  /**
+   * Os seis do alvo: os que a pessoa DIGITOU, ou a projeção.
+   *
+   * Digitado vence sempre, e é o caminho certo pra boss — o jogo não publica
+   * stat nenhum deles, e a barra de vida durante o combate é a única fonte que
+   * existe. O Ancient Aero tem 72 mil de vida; a projeção sobre o Aerodactyl dá
+   * 4,6 mil. Não é imprecisão, é outra grandeza.
+   */
+  const projetados = alvo
     ? projectAll(
         [alvo.baseHp, alvo.baseAtk, alvo.baseDef, alvo.baseSpAtk, alvo.baseSpDef, alvo.baseSpeed],
         Array<number>(6).fill(state.iv === "perfeito" ? IV_MAX : DEFAULT_IV),
         state.alvoLv,
         state.alvoQ,
-      )
+      ).stats
     : null;
+  const conhecidos = state.alvoStats.some((v) => v > 0);
+  const stats = conhecidos ? state.alvoStats : projetados;
+
+  const setStat = (i: number, v: number) =>
+    patch({
+      // Mexer num stat CONGELA os seis: a partir daí eles são dados, não
+      // projeção. Deixar os outros cinco seguirem o nível faria metade da ficha
+      // andar quando a pessoa corrigisse a vida.
+      alvoStats: (conhecidos ? state.alvoStats : projetados ?? [0, 0, 0, 0, 0, 0]).map((x, j) =>
+        j === i ? Math.max(0, Math.round(v)) : x,
+      ),
+    });
 
   return (
     <Panel
@@ -200,12 +222,30 @@ export function StadiumAlvo({
         </Field>
       </div>
 
+      <Field
+        label="Elemento"
+        hint={
+          state.neutro
+            ? "é o que a ficha do boss no jogo mostra: ninguém tem vantagem, nos dois sentidos"
+            : "usa o tipo da espécie; vale pra selvagem, não pra boss"
+        }
+      >
+        <Segmented
+          value={state.neutro ? "neutro" : "tipo"}
+          onChange={(v) => patch({ neutro: v === "neutro" })}
+          options={[
+            { value: "neutro", label: "neutro", title: "Elemento: Neutro — como o jogo mostra na ficha do boss" },
+            { value: "tipo", label: "tipo da espécie", title: "Aerodactyl entra como Pedra/Voador" },
+          ]}
+        />
+      </Field>
+
       <Field>
         <Switch
           checked={state.reforco}
           onChange={(e) => patch({ reforco: e.currentTarget.checked })}
-          label="leva o reforço do jogo"
-          hint={`HP x${REFORCO_HP} e dano x${REFORCO_DANO}, como o jogo reforça o lado selvagem`}
+          label="leva o reforço de selvagem"
+          hint={`HP x${REFORCO_HP} e dano x${REFORCO_DANO}. É a regra da caçada; com a vida do boss digitada, deixe desligado`}
         />
       </Field>
 
@@ -241,27 +281,61 @@ export function StadiumAlvo({
             </div>
           </div>
 
-          <dl className="grid grid-cols-3 gap-x-3 gap-y-1">
-            {stats.stats.map((v, i) => (
-              <div key={i} className="flex items-baseline justify-between gap-2">
-                <dt className="pix text-[10px] text-text-mute">{STAT_SHORT[i]}</dt>
-                <dd className="tabular text-[12px] text-text-dim">
-                  {/* O HP mostra o valor REFORÇADO, que é o que a luta usa. Mostrar
-                      o cru ao lado de um combate que consumiu cinco vezes isso faria
-                      a pessoa conferir a conta e achar que a tela errou. */}
-                  {i === 0 && state.reforco
-                    ? compact(Math.round(v * REFORCO_HP))
-                    : compact(v)}
-                </dd>
-              </div>
-            ))}
-          </dl>
+          <div className="flex flex-col gap-1.5 border-t border-line pt-2">
+            <div className="flex items-baseline justify-between gap-2">
+              <FieldLabel>Stats do alvo</FieldLabel>
+              {conhecidos ? (
+                <button
+                  type="button"
+                  className="pix text-[10px] text-text-mute underline-offset-2 hover:text-text hover:underline"
+                  onClick={() => patch({ alvoStats: [0, 0, 0, 0, 0, 0] })}
+                >
+                  VOLTAR À ESTIMATIVA
+                </button>
+              ) : (
+                <span className="pix text-[10px] text-warn">ESTIMADO</span>
+              )}
+            </div>
+            {/* Duas colunas: a coluna do alvo tem 21rem, e três campos de número
+                não cabem. Mesma escada do formulário de carta. */}
+            <div className="grid grid-cols-2 gap-1.5">
+              {STAT_LABEL.map((label, i) => {
+                const Icon = STAT_ICONS[i];
+                return (
+                  <div key={label}>
+                    <FieldLabel className="mb-0.5 flex items-center gap-1 text-text-mute">
+                      <Icon size={13} />
+                      {STAT_SHORT[i]}
+                    </FieldLabel>
+                    <NumberField
+                      min={0}
+                      fallback={0}
+                      grouped
+                      aria-label={`${label} do alvo`}
+                      value={stats[i]}
+                      onChange={(v) => setStat(i, v)}
+                      className="text-center text-[14px]"
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          </div>
 
-          {state.reforco ? (
+          {conhecidos ? (
             <Note flush className="text-[12px]">
-              A vida mostrada já é a reforçada: {compact(stats.stats[0])} x {REFORCO_HP}.
+              {state.reforco
+                ? `A vida entra reforçada: ${compact(stats[0])} x ${REFORCO_HP} = ${compact(stats[0] * REFORCO_HP)}. Se ${compact(stats[0])} já é o que o jogo mostra, desligue o reforço.`
+                : `A vida entra como está: ${compact(stats[0])}.`}
             </Note>
-          ) : null}
+          ) : (
+            <Note tone="warn" flush className="text-[12px]">
+              O jogo não publica stat de boss, então isto é projetado da espécie. Na luta, a
+              barra de vida dele mostra o número de verdade — o Ancient Aero tem 72 mil, e a
+              estimativa aqui dá {compact((stats[0] ?? 0) * (state.reforco ? REFORCO_HP : 1))}.
+              Digite o que você viu e ele fica guardado.
+            </Note>
+          )}
 
           {boss?.drops.length ? (
             <div className="flex flex-wrap items-center gap-1.5 border-t border-line pt-2">

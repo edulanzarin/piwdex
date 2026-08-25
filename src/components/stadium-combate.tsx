@@ -199,10 +199,10 @@ export function StadiumCombate({
       ) : null}
 
       <Note tone="warn">
-        O jogo aplica uma penalidade de grupo que não está publicada, e ela é grande. A
-        resposta dele traz <code>mult</code> e <code>deficit</code> por boss, e a relação
-        entre os dois é exata (<code>mult = 3^deficit</code>). O que falta é como a força do
-        grupo se calcula e o que esse fator multiplica. O combate acima roda sem ela.
+        O que ainda falta são os stats do boss: o jogo não publica nenhum. Se os seis
+        números do alvo estão marcados como estimados, o tempo de combate é um chute de
+        ordem de grandeza — a vida do Ancient Aero é 72 mil, e a projeção sobre a espécie
+        dá 4,6 mil. A penalidade de grupo, essa, já está na conta.
       </Note>
     </Panel>
   );

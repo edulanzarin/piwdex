@@ -11,7 +11,9 @@ import { DEFAULT_IV } from "@/lib/meta";
 import { apagarCarta, cartaCompleta, lerBolsa, salvarCarta, type Carta } from "@/lib/bolsa";
 import { apagarDeck, lerDecks, salvarDeck, type Deck } from "@/lib/decks";
 import {
+  MEMBROS_EXIGIDOS,
   fichaDe,
+  forcaDoGrupo,
   melhorDoTime,
   simularArena,
   statsEstimados,
@@ -19,6 +21,7 @@ import {
   type ArenaMon,
   type FichaMembro,
 } from "@/lib/stadium";
+import { lerBosses, salvarBoss, type BossConhecido } from "@/lib/boss-store";
 import {
   EMPTY_STADIUM,
   buildStadiumSearch,
@@ -32,7 +35,8 @@ import { StadiumTime } from "@/components/stadium-time";
 import { StadiumCombate } from "@/components/stadium-combate";
 import { StadiumCarta } from "@/components/stadium-carta";
 import { BarraDeck, StadiumBolsa } from "@/components/stadium-bolsa";
-import { Empty, Field, FieldRow, Note, Panel, Segmented } from "@/components/ui";
+import { Empty, Field, FieldRow, Metric, Note, Panel, Segmented, Segments } from "@/components/ui";
+import { compact, num } from "@/lib/labels";
 import { IconGem, IconTm } from "@/components/game-icons";
 
 const TINT = "var(--color-t-stadium)";
@@ -99,9 +103,11 @@ export function StadiumTool({
   // no primeiro render faria o HTML do servidor divergir do cliente.
   const [cartas, setCartas] = useState<Carta[]>([]);
   const [decks, setDecks] = useState<Deck[]>([]);
+  const [bossesSabidos, setBossesSabidos] = useState<Record<string, BossConhecido>>({});
   useEffect(() => {
     setCartas(lerBolsa());
     setDecks(lerDecks());
+    setBossesSabidos(lerBosses());
   }, []);
 
   const [bolsaAberta, setBolsaAberta] = useState(false);
@@ -214,18 +220,36 @@ export function StadiumTool({
   const alvoMon = s.alvo != null ? byId.get(s.alvo) ?? null : null;
   const bossAtual = s.boss ? bosses.find((b) => b.key === s.boss) ?? null : null;
 
+  /**
+   * A força do grupo, e a penalidade que sai dela.
+   *
+   * Ela se calcula sobre os SEIS LUGARES e não sobre quem está apto a lutar:
+   * lugar vazio entrega zero e multiplica o dano recebido por três. É o número
+   * que o jogo mostra na ficha do boss ("Seu time: 2.5/6 no nível · dano
+   * recebido ×48.51"), e mostrá-lo igual é o que deixa conferir um contra o
+   * outro.
+   */
+  const forca = useMemo(
+    () => forcaDoGrupo(s.time.map((x) => (x.id != null ? x.level : 0)), s.alvoLv),
+    [s.time, s.alvoLv],
+  );
+
   const alvo = useMemo<ArenaAlvo | null>(
     () =>
       alvoMon
         ? {
             mon: alvoMon,
             level: s.alvoLv,
-            // O único lado projetado da tela. Ver o cabeçalho.
-            stats: statsEstimados(alvoMon, s.alvoLv, s.alvoQ, ivs),
+            // Digitado vence a projeção: o jogo não publica stat de boss.
+            stats: s.alvoStats.some((v) => v > 0)
+              ? s.alvoStats
+              : statsEstimados(alvoMon, s.alvoLv, s.alvoQ, ivs),
             reforco: s.reforco,
+            neutro: s.neutro,
+            multDanoRecebido: forca.mult,
           }
         : null,
-    [alvoMon, s.alvoLv, s.alvoQ, s.reforco, ivs],
+    [alvoMon, s.alvoLv, s.alvoQ, s.reforco, s.neutro, s.alvoStats, ivs, forca.mult],
   );
 
   /** O time como o motor entende, junto com o slot de origem de cada um. */
@@ -265,6 +289,36 @@ export function StadiumTool({
   }, [escalados, alvo, s.pool]);
 
   const melhor = useMemo(() => melhorDoTime([...fichas.values()]), [fichas]);
+
+  /**
+   * O que se sabe do boss escolhido volta sozinho, e o que se corrige fica.
+   *
+   * São dois efeitos e não um porque as direções são independentes: trocar de
+   * boss RECUPERA (leitura), e mexer nos stats GUARDA (escrita). Num efeito só,
+   * cada troca de boss gravaria por cima do que acabou de ler.
+   */
+  useEffect(() => {
+    if (!s.boss) return;
+    const sabido = bossesSabidos[s.boss];
+    if (!sabido) return;
+    setS((old) =>
+      old.boss === s.boss && !old.alvoStats.some((v) => v > 0)
+        ? { ...old, alvoStats: [...sabido.stats], neutro: sabido.neutro }
+        : old,
+    );
+    // `bossesSabidos` fora das dependências de propósito: ele muda a cada
+    // gravação, e reagir a isso reimporia o valor salvo por cima do que a pessoa
+    // está digitando naquele instante.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [s.boss]);
+
+  useEffect(() => {
+    if (!s.boss || !s.alvoStats.some((v) => v > 0)) return;
+    const t = setTimeout(() => {
+      setBossesSabidos(salvarBoss(s.boss, { stats: [...s.alvoStats], neutro: s.neutro }));
+    }, 500);
+    return () => clearTimeout(t);
+  }, [s.boss, s.alvoStats, s.neutro]);
 
   /**
    * Como o alvo se chama na tela.
@@ -313,8 +367,9 @@ export function StadiumTool({
             : "Só naturais é o que todo pokémon aprende sozinho. É a leitura certa pra saber se dá pra encarar o boss com o time como ele está hoje."}
         </Note>
         <Note flush className="max-w-[46rem]">
-          O seu time entra com os stats que você copiou do jogo. O alvo não: o jogo não
-          publica stat de boss, então os seis números dele saem de nível, quality e este IV.
+          {s.alvoStats.some((v) => v > 0)
+            ? "O alvo está com os stats que você digitou, então este IV não entra em nada — ele só serve pra projetar o alvo quando os números dele são desconhecidos."
+            : "O seu time entra com os stats que você copiou do jogo. O alvo não: o jogo não publica stat de boss, então os seis números dele saem de nível, quality e este IV — até você digitar o que viu na luta."}
         </Note>
       </Panel>
 
@@ -379,6 +434,51 @@ export function StadiumTool({
           ) : null}
         </Panel>
       </div>
+
+      {alvo ? (
+        <Panel
+          title={<span className="pix">A força do grupo</span>}
+          bodyClassName="flex flex-col gap-3"
+        >
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+            <Metric
+              size="sm"
+              value={num(forca.forca, 1)}
+              suffix={`/${MEMBROS_EXIGIDOS}`}
+              label="no nível do alvo"
+              tint={forca.forca >= MEMBROS_EXIGIDOS ? "var(--color-ok)" : TINT}
+              hint="cada lugar vale no máximo 1, e vale menos na proporção do nível"
+            />
+            <Metric
+              size="sm"
+              value={`x${forca.mult >= 100 ? compact(Math.round(forca.mult)) : num(forca.mult, 2)}`}
+              label="dano que você toma"
+              tint={
+                forca.mult >= 10
+                  ? "var(--color-danger)"
+                  : forca.mult > 1
+                    ? "var(--color-warn)"
+                    : "var(--color-ok)"
+              }
+              hint="o jogo mostra este mesmo número na ficha do boss"
+            />
+            <Segments
+              ratio={forca.forca / MEMBROS_EXIGIDOS}
+              tint={forca.forca >= MEMBROS_EXIGIDOS ? "var(--color-ok)" : TINT}
+              label="força do grupo"
+              value={forca.forca}
+              max={MEMBROS_EXIGIDOS}
+              className="min-w-[12rem] flex-1"
+            />
+          </div>
+
+          <Note flush tone={forca.mult >= 10 ? "danger" : forca.mult > 1 ? "warn" : "ok"}>
+            {forca.mult <= 1
+              ? "Grupo completo e no nível: você toma o dano cheio do alvo, sem multiplicador."
+              : `Faltando ${num(forca.deficit, 1)} de força, o jogo multiplica por ${num(forca.mult, forca.mult >= 100 ? 0 : 2)} o dano que você toma. Cada lugar vazio triplica esse número, então levar os seis no nível do alvo muda mais o resultado do que trocar de espécie.`}
+          </Note>
+        </Panel>
+      ) : null}
 
       {resultado && alvo ? (
         <StadiumCombate
