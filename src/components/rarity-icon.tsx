@@ -1,6 +1,6 @@
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { cn } from "@/lib/cn";
-import type { Rarity } from "@/lib/types";
+import type { RarityTier } from "@/lib/rarity";
 
 /**
  * O BRASAO de cada raridade.
@@ -23,8 +23,35 @@ import type { Rarity } from "@/lib/types";
  * serve a escada inteira e nunca sai de sincronia com ela. As facetas sao o mesmo
  * `currentColor` em opacidades diferentes — cravar um segundo hex aqui criaria
  * uma cor de raridade que a escada nao conhece.
+ *
+ * ## Sao NOVE degraus, e nao seis
+ *
+ * A escada nasceu com os seis da RARIDADE DA ESPECIE (`creatures.json`), porque
+ * era o que as paginas de `/dex/raridade` pediam. Mas o site tem uma segunda
+ * escada com os mesmos nomes: a QUALITY do INDIVIDUO, que vai de `WEAK` (abaixo
+ * de 1.0) ate `DIVINE` (4.0+) e e a que a calculadora, a hunt e o painel do robo
+ * mostram. Ver o aviso no topo de `lib/rarity.ts`.
+ *
+ * Ficar nos seis obrigaria essas telas a nao ter brasao nenhum — ou, pior, a
+ * emprestar o de `MYTHIC` pra `ANCIENT`, que e afirmar que os dois degraus sao o
+ * mesmo. Entao a escada foi completada, e a regra da forma continua valendo nas
+ * pontas: `WEAK` e a pedra PARTIDA (menos que uma pedra inteira), `ANCIENT` e a
+ * gema dentro de um anel (relíquia) e `DIVINE` e a gema irradiando.
+ *
+ * `Rarity` continua servido por aqui sem conversao: os seis nomes dela sao um
+ * subconjunto dos nove.
  */
-const BRASAO: Record<Rarity, ReactNode> = {
+const BRASAO: Record<RarityTier, ReactNode> = {
+  /* Pedra PARTIDA: duas lascas em vez de um bloco. E o unico degrau que TIRA
+     massa do anterior em vez de acrescentar, e e assim que ele diz "abaixo de
+     comum" sem depender do cinza. */
+  WEAK: (
+    <>
+      <path d="M6.6 10.4 11 5.6l1.2 4.4-1.9 8.4H8.5z" opacity=".9"/>
+      <path d="M11 5.6 6.6 10.4h5.6z" opacity=".5"/>
+      <path d="m14.4 12.2 3.6-2.2 1.4 3.1-1.2 5.3h-2.2z" opacity=".55"/>
+    </>
+  ),
   COMMON: (
     <>
       <path d="M6.4 9.2 12 3.6l5.6 5.6-2.2 9.6H8.6z" opacity=".95"/>
@@ -72,6 +99,36 @@ const BRASAO: Record<Rarity, ReactNode> = {
       <path d="m20.8 11.6.6 1.6 1.6.6-1.6.6-.6 1.6-.6-1.6-1.6-.6 1.6-.6z"/>
     </>
   ),
+  /* RELIQUIA: a gema encerrada num anel. O anel e o que separa este degrau do
+     MYTHIC sem repetir estrela — os dois somam alguma coisa em volta da gema, e
+     duas somas parecidas viravam a mesma mancha em 14px. */
+  ANCIENT: (
+    <>
+      <path d="M12 1.2a10.8 10.8 0 1 1 0 21.6 10.8 10.8 0 0 1 0-21.6zm0 2.6a8.2 8.2 0 1 0 0 16.4 8.2 8.2 0 0 0 0-16.4z" opacity=".45"/>
+      <path d="M9 8.2h6l3 3.4-6 6.2-6-6.2z" opacity=".95"/>
+      <path d="M9 8.2h6l3 3.4H6z" opacity=".5"/>
+      <path d="M12 11.6h6l-6 6.2z" opacity=".3"/>
+    </>
+  ),
+  /* IRRADIANDO: oito raios curtos em volta da gema. Curtos de proposito — na
+     folha de contato a versao com raio longo comia a gema em 14px e o topo da
+     escada virava um asterisco, perdendo justamente a peca que os outros oito
+     degraus constroem. */
+  DIVINE: (
+    <>
+      <path d="M7.8 8h8.4l3 3.4-7.2 7.4-7.2-7.4z" opacity=".95"/>
+      <path d="M7.8 8h8.4l3 3.4H4.8z" opacity=".5"/>
+      <path d="M12 11.4h7.2L12 18.8z" opacity=".3"/>
+      <rect x="11.05" y="0" width="1.9" height="2.8" rx=".95" transform="rotate(0 12 12)"/>
+      <rect x="11.05" y="0" width="1.9" height="2.8" rx=".95" transform="rotate(45 12 12)"/>
+      <rect x="11.05" y="0" width="1.9" height="2.8" rx=".95" transform="rotate(90 12 12)"/>
+      <rect x="11.05" y="0" width="1.9" height="2.8" rx=".95" transform="rotate(135 12 12)"/>
+      <rect x="11.05" y="0" width="1.9" height="2.8" rx=".95" transform="rotate(180 12 12)"/>
+      <rect x="11.05" y="0" width="1.9" height="2.8" rx=".95" transform="rotate(225 12 12)"/>
+      <rect x="11.05" y="0" width="1.9" height="2.8" rx=".95" transform="rotate(270 12 12)"/>
+      <rect x="11.05" y="0" width="1.9" height="2.8" rx=".95" transform="rotate(315 12 12)"/>
+    </>
+  ),
 };
 
 /** Piso de 14px, como todo glifo do site. */
@@ -81,10 +138,14 @@ export function RarityIcon({
   rarity,
   size = 16,
   className,
+  style,
 }: {
-  rarity: Rarity;
+  rarity: RarityTier;
   size?: number;
   className?: string;
+  /** o brasao herda `color`; o `style` existe pra quem precisa dar essa cor no
+   *  proprio elemento, como as opcoes de menu, em vez de embrulhar num span */
+  style?: CSSProperties;
 }) {
   const s = Math.max(MIN, size);
   return (
@@ -94,6 +155,7 @@ export function RarityIcon({
       height={s}
       fill="currentColor"
       className={cn("shrink-0", className)}
+      style={style}
       aria-hidden="true"
       focusable="false"
     >

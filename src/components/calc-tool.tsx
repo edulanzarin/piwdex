@@ -31,6 +31,7 @@ import {
   Tooltip,
 } from "@/components/ui";
 import { TypeIcon } from "@/components/type-icon";
+import { RarityIcon } from "@/components/rarity-icon";
 import {
   IconGem,
   IconLevel,
@@ -309,7 +310,16 @@ export function CalcTool({ especies }: { especies: CalcSpecies[] }) {
                   da fila e selo administrativo; dito antes do nome, e identidade.
                   E carrega o numero que o gerou (a quality), porque aqui a faixa
                   nao e um traco do bicho: e leitura do que a pessoa digitou. */}
-              <span className="pix text-[10px] tracking-[0.18em]" style={{ color: TIER_COLOR[tier] }}>
+              {/* O brasao entra aqui pela mesma razao que a cor ja entrava: a
+                  faixa de quality e a MESMA escada de seis degraus da raridade,
+                  aplicada a outro sujeito. O eixo fica declarado pela frase ao
+                  lado ("quality 1.8"), como sempre esteve — quem separa as duas
+                  grandezas e o texto, nao um segundo desenho. */}
+              <span
+                className="pix flex items-center gap-2 text-[10px] tracking-[0.18em]"
+                style={{ color: TIER_COLOR[tier] }}
+              >
+                <RarityIcon rarity={tier} size={15} />
                 {TIER_LABEL[tier]} · quality {s.quality}
               </span>
 

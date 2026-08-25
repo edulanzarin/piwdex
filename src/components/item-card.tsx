@@ -6,6 +6,7 @@ import { RARITY_COLOR } from "@/lib/typing";
 import { assetIconUrl, spriteUrl } from "@/lib/sprites";
 import { IconCoin, Pokeball, Sprite, Tooltip } from "@/components/ui";
 import { ITEM_CATEGORY_ART, IconLevel, IconLoot, IconShop, ItemCategoryIcon } from "@/components/game-icons";
+import { RarityIcon } from "@/components/rarity-icon";
 import { ITEM_CATEGORY_LABEL, ITEM_ORIGIN_LABEL, RARITY_LABEL, compact, num} from "@/lib/labels";
 
 /**
@@ -215,12 +216,26 @@ export function ItemCard({
           retangulo com uma linha de texto — arte e placa viravam dois blocos
           empilhados que por acaso tem a mesma largura, em vez de uma peca so. */}
       <div className="relative flex flex-col items-center gap-1 border-t border-line bg-surface-2/70 px-3.5 pt-6 pb-3.5 text-center transition-colors duration-200 group-hover:bg-surface-3/70">
-        {/* O MEDALHAO carrega a CATEGORIA, que e o que se procura primeiro depois
-            do nome — o mesmo papel que o disco de tipo faz no card de especie.
-            O anel dele sai da FAIXA: um acento por card, e dois fatos em dois
-            canais (o glifo diz o que e, o anel diz quao raro). Pintar a categoria
-            de uma cor propria seria inventar cor de dado onde a fonte nao tem
-            nenhuma. */}
+        {/* O MEDALHAO desenha o que o EPITETO escreve — a FAIXA.
+
+            Ele carregava a categoria, com o anel na cor da faixa: dois fatos em
+            dois canais. Parecia economia e era ruido, porque a palavra logo
+            abaixo dizia "Raro" enquanto o glifo dentro do anel desenhava um cubo.
+            Glifo e palavra a 20px um do outro tem que falar da mesma coisa; senao
+            o olho junta os dois e le "cubo raro".
+
+            E a faixa tem brasao PROPRIO, com a escada na forma (pedra bruta ate
+            cristal com estrelas) — seis desenhos que existiam e so apareciam nas
+            seis paginas de `/dex/raridade`. Aqui eles ganham o lugar onde a
+            escada e consultada de verdade.
+
+            A categoria nao perde nada: a palavra dela ja mora no canto do painel
+            de arte, e o argumento pra isso continua valendo — categoria de item e
+            taxonomia DESTE site, entao ela precisa da palavra, nao do glifo.
+
+            Sem faixa, o medalhao acompanha o epiteto na mesma queda: ele passa a
+            desenhar a ORIGEM, que e o que a linha de baixo escreve. Os dois nunca
+            falam de coisas diferentes. */}
         <span
           aria-hidden="true"
           className="absolute -top-5 left-1/2 flex -translate-x-1/2 items-center"
@@ -231,9 +246,15 @@ export function ItemCard({
               "transition-transform duration-300 ease-out motion-safe:group-hover:scale-110",
             )}
             style={{ borderColor: tint, color: tint }}
-            title={ITEM_CATEGORY_LABEL[e.category]}
+            title={e.tier ? RARITY_LABEL[e.tier] : ITEM_ORIGIN_LABEL[e.origin]}
           >
-            <ItemCategoryIcon category={e.category} size={20} />
+            {e.tier ? (
+              <RarityIcon rarity={e.tier} size={20} />
+            ) : e.origin === "shop" ? (
+              <IconShop size={19} />
+            ) : (
+              <IconLoot size={19} />
+            )}
           </span>
         </span>
 
@@ -354,7 +375,11 @@ export function ItemRow({ e }: { e: ItemEntry }) {
           "mais que quem". */}
       <td className="px-3 py-2">
         {e.tier ? (
-          <span className="pix text-[11px]" style={{ color: RARITY_COLOR[e.tier] }}>
+          <span
+            className="pix flex items-center gap-1.5 text-[11px]"
+            style={{ color: RARITY_COLOR[e.tier] }}
+          >
+            <RarityIcon rarity={e.tier} size={14} />
             {RARITY_LABEL[e.tier]}
           </span>
         ) : (

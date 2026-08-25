@@ -39,6 +39,7 @@ import { PokeCard, PokeRow } from "@/components/poke-card";
 import { IconGem, IconScale, IconTarget, IconTm, IconXp, IconBag, IconLevel, STAT_ICONS } from "@/components/game-icons";
 import { ACQ_LABEL, RARITY_LABEL, REGION_LABEL, STAGE_LABEL, TYPE_LABEL } from "@/lib/labels";
 import { TypeIcon } from "@/components/type-icon";
+import { RarityIcon } from "@/components/rarity-icon";
 
 /**
  * A Pokedex.
@@ -510,10 +511,13 @@ function ActiveChips({
 
   for (const r of q.rarities)
     chips.push(
+      /* O brasao da propria faixa, e nao a gema generica que estava aqui: seis
+         degraus com o MESMO desenho e so a cor mudando e exatamente o que os
+         brasoes existem pra desfazer. */
       <Chip
         key={`r${r}`}
         tint={RARITY_COLOR[r]}
-        icon={<IconGem size={14} />}
+        icon={<RarityIcon rarity={r} size={14} />}
         onRemove={() => onChange({ rarities: q.rarities.filter((x) => x !== r) })}
       >
         {RARITY_LABEL[r]}

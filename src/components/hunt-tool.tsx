@@ -57,6 +57,7 @@ import {
   IconLista,
 } from "@/components/ui";
 import { TypeBadge, TypeIcon } from "@/components/type-icon";
+import { RarityIcon } from "@/components/rarity-icon";
 import {
   IconGem,
   IconLevel,
@@ -613,6 +614,7 @@ export function HuntTool({ payload }: { payload: HuntPayload }) {
                   className="pix flex flex-wrap items-center gap-x-2 text-[10px] tracking-[0.18em]"
                   style={{ color: TIER_COLOR[tierQ] }}
                 >
+                  <RarityIcon rarity={tierQ} size={15} />
                   {TIER_LABEL[tierQ]} · quality {aplicada.quality} ·
                   <Tooltip
                     content={

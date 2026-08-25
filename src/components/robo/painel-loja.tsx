@@ -6,6 +6,7 @@ import { Pokeball } from "@/components/ui/pokeball";
 import { ICONE, Secao, Valor } from "@/components/robo/pecas";
 import { compact, TIER_LABEL } from "@/lib/labels";
 import { qualityTier, TIER_COLOR, TIER_MIN, TIER_ORDER } from "@/lib/rarity";
+import { RarityIcon } from "@/components/rarity-icon";
 import { estoqueDoAlvo, type ConfigAuto, type EstadoHunt } from "@/lib/robo/motor/tipos";
 import { useRota } from "@/components/robo/conta-atual";
 
@@ -695,12 +696,12 @@ export function AbaLoja({
                       value: t,
                       label: TIER_LABEL[t],
                       render: (
+                        /* O brasao no lugar do quadradinho de cor: e aqui que a
+                           escada e ESCOLHIDA, entao e aqui que ela tem que ser
+                           aprendida — e forma se aprende, matiz so se reconhece
+                           depois de aprendida. */
                         <span className="flex items-center gap-2">
-                          <span
-                            className="h-2 w-2 shrink-0"
-                            style={{ backgroundColor: TIER_COLOR[t] }}
-                            aria-hidden="true"
-                          />
+                          <RarityIcon rarity={t} size={15} style={{ color: TIER_COLOR[t] }} />
                           <span className="flex-1">{TIER_LABEL[t]}</span>
                           <span className="text-[11px] tabular text-text-mute">{TIER_MIN[t].toFixed(2)}x</span>
                         </span>

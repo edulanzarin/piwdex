@@ -43,6 +43,7 @@ import {
 } from "@/components/game-icons";
 import { ITEM_CATEGORY_LABEL, ITEM_ORIGIN_LABEL, RARITY_LABEL, compact } from "@/lib/labels";
 import { RARITY_COLOR } from "@/lib/typing";
+import { RarityIcon } from "@/components/rarity-icon";
 import { CardAnuncio } from "@/components/anuncio";
 import { ehAnuncio, intercalar } from "@/lib/ads";
 
@@ -482,6 +483,7 @@ function ActiveChips({
       <Chip
         key={`t${t}`}
         tint={RARITY_COLOR[t]}
+        icon={<RarityIcon rarity={t} size={14} />}
         onRemove={() => onChange({ tiers: q.tiers.filter((x) => x !== t) })}
       >
         {RARITY_LABEL[t]}

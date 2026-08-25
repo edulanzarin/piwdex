@@ -6,6 +6,7 @@ import { RARITY_COLOR, TYPE_COLOR } from "@/lib/typing";
 import { officialArtUrl, spriteUrl } from "@/lib/sprites";
 import { Chip, IconCoin, IconPin, Sprite, Tooltip } from "@/components/ui";
 import { TypeBadge, TypeIcon } from "@/components/type-icon";
+import { RarityIcon } from "@/components/rarity-icon";
 import { IconBag, IconLevel, IconScale, IconTm, IconXp, STAT_ICONS } from "@/components/game-icons";
 import { ACQ_LABEL, RARITY_LABEL, ROLE_LABEL, STAT_LABEL, TYPE_LABEL, compact } from "@/lib/labels";
 
@@ -235,10 +236,20 @@ export function PokeCard({
           ))}
         </span>
 
+        {/* O EPITETO ganhou o BRASAO da faixa.
+
+            O medalhao da costura ja e dos tipos e continua sendo — tipo e o eixo
+            por onde a especie se procura. Entao a faixa entra aqui, colada na
+            palavra que ela nomeia, e a escada passa a ter forma tambem neste
+            card: pedra bruta ate cristal com estrelas, seis desenhos em vez de
+            seis tons da mesma coisa. Cor sozinha nunca separou pra quem nao
+            distingue matiz — e e o proprio argumento que este site usa em todo
+            lugar pra parear cor com forma. */}
         <span
-          className="pix text-[9px] tracking-[0.18em]"
+          className="pix flex items-center gap-1.5 text-[9px] tracking-[0.18em]"
           style={{ color: tint }}
         >
+          <RarityIcon rarity={e.rarity} size={14} />
           {RARITY_LABEL[e.rarity]}
         </span>
         <h3
@@ -378,7 +389,11 @@ export function PokeRow({ e }: { e: DexEntry }) {
         </span>
       </td>
       <td className="px-3 py-2">
-        <span className="pix text-[11px]" style={{ color: RARITY_COLOR[e.rarity] }}>
+        <span
+          className="pix flex items-center gap-1.5 text-[11px]"
+          style={{ color: RARITY_COLOR[e.rarity] }}
+        >
+          <RarityIcon rarity={e.rarity} size={14} />
           {RARITY_LABEL[e.rarity]}
         </span>
       </td>

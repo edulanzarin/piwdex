@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Chip, Loading, Modal, Note, Segments, Sprite } from "@/components/ui";
 import { TypeBadge } from "@/components/type-icon";
+import { RarityIcon } from "@/components/rarity-icon";
 import { compact, num, STAT_SHORT, TIER_LABEL } from "@/lib/labels";
 import { qualityTier, TIER_COLOR } from "@/lib/rarity";
 import { animatedSpriteUrl, spriteUrl } from "@/lib/sprites";
@@ -167,7 +168,7 @@ export function PokeModal({
               {/* `Chip` e nao uma caixa propria: ele nasce com a MESMA escada de
                   altura do `TypeBadge` (h-7 no `sm`), e era essa a diferenca que
                   deixava a raridade mais baixa que os tipos ao lado. */}
-              <Chip tint={TIER_COLOR[tier]}>
+              <Chip tint={TIER_COLOR[tier]} icon={<RarityIcon rarity={tier} size={14} />}>
                 {TIER_LABEL[tier]} · {ficha.quality.toFixed(2)}x
               </Chip>
             </span>

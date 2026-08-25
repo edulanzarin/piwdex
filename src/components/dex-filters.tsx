@@ -19,6 +19,7 @@ import {
   type MultiOption,
 } from "@/components/ui";
 import { TypeBadge } from "@/components/type-icon";
+import { RarityIcon } from "@/components/rarity-icon";
 import { IconBag, IconGem, IconLevel, IconScale, IconTarget, IconTm, IconWeak, IconXp } from "@/components/game-icons";
 import { ACQ_HINT, RARITY_LABEL, REGION_LABEL, STAGE_LABEL, TYPE_LABEL } from "@/lib/labels";
 
@@ -122,9 +123,18 @@ export function DexFilters({
   onClear,
   activeCount,
 }: Props) {
+  /* O menu e o unico lugar onde os seis degraus aparecem JUNTOS, entao e onde a
+     escada se aprende. Com o brasao ao lado do nome ela passa a ser aprendida na
+     forma tambem, e nao so na cor — e e a forma que sobrevive no card depois. */
   const rarityOptions: MultiOption<Rarity>[] = RARITY_ORDER.map((r) => ({
     value: r,
     label: RARITY_LABEL[r],
+    render: (
+      <span className="flex items-center gap-2">
+        <RarityIcon rarity={r} size={15} style={{ color: RARITY_COLOR[r] }} />
+        {RARITY_LABEL[r]}
+      </span>
+    ),
     tint: RARITY_COLOR[r],
     count: rarityCounts[r],
   }));

@@ -36,6 +36,7 @@ import {
   ItemCategoryIcon,
 } from "@/components/game-icons";
 import { ITEM_CATEGORY_LABEL, ITEM_ORIGIN_HINT, RARITY_LABEL, compact } from "@/lib/labels";
+import { RarityIcon } from "@/components/rarity-icon";
 
 /**
  * O trilho de filtros dos Itens — mesma forma da dex (trilho fixo, grupos
@@ -131,6 +132,12 @@ export function ItemsFilters({
   const tierOptions: MultiOption<Rarity>[] = RARITY_ORDER.map((r) => ({
     value: r,
     label: RARITY_LABEL[r],
+    render: (
+      <span className="flex items-center gap-2">
+        <RarityIcon rarity={r} size={15} style={{ color: RARITY_COLOR[r] }} />
+        {RARITY_LABEL[r]}
+      </span>
+    ),
     tint: RARITY_COLOR[r],
     count: tierCounts[r],
     hint: ITEM_TIER_HINT[r],

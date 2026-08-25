@@ -27,6 +27,7 @@ import {
   Tooltip,
 } from "@/components/ui";
 import { TypeBadge } from "@/components/type-icon";
+import { RarityIcon } from "@/components/rarity-icon";
 import {
   CategoryIcon,
   ITEM_CATEGORY_ART,
@@ -270,7 +271,11 @@ export default async function ItemPage({ params }: Props) {
               que ha espaco pra dizer o que ela mede. */}
           {e.tier ? (
             <span className="flex flex-col items-center gap-1">
-              <span className="pix text-[13px] tracking-[0.2em]" style={{ color: tint }}>
+              <span
+                className="pix flex items-center gap-2 text-[13px] tracking-[0.2em]"
+                style={{ color: tint }}
+              >
+                <RarityIcon rarity={e.tier} size={18} />
                 {RARITY_LABEL[e.tier]}
               </span>
               <span className="text-[13px] text-text-mute">{ITEM_TIER_HINT[e.tier]}</span>

@@ -24,6 +24,7 @@ import {
   Tooltip,
 } from "@/components/ui";
 import { TypeBadge, TypeIcon, TypeMultChip } from "@/components/type-icon";
+import { RarityIcon } from "@/components/rarity-icon";
 import { PingDestaque } from "@/components/ping-destaque";
 import { caminhoDoTipo } from "@/lib/tipo-url";
 import { caminhoDaRaridade } from "@/lib/raridade-url";
@@ -297,7 +298,13 @@ export default async function CreaturePage({ params }: Props) {
                 label: "raridade",
                 href: caminhoDaRaridade(c.rarity),
                 node: (
-                  <span style={{ color: RARITY_COLOR[c.rarity] }}>{RARITY_LABEL[c.rarity]}</span>
+                  <span
+                    className="inline-flex items-center gap-1.5"
+                    style={{ color: RARITY_COLOR[c.rarity] }}
+                  >
+                    <RarityIcon rarity={c.rarity} size={15} />
+                    {RARITY_LABEL[c.rarity]}
+                  </span>
                 ),
               },
               {
