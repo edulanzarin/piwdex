@@ -14,9 +14,10 @@ import {
   type Tier,
 } from "@/lib/meta";
 import { projectAll } from "@/lib/stats";
+import { lerIvs } from "@/lib/iv-reading";
 import { spriteUrl } from "@/lib/sprites";
 import { compact, num, STAT_SHORT } from "@/lib/labels";
-import { cartaLabel, lerBolsa, type Carta } from "@/lib/bolsa";
+import { lerBolsa, salvarCarta, uid, type Carta } from "@/lib/bolsa";
 import type { PedraInfo } from "@/lib/eevee-data";
 import {
   abatesPara,
@@ -33,19 +34,10 @@ import {
   EMPTY_EEVEE,
   parseEeveeState,
 } from "@/lib/eevee-url";
-import {
-  Field,
-  FieldRow,
-  Metric,
-  MetricGrid,
-  Note,
-  NumberField,
-  Panel,
-  Select,
-  Sprite,
-} from "@/components/ui";
+import { Metric, MetricGrid, Note, Panel, Sprite } from "@/components/ui";
 import { TypeBadge } from "@/components/type-icon";
 import { EeveeEstrela } from "@/components/eevee-estrela";
+import { EeveeMeu } from "@/components/eevee-meu";
 import { EeveePedra } from "@/components/eevee-pedra";
 
 const TINT = "var(--color-t-eevee)";
@@ -100,7 +92,7 @@ export function EeveeTool({
   const [estado, setEstado] = useState(() =>
     parseEeveeState(new URLSearchParams(sp.toString())),
   );
-  const { ramo: escolhido, level, quality } = estado;
+  const { ramo: escolhido, level, quality, stats } = estado;
 
   useEffect(() => {
     const id = window.setTimeout(() => {
@@ -111,9 +103,13 @@ export function EeveeTool({
     return () => window.clearTimeout(id);
   }, [estado, router, pathname]);
 
-  // ---- a coleção, só de leitura: aqui ninguém salva carta, só usa a que existe
+  // ---- a coleção do site: aqui dá pra puxar um Eevee já cadastrado e pra
+  // cadastrar o que foi digitado, porque é a mesma bolsa do Stadium e do Breeding.
   const [bolsa, setBolsa] = useState<Carta[]>([]);
   const [cartaId, setCartaId] = useState("");
+  const [apelido, setApelido] = useState("");
+  const [shiny, setShiny] = useState(false);
+  const [guardado, setGuardado] = useState(false);
   useEffect(() => setBolsa(lerBolsa()), []);
   const eevees = useMemo(
     () => bolsa.filter((c) => c.pokeId === EEVEE_ID),
@@ -121,22 +117,93 @@ export function EeveeTool({
   );
   const carta = eevees.find((c) => c.id === cartaId) ?? null;
 
-  // Escolher uma carta EMPURRA nível e quality dela pro estado, em vez de manter
-  // dois valores concorrentes. Dois eram o defeito da primeira versão: a carta
-  // dizia nível 240 e os campos continuavam em 100, então a projeção respondia
-  // sobre um Eevee que não era o dela.
+  // Escolher uma carta EMPURRA os números dela pro estado, em vez de manter dois
+  // valores concorrentes. Dois eram o defeito da primeira versão: a carta dizia
+  // nível 240 e os campos continuavam em 100, então a projeção respondia sobre um
+  // Eevee que não era o dela.
   useEffect(() => {
     if (!carta) return;
+    setApelido(carta.name !== carta.species ? carta.name : "");
+    setShiny(carta.shiny);
     setEstado((s) => ({
       ...s,
       level: carta.level ?? s.level,
       quality: carta.quality || s.quality,
+      stats: carta.stats ? [...carta.stats] : s.stats,
     }));
   }, [carta]);
 
-  const ivs = carta?.ivs ?? defaultIvs();
-
   const mons = useMemo(() => packed.map(unpackMon) as MetaMon[], [packed]);
+  const eevee = useMemo(
+    () => mons.find((m) => m.pokeId === EEVEE_ID) ?? null,
+    [mons],
+  );
+
+  /**
+   * O IV sai dos STATS, e é a diferença entre esta tela responder sobre o seu
+   * Eevee ou sobre um médio.
+   *
+   * A ordem do `??` é a ordem da confiança: leitura dos seis stats primeiro (é
+   * medida), IV guardado na carta depois (foi medido antes), e IV 21 por último —
+   * que não é medida nenhuma, é a média do catálogo, e existe só pra tela ter o
+   * que mostrar antes de a pessoa digitar. Leitura IMPOSSÍVEL não entra: quando
+   * nenhum IV entre 0 e 32 explica os stats, `lerIvs` devolve tudo travado no
+   * teto, e usar isso seria afirmar um Eevee perfeito que ninguém digitou.
+   */
+  const basesEevee = useMemo(
+    () =>
+      eevee
+        ? [
+            eevee.baseHp,
+            eevee.baseAtk,
+            eevee.baseDef,
+            eevee.baseSpAtk,
+            eevee.baseSpDef,
+            eevee.baseSpeed,
+          ]
+        : null,
+    [eevee],
+  );
+  const leitura = useMemo(
+    () =>
+      basesEevee && stats.every((v) => v > 0) && level > 0 && quality > 0
+        ? lerIvs(basesEevee, stats, level, quality)
+        : null,
+    [basesEevee, stats, level, quality],
+  );
+  const ivs =
+    leitura && !leitura.impossivel
+      ? leitura.inteiros
+      : (carta?.ivs ?? defaultIvs());
+  /** true quando os cinco ramos estão falando do SEU Eevee, e não de um médio */
+  const meuDeVerdade = leitura != null && !leitura.impossivel;
+
+  const guardarNaBolsa = () => {
+    if (!eevee || !leitura || leitura.impossivel) return;
+    const nova: Carta = {
+      id: carta?.id ?? uid(),
+      pokeId: EEVEE_ID,
+      name: apelido.trim().slice(0, 40) || eevee.name,
+      species: eevee.name,
+      type1: eevee.type1,
+      type2: eevee.type2,
+      level,
+      quality,
+      stats: [...stats],
+      // O IV guardado é o INTEIRO que reproduz o stat, e não o meio da faixa: é
+      // ele que o Breeding lê como o IV do pai.
+      ivs: [...leitura.inteiros],
+      shiny,
+      createdAt: carta?.createdAt || Date.now(),
+    };
+    setBolsa(salvarCarta(nova));
+    setCartaId(nova.id);
+    setGuardado(true);
+  };
+  // O "Guardado" volta a ser "Guardar" assim que qualquer número muda: senão o
+  // botão continua dizendo que está salvo depois de a pessoa editar.
+  useEffect(() => setGuardado(false), [stats, level, quality, apelido, shiny]);
+
   const notas = useMemo(() => {
     const m = new Map<number, { tier: Tier; score: number }>();
     for (const e of metaTable(mons, "natural")) {
@@ -222,57 +289,46 @@ export function EeveeTool({
           onEscolher={(i) => setEstado((s) => ({ ...s, ramo: i }))}
         />
 
-        <div className="flex flex-col gap-4">
-          <FieldRow className="lg:flex-col lg:items-stretch">
-            <Field
-              label="Seu Eevee"
-              hint={
-                eevees.length === 0
-                  ? "Nenhum Eevee na bolsa — dá pra digitar nível e quality à mão."
-                  : "Da sua bolsa: puxa nível, quality e os IV de verdade."
-              }
-            >
-              <Select
-                value={cartaId}
-                onChange={setCartaId}
-                disabled={eevees.length === 0}
-                options={[
-                  { value: "", label: "Eevee genérico (IV 21)" },
-                  ...eevees.map((c) => ({ value: c.id, label: cartaLabel(c) })),
-                ]}
-              />
-            </Field>
-
-            <Field label="Nível" hint="também corta as hunts acima de você">
-              <NumberField
-                value={level}
-                onChange={(v) => setEstado((s) => ({ ...s, level: v }))}
-                min={1}
-                max={1000}
-                fallback={EMPTY_EEVEE.level}
-              />
-            </Field>
-
-            <Field label="Quality">
-              <NumberField
-                value={quality}
-                onChange={(v) => setEstado((s) => ({ ...s, quality: v }))}
-                min={0}
-                max={4}
-                step={0.1}
-                fallback={EMPTY_EEVEE.quality}
-              />
-            </Field>
-          </FieldRow>
-
+        <div className="flex flex-col gap-3">
           <Note flush>
             O catálogo do jogo diz que o Eevee evolui pro Vaporeon no nível 80 —
             um caminho só, por nível. Não é o que acontece: quem faz a troca é o
             Marlon, são cinco destinos e cada um pede a sua pedra. Esta tabela
             veio da tela da loja, porque é o único lugar em que ela aparece.
           </Note>
+
+          {/* O aviso de Eevee genérico fica AQUI, encostado na estrela, e não só
+              no painel de entrada: é aqui que a pessoa lê as cinco notas, e uma
+              nota calculada sobre IV suposto não pode parecer medida. */}
+          {meuDeVerdade ? null : (
+            <Note tone="warn" flush>
+              Os cinco ramos ainda estão projetando um Eevee genérico, de IV 21
+              nos seis. Os stats do seu vão no painel abaixo — o IV sai deles, e
+              é o que o jogo esconde.
+            </Note>
+          )}
         </div>
       </Panel>
+
+      <EeveeMeu
+        eevee={eevee}
+        cartas={eevees}
+        cartaId={cartaId}
+        onCarta={setCartaId}
+        apelido={apelido}
+        onApelido={setApelido}
+        shiny={shiny}
+        onShiny={setShiny}
+        level={level}
+        onLevel={(v) => setEstado((st) => ({ ...st, level: v }))}
+        quality={quality}
+        onQuality={(v) => setEstado((st) => ({ ...st, quality: v }))}
+        stats={stats}
+        onStats={(v) => setEstado((st) => ({ ...st, stats: v }))}
+        leitura={leitura}
+        onGuardar={guardarNaBolsa}
+        guardado={guardado}
+      />
 
       <Panel
         title={<span className="pix">A troca</span>}
@@ -366,8 +422,10 @@ export function EeveeTool({
             <p className="text-[13px] leading-relaxed text-text-dim">
               É o que esse {linha.nome} teria no nível {level} com quality{" "}
               {num(quality, 2)}
-              {carta ? ` e os IV do seu Eevee` : " e IV 21 nos seis"} — poder{" "}
-              {compact(linha.poder)}.
+              {meuDeVerdade
+                ? " e o IV lido dos stats do seu Eevee"
+                : " e IV 21 nos seis, porque os stats do seu ainda não foram informados"}{" "}
+              — poder {compact(linha.poder)}.
             </p>
 
             {/* A ressalva fica AQUI, colada nos seis números, e não na
@@ -380,11 +438,12 @@ export function EeveeTool({
                 afirmação verdadeira, em vez de prometer o que você vai receber,
                 que seria palpite. */}
             <Note flush>
-              Os seis números comparam as espécies na mesma régua — o mesmo nível, a mesma
-              quality, os mesmos IV nos cinco ramos. Se a troca do Marlon devolve o bicho no
-              nível em que ele entrou é coisa que o jogo não publica, e o botão dele diz
-              &ldquo;Trocar&rdquo;, não &ldquo;Evoluir&rdquo;. Serve pra escolher entre os
-              cinco; não é promessa do que vai chegar no seu time.
+              Os seis números comparam as espécies na mesma régua — o mesmo
+              nível, a mesma quality, os mesmos IV nos cinco ramos. Se a troca
+              do Marlon devolve o bicho no nível em que ele entrou é coisa que o
+              jogo não publica, e o botão dele diz &ldquo;Trocar&rdquo;, não
+              &ldquo;Evoluir&rdquo;. Serve pra escolher entre os cinco; não é
+              promessa do que vai chegar no seu time.
             </Note>
           </div>
         ) : (
