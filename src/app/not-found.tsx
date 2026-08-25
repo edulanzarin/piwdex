@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BookOpen, Calculator, Egg, Package, Radar, Swords } from "lucide-react";
+import { BookOpen, Calculator, Egg, Package, Radar, Shield, Swords } from "lucide-react";
 import { ButtonLink, IconChevronRight, Pokeball, Sprite } from "@/components/ui";
 import { CascaSite } from "@/components/casca-site";
 import { arteUrl, iconeUrl } from "@/lib/ferramentas";
@@ -84,6 +84,14 @@ const FERRAMENTAS = [
     icon: Swords,
     arte: "meta",
     cor: "var(--color-t-meta)",
+  },
+  {
+    href: "/stadium",
+    nome: "Stadium",
+    desc: "seu time contra um boss",
+    icon: Shield,
+    arte: "stadium",
+    cor: "var(--color-t-stadium)",
   },
 ];
 

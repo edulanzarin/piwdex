@@ -4,12 +4,13 @@ import {
   Egg,
   Package,
   Radar,
+  Shield,
   Swords,
   type LucideIcon,
 } from "lucide-react";
 
 /**
- * As seis ferramentas, num lugar so.
+ * As sete ferramentas, num lugar so.
  *
  * Antes o mesmo dado morava em tres arquivos: a home tinha nome, cor, arte e
  * paragrafo; a navegacao tinha nome e rota; cada pagina repetia arte, cor e
@@ -122,6 +123,18 @@ export const FERRAMENTAS: Ferramenta[] = [
     desc:
       "Tier list por nota, duelo entre dois pokémon com nível e quality, e o panorama " +
       "ofensivo de cada tipo. A nota sai de combate, não de soma de stat.",
+  },
+  {
+    href: "/stadium",
+    chamada: "Monte o time que encara o",
+    nome: "Stadium",
+    arte: "stadium",
+    cor: "var(--color-t-stadium)",
+    Icone: Shield,
+    linha: "Seu time de seis contra um boss, com o combate inteiro simulado.",
+    desc:
+      "Escolhe o boss, monta os seis e roda a luta: quem entra, quanto tira do boss, " +
+      "quem cai e onde o time quebra. O HP do boss atravessa a troca de lutador.",
   },
 ];
 

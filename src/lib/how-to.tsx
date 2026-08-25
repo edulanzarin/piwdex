@@ -1,6 +1,8 @@
 import type { HowToProps } from "@/components/ui";
 import { IV_MAX } from "@/lib/stats";
 import { SIM_IV, WILD_HP_MULT } from "@/lib/combat";
+import { TOTAL_BOSSES } from "@/lib/bosses";
+import { REFORCO_DANO } from "@/lib/stadium";
 import { DEFAULT_IV } from "@/lib/meta";
 import {
   QUALITY_DIFF_MAX,
@@ -327,6 +329,69 @@ export const COMO_USAR_META: Omit<HowToProps, "tint"> = {
     <>
       Variantes de skin não entram na lista, porque apontam pra espécie base e não são uma
       linha própria do catálogo. As de Orre entram, porque têm stats próprios.
+    </>,
+  ],
+};
+
+export const COMO_USAR_STADIUM: Omit<HowToProps, "tint"> = {
+  resumo:
+    "Você escolhe o boss, monta até seis pokémon e a ferramenta roda a luta inteira: quem entra, quanto tira do boss, quem cai e onde o time quebra.",
+  passos: [
+    {
+      titulo: "Comece pelo boss, não pelo time",
+      texto: (
+        <>
+          O catálogo traz os {TOTAL_BOSSES} bosses do jogo com o nível oficial de cada um.
+          O tipo do boss é o que mais muda a resposta, então escolher ele primeiro evita
+          montar seis contra o alvo errado. Se o boss que você quer não estiver na lista,
+          monte o alvo à mão pela espécie.
+        </>
+      ),
+    },
+    {
+      titulo: "Ponha os seis na ORDEM em que eles entram",
+      texto:
+        "A fila é a fila do combate: o primeiro segura o começo, e quem vem depois pega o boss com o HP que sobrou. A ferramenta não reordena o time por conta própria, porque a ordem é decisão sua e trocar em silêncio esconderia o efeito dela.",
+    },
+    {
+      titulo: "Leia a FATIA de cada um antes do veredito",
+      texto:
+        "Fatia é quanto do boss aquele pokémon leva embora antes de cair. É o número que se soma de cabeça: três de 40% derrubam. Dano por segundo alto em quem aguenta dois golpes não derruba nada, e aguentar muito sem bater também não.",
+    },
+    {
+      titulo: "Confira o nível antes de trocar de espécie",
+      texto:
+        "Boss começa no nível 300 e vai até o 625. Na maior parte dos casos o que separa o time de uma queda rápida é o nível: subir vinte costuma mexer mais no resultado do que trocar o time inteiro.",
+    },
+    {
+      titulo: "Ligue o TM só se você tem a máquina",
+      texto:
+        "Todo golpe de poder 600 do jogo é TM. Com o pool de TM ligado, o combate simulado usa golpes que o seu pokémon só tem depois de comprar a máquina, e a diferença chega a dez vezes de dano por segundo.",
+    },
+  ],
+  bomSaber: [
+    <>
+      O jogo não publica os stats do boss. O que a ferramenta faz é usar a espécie de que
+      ele é feito: “Mega Alakazam Lv 350” entra como um Mega Alakazam de nível 350. Isso
+      acerta o tipo e a ordem de grandeza; não acerta stat próprio de boss.
+    </>,
+    <>
+      Trinta e seis dos {TOTAL_BOSSES} não são pokémon nenhum. A categoria Terror inteira e
+      os humanos da Rocket são criação do jogo, e para eles não há espécie de onde tirar
+      tipo e stat. Eles continuam na lista com nível e drops, e a tela diz que não simula.
+    </>,
+    <>
+      O boss leva o reforço da caçada: {WILD_HP_MULT}x o HP e dano {REFORCO_DANO}x. É o que
+      o jogo documenta pro lado selvagem, e é por isso que ganhar aqui não é a mesma coisa
+      que ganhar no duelo do Meta.
+    </>,
+    <>
+      Falta uma peça, e ela é grande. O jogo aplica uma penalidade de GRUPO que não está
+      publicada: a resposta dele traz <code>mult</code> e <code>deficit</code> por boss, e a
+      relação entre os dois é exata (<code>mult = 3^deficit</code>). O que ninguém publicou é
+      como a força do grupo se calcula e o que esse fator multiplica. Um fator dessa ordem
+      dominaria todo o resto do resultado, então ele fica de fora da conta em vez de entrar
+      como chute.
     </>,
   ],
 };

@@ -96,7 +96,7 @@
 
   /* ---- cor por FERRAMENTA ----
      Cada ferramenta tem a sua, e ela pinta icone, titulo e botao. Nao e
-     enfeite: e o que faz a home parar de ser uma lista cinza de seis caixas
+     enfeite: e o que faz a home parar de ser uma lista cinza de sete caixas
      iguais, e o que deixa a pessoa reconhecer onde esta antes de ler o titulo.
      Sao acentos de INTERFACE — nao se misturam com a cor de tipo nem com a
      escada de raridade, que sao cor de DADO. */
@@ -106,8 +106,15 @@
   --color-t-hunt: #ffb454;
   --color-t-breed: #f472b6;
   --color-t-meta: #2ee6d6;
+  /* O Stadium fecha a roda no unico vao que sobrava: amarelo-limao, entre o
+     verde dos itens (150deg) e o laranja da hunt (33deg). Ouro seria a escolha
+     obvia pra uma arena, e e por isso que ele NAO entrou — a 45deg ele vira
+     irmao do laranja da hunt, e o trabalho desta cor e deixar reconhecer onde se
+     esta ANTES de ler o titulo. Dois matizes vizinhos na navegacao nao ajudam a
+     reconhecer nada; fazem procurar a diferenca entre os dois. */
+  --color-t-stadium: #c9e94d;
 
-  /* O robo nao e uma setima ferramenta da dex — ele mora noutro dominio, e
+  /* O robo nao e uma oitava ferramenta da dex — ele mora noutro dominio, e
      atras de login. Ganha cor propria pelo mesmo motivo que as outras tem:
      reconhecer onde se esta antes de ler o titulo. Violeta porque e o unico
      matiz que ainda nao carrega significado nesta paleta. */
