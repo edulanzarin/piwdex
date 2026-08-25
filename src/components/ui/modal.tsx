@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "@/lib/cn";
+import { temFlutuanteAberto } from "./popover";
 import { IconButton } from "./button";
 import { IconClose } from "./icons";
 
@@ -62,7 +63,16 @@ export function Modal({
     document.body.style.overflow = "hidden";
 
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") { e.stopPropagation(); onClose(); return; }
+      if (e.key === "Escape") {
+        // Escape fecha a camada DE CIMA. Com um combobox aberto dentro do modal,
+        // quem tem de fechar e a lista — e sem esta guarda quem fechava era o
+        // modal inteiro, levando junto o formulario todo. Ver `temFlutuanteAberto`
+        // pra por que nao da pra resolver com ordem de listener.
+        if (temFlutuanteAberto()) return;
+        e.stopPropagation();
+        onClose();
+        return;
+      }
       if (e.key !== "Tab" || !panel.current) return;
       const focusables = panel.current.querySelectorAll<HTMLElement>(
         'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])',

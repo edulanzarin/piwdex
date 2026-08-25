@@ -121,8 +121,10 @@ function fechadoRecentemente(): boolean {
  *    de quem ja tinha fechado.
  * 2. **Ele espera a pessoa usar o site.** 30 segundos E ter rolado a pagina.
  *    Quem entra e sai em cinco segundos nunca ve, e e isso mesmo.
- * 3. **z-30**: abaixo da barra de navegacao (z-40), do popover (z-50) e do modal
- *    (z-100). Balao de pedido nao pode cobrir o menu nem a tela que a pessoa abriu.
+ * 3. **z-30**: abaixo da barra de navegacao (z-40), do modal (z-100) e do popover
+ *    (z-110). Balao de pedido nao pode cobrir o menu nem a tela que a pessoa abriu.
+ *    (O popover subiu pra cima do modal quando os dois passaram a dividir a tela —
+ *    ver `ui/popover.tsx`.)
  * 4. **Ele some quando o rodape entra em cena.** Os dois pedem a mesma coisa; um
  *    por cima do outro e o site pedindo duas vezes na mesma tela — e ainda tapando
  *    o proprio botao que ele quer que a pessoa clique. Sumir aqui NAO e dispensar:

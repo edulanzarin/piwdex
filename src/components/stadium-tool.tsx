@@ -110,6 +110,24 @@ export function StadiumTool({
   const [cartaAberta, setCartaAberta] = useState(false);
   const [nomeDeck, setNomeDeck] = useState(s.deck);
 
+  /**
+   * Abrir o editor FECHA a bolsa.
+   *
+   * As duas são modal, e deixar a de baixo aberta empilha dois véus: o fundo
+   * escurece duas vezes e a tela fica mais preta do que qualquer uma das duas
+   * pediu. Pior que o visual é o teclado — com dois diálogos montados, quem
+   * responde ao Escape passa a depender de ordem de montagem, e o Escape deixa
+   * de ter resposta previsível.
+   *
+   * `slotAlvo` NÃO se perde: ele é a pergunta ("pro slot 3"), e a carta nova cai
+   * direto lá quando for salva.
+   */
+  const abrirEditor = (c: Carta | null) => {
+    setEditando(c);
+    setCartaAberta(true);
+    setBolsaAberta(false);
+  };
+
   const porCartaId = useMemo(() => new Map(cartas.map((c) => [c.id, c])), [cartas]);
 
   /** A carta vira slot: os seis números dela, mais a origem. */
@@ -327,10 +345,7 @@ export function StadiumTool({
               setSlotAlvo(slot);
               setBolsaAberta(true);
             }}
-            onEditarCarta={(c) => {
-              setEditando(c);
-              setCartaAberta(true);
-            }}
+            onEditarCarta={abrirEditor}
             onTirar={(i) =>
               setS((old) => {
                 const time = old.time.slice();
@@ -394,15 +409,9 @@ export function StadiumTool({
         cartas={cartas}
         slotAlvo={slotAlvo}
         onEscolher={(c) => porNoSlot(c, slotAlvo)}
-        onEditar={(c) => {
-          setEditando(c);
-          setCartaAberta(true);
-        }}
+        onEditar={abrirEditor}
         onApagar={apagar}
-        onNova={() => {
-          setEditando(null);
-          setCartaAberta(true);
-        }}
+        onNova={() => abrirEditor(null)}
         onFechar={() => {
           setBolsaAberta(false);
           setSlotAlvo(null);
