@@ -1,0 +1,84 @@
+# O DIÁRIO DO CATÁLOGO, de seis em seis horas.
+#
+# Por que uma rotina, e não a ingestão na mão: o site vê todo patch quase em
+# tempo real (o `source.ts` confere o ETag do catálogo a cada visita), mas não
+# guarda nada — quem guarda é o `npm run ingest`, que só roda quando eu lembro.
+# Entre 20/08 e 25/08/2026 eu não lembrei nenhuma vez, e um diário que depende de
+# memória humana registra o que a memória deixar passar.
+#
+# O efeito colateral vale tanto quanto o diário: o snapshot de fallback
+# (`src/data/piwdex.json`), que é o que o site serve quando a fonte do jogo cai,
+# para de envelhecer. Ele estava parado desde 20/08.
+#
+# CADÊNCIA. Seis horas é o cache da CDN do jogo (`max-age=14400`, 4h): perguntar
+# mais que isso não devolve nada mais novo, só bate no servidor deles.
+#
+# ATENÇÃO: este job faz PUSH na main, e a main dispara deploy no Railway. Ou
+# seja, um patch do jogo republica a dex sozinho. Isso é seguro pro serviço da
+# dex e NÃO é pro do robô, que segura um WebSocket por usuário e perde todos a
+# cada deploy — por isso os dois são serviços separados, com cadências de deploy
+# separadas (ver README). Se um dia voltarem a ser um só, esta rotina tem que
+# morrer junto.
+
+name: diário do catálogo
+
+on:
+  schedule:
+    - cron: "0 */6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# Duas passadas ao mesmo tempo escreveriam o mesmo arquivo e a segunda perderia
+# o patch da primeira no push.
+concurrency:
+  group: diario
+  cancel-in-progress: false
+
+jobs:
+  registrar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # A ingestão compara o catálogo que baixou com o snapshot em disco ANTES de
+      # sobrescrevê-lo, e é nessa janela que o patch é registrado. Se a fonte do
+      # jogo estiver fora do ar, ela falha e o job falha junto — de propósito: a
+      # falha visível é o que diz que o diário parou de olhar.
+      - run: npm run ingest
+
+      - name: commitar o que o jogo mexeu
+        run: |
+          set -euo pipefail
+          git config user.name "edulanzarin"
+          git config user.email "edulanzarin@outlook.com"
+
+          # Só estes três. A ingestão também escreve `data/raw/` (gitignorado) e,
+          # com PIW_TOKEN no ambiente, `balls.json` — que não é assunto daqui.
+          git add src/data/piwdex.json src/data/patches.json src/data/bosses.json
+
+          if git diff --cached --quiet; then
+            echo "O catálogo do jogo está igual ao da última passada. Nada a commitar."
+            exit 0
+          fi
+
+          if git diff --cached --quiet -- src/data/patches.json; then
+            # O snapshot mudou e o diário não: mexeram em campo que o diff ignora
+            # de propósito (arte, texto, posição de marcador no mapa).
+            MSG="chore(catalogo): refresh do snapshot, sem mudanca comparavel"
+          else
+            ID=$(node -p "require('./src/data/patches.json').patches[0].id")
+            N=$(node -p "require('./src/data/patches.json').patches[0].mudancas.length")
+            MSG="chore(catalogo): patch do jogo em ${ID}, ${N} mudancas"
+          fi
+
+          git commit -m "$MSG"
+          git push

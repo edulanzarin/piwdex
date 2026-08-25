@@ -19,6 +19,7 @@ nivel 40".
 | Calculadora de IV/Quality/Poder | pronta |
 | Rota de hunt / Breeding / Meta | prontos |
 | Robo (area logada, em bot.piwdex.com.br) | pronto |
+| Diario do catalogo (`/patches`) | pronto |
 
 ## Dois enderecos, uma imagem
 
@@ -163,6 +164,34 @@ o site continua de pe com o snapshot versionado em `src/data/piwdex.json` — e
 servir dado velho fingindo estar ao vivo.
 
 Atualizar o snapshot de fallback: `npm run ingest`.
+
+### O diario do catalogo
+
+O jogo NAO publica changelog, e patch de balanceamento muda a resposta de todas
+as ferramentas de uma vez. Entao a ingestao compara o catalogo que baixou com o
+snapshot em disco ANTES de sobrescrever, e grava a diferenca em
+`src/data/patches.json` — que vira a pagina `/patches`.
+
+Uma rotina do GitHub Actions (`.github/workflows/diario.yml`) roda `npm run
+ingest` de seis em seis horas e commita quando o jogo mexeu. De brinde, o
+snapshot de fallback para de envelhecer.
+
+Duas travas impedem o diario de inventar patch, e as duas existem porque o
+problema e real — comparar dois snapshots MEUS compara duas versoes do jogo
+vistas por duas versoes da minha ingestao:
+
+- O snapshot carrega o numero da PIPELINE que o produziu (`PIPELINE`, em
+  `src/lib/patches.ts`). Lados de pipeline diferente nao se comparam: a passada
+  e pulada com o motivo no log. **Mexeu na normalizacao do `ingest.mjs`? Suba o
+  numero.** Sem isso, entre 16/08 e 20/08 o diff acusa 481 das 482 especies
+  "mudando de golpe" — era o campo `tm` nascendo, nao o jogo.
+- Mudanca que atinge o catalogo inteiro sai marcada como suspeita, e a ficha do
+  patch abre com o aviso em vez de afirmar.
+
+A unica derivada que entra e o OURO POR ABATE (chance x quantidade x preco de
+balcao). Ela e definicao, nao modelo, e sem ela o diario fica correto e inutil:
+o patch de 20/08 sairia como cinco linhas de "Straw de 80% pra 4,4%" em vez de
+"o Ledian rende 13x menos ouro".
 
 ## Arquitetura
 
