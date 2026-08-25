@@ -10,6 +10,7 @@
 // vivem no codigo (src/lib/data.ts), pra o snapshot ser diffavel contra o jogo.
 
 import { writeFile, readFile, mkdir } from "node:fs/promises";
+import { montaPatch, podeComparar, PIPELINE } from "../src/lib/patches.ts";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
@@ -28,15 +29,75 @@ const UA =
   "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36";
 
 async function get(url) {
+  return (await getCom(url)).body;
+}
+
+/**
+ * O mesmo GET, com os CABECALHOS.
+ *
+ * `Last-Modified` do creatures.json e a data em que o JOGO publicou o catalogo, e
+ * ela e a unica data honesta pra carimbar um patch. A alternativa — `Date.now()`
+ * da maquina que rodou a ingestao — data o patch pela hora em que EU olhei: uma
+ * rotina de 6 em 6h dataria como "25/08 as 06h" um patch publicado as 21h do dia
+ * 23. Quem tenta cruzar isso com o que sentiu jogando erra por dois dias.
+ */
+async function getCom(url) {
   const res = await fetch(url, { headers: { "User-Agent": UA, Accept: "application/json" } });
   if (!res.ok) throw new Error(`GET ${url} -> ${res.status}`);
-  return res.json();
+  return {
+    body: await res.json(),
+    lastModified: res.headers.get("last-modified"),
+    etag: res.headers.get("etag"),
+  };
+}
+
+/**
+ * Registra no diario o que mudou entre o snapshot em disco e o que acabou de
+ * baixar. Nao escreve nada quando nao ha o que dizer.
+ *
+ * Falhar aqui NAO derruba a ingestao. O diario e a segunda coisa mais
+ * importante deste script; a primeira e o catalogo chegar atualizado no site, e
+ * um bug meu na comparacao nao pode segurar um patch de balanceamento.
+ */
+async function registraPatch(novo) {
+  const diarioPath = join(ROOT, "src/data/patches.json");
+  try {
+    const antes = JSON.parse(await readFile(join(ROOT, "src/data/piwdex.json"), "utf8"));
+    const diario = JSON.parse(await readFile(diarioPath, "utf8").catch(() => "null")) ?? {
+      pipeline: PIPELINE,
+      atualizadoEm: "",
+      patches: [],
+    };
+
+    const impedimento = podeComparar(antes, novo);
+    if (impedimento) {
+      console.warn(`AVISO: diario pulou esta passada — ${impedimento}.`);
+      return;
+    }
+
+    const patch = montaPatch({ antes, depois: novo, origem: "ingestao", jaExistem: diario.patches });
+    if (!patch) {
+      console.log("Diario: o jogo nao mexeu em nada comparavel desde a ultima passada.");
+      return;
+    }
+
+    diario.patches.unshift(patch);
+    diario.pipeline = PIPELINE;
+    diario.atualizadoEm = novo.generatedAt;
+    await writeFile(diarioPath, JSON.stringify(diario, null, 2) + "\n", "utf8");
+
+    const cortado = patch.cortadas ? ` (+${patch.cortadas} cortadas pelo teto)` : "";
+    console.log(`Diario: patch ${patch.id} com ${patch.mudancas.length} mudancas${cortado}.`);
+    for (const a of patch.avisos) console.warn(`AVISO: ${a}`);
+  } catch (e) {
+    console.warn(`AVISO: diario nao registrou esta passada (${e.message}); o catalogo segue.`);
+  }
 }
 
 async function main() {
   console.log("Baixando fonte-mestra do Poke Idle World...");
-  const [creaturesRaw, itemsRaw, mapRaw, bossesRaw] = await Promise.all([
-    get(SOURCES.creatures),
+  const [creaturesRes, itemsRaw, mapRaw, bossesRaw] = await Promise.all([
+    getCom(SOURCES.creatures),
     get(SOURCES.items),
     get(SOURCES.mapMarkers),
     get(SOURCES.bosses).catch((e) => {
@@ -48,6 +109,7 @@ async function main() {
     }),
   ]);
 
+  const creaturesRaw = creaturesRes.body;
   const creaturesSrc = creaturesRaw.creatures ?? creaturesRaw;
   const items = itemsRaw.items ?? itemsRaw;
   const hunts = mapRaw.hunts ?? mapRaw;
@@ -108,15 +170,30 @@ async function main() {
     ].slice(0, 10));
 
   const generatedAt = new Date().toISOString();
+  // A data do jogo quando ela existe; a minha so como ultimo recurso.
+  const publicadoEm = creaturesRes.lastModified
+    ? new Date(creaturesRes.lastModified).toISOString()
+    : generatedAt;
   const snapshot = {
     generatedAt,
+    publicadoEm,
+    versao: creaturesRes.etag ?? null,
     source: HOST,
+    pipeline: PIPELINE,
     counts: { creatures: creatures.length, items: items.length, hunts: hunts.length },
     map,
     creatures,
     items,
     hunts,
   };
+
+  // O DIARIO, antes de o snapshot ser sobrescrito.
+  //
+  // Esta e a unica janela em que os dois lados existem: o arquivo em disco e o
+  // catalogo de ANTES, e `snapshot` e o de agora. Depois do writeFile o passado
+  // acabou — nao ha de onde tirar o diff de novo, e um patch nao registrado aqui
+  // e um patch perdido pra sempre.
+  await registraPatch(snapshot);
 
   await mkdir(join(ROOT, "src/data"), { recursive: true });
   await writeFile(

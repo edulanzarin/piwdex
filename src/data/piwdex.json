@@ -1,6 +1,9 @@
 {
-  "generatedAt": "2026-08-20T04:16:09.109Z",
+  "generatedAt": "2026-08-25T22:13:53.980Z",
+  "publicadoEm": "2026-08-20T03:03:51.000Z",
+  "versao": "W/\"6a866e97-109013\"",
   "source": "https://poke.idleworld.online",
+  "pipeline": 2,
   "counts": {
     "creatures": 482,
     "items": 428,

@@ -12,7 +12,7 @@
     "db:migrate": "node db/migrate.mjs",
     "lint": "next lint",
     "prever": "tsx tools/prever.ts",
-    "ingest": "node scripts/ingest.mjs",
+    "ingest": "tsx scripts/ingest.mjs",
     "bake:sprites": "node scripts/bake-sprites.mjs",
     "bake:wallpaper": "python3 scripts/bake-wallpaper.py",
     "bake:social": "python3 scripts/bake-social.py"
