@@ -17,7 +17,7 @@ import {
   projectEgg,
   round3,
 } from "@/lib/breeding";
-import { gravarEstante, lerEstante, uid, type EstanteMon } from "@/lib/breed-store";
+import { gravarBolsa, lerBolsa, uid, type Carta } from "@/lib/bolsa";
 import { lerIvs, textoIv, textoIvTotal, type IvReading } from "@/lib/iv-reading";
 import { pingDestaque } from "@/lib/destaque-cliente";
 import {
@@ -146,7 +146,7 @@ export function BreedTool({ especies }: { especies: BreedSpecies[] }) {
   const sp = useSearchParams();
 
   const [s, setS] = useState<BreedState>(() => parseBreedState(new URLSearchParams(sp.toString())));
-  const [estante, setEstante] = useState<EstanteMon[]>([]);
+  const [estante, setEstante] = useState<Carta[]>([]);
   const [montado, setMontado] = useState(false);
   const [copiado, setCopiado] = useState(false);
 
@@ -161,11 +161,11 @@ export function BreedTool({ especies }: { especies: BreedSpecies[] }) {
   // servidor, e ler no primeiro render faria o HTML do servidor divergir do
   // cliente. `montado` guarda o trilho enquanto isso.
   useEffect(() => {
-    setEstante(lerEstante());
+    setEstante(lerBolsa());
     setMontado(true);
   }, []);
   useEffect(() => {
-    if (montado) gravarEstante(estante);
+    if (montado) gravarBolsa(estante);
   }, [estante, montado]);
 
   const patch = useCallback((p: Partial<BreedState>) => setS((old) => ({ ...old, ...p })), []);
@@ -202,7 +202,7 @@ export function BreedTool({ especies }: { especies: BreedSpecies[] }) {
     const mon = lado === "a" ? monA : monB;
     if (!mon) return;
     const est = lado === "a" ? s.a : s.b;
-    const novo: EstanteMon = {
+    const novo: Carta = {
       ...mon,
       id: uid(),
       createdAt: Date.now(),
@@ -225,7 +225,7 @@ export function BreedTool({ especies }: { especies: BreedSpecies[] }) {
     });
   };
 
-  const carregar = (lado: "a" | "b", m: EstanteMon) =>
+  const carregar = (lado: "a" | "b", m: Carta) =>
     patchPai(
       lado,
       m.stats && m.level
