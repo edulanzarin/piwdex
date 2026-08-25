@@ -26,7 +26,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const telas: MetadataRoute.Sitemap = [
     { url: SITE_URL, changeFrequency: "weekly", priority: 1 },
-    ...["/dex", "/itens", "/calc", "/hunt", "/breed", "/meta", "/stadium", "/eevee", "/privacidade"].map((p) => ({
+    ...["/dex", "/itens", "/calc", "/hunt", "/breed", "/meta", "/stadium", "/eevee", "/atualizacoes", "/privacidade"].map((p) => ({
       url: `${SITE_URL}${p}`,
       changeFrequency: "weekly" as const,
       priority: p === "/privacidade" ? 0.2 : 0.8,

@@ -25,12 +25,20 @@ export function SiteFooter() {
         <FaixaApoio />
         {/* A privacidade tem que ser alcancavel de qualquer pagina — e exigencia
             de quem serve anuncio, e antes disso e o minimo pra quem le. */}
-        <Link
-          href="/privacidade"
-          className="tap pix self-start text-[11px] text-text-mute transition-colors hover:text-accent"
-        >
-          Privacidade
-        </Link>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          <Link
+            href="/atualizacoes"
+            className="tap pix text-[11px] text-text-mute transition-colors hover:text-accent"
+          >
+            Atualizações
+          </Link>
+          <Link
+            href="/privacidade"
+            className="tap pix text-[11px] text-text-mute transition-colors hover:text-accent"
+          >
+            Privacidade
+          </Link>
+        </div>
       </div>
     </footer>
   );

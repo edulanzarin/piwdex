@@ -19,6 +19,12 @@ import {
 } from "@/components/ui";
 import { FERRAMENTAS, arteUrl } from "@/lib/ferramentas";
 import { destaqueAtual } from "@/lib/destaque";
+import {
+  TIPO_COR,
+  TIPO_LABEL,
+  dataCurta,
+  ultimasAtualizacoes,
+} from "@/lib/atualizacoes";
 
 // A home canonicaliza pra RAIZ. Ela e a unica pagina cujo canonical o layout
 // poderia acertar por acidente — e "por acidente" nao e contrato.
@@ -131,7 +137,8 @@ export default async function HomePage() {
    * virou lendário e o escopo o excluiu —, cai no topo em vez de sumir.
    */
   const emAlta = await destaqueAtual(topo?.creature.pokeId ?? 1);
-  const escolhido = ranking.find((e) => e.creature.pokeId === emAlta.pokeId) ?? topo;
+  const escolhido =
+    ranking.find((e) => e.creature.pokeId === emAlta.pokeId) ?? topo;
   const destaque = escolhido
     ? {
         id: escolhido.creature.pokeId,
@@ -177,7 +184,10 @@ export default async function HomePage() {
             frase, botões. O atraso vem de `--d` e não de quatro classes
             diferentes — é a mesma animação, deslocada. */}
         <div className="on-art flex max-w-3xl flex-col items-start gap-6">
-          <div className="anim-in flex items-center gap-4" style={{ "--d": "0ms" } as CSSProperties}>
+          <div
+            className="anim-in flex items-center gap-4"
+            style={{ "--d": "0ms" } as CSSProperties}
+          >
             {/* A bola é a marca. Ela flutua, não gira: girar é o que a pokebola
                 faz quando o site está CARREGANDO (o `Sprite` usa isso), e repetir
                 o mesmo gesto aqui diria que a home está esperando alguma coisa. */}
@@ -218,7 +228,8 @@ export default async function HomePage() {
                 Branco no todo, com o acento da marca só em "IDLE" — que é a
                 palavra que diz o gênero do jogo e a única que merecia destaque. */}
             <DisplayTitle as="h2" size="xl" className="text-text">
-              Poke <span style={{ color: "var(--color-t-dex)" }}>Idle</span> World
+              Poke <span style={{ color: "var(--color-t-dex)" }}>Idle</span>{" "}
+              World
             </DisplayTitle>
           </div>
 
@@ -282,7 +293,10 @@ export default async function HomePage() {
                 <span
                   aria-hidden="true"
                   className="absolute h-52 w-52 rounded-pill blur-[64px] transition-opacity duration-500 group-hover:opacity-90"
-                  style={{ backgroundColor: RARITY_COLOR[destaque.rarity], opacity: 0.4 }}
+                  style={{
+                    backgroundColor: RARITY_COLOR[destaque.rarity],
+                    opacity: 0.4,
+                  }}
                 />
                 <Sprite
                   src={spriteUrl(destaque.id)}
@@ -328,6 +342,76 @@ export default async function HomePage() {
             }
           />
         ) : null}
+      </section>
+
+      {/* ================= o que mudou =================
+
+          Três, e não a lista inteira. A home não é o changelog: ela dá o SINAL de
+          que o site está vivo e leva pra página que conta. Uma lista longa aqui
+          empurraria as ferramentas pra baixo pra falar de si mesma.
+
+          E a faixa fica ANTES das cenas de ferramenta de propósito. Quem volta ao
+          site já sabe o que tem aqui — o que ele não sabe é o que mudou desde a
+          última vez, e essa é a única informação da home que envelhece. */}
+      <section className="flex flex-col gap-3">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+          <h2 className="pix text-[12px] tracking-[0.1em] text-text-dim">
+            O que mudou
+          </h2>
+          <Link
+            href="/atualizacoes"
+            className="flex items-center gap-1 text-[13px] text-text-mute transition-colors hover:text-text"
+          >
+            ver todas
+            <IconChevronRight size={14} />
+          </Link>
+        </div>
+
+        <ul className="grid gap-2 md:grid-cols-3">
+          {ultimasAtualizacoes(3).map((a) => {
+            const f = a.onde
+              ? FERRAMENTAS.find((x) => x.href === a.onde)
+              : undefined;
+            // A barra veste a FERRAMENTA, o selo veste o TIPO — duas perguntas,
+            // duas cores. Com uma só, um Conserto e uma Melhoria do mesmo
+            // Stadium saíam iguais e o selo parava de significar alguma coisa.
+            const corFerramenta = f?.cor ?? "var(--color-line-strong)";
+            const corTipo = TIPO_COR[a.tipo];
+            return (
+              <li key={a.titulo}>
+                {/* O cartão inteiro leva pra /atualizacoes, e não pra ferramenta.
+                    Quem clica em "o que mudou" quer LER a mudança; cair na
+                    ferramenta responderia outra pergunta. */}
+                <Link
+                  href="/atualizacoes"
+                  className="panel flex h-full flex-col gap-2 border-l-2 p-3 transition-[border-color,background-color] duration-200 hover:bg-surface-2"
+                  style={{ borderLeftColor: corFerramenta }}
+                >
+                  <span className="flex items-center gap-2">
+                    <span
+                      className="pix rounded-pill px-2 py-0.5 text-[9px] tracking-[0.1em]"
+                      style={{
+                        color: corTipo,
+                        backgroundColor: `color-mix(in oklab, ${corTipo} 14%, transparent)`,
+                      }}
+                    >
+                      {TIPO_LABEL[a.tipo]}
+                    </span>
+                    <span className="num ml-auto text-[11px] text-text-mute">
+                      {dataCurta(a.data)}
+                    </span>
+                  </span>
+                  <span className="text-[14px] leading-snug text-text">
+                    {a.titulo}
+                  </span>
+                  <span className="line-clamp-3 text-[12px] leading-relaxed text-text-mute">
+                    {a.resumo}
+                  </span>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
       </section>
 
       {/* ================= as ferramentas, em CENAS =================
@@ -382,7 +466,13 @@ export default async function HomePage() {
                    elemento, e inline vence classe. Corrigido em `sprite.tsx`; o
                    tamanho pedido aqui agora acontece de fato. */
                 className="[--sprite:220px] drop-shadow-[0_30px_60px_rgba(0,0,0,0.6)] sm:[--sprite:340px]"
-                fallback={<t.Icone size={120} strokeWidth={1.2} style={{ color: t.cor }} />}
+                fallback={
+                  <t.Icone
+                    size={120}
+                    strokeWidth={1.2}
+                    style={{ color: t.cor }}
+                  />
+                }
               />
             </Parallax>
           }
