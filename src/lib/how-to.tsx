@@ -416,3 +416,66 @@ export const COMO_USAR_STADIUM: Omit<HowToProps, "tint"> = {
     </>,
   ],
 };
+
+export const COMO_USAR_EEVEE: Omit<HowToProps, "tint"> = {
+  resumo:
+    "As cinco trocas do Marlon cobram o mesmo: $65.000, dez pedras e um Eevee no time. Como o preço não separa nada, a ferramenta compara o que separa de verdade — qual pedra dá pra farmar no seu nível e qual eeveelution rende mais em combate.",
+  passos: [
+    {
+      titulo: "O Eevee não evolui: ele é TROCADO",
+      texto:
+        "Não existe botão de evoluir para ele, nem nível que dispare a mudança. Quem faz a troca é o Marlon, na loja, e o que ele pede é um Eevee no time, o ouro e dez pedras — a pedra é a única coisa que muda entre os cinco destinos.",
+    },
+    {
+      titulo: "Diga o seu NÍVEL antes de olhar a tabela",
+      texto:
+        "O nível faz duas coisas de uma vez: projeta os stats que a eeveelution teria com você e corta as fontes de pedra que caçam acima de onde você chega. Sem esse corte a resposta é sempre a mesma e sempre inútil — as melhores fontes de toda pedra são variantes de nível 150.",
+    },
+    {
+      titulo: "Leia as DUAS colunas, não uma",
+      texto:
+        "Abates até dez pedras é o caminho; a nota é o destino. Elas discordam com frequência, e é aí que está a escolha: a melhor espécie dos cinco pode ser a que pede a pedra mais longe de você.",
+    },
+    {
+      titulo: "Puxe o Eevee da BOLSA se você tiver um cadastrado",
+      texto:
+        "A carta traz nível, quality e os IV de verdade, e a projeção passa a falar do seu bicho em vez de um genérico de IV 21. É a mesma bolsa do Stadium e do Breeding — cadastrar uma vez serve as três telas.",
+    },
+  ],
+  bomSaber: [
+    <>
+      A tabela de trocas veio da TELA da Loja do Marlon, e não de fonte pública. O
+      <code> creatures.json </code> do jogo diz que o Eevee evolui pro Vaporeon no nível 80 —
+      um caminho só, linear —, o que é falso nos dois pontos: não é por nível e não é um só.
+      A Pokepedia do jogo admite o caso à parte sem publicar a receita.
+    </>,
+    <>
+      Por causa disso, a linha evolutiva do Eevee e das cinco eeveelutions foi CORTADA da
+      Pokédex daqui. Ela desenhava “Eevee → nv 80 → Vaporeon” em seis fichas, e nenhuma era
+      verdade. O que existe no lugar não cabe numa seta.
+    </>,
+    <>
+      Abates até dez pedras é valor esperado, não promessa: metade das tentativas leva mais
+      que isso. A conta é a chance do drop vezes a quantidade que cai de cada vez — o
+      segundo fator importa mais do que parece, porque Mightyena e Absol soltam de 1 a 5
+      Darkness Stone de uma vez e rendem o triplo de um drop unitário de mesma chance.
+    </>,
+    <>
+      A nota de combate é a da tier list do Meta: dano por segundo e resistência, medidos
+      sobre os stats BASE da espécie. Ela ordena espécie contra espécie e não muda com o seu
+      nível — quem muda com o seu nível são os stats projetados e a lista de pedras.
+    </>,
+    <>
+      Não se sabe se a troca DEVOLVE o pokémon no nível em que ele entrou. O botão do Marlon
+      diz &ldquo;Trocar&rdquo;, e a Pokepedia do jogo só garante herança de nível e quality
+      pra evolução comum — o Eevee ela declara caso à parte sem dizer o que ele herda. Por
+      isso os stats projetados aqui comparam as cinco espécies na mesma régua, e não prometem
+      o que vai chegar no seu time.
+    </>,
+    <>
+      Leafeon, Glaceon e Sylveon não estão aqui porque não existem no catálogo do jogo. As
+      Bags dos três existem como item, o que sugere que eles vêm; enquanto a espécie não vem,
+      inventar stat pra eles seria inventar a resposta.
+    </>,
+  ],
+};

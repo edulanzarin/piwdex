@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BookOpen, Calculator, Egg, Package, Radar, Shield, Swords } from "lucide-react";
+import { BookOpen, Calculator, Egg, Package, Radar, Shield, Sparkles, Swords } from "lucide-react";
 import { ButtonLink, IconChevronRight, Pokeball, Sprite } from "@/components/ui";
 import { CascaSite } from "@/components/casca-site";
 import { arteUrl, iconeUrl } from "@/lib/ferramentas";
@@ -92,6 +92,14 @@ const FERRAMENTAS = [
     icon: Shield,
     arte: "stadium",
     cor: "var(--color-t-stadium)",
+  },
+  {
+    href: "/eevee",
+    nome: "Eevee",
+    desc: "a pedra de cada evolução",
+    icon: Sparkles,
+    arte: "eevee",
+    cor: "var(--color-t-eevee)",
   },
 ];
 

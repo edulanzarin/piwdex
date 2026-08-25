@@ -5,12 +5,13 @@ import {
   Package,
   Radar,
   Shield,
+  Sparkles,
   Swords,
   type LucideIcon,
 } from "lucide-react";
 
 /**
- * As sete ferramentas, num lugar so.
+ * As oito ferramentas, num lugar so.
  *
  * Antes o mesmo dado morava em tres arquivos: a home tinha nome, cor, arte e
  * paragrafo; a navegacao tinha nome e rota; cada pagina repetia arte, cor e
@@ -135,6 +136,18 @@ export const FERRAMENTAS: Ferramenta[] = [
     desc:
       "Escolhe o boss, monta os seis e roda a luta: quem entra, quanto tira do boss, " +
       "quem cai e onde o time quebra. O HP do boss atravessa a troca de lutador.",
+  },
+  {
+    href: "/eevee",
+    chamada: "Decida em que vira seu",
+    nome: "Eevee",
+    arte: "eevee",
+    cor: "var(--color-t-eevee)",
+    Icone: Sparkles,
+    linha: "As cinco trocas do Marlon, com a pedra e o combate de cada uma.",
+    desc:
+      "Flareon, Vaporeon, Jolteon, Umbreon ou Espeon: as cinco custam o mesmo, então " +
+      "compara o que separa — onde farmar as dez pedras no seu nível e quem rende mais.",
   },
 ];
 

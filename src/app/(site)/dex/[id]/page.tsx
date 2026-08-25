@@ -11,6 +11,7 @@ import { JsonLd, trilha } from "@/lib/jsonld";
 import { assetIconUrl, officialArtUrl, spriteUrl } from "@/lib/sprites";
 import { RARITY_COLOR, TYPE_COLOR, defensiveDetailed, offensiveDetailed } from "@/lib/typing";
 import { projectAll } from "@/lib/stats";
+import { EEVEE_ID, noSistemaDoEevee, OURO_DA_TROCA, PEDRAS_DA_TROCA, TROCAS } from "@/lib/eevee";
 import {
   Chip,
   IconChevronRight,
@@ -566,6 +567,39 @@ export default async function CreaturePage({ params }: Props) {
                 </Fragment>
               ))}
             </ol>
+          ) : noSistemaDoEevee(c.pokeId) ? (
+            /* O Eevee e os cinco destinos dele NAO caem no texto padrao.
+               `evolutionChainOf` corta a aresta que o catalogo inventa (ver
+               `arestaFalsa`), e sem esta ressalva o painel diria "nao evolui e
+               nao vem de nenhuma evolucao" — falso pelo outro lado. Vira Flareon
+               ou virou Eevee; o que nao existe e a seta de nivel. */
+            <div className="flex flex-col gap-3">
+              <p className="text-[13px] leading-relaxed text-text-mute">
+                {c.pokeId === EEVEE_ID ? (
+                  <>
+                    O Eevee não evolui por nível: ele é <strong className="text-text-dim">trocado</strong>{" "}
+                    na Loja do Marlon por um de {TROCAS.length} destinos, e cada um pede a sua pedra.
+                    A troca custa {OURO_DA_TROCA.toLocaleString("pt-BR")} de ouro,{" "}
+                    {PEDRAS_DA_TROCA} pedras e o próprio Eevee.
+                  </>
+                ) : (
+                  <>
+                    {c.name} não vem de evolução: ele vem da{" "}
+                    <strong className="text-text-dim">troca</strong> de um Eevee na Loja do Marlon,
+                    por {PEDRAS_DA_TROCA}x{" "}
+                    {TROCAS.find((t) => t.pokeId === c.pokeId)?.pedra} e{" "}
+                    {OURO_DA_TROCA.toLocaleString("pt-BR")} de ouro.
+                  </>
+                )}
+              </p>
+              <Link
+                href="/eevee"
+                className="pix inline-flex w-fit items-center gap-1.5 rounded-pill border border-line px-3 py-1.5 text-[10px] tracking-[0.1em] text-text-dim transition-colors hover:border-[var(--color-t-eevee)] hover:text-text"
+              >
+                VER OS {TROCAS.length} DESTINOS
+                <IconChevronRight size={14} />
+              </Link>
+            </div>
           ) : (
             <p className="text-[13px] leading-relaxed text-text-mute">
               {c.name} não evolui e não vem de nenhuma evolução — é uma linha de um estágio só.

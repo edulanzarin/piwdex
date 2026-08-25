@@ -1,0 +1,64 @@
+<svg viewBox="0 0 128 128" width="128" height="128" xmlns="http://www.w3.org/2000/svg" role="img">
+  <title>Eevee</title>
+  <!-- #e879f9 color-t-eevee · #7a2f8c sombra · #f8c8ff luz · #171310 oclusão
+       As cinco pedras nas cores delas: fogo, água, trovão, treva, enigma.
+       luz: alto-esquerda -->
+  <ellipse cx="64" cy="120" rx="34" ry="5" fill="#000" opacity=".3"/>
+
+  <!-- A figura é UMA no meio e CINCO em volta, que é a regra do jogo desenhada.
+       Um Eevee de perfil ficaria bonito e não diria nada: a ficha da Pokédex já
+       mostra o bicho. O que só esta ferramenta responde é que existem cinco
+       destinos, do mesmo custo, e que a pedra é o que separa um do outro. Por
+       isso as pedras são coloridas cada uma na sua cor e o centro é neutro. -->
+
+  <g stroke="#3a2a3f" stroke-width="2.6" opacity=".9">
+    <path d="M64 66 L64 30"/>
+    <path d="M64 66 L98 54"/>
+    <path d="M64 66 L85 95"/>
+    <path d="M64 66 L43 95"/>
+    <path d="M64 66 L30 54"/>
+  </g>
+
+  <!-- as cinco pedras -->
+  <g>
+    <g transform="translate(64 30)">
+      <circle r="14" fill="#171310"/>
+      <circle r="11" fill="#e8503a"/>
+      <path d="M-8 -4a11 11 0 0 1 8 -6" fill="none" stroke="#ffb08f" stroke-width="4" stroke-linecap="round"/>
+    </g>
+    <g transform="translate(98 54)">
+      <circle r="14" fill="#171310"/>
+      <circle r="11" fill="#3f8fe0"/>
+      <path d="M-8 -4a11 11 0 0 1 8 -6" fill="none" stroke="#a5d4ff" stroke-width="4" stroke-linecap="round"/>
+    </g>
+    <g transform="translate(85 95)">
+      <circle r="14" fill="#171310"/>
+      <circle r="11" fill="#f0c419"/>
+      <path d="M-8 -4a11 11 0 0 1 8 -6" fill="none" stroke="#fff0a8" stroke-width="4" stroke-linecap="round"/>
+    </g>
+    <g transform="translate(43 95)">
+      <circle r="14" fill="#171310"/>
+      <circle r="11" fill="#4b3f6b"/>
+      <path d="M-8 -4a11 11 0 0 1 8 -6" fill="none" stroke="#9b8fc4" stroke-width="4" stroke-linecap="round"/>
+    </g>
+    <g transform="translate(30 54)">
+      <circle r="14" fill="#171310"/>
+      <circle r="11" fill="#59c98d"/>
+      <path d="M-8 -4a11 11 0 0 1 8 -6" fill="none" stroke="#b6f0d1" stroke-width="4" stroke-linecap="round"/>
+    </g>
+  </g>
+
+  <!-- O CENTRO: a pata, e não um sexto disco colorido. Cor no meio faria a peça
+       ler como seis pedras iguais em roda, que é o oposto do que ela diz. -->
+  <circle cx="64" cy="66" r="24" fill="#171310"/>
+  <circle cx="64" cy="66" r="20.5" fill="#7a2f8c"/>
+  <path d="M46 60a20.5 20.5 0 0 1 15 -13" fill="none" stroke="#e879f9" stroke-width="5" stroke-linecap="round"/>
+
+  <g fill="#f8c8ff">
+    <ellipse cx="64" cy="73" rx="9.5" ry="7.5"/>
+    <ellipse cx="53.5" cy="63" rx="3.6" ry="4.8" transform="rotate(-22 53.5 63)"/>
+    <ellipse cx="60.5" cy="58.5" rx="3.6" ry="5"/>
+    <ellipse cx="67.5" cy="58.5" rx="3.6" ry="5"/>
+    <ellipse cx="74.5" cy="63" rx="3.6" ry="4.8" transform="rotate(22 74.5 63)"/>
+  </g>
+</svg>

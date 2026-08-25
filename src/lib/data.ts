@@ -11,6 +11,7 @@
 
 import { cache } from "react";
 import { fetchSource, fromSnapshot, type SourceData } from "./source";
+import { arestaFalsa } from "./eevee";
 import type { Acquisition, Creature, DropSource, EvolutionStage, Hunt, Item } from "./types";
 
 // chance vem em escala 0..100000; porcentagem = chance / 1000. (Puro, sem fetch.)
@@ -111,7 +112,11 @@ function montar(src: SourceData): DB {
 
   // Alvos de evolucao: quem e o "para onde" de alguma evolucao chega por evoluir.
   const evolveTargets = new Set<number>();
-  for (const c of creatures) if (c.evolvesToId != null) evolveTargets.add(c.evolvesToId);
+  for (const c of creatures) {
+    if (c.evolvesToId != null && !arestaFalsa(c.pokeId, c.evolvesToId)) {
+      evolveTargets.add(c.evolvesToId);
+    }
+  }
   // Como se consegue: tem spot -> caca; senao e alvo de evolucao -> evolucao;
   // senao -> especial (loja/cassino/ovo/evento). Puro dado derivado.
   function acquisitionOf(c: Creature): Acquisition {
@@ -136,13 +141,22 @@ function montar(src: SourceData): DB {
   }
   for (const arr of dropSourcesByItem.values()) arr.sort((a, b) => b.chancePct - a.chancePct);
 
+  // A cadeia se caminha nos DOIS sentidos, entao toda aresta falsa precisa ser
+  // recusada nos dois. Ver `arestaFalsa` em eevee.ts: o catalogo afirma que o
+  // Eevee evolui pro Vaporeon no nivel 80, o que faria esta funcao desenhar
+  // "Eevee -> nv 80 -> Vaporeon" na ficha de SEIS especies. O Eevee nao evolui:
+  // ele e trocado, com um NPC, por uma de cinco especies, cada uma pedindo a sua
+  // pedra. Isso nao e uma seta com outro numero — e outro sistema, e ele tem
+  // tela propria.
   function evolutionChainOf(c: Creature): EvolutionStage[] {
     let base = c;
     const guard = new Set<number>();
     for (;;) {
       if (guard.has(base.pokeId)) break;
       guard.add(base.pokeId);
-      const prev = creatures.find((x) => x.evolvesToId === base.pokeId);
+      const prev = creatures.find(
+        (x) => x.evolvesToId === base.pokeId && !arestaFalsa(x.pokeId, base.pokeId),
+      );
       if (!prev) break;
       base = prev;
     }
@@ -150,6 +164,7 @@ function montar(src: SourceData): DB {
     const seen = new Set<number>([base.pokeId]);
     let cur = base;
     while (cur.evolvesToId != null) {
+      if (arestaFalsa(cur.pokeId, cur.evolvesToId)) break;
       const next = creatureById.get(cur.evolvesToId);
       if (!next || seen.has(next.pokeId)) break;
       chain.push({ creature: next, evolveLevel: cur.evolveLevel });

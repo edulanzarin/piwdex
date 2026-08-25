@@ -113,6 +113,12 @@
      esta ANTES de ler o titulo. Dois matizes vizinhos na navegacao nao ajudam a
      reconhecer nada; fazem procurar a diferenca entre os dois. */
   --color-t-stadium: #c9e94d;
+  /* O Eevee entra em magenta (292deg), no vao entre o violeta do robo (258) e o
+     rosa do breeding (330). Marrom seria o obvio pra ele e e por isso que nao
+     entrou: marrom vive em 30deg, colado no laranja da hunt, e sairia da escada
+     como "hunt desbotada". A cor aqui nao ilustra a especie, ela separa a
+     ferramenta das outras sete na navegacao. */
+  --color-t-eevee: #e879f9;
 
   /* O robo nao e uma oitava ferramenta da dex — ele mora noutro dominio, e
      atras de login. Ganha cor propria pelo mesmo motivo que as outras tem:
