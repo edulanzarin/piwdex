@@ -9,11 +9,28 @@
 // link do Discord; `t1=6&t1lv=100&t1q=1&t2=9&...` são dezoito parâmetros e um
 // link que quebra na primeira quebra de linha.
 
+/**
+ * Um lugar no time.
+ *
+ * Ele carrega os SEIS STATS, e não a receita pra calculá-los. É o que separa
+ * "um Charizard 300 médio" do SEU Charizard: o IV é justamente o número que o
+ * jogo esconde, então derivar os stats de `nível + quality + IV suposto` faria
+ * o combate responder sobre um pokémon que não é o seu.
+ *
+ * `carta` é o id na bolsa, e ele NÃO viaja na URL — id de `localStorage` não
+ * quer dizer nada no navegador de outra pessoa. Ele existe pra a tela saber que
+ * aquele slot veio de uma carta (e poder abrir a edição dela); quem recebe o
+ * link recebe os números, que é o que importa.
+ */
 export interface SlotState {
   /** pokeId da espécie; null = slot vazio */
   id: number | null;
   level: number;
   quality: number;
+  /** os seis stats como o jogo mostra, ordem canônica */
+  stats: number[];
+  /** id da carta na bolsa de onde este slot veio; null = digitado à mão */
+  carta: string | null;
 }
 
 export interface StadiumState {
@@ -30,12 +47,33 @@ export interface StadiumState {
   reforco: boolean;
   time: SlotState[];
   pool: "natural" | "tm";
+  /** IV suposto pro ALVO, que é o único lado sem stats publicados */
   iv: "medio" | "perfeito";
+  /** nome do deck aberto; "" = time montado na hora */
+  deck: string;
 }
 
 export const SLOTS = 6;
 
-export const SLOT_VAZIO: SlotState = { id: null, level: 100, quality: 1 };
+const PADRAO_NIVEL = 100;
+const PADRAO_QUALITY = 1;
+
+/**
+ * Um slot vazio NOVO, a cada chamada.
+ *
+ * É função e não constante porque o slot carrega um array. Espalhar um objeto
+ * (`{ ...SLOT_VAZIO }`) copia a REFERÊNCIA do array, então os seis slots do time
+ * dividiriam o mesmo `stats` — e o dia em que alguém escrever nele em vez de
+ * trocá-lo por outro, os seis mudam juntos. Defeito que não dá erro e só aparece
+ * como número estranho na tela.
+ */
+export const slotVazio = (): SlotState => ({
+  id: null,
+  level: 100,
+  quality: 1,
+  stats: [0, 0, 0, 0, 0, 0],
+  carta: null,
+});
 
 export const EMPTY_STADIUM: StadiumState = {
   boss: "",
@@ -47,9 +85,10 @@ export const EMPTY_STADIUM: StadiumState = {
   // reforçado. Abrir sem reforço mostraria um combate que não existe e faria
   // todo time parecer melhor do que é.
   reforco: true,
-  time: Array.from({ length: SLOTS }, () => ({ ...SLOT_VAZIO })),
+  time: Array.from({ length: SLOTS }, () => slotVazio()),
   pool: "natural",
   iv: "medio",
+  deck: "",
 };
 
 const num = (v: string | null, fallback: number): number => {
@@ -69,15 +108,19 @@ const oneOf = <T extends string>(v: string | null, valid: readonly T[], fallback
 const POOLS = ["natural", "tm"] as const;
 const IVS = ["medio", "perfeito"] as const;
 
-/** `6.100.1.5` -> id 6, nível 100, quality 1,5. Slot vazio é string vazia. */
+/** `6.100.1.5.120-126-120-151-127-142` -> id, nível, quality e os seis stats.
+ *  Slot vazio é string vazia, pra a POSIÇÃO não se perder. */
 function parseSlot(txt: string): SlotState {
-  const [i, l, q] = txt.split(".");
+  const [i, l, q, st] = txt.split(".");
   const pid = id(i);
-  if (pid == null) return { ...SLOT_VAZIO };
+  if (pid == null) return slotVazio();
+  const bruto = (st ?? "").split("-");
   return {
     id: pid,
-    level: Math.max(1, Math.round(num(l ?? null, SLOT_VAZIO.level))),
-    quality: Math.max(0, num(q ?? null, SLOT_VAZIO.quality)),
+    level: Math.max(1, Math.round(num(l ?? null, PADRAO_NIVEL))),
+    quality: Math.max(0, num(q ?? null, PADRAO_QUALITY)),
+    stats: Array.from({ length: 6 }, (_, k) => Math.max(0, Math.round(num(bruto[k] ?? null, 0)))),
+    carta: null,
   };
 }
 
@@ -99,6 +142,9 @@ export function parseStadiumState(sp: URLSearchParams): StadiumState {
     time: Array.from({ length: SLOTS }, (_, i) => parseSlot(bruto[i] ?? "")),
     pool: oneOf(sp.get("golpes"), POOLS, EMPTY_STADIUM.pool),
     iv: oneOf(sp.get("iv"), IVS, EMPTY_STADIUM.iv),
+    // O nome do deck viaja pra quem recebe o link saber COMO o time se chama.
+    // O deck em si não: ele é referência a carta da bolsa, que só existe aqui.
+    deck: (sp.get("deck") ?? "").slice(0, 32),
   };
 }
 
@@ -107,7 +153,7 @@ export function parseStadiumState(sp: URLSearchParams): StadiumState {
  *  pessoa decidiu, e reordenar em silêncio no link mudaria o combate. */
 function writeSlot(s: SlotState): string {
   if (s.id == null) return "";
-  return `${s.id}.${s.level}.${Number(s.quality.toFixed(3))}`;
+  return `${s.id}.${s.level}.${Number(s.quality.toFixed(3))}.${s.stats.join("-")}`;
 }
 
 export function buildStadiumSearch(s: StadiumState): string {
@@ -128,6 +174,7 @@ export function buildStadiumSearch(s: StadiumState): string {
   if (juntos) p.set("t", juntos);
   put("golpes", s.pool, EMPTY_STADIUM.pool);
   put("iv", s.iv, EMPTY_STADIUM.iv);
+  put("deck", s.deck, "");
   const str = p.toString();
   return str ? `?${str}` : "";
 }

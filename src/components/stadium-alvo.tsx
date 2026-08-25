@@ -5,7 +5,8 @@ import type { MetaMon } from "@/lib/meta";
 import type { PackedBoss } from "@/lib/stadium-data";
 import type { StadiumState } from "@/lib/stadium-url";
 import { spriteUrl, assetIconUrl } from "@/lib/sprites";
-import { projectAll } from "@/lib/stats";
+import { projectAll, IV_MAX } from "@/lib/stats";
+import { DEFAULT_IV } from "@/lib/meta";
 import { REFORCO_HP, REFORCO_DANO } from "@/lib/stadium";
 import { STAT_SHORT, compact, monLabel, num } from "@/lib/labels";
 import {
@@ -113,7 +114,7 @@ export function StadiumAlvo({
   const stats = alvo
     ? projectAll(
         [alvo.baseHp, alvo.baseAtk, alvo.baseDef, alvo.baseSpAtk, alvo.baseSpDef, alvo.baseSpeed],
-        Array<number>(6).fill(state.iv === "perfeito" ? 32 : 21),
+        Array<number>(6).fill(state.iv === "perfeito" ? IV_MAX : DEFAULT_IV),
         state.alvoLv,
         state.alvoQ,
       )

@@ -335,7 +335,7 @@ export const COMO_USAR_META: Omit<HowToProps, "tint"> = {
 
 export const COMO_USAR_STADIUM: Omit<HowToProps, "tint"> = {
   resumo:
-    "Você escolhe o boss, monta até seis pokémon e a ferramenta roda a luta inteira: quem entra, quanto tira do boss, quem cai e onde o time quebra.",
+    "Você cadastra seus pokémon com os stats que o jogo mostra, escolhe o boss, monta o time de seis e a ferramenta roda a luta inteira: quem entra, quanto tira do boss, quem cai e onde o time quebra.",
   passos: [
     {
       titulo: "Comece pelo boss, não pelo time",
@@ -349,6 +349,16 @@ export const COMO_USAR_STADIUM: Omit<HowToProps, "tint"> = {
       ),
     },
     {
+      titulo: "Cadastre seus pokémon como CARTA",
+      texto:
+        "A carta pede os seis stats da tela do jogo, mais nível e quality. É com esses números que o combate roda: nada de IV suposto, porque IV é justamente o que o jogo esconde. A carta fica salva neste navegador, na bolsa, e serve também de pai no Breeding.",
+    },
+    {
+      titulo: "Guarde o time como DECK",
+      texto:
+        "Um deck aponta pras cartas, não copia os números. Subiu o Charizard de 300 pra 340? Corrige a carta uma vez e todo deck em que ele está passa a contar a verdade. Sem login não há nuvem: bolsa e decks moram neste navegador, então limpar os dados do site leva os dois.",
+    },
+    {
       titulo: "Ponha os seis na ORDEM em que eles entram",
       texto:
         "A fila é a fila do combate: o primeiro segura o começo, e quem vem depois pega o boss com o HP que sobrou. A ferramenta não reordena o time por conta própria, porque a ordem é decisão sua e trocar em silêncio esconderia o efeito dela.",
@@ -356,7 +366,7 @@ export const COMO_USAR_STADIUM: Omit<HowToProps, "tint"> = {
     {
       titulo: "Leia a FATIA de cada um antes do veredito",
       texto:
-        "Fatia é quanto do boss aquele pokémon leva embora antes de cair. É o número que se soma de cabeça: três de 40% derrubam. Dano por segundo alto em quem aguenta dois golpes não derruba nada, e aguentar muito sem bater também não.",
+        "Fatia é quanto do boss aquele pokémon leva embora antes de cair. É o número que se soma de cabeça: três de 40% derrubam. Dano por segundo alto pode virar fatia zero, e não é erro de conta: cada golpe tem recarga própria, e quem cai em dez segundos nunca chega a disparar o de quarenta.",
     },
     {
       titulo: "Confira o nível antes de trocar de espécie",
@@ -371,9 +381,14 @@ export const COMO_USAR_STADIUM: Omit<HowToProps, "tint"> = {
   ],
   bomSaber: [
     <>
-      O jogo não publica os stats do boss. O que a ferramenta faz é usar a espécie de que
-      ele é feito: “Mega Alakazam Lv 350” entra como um Mega Alakazam de nível 350. Isso
-      acerta o tipo e a ordem de grandeza; não acerta stat próprio de boss.
+      Os dois lados não têm a mesma certeza, e a tela não finge que têm. O seu time entra
+      com os stats que você copiou do jogo. O boss não: o jogo não publica stat de boss,
+      então os seis números dele saem de nível, quality e o IV suposto no controle do topo.
+    </>,
+    <>
+      O jogo também não publica tipo de boss. O que a ferramenta faz é usar a espécie de
+      que ele é feito: “Mega Alakazam Lv 350” entra como um Mega Alakazam de nível 350.
+      Isso acerta o tipo e a ordem de grandeza; não acerta stat próprio de boss.
     </>,
     <>
       Trinta e seis dos {TOTAL_BOSSES} não são pokémon nenhum. A categoria Terror inteira e

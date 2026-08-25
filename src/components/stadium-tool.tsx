@@ -8,39 +8,31 @@ import type { MetaMon } from "@/lib/meta";
 import { pingDestaque } from "@/lib/destaque-cliente";
 import { IV_MAX } from "@/lib/stats";
 import { DEFAULT_IV } from "@/lib/meta";
+import { apagarCarta, cartaCompleta, lerBolsa, salvarCarta, type Carta } from "@/lib/bolsa";
+import { apagarDeck, lerDecks, salvarDeck, type Deck } from "@/lib/decks";
 import {
   fichaDe,
   melhorDoTime,
   simularArena,
+  statsEstimados,
   type ArenaAlvo,
   type ArenaMon,
   type FichaMembro,
 } from "@/lib/stadium";
 import {
   EMPTY_STADIUM,
-  SLOT_VAZIO,
   buildStadiumSearch,
   parseStadiumState,
+  slotVazio,
   type SlotState,
   type StadiumState,
 } from "@/lib/stadium-url";
-import { apagarTime, lerTimes, salvarTime, type TimeSalvo } from "@/lib/stadium-store";
 import { StadiumAlvo } from "@/components/stadium-alvo";
 import { StadiumTime } from "@/components/stadium-time";
 import { StadiumCombate } from "@/components/stadium-combate";
-import {
-  Button,
-  Empty,
-  Field,
-  FieldRow,
-  IconButton,
-  IconClose,
-  Input,
-  Note,
-  Panel,
-  Segmented,
-  Select,
-} from "@/components/ui";
+import { StadiumCarta } from "@/components/stadium-carta";
+import { BarraDeck, StadiumBolsa } from "@/components/stadium-bolsa";
+import { Empty, Field, FieldRow, Note, Panel, Segmented } from "@/components/ui";
 import { IconGem, IconTm } from "@/components/game-icons";
 
 const TINT = "var(--color-t-stadium)";
@@ -53,14 +45,26 @@ const TINT = "var(--color-t-stadium)";
  * O Duelo do `/meta` pergunta "este ganha daquele?". Aqui a pergunta é "o meu
  * TIME derruba este boss?", e ela tem uma mecânica que nenhuma soma de duelos
  * alcança: o HP do boss atravessa a troca de lutador. Um time de seis medianos
- * derruba o que nenhum dos seis derruba sozinho, e é essa diferença que a
- * ferramenta existe pra mostrar. O motor está em `lib/stadium.ts`.
+ * derruba o que nenhum dos seis derruba sozinho. O motor está em
+ * `lib/stadium.ts`.
+ *
+ * ## Os dois lados não têm a mesma certeza, e a tela não finge que têm
+ *
+ * O TIME entra com os stats de verdade, copiados da tela do jogo pra uma carta
+ * na bolsa. O motor usa aqueles seis números e não supõe IV nenhum — IV é
+ * justamente o que o jogo esconde.
+ *
+ * O ALVO não tem essa sorte: o jogo não publica stat de boss. Ali os stats são
+ * PROJETADOS de nível, quality e um IV escolhido no controle lá em cima, e isso
+ * está dito na tela. Um lado medido e o outro estimado é a melhor conta
+ * disponível; fingir que os dois são iguais é que seria o defeito.
  *
  * ## Onde o estado mora
  *
- * O alvo e o time vão pra URL, porque time montado é uma PROPOSTA e proposta se
- * manda pro grupo. Os times salvos ficam no `localStorage`, porque a coleção
- * pessoal de quem abriu o site não tem por que viajar num link.
+ * O alvo e o time vão pra URL com os NÚMEROS dentro, porque time montado é uma
+ * proposta e proposta se manda pro grupo — id de `localStorage` não quer dizer
+ * nada no navegador do outro. A bolsa e os decks ficam no `localStorage`: o site
+ * não tem login, e coleção pessoal não viaja em link.
  */
 export function StadiumTool({
   mons: packed,
@@ -86,21 +90,105 @@ export function StadiumTool({
 
   const patch = useCallback((p: Partial<StadiumState>) => setS((old) => ({ ...old, ...p })), []);
 
-  const onSlot = useCallback((i: number, p: Partial<SlotState>) => {
-    setS((old) => {
-      const time = old.time.slice();
-      // Trocar a espécie de um slot NÃO reaproveita nível e quality de quem
-      // estava lá: são de outro pokémon. Tirar (id null) devolve o slot ao
-      // padrão inteiro, senão o próximo a entrar herda um nível que ninguém
-      // digitou pra ele.
-      time[i] = p.id === null ? { ...SLOT_VAZIO } : { ...time[i], ...p };
-      return { ...old, time };
-    });
-    if (p.id != null) pingDestaque(p.id);
-  }, []);
-
   const mons = useMemo<MetaMon[]>(() => packed.map(unpackMon), [packed]);
   const byId = useMemo(() => new Map(mons.map((m) => [m.pokeId, m])), [mons]);
+
+  // ---- bolsa e decks ----
+  //
+  // Lidos só depois da hidratação: `localStorage` não existe no servidor, e ler
+  // no primeiro render faria o HTML do servidor divergir do cliente.
+  const [cartas, setCartas] = useState<Carta[]>([]);
+  const [decks, setDecks] = useState<Deck[]>([]);
+  useEffect(() => {
+    setCartas(lerBolsa());
+    setDecks(lerDecks());
+  }, []);
+
+  const [bolsaAberta, setBolsaAberta] = useState(false);
+  const [slotAlvo, setSlotAlvo] = useState<number | null>(null);
+  const [editando, setEditando] = useState<Carta | null>(null);
+  const [cartaAberta, setCartaAberta] = useState(false);
+  const [nomeDeck, setNomeDeck] = useState(s.deck);
+
+  const porCartaId = useMemo(() => new Map(cartas.map((c) => [c.id, c])), [cartas]);
+
+  /** A carta vira slot: os seis números dela, mais a origem. */
+  const slotDaCarta = (c: Carta): SlotState => ({
+    id: c.pokeId,
+    level: c.level ?? 100,
+    quality: c.quality,
+    stats: c.stats ? [...c.stats] : [0, 0, 0, 0, 0, 0],
+    carta: c.id,
+  });
+
+  const porNoSlot = useCallback((c: Carta, slot: number | null) => {
+    setS((old) => {
+      const time = old.time.slice();
+      // Sem slot pedido (bolsa aberta pelo armário), cai no primeiro vazio. Time
+      // cheio substitui o último: é o que menos entrou em combate, e portanto o
+      // menos custoso de perder.
+      const vazio = time.findIndex((x) => x.id == null);
+      const i = slot ?? (vazio >= 0 ? vazio : time.length - 1);
+      time[i] = {
+        id: c.pokeId,
+        level: c.level ?? 100,
+        quality: c.quality,
+        stats: c.stats ? [...c.stats] : [0, 0, 0, 0, 0, 0],
+        carta: c.id,
+      };
+      return { ...old, time };
+    });
+    pingDestaque(c.pokeId);
+    setBolsaAberta(false);
+    setSlotAlvo(null);
+  }, []);
+
+  const guardarCarta = (c: Carta) => {
+    setCartas(salvarCarta(c));
+    // Editar a carta atualiza TODO slot que veio dela, e é o ponto inteiro da
+    // referência: corrigir o nível do Charizard numa carta arruma os decks em
+    // que ele está, em vez de deixar cada cópia envelhecer sozinha.
+    setS((old) => ({
+      ...old,
+      time: old.time.map((x) => (x.carta === c.id ? slotDaCarta(c) : x)),
+    }));
+  };
+
+  const apagar = (id: string) => {
+    setCartas(apagarCarta(id));
+    // O slot que vinha dela perde a ORIGEM e guarda os números: apagar a carta
+    // da coleção não é tirar o pokémon do time que está montado agora.
+    setS((old) => ({
+      ...old,
+      time: old.time.map((x) => (x.carta === id ? { ...x, carta: null } : x)),
+    }));
+  };
+
+  const carregarDeck = (id: string) => {
+    const d = decks.find((x) => x.id === id);
+    if (!d) return;
+    const time = d.cartas.map((cid) => {
+      const c = cid ? porCartaId.get(cid) : null;
+      // Carta apagada devolve o slot VAZIO em vez de sumir da fila: um time de
+      // seis virando de cinco em silêncio é pior do que o buraco à vista.
+      return c && cartaCompleta(c) ? slotDaCarta(c) : slotVazio();
+    });
+    patch({ time, deck: d.nome });
+    setNomeDeck(d.nome);
+  };
+
+  const guardarDeck = () => {
+    const { decks: proximos, deck } = salvarDeck(nomeDeck, s.time.map((x) => x.carta));
+    setDecks(proximos);
+    if (deck) patch({ deck: deck.nome });
+  };
+
+  const novoDeck = () => {
+    patch({ time: EMPTY_STADIUM.time.map(() => slotVazio()), deck: "" });
+    setNomeDeck("");
+  };
+
+  // ---- o combate ----
 
   const iv = s.iv === "perfeito" ? IV_MAX : DEFAULT_IV;
   const ivs = useMemo(() => Array<number>(6).fill(iv), [iv]);
@@ -111,7 +199,13 @@ export function StadiumTool({
   const alvo = useMemo<ArenaAlvo | null>(
     () =>
       alvoMon
-        ? { mon: alvoMon, level: s.alvoLv, quality: s.alvoQ, ivs, reforco: s.reforco }
+        ? {
+            mon: alvoMon,
+            level: s.alvoLv,
+            // O único lado projetado da tela. Ver o cabeçalho.
+            stats: statsEstimados(alvoMon, s.alvoLv, s.alvoQ, ivs),
+            reforco: s.reforco,
+          }
         : null,
     [alvoMon, s.alvoLv, s.alvoQ, s.reforco, ivs],
   );
@@ -122,11 +216,13 @@ export function StadiumTool({
       s.time
         .map((slot, i) => {
           const mon = slot.id != null ? byId.get(slot.id) : null;
-          if (!mon) return null;
-          return { i, membro: { mon, level: slot.level, quality: slot.quality, ivs } as ArenaMon };
+          // Slot sem stats não entra: ele não tem número pra pôr no ringue, e
+          // completar com estimativa seria o defeito que esta versão corrigiu.
+          if (!mon || slot.stats.some((v) => v <= 0)) return null;
+          return { i, membro: { mon, level: slot.level, stats: slot.stats } as ArenaMon };
         })
         .filter((x): x is { i: number; membro: ArenaMon } => x != null),
-    [s.time, byId, ivs],
+    [s.time, byId],
   );
 
   const fichas = useMemo(() => {
@@ -142,7 +238,7 @@ export function StadiumTool({
     // O motor numera pela ordem em que RECEBEU o time, e ele recebe só os slots
     // preenchidos. Devolver esse número pra tela faria a fila chamar de "#2" o
     // pokémon que a carta dele chama de "#4" — o mesmo bicho com dois números na
-    // mesma página, e o de baixo sempre errado quando há buraco no meio do time.
+    // mesma página, e o de baixo sempre errado quando há buraco no meio.
     return {
       ...bruto,
       passagens: bruto.passagens.map((p) => ({ ...p, slot: escalados[p.slot].i })),
@@ -152,17 +248,6 @@ export function StadiumTool({
 
   const melhor = useMemo(() => melhorDoTime([...fichas.values()]), [fichas]);
 
-  // ---- os times salvos ----
-  const [salvos, setSalvos] = useState<TimeSalvo[]>([]);
-  const [nome, setNome] = useState("");
-  useEffect(() => setSalvos(lerTimes()), []);
-
-  const carregar = (id: string) => {
-    const t = salvos.find((x) => x.id === id);
-    if (t) patch({ time: t.time.map((x) => ({ ...x })) });
-  };
-
-  const temTime = escalados.length > 0;
   /**
    * Como o alvo se chama na tela.
    *
@@ -193,7 +278,7 @@ export function StadiumTool({
           </Field>
         </FieldRow>
         <FieldRow>
-          <Field label="IV dos dois lados" icon={<IconGem size={14} />}>
+          <Field label="IV suposto do alvo" icon={<IconGem size={14} />}>
             <Segmented
               value={s.iv}
               onChange={(v) => patch({ iv: v as StadiumState["iv"] })}
@@ -210,8 +295,8 @@ export function StadiumTool({
             : "Só naturais é o que todo pokémon aprende sozinho. É a leitura certa pra saber se dá pra encarar o boss com o time como ele está hoje."}
         </Note>
         <Note flush className="max-w-[46rem]">
-          Os dois lados usam o mesmo IV. Assim o que separa o seu time do boss é espécie,
-          nível e quality, e não a sorte de um número que o jogo nem chega a mostrar.
+          O seu time entra com os stats que você copiou do jogo. O alvo não: o jogo não
+          publica stat de boss, então os seis números dele saem de nível, quality e este IV.
         </Note>
       </Panel>
 
@@ -219,7 +304,12 @@ export function StadiumTool({
         <StadiumAlvo mons={mons} bosses={bosses} state={s} patch={patch} />
 
         <Panel
-          title={<span className="pix">O time</span>}
+          title={
+            <span className="flex flex-wrap items-baseline gap-x-2">
+              <span className="pix">O time</span>
+              {s.deck ? <span className="pix text-[10px] text-text-mute">{s.deck}</span> : null}
+            </span>
+          }
           actions={
             <span className="pix text-[10px] text-text-mute">
               {escalados.length}/{s.time.length}
@@ -229,74 +319,48 @@ export function StadiumTool({
         >
           <StadiumTime
             mons={mons}
+            cartas={cartas}
             state={s}
             fichas={fichas}
-            onSlot={onSlot}
             temAlvo={alvo != null}
+            onAbrirBolsa={(slot) => {
+              setSlotAlvo(slot);
+              setBolsaAberta(true);
+            }}
+            onEditarCarta={(c) => {
+              setEditando(c);
+              setCartaAberta(true);
+            }}
+            onTirar={(i) =>
+              setS((old) => {
+                const time = old.time.slice();
+                time[i] = slotVazio();
+                return { ...old, time };
+              })
+            }
           />
 
-          <div className="flex flex-wrap items-end gap-2 border-t border-line pt-3">
-            <Field label="Times salvos" className="min-w-[11rem] flex-1">
-              <Select
-                value=""
-                onChange={(v) => carregar(v)}
-                options={[
-                  { value: "", label: salvos.length ? "carregar um time..." : "nenhum time salvo" },
-                  ...salvos.map((t) => ({ value: t.id, label: t.nome })),
-                ]}
-              />
-            </Field>
-            <Field label="Salvar este como" className="min-w-[11rem] flex-1">
-              <Input
-                value={nome}
-                onChange={(e) => setNome(e.currentTarget.value)}
-                placeholder="nome do time"
-                maxLength={32}
-              />
-            </Field>
-            <Button
-              onClick={() => {
-                setSalvos(salvarTime(nome, s.time));
-                setNome("");
-              }}
-              disabled={!temTime || !nome.trim()}
-            >
-              Salvar
-            </Button>
-            <Button
-              variant="ghost"
-              onClick={() => patch({ time: EMPTY_STADIUM.time.map((x) => ({ ...x })) })}
-              disabled={!temTime}
-            >
-              Limpar time
-            </Button>
-          </div>
+          <BarraDeck
+            decks={decks}
+            atual={s.deck}
+            nome={nomeDeck}
+            onNome={setNomeDeck}
+            onCarregar={carregarDeck}
+            onSalvar={guardarDeck}
+            onApagar={(id) => setDecks(apagarDeck(id))}
+            onNovo={novoDeck}
+            onAbrirBolsa={() => {
+              setSlotAlvo(null);
+              setBolsaAberta(true);
+            }}
+            podeSalvar={s.time.some((x) => x.carta != null)}
+          />
 
-          {salvos.length ? (
-            <div className="flex flex-wrap items-center gap-1.5">
-              {salvos.map((t) => (
-                <span
-                  key={t.id}
-                  className="flex items-center gap-1 rounded-pix border border-line-strong bg-surface-2 py-0.5 pl-2 pr-0.5 text-[12px] text-text-dim"
-                >
-                  <button
-                    type="button"
-                    className="max-w-[10rem] truncate hover:text-text"
-                    onClick={() => carregar(t.id)}
-                  >
-                    {t.nome}
-                  </button>
-                  <IconButton
-                    label={`Apagar o time ${t.nome}`}
-                    title="Apagar"
-                    size="sm"
-                    onClick={() => setSalvos(apagarTime(t.id))}
-                  >
-                    <IconClose size={12} />
-                  </IconButton>
-                </span>
-              ))}
-            </div>
+          {s.time.some((x) => x.id != null && x.carta == null) ? (
+            <Note flush>
+              Tem pokémon no time que não é carta da sua bolsa, provavelmente vindo de um
+              link. Cadastre como carta pra poder guardar num deck.
+            </Note>
           ) : null}
         </Panel>
       </div>
@@ -315,7 +379,7 @@ export function StadiumTool({
             hint={
               !alvo
                 ? `São ${bosses.length} bosses no catálogo do jogo, com o nível oficial de cada um. Dá pra medir contra qualquer espécie também.`
-                : `Ponha ao menos um pokémon nos seis slots. A ordem é a ordem de entrada: o primeiro segura o começo e quem vem depois pega ${alvoNome} com o HP que sobrou.`
+                : `Ponha ao menos um pokémon nos seis lugares. A ordem é a ordem de entrada: o primeiro segura o começo e quem vem depois pega ${alvoNome} com o HP que sobrou.`
             }
           />
         </Panel>
@@ -324,6 +388,44 @@ export function StadiumTool({
       <p className="pix text-[10px] text-text-mute">
         CATÁLOGO DE BOSSES BAIXADO EM {new Date(bossesGeradoEm).toLocaleDateString("pt-BR")}
       </p>
+
+      <StadiumBolsa
+        aberta={bolsaAberta}
+        cartas={cartas}
+        slotAlvo={slotAlvo}
+        onEscolher={(c) => porNoSlot(c, slotAlvo)}
+        onEditar={(c) => {
+          setEditando(c);
+          setCartaAberta(true);
+        }}
+        onApagar={apagar}
+        onNova={() => {
+          setEditando(null);
+          setCartaAberta(true);
+        }}
+        onFechar={() => {
+          setBolsaAberta(false);
+          setSlotAlvo(null);
+        }}
+      />
+
+      <StadiumCarta
+        aberta={cartaAberta}
+        carta={editando}
+        mons={mons}
+        onSalvar={(c) => {
+          const nova = !porCartaId.has(c.id);
+          guardarCarta(c);
+          // Carta NOVA cai direto no lugar que pediu a bolsa. É o caminho de quem
+          // clicou num slot vazio: mandá-la voltar à lista pra escolher o pokémon
+          // que acabou de cadastrar seria um passo a troco de nada.
+          if (nova && slotAlvo != null) porNoSlot(c, slotAlvo);
+        }}
+        onFechar={() => {
+          setCartaAberta(false);
+          setEditando(null);
+        }}
+      />
     </div>
   );
 }

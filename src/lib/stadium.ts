@@ -61,13 +61,26 @@ const REFORCO_DANO = 1.8;
  */
 const TETO_S = 900;
 
-/** Um pokémon concreto no ringue: espécie mais o que o indivíduo tem. */
+/**
+ * Um pokémon concreto no ringue.
+ *
+ * `stats` são os SEIS NÚMEROS DE VERDADE, na ordem canônica (hp, atk, def,
+ * spAtk, spDef, speed) — os mesmos que a tela do jogo mostra. Não é `nível +
+ * quality + IV suposto`, e a diferença não é de precisão, é de natureza: o IV é
+ * exatamente o que o jogo esconde, então supô-lo faz a conta responder sobre um
+ * pokémon médio em vez do seu.
+ *
+ * Quem monta o `ArenaMon` decide de onde os números vêm. O time do jogador vem
+ * da bolsa, onde ele copiou os stats da tela. O ALVO não tem essa sorte: o jogo
+ * não publica stat de boss, então quem o monta projeta `nível + quality + IV`
+ * e assume a estimativa. O motor não precisa saber a diferença — ele recebe seis
+ * números dos dois lados.
+ */
 export interface ArenaMon {
   mon: MetaMon;
   level: number;
-  quality: number;
   /** na ordem hp, atk, def, spAtk, spDef, speed */
-  ivs: number[];
+  stats: number[];
 }
 
 /** O alvo. `reforco` liga o que o jogo dá a selvagem e boss: HP x5 e dano x1.8. */
@@ -119,9 +132,6 @@ export interface ResultadoArena {
 export interface FichaMembro {
   slot: number;
   mon: MetaMon;
-  /** os seis stats projetados, na ordem canônica */
-  stats: number[];
-  power: number;
   /** o golpe de maior dano dele contra este alvo */
   golpe: Attack | null;
   tipo: PokeType | null;
@@ -158,10 +168,6 @@ function golpesDe(a: ArenaMon, pool: MovePool): GolpeSim[] {
     }));
 }
 
-const bases = (m: MetaMon): number[] => [
-  m.baseHp, m.baseAtk, m.baseDef, m.baseSpAtk, m.baseSpDef, m.baseSpeed,
-];
-
 /**
  * Converte um pokémon da arena no lado que o simulador entende.
  *
@@ -169,21 +175,27 @@ const bases = (m: MetaMon): number[] => [
  * lutador (o boss tem cinco vidas), não do golpe. Já o reforço de DANO fica de
  * fora: ele multiplica o golpe, e quem aplica é quem bate.
  */
-function ladoDe(a: ArenaMon, pool: MovePool, reforcoHp = false): LadoSim & { power: number; stats: number[] } {
-  const p = projectAll(bases(a.mon), a.ivs, a.level, a.quality);
+function ladoDe(a: ArenaMon, pool: MovePool, reforcoHp = false): LadoSim {
   return {
     nivel: a.level,
     t1: a.mon.type1,
     t2: a.mon.type2,
-    hp: p.stats[0] * (reforcoHp ? REFORCO_HP : 1),
-    atk: p.stats[1],
-    spa: p.stats[3],
-    def: p.stats[2],
-    spDef: p.stats[4],
+    hp: a.stats[0] * (reforcoHp ? REFORCO_HP : 1),
+    atk: a.stats[1],
+    spa: a.stats[3],
+    def: a.stats[2],
+    spDef: a.stats[4],
     golpes: golpesDe(a, pool),
-    stats: p.stats,
-    power: p.power,
   };
+}
+
+/** Os seis stats de um pokémon cujos números não se conhece — o caso do BOSS.
+ *  Existe pra a estimativa do alvo sair de um lugar só, e declarado. */
+export function statsEstimados(mon: MetaMon, level: number, quality: number, ivs: number[]): number[] {
+  return projectAll(
+    [mon.baseHp, mon.baseAtk, mon.baseDef, mon.baseSpAtk, mon.baseSpDef, mon.baseSpeed],
+    ivs, level, quality,
+  ).stats;
 }
 
 /**
@@ -384,8 +396,6 @@ export function fichaDe(
   return {
     slot,
     mon: membro.mon,
-    stats: lado.stats,
-    power: lado.power,
     golpe,
     tipo: golpe?.type ?? null,
     eff: golpe ? huntEffectiveness(golpe.type, alvo.mon.type1, alvo.mon.type2) : 0,
