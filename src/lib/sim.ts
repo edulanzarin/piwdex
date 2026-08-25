@@ -143,8 +143,13 @@ const TETO_S = 60;
 /** STAB: o golpe do mesmo tipo do lutador bate 1,5x. Regra da serie, confirmada no jogo. */
 const stabDe = (l: LadoSim, g: GolpeSim): number => (g.type === l.t1 || g.type === l.t2 ? 1.5 : 1);
 
-/** O dano que `de` aplica em `para` com este golpe, ja com tipo e STAB. */
-function dano(de: LadoSim, para: LadoSim, g: GolpeSim): number {
+/** O dano que `de` aplica em `para` com este golpe, ja com tipo e STAB.
+ *
+ *  Exportado porque a ARENA (`stadium.ts`) monta o proprio laco de eventos — um
+ *  combate de time nao e uma sequencia de lutas isoladas, e sim uma luta so em
+ *  que o lado do jogador troca de lutador. O laco e outro; a formula de dano tem
+ *  de ser a MESMA, senao a mesma dupla sai com numeros diferentes em duas telas. */
+export function danoEntre(de: LadoSim, para: LadoSim, g: GolpeSim): number {
   const eff = huntEffectiveness(g.type, para.t1, para.t2);
   if (eff <= 0) return 0; // imune: nao entra na fila
   const ataque = g.category === "SPECIAL" ? de.spa : de.atk;
@@ -164,10 +169,10 @@ export function simular(lutador: LadoSim, alvo: LadoSim): ResultadoLuta {
   // Pre-computa o dano de cada golpe: ele nao muda durante a luta, e recalcular
   // dentro do laco multiplicaria o custo pelo numero de eventos sem mudar nada.
   const meus = lutador.golpes
-    .map((g) => ({ g, d: dano(lutador, alvo, g) }))
+    .map((g) => ({ g, d: danoEntre(lutador, alvo, g) }))
     .filter((x) => x.d > 0 && x.g.cooldownMs > 0);
   const dele = alvo.golpes
-    .map((g) => ({ g, d: dano(alvo, lutador, g) }))
+    .map((g) => ({ g, d: danoEntre(alvo, lutador, g) }))
     .filter((x) => x.d > 0 && x.g.cooldownMs > 0);
 
   const maior = meus.reduce<{ g: GolpeSim; d: number } | null>(
@@ -309,10 +314,10 @@ export function ritmoDeCacada(
   intervaloS: number,
 ): RitmoCacada {
   const meus = lutador.golpes
-    .map((g) => ({ g, d: dano(lutador, alvo, g) }))
+    .map((g) => ({ g, d: danoEntre(lutador, alvo, g) }))
     .filter((x) => x.d > 0 && x.g.cooldownMs > 0);
   const dele = alvo.golpes
-    .map((g) => ({ g, d: dano(alvo, lutador, g) }))
+    .map((g) => ({ g, d: danoEntre(alvo, lutador, g) }))
     .filter((x) => x.d > 0 && x.g.cooldownMs > 0);
 
   const maior = meus.reduce<{ g: GolpeSim; d: number } | null>(
