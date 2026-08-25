@@ -13,15 +13,19 @@ import {
 import { DOUBLE_STONE_EXTRA, doubleStoneMath } from "@/lib/breed-plan";
 import { textoIv, textoIvTotal, type IvReading } from "@/lib/iv-reading";
 import { projectAll } from "@/lib/stats";
-import { RARITY_COLOR, TYPE_COLOR } from "@/lib/typing";
-import { animatedSpriteUrl, spriteUrl } from "@/lib/sprites";
-import { STAT_LABEL, STAT_SHORT, compact } from "@/lib/labels";
-import { TypeBadge } from "@/components/type-icon";
+import { TYPE_COLOR } from "@/lib/typing";
+import { TIER_COLOR, qualityTier } from "@/lib/rarity";
+import { spriteUrl } from "@/lib/sprites";
+import { STAT_LABEL, STAT_SHORT, TIER_LABEL, TYPE_LABEL, compact } from "@/lib/labels";
+import { TypeIcon } from "@/components/type-icon";
+import { RarityIcon } from "@/components/rarity-icon";
 import { IconGem, IconLevel, IconStone, IconTarget, STAT_ICONS } from "@/components/game-icons";
+import Link from "next/link";
 import {
   Chip,
   Empty,
   FieldLabel,
+  IconChevronRight,
   IconCoin,
   IconStar,
   Note,
@@ -112,19 +116,36 @@ export function BreedEgg({
   // entrada que ela mesma sabe estar furada.
   const furado = leitura?.impossivel ?? false;
 
+  /* A faixa do FILHO sai da quality media dele, e nao da raridade da especie.
+     Era `RARITY_COLOR[especie.rarity]` — o halo dizia "Charizard e Raro" numa
+     tela que fala de UM individuo que ainda nem existe. Sao duas grandezas com
+     os mesmos nomes; ver o aviso no topo de `lib/rarity.ts`. A calculadora ja
+     tinha passado por essa correcao, e aqui ela valia igual. */
+  const faixa = qualityTier(egg.expectedQuality);
+
   return (
-    <section className="panel scanline relative flex flex-col">
+    /* Sem `scanline`. Ele e o brilho de console do dialeto antigo, e as fichas
+       que este bloco tem de parecer — especie, item, calculadora, hunt — pararam
+       de usar. O breed era a ultima FICHA que faltava.
+       A prop `scan` do `Panel` continua existindo porque a tela de erro ainda a
+       usa, e ali o brilho de console diz alguma coisa: e a unica tela do site que
+       aparece quando o site quebrou. */
+    <section className="panel relative flex flex-col">
       {/* ---- cabecalho de perfil ---- */}
       <header className="flex flex-col gap-5 border-b border-line p-5 sm:flex-row sm:items-center sm:gap-7">
         <div className="relative grid shrink-0 place-items-center self-center">
           <span
             aria-hidden="true"
             className="anim-glow absolute h-40 w-40 rounded-full blur-3xl"
-            style={{ backgroundColor: egg.shinyGuaranteed ? "var(--color-warn)" : RARITY_COLOR[especie.rarity] }}
+            style={{ backgroundColor: egg.shinyGuaranteed ? "var(--color-warn)" : TIER_COLOR[faixa] }}
           />
+          {/* Sem `animatedSrc`, e o breed era a ultima tela que ainda o usava num
+              slot grande. `spriteUrl` ja devolve o render oficial (475px); o gif
+              animado do gen5 tem 96 e entra por cima assim que carrega, entao o
+              que a pessoa via aqui era pixel esticado num quadro de 152 — com a
+              dex ao lado mostrando a arte boa do mesmo pokemon. */}
           <Sprite
             src={spriteUrl(especie.id, egg.shinyGuaranteed)}
-            animatedSrc={egg.shinyGuaranteed ? null : animatedSpriteUrl(especie.id)}
             alt={especie.name}
             size={152}
             className="anim-float relative"
@@ -132,28 +153,66 @@ export function BreedEgg({
         </div>
 
         <div className="flex min-w-0 flex-1 flex-col gap-3">
-          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-            <h2 className="text-[28px] leading-none font-bold text-text">{especie.name}</h2>
-            <span className="pix text-[12px] text-text-mute">o filho</span>
-          </div>
+          {/* O EPITETO, no arranjo das outras fichas: a faixa dita antes do nome,
+              na cor dela e com o brasao. "o filho" mora aqui e nao mais solto ao
+              lado do nome — o epiteto e o slot de quem a coisa E, e um ovo
+              projetado e exatamente "o filho, faixa tal". */}
+          <span
+            className="pix flex flex-wrap items-center gap-x-2 text-[10px] tracking-[0.18em]"
+            style={{ color: egg.shinyGuaranteed ? "var(--color-warn)" : TIER_COLOR[faixa] }}
+          >
+            <RarityIcon rarity={faixa} size={15} />
+            {TIER_LABEL[faixa]} · o filho
+          </span>
 
-          <div className="flex flex-wrap items-center gap-1.5">
-            <TypeBadge type={especie.type1} />
-            {especie.type2 ? <TypeBadge type={especie.type2} /> : null}
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+            {/* Discos de tipo, como na ficha e na calculadora: a palavra escrita
+                gastava a linha e o simbolo do tipo e canone do jogo. */}
+            <span aria-hidden="true" className="flex shrink-0 items-center">
+              {[especie.type1, especie.type2].filter(Boolean).map((t, i) => (
+                <span
+                  key={t as string}
+                  title={TYPE_LABEL[t!]}
+                  className={cn(
+                    "grid place-items-center rounded-pill border-2 bg-surface shadow-elev-2",
+                    i === 0 ? "z-10 h-9 w-9" : "-ml-2 h-8 w-8",
+                  )}
+                  style={{ borderColor: TYPE_COLOR[t!], color: TYPE_COLOR[t!] }}
+                >
+                  <TypeIcon type={t!} size={i === 0 ? 18 : 16} />
+                </span>
+              ))}
+            </span>
+            <span className="sr-only">
+              {[especie.type1, especie.type2].filter(Boolean).map((t) => TYPE_LABEL[t!]).join(" e ")}
+            </span>
+
+            <h2 className="pix text-[24px] leading-none tracking-[0.08em] text-text">
+              {especie.name}
+            </h2>
+
             {egg.shinyGuaranteed ? (
-              <Chip tone="warn" icon={<IconStar size={14} />}>Shiny garantido</Chip>
+              <Chip size="xs" tone="warn" icon={<IconStar size={13} />}>Shiny garantido</Chip>
             ) : (
               <Tooltip content="Regra provisória: ainda não confirmada por documentação do jogo.">
-                <Chip size="sm" icon={<IconStar size={14} />}>
+                <Chip size="xs" icon={<IconStar size={13} />}>
                   {pct(egg.spontaneousShinyChance)} de Shiny · provisório
                 </Chip>
               </Tooltip>
             )}
+
+            <Link
+              href={`/dex/${especie.id}`}
+              className="pix ml-auto flex items-center gap-1 text-[11px] text-text-mute transition-colors hover:text-accent"
+            >
+              ver na dex
+              <IconChevronRight size={14} />
+            </Link>
           </div>
 
           {/* As tres manchetes. A do meio e a QUALITY MEDIA, nao o melhor caso —
               manchete otimista numa tela de sorteio e propaganda, nao dado. */}
-          <dl className="grid grid-cols-3 gap-px overflow-hidden border border-line bg-line">
+          <dl className="grid grid-cols-3 gap-px overflow-hidden rounded-pix border border-line bg-line">
             {[
               { label: "quality média", value: q3(egg.expectedQuality), tone: "text-neon", grande: true },
               { label: "faixa possível", value: `${q3(egg.minQuality)}–${q3(egg.maxQuality)}`, tone: "text-text" },

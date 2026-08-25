@@ -30,8 +30,8 @@ import {
 } from "@/lib/breed-url";
 import { spriteUrl } from "@/lib/sprites";
 import { TYPE_COLOR } from "@/lib/typing";
-import { STAT_LABEL, STAT_SHORT, num} from "@/lib/labels";
-import { TypeBadge } from "@/components/type-icon";
+import { STAT_LABEL, STAT_SHORT, TYPE_LABEL, num} from "@/lib/labels";
+import { TypeIcon } from "@/components/type-icon";
 import { IconGem, IconLevel, IconStone, STAT_ICONS } from "@/components/game-icons";
 import {
   Button,
@@ -474,7 +474,13 @@ function PainelPai({
         doador ? "border-accent/55" : "border-line",
       )}
     >
-      <div className="flex items-center justify-between gap-2">
+      {/* `flex-wrap`, pela mesma razao do cabecalho do `Panel`: a linha nao podia
+          quebrar, entao "Slot 1 · doa o IV · salvar · limpar" pedia 340px de
+          largura minima — e num telefone de 390 o slot inteiro (que e item de
+          grid, e portanto nasce com `min-width: auto`) estourava a caixa do
+          painel e saia cortado pela raiz. Rotulo em cima, acoes embaixo, quando
+          nao couber lado a lado. */}
+      <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5">
         <span className="pix flex items-center gap-2 text-[12px] text-text-dim">
           Slot {slot}
           {doador ? <Chip size="xs" tone="accent">doa o IV</Chip> : null}
@@ -534,11 +540,28 @@ function PainelPai({
             placeholder="espécie..."
             emptyText="nenhuma espécie com esse nome"
           />
+          {/* Discos e nao pastilha com a palavra: o slot ja e estreito (dois
+              deles dividem a largura do painel) e "Voador" escrito gastava
+              metade da linha pra dizer o que o simbolo diz em 24px. Os simbolos
+              sao os oficiais do jogo — quem joga ja tem os dezoito decorados. */}
           {especie ? (
-            <span className="flex flex-wrap gap-1">
-              <TypeBadge type={especie.type1} />
-              {especie.type2 ? <TypeBadge type={especie.type2} /> : null}
-            </span>
+            <>
+              <span aria-hidden="true" className="flex shrink-0 items-center gap-1">
+                {[especie.type1, especie.type2].filter(Boolean).map((t) => (
+                  <span
+                    key={t as string}
+                    title={TYPE_LABEL[t!]}
+                    className="grid h-6 w-6 place-items-center rounded-pill border-2 bg-surface"
+                    style={{ borderColor: TYPE_COLOR[t!], color: TYPE_COLOR[t!] }}
+                  >
+                    <TypeIcon type={t!} size={14} />
+                  </span>
+                ))}
+              </span>
+              <span className="sr-only">
+                {[especie.type1, especie.type2].filter(Boolean).map((t) => TYPE_LABEL[t!]).join(" e ")}
+              </span>
+            </>
           ) : null}
         </div>
       </div>
@@ -594,7 +617,12 @@ function PainelPai({
         <>
           <div>
             <FieldLabel className="mb-1.5">Stats, como o jogo mostra</FieldLabel>
-            <div className="grid grid-cols-3 gap-1.5 xl:grid-cols-6">
+            {/* Duas colunas antes de `sm`, e nao tres. Tres campos de numero
+                pedem ~342px de largura minima, e o slot num telefone de 390 tem
+                330 — o slot inteiro estourava a borda do painel e a terceira
+                coluna saia cortada pela raiz (que apara o eixo X). O degrau a
+                mais custa uma linha de altura e devolve a caixa inteira. */}
+            <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3 xl:grid-cols-6">
               {STAT_LABEL.map((label, i) => {
                 const Icon = STAT_ICONS[i];
                 return (
@@ -628,7 +656,7 @@ function PainelPai({
                 {totalIv} de {IV_MAX_TOTAL}
               </span>
             </div>
-            <div className="grid grid-cols-3 gap-1.5 xl:grid-cols-6">
+            <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3 xl:grid-cols-6">
               {STAT_LABEL.map((label, i) => {
                 const Icon = STAT_ICONS[i];
                 const largo = leitura ? leitura.faixas[i][1] - leitura.faixas[i][0] > 1 : false;
@@ -688,7 +716,7 @@ function PainelPai({
               {totalIv} de {IV_MAX_TOTAL}
             </span>
           </div>
-          <div className="grid grid-cols-3 gap-1.5 xl:grid-cols-6">
+          <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3 xl:grid-cols-6">
             {STAT_LABEL.map((label, i) => {
               const Icon = STAT_ICONS[i];
               return (
