@@ -1,0 +1,1138 @@
+{
+  "generatedAt": "2026-08-25T00:51:19.339Z",
+  "source": "https://poke.idleworld.online/game/bossCatalog.json",
+  "count": 87,
+  "bosses": [
+    {
+      "key": "aerodactyl2",
+      "name": "Ancient Aero",
+      "img": "/assets/bosses/aerodactyl2_art.png",
+      "icon": null,
+      "category": "Especiais",
+      "level": 300,
+      "drops": [
+        "Boss Token",
+        "Rare Candy",
+        "Heart Scale"
+      ]
+    },
+    {
+      "key": "cruel",
+      "name": "Giant Cruel",
+      "img": "/assets/bosses/cruel.png",
+      "icon": "/assets/bosses/cruel_icon.png",
+      "category": "Especiais",
+      "level": 300,
+      "drops": [
+        "Boss Token",
+        "Rare Candy",
+        "Heart Scale"
+      ]
+    },
+    {
+      "key": "ghost",
+      "name": "Ghost",
+      "img": "/assets/bosses/ghost.png",
+      "icon": null,
+      "category": "Especiais",
+      "level": 300,
+      "drops": [
+        "Boss Token",
+        "Rare Candy",
+        "Heart Scale"
+      ]
+    },
+    {
+      "key": "hisuian_electrode",
+      "name": "Hisuian Electrode",
+      "img": "/assets/bosses/hisuian_electrode.png",
+      "icon": null,
+      "category": "Especiais",
+      "level": 300,
+      "drops": [
+        "Boss Token",
+        "Rare Candy",
+        "Heart Scale"
+      ]
+    },
+    {
+      "key": "mecha_shiny_marowak",
+      "name": "Mecha Shiny Marowak",
+      "img": "/assets/bosses/mecha_shiny_marowak.png",
+      "icon": null,
+      "category": "Especiais",
+      "level": 300,
+      "drops": [
+        "Boss Token",
+        "Rare Candy",
+        "Heart Scale"
+      ]
+    },
+    {
+      "key": "mecha_shiny_mime",
+      "name": "Mecha Shiny Mime",
+      "img": "/assets/bosses/mecha_shiny_mime.png",
+      "icon": null,
+      "category": "Especiais",
+      "level": 300,
+      "drops": [
+        "Boss Token",
+        "Rare Candy",
+        "Heart Scale"
+      ]
+    },
+    {
+      "key": "mega_alakazam",
+      "name": "Mega Alakazam",
+      "img": "/assets/bosses/mega_alakazam.png",
+      "icon": null,
+      "category": "Especiais",
+      "level": 300,
+      "drops": [
+        "Boss Token",
+        "Rare Candy",
+        "Heart Scale"
+      ]
+    },
+    {
+      "key": "megaVenusaurHP",
+      "name": "Mega Venusaur",
+      "img": "/assets/bosses/megaVenusaurHP.png",
+      "icon": null,
+      "category": "Especiais",
+      "level": 300,
+      "drops": [
+        "Boss Token",
+        "Rare Candy",
+        "Heart Scale"
+      ]
+    },
+    {
+      "key": "outfit_4_",
+      "name": "Outfit 4",
+      "img": "/assets/bosses/outfit_4_.png",
+      "icon": null,
+      "category": "Especiais",
+      "level": 300,
+      "drops": [
+        "Boss Token",
+        "Rare Candy",
+        "Heart Scale"
+      ]
+    },
+    {
+      "key": "overqwil",
+      "name": "Overqwil",
+      "img": "/assets/bosses/overqwil.png",
+      "icon": null,
+      "category": "Especiais",
+      "level": 300,
+      "drops": [
+        "Boss Token",
+        "Rare Candy",
+        "Heart Scale"
+      ]
+    },
+    {
+      "key": "boss_mewtwo_main",
+      "name": "Boss Mewtwo Main",
+      "img": "/assets/bosses/boss_mewtwo_main.png",
+      "icon": null,
+      "category": "Especiais",
+      "level": 325,
+      "drops": [
+        "Boss Token",
+        "Rare Candy",
+        "Heart Scale"
+      ]
+    },
+    {
+      "key": "clone_blastoise",
+      "name": "Clone Blastoise",
+      "img": "/assets/bosses/clone_blastoise.png",
+      "icon": null,
+      "category": "Especiais",
+      "level": 325,
+      "drops": [
+        "Boss Token",
+        "Rare Candy",
+        "Heart Scale"
+      ]
+    },
+    {
+      "key": "cyber_porygon",
+      "name": "Cyber Porygon",
+      "img": "/assets/bosses/cyber_porygon.png",
+      "icon": null,
+      "category": "Especiais",
+      "level": 325,
+      "drops": [
+        "Boss Token",
+        "Rare Candy",
+        "Heart Scale"
+      ]
+    },
+    {
+      "key": "mecha_shiny_farfetch",
+      "name": "Mecha Shiny Farfetch",
+      "img": "/assets/bosses/mecha_shiny_farfetch.png",
+      "icon": null,
+      "category": "Especiais",
+      "level": 325,
+      "drops": [
+        "Boss Token",
+        "Rare Candy",
+        "Heart Scale"
+      ]
+    },
+    {
+      "key": "megaManectricHP",
+      "name": "Mega Manectric",
+      "img": "/assets/bosses/megaManectricHP.png",
+      "icon": null,
+      "category": "Especiais",
+      "level": 325,
+      "drops": [
+        "Boss Token",
+        "Rare Candy",
+        "Heart Scale"
+      ]
+    },
+    {
+      "key": "mega_tyranitar",
+      "name": "Mega Tyranitar",
+      "img": "/assets/bosses/mega_tyranitar.png",
+      "icon": null,
+      "category": "Especiais",
+      "level": 325,
+      "drops": [
+        "Boss Token",
+        "Rare Candy",
+        "Heart Scale"
+      ]
+    },
+    {
+      "key": "outfit_5_",
+      "name": "Outfit 5",
+      "img": "/assets/bosses/outfit_5_.png",
+      "icon": null,
+      "category": "Especiais",
+      "level": 325,
+      "drops": [
+        "Boss Token",
+        "Rare Candy",
+        "Heart Scale"
+      ]
+    },
+    {
+      "key": "outfit_66_",
+      "name": "Outfit 66",
+      "img": "/assets/bosses/outfit_66_.png",
+      "icon": null,
+      "category": "Especiais",
+      "level": 325,
+      "drops": [
+        "Boss Token",
+        "Rare Candy",
+        "Heart Scale"
+      ]
+    },
+    {
+      "key": "raichu_halloween",
+      "name": "Raichu Halloween",
+      "img": "/assets/bosses/raichu_halloween.png",
+      "icon": null,
+      "category": "Especiais",
+      "level": 325,
+      "drops": [
+        "Boss Token",
+        "Rare Candy",
+        "Heart Scale"
+      ]
+    },
+    {
+      "key": "raticate",
+      "name": "Raticate",
+      "img": "/assets/bosses/raticate.png",
+      "icon": null,
+      "category": "Especiais",
+      "level": 325,
+      "drops": [
+        "Boss Token",
+        "Rare Candy",
+        "Heart Scale"
+      ]
+    },
+    {
+      "key": "theRedGyarados",
+      "name": "The Red Gyarados",
+      "img": "/assets/bosses/theRedGyarados.png",
+      "icon": null,
+      "category": "Especiais",
+      "level": 325,
+      "drops": [
+        "Boss Token",
+        "Rare Candy",
+        "Heart Scale"
+      ]
+    },
+    {
+      "key": "ursaluna",
+      "name": "Ursaluna",
+      "img": "/assets/bosses/ursaluna.png",
+      "icon": null,
+      "category": "Especiais",
+      "level": 325,
+      "drops": [
+        "Boss Token",
+        "Rare Candy",
+        "Heart Scale"
+      ]
+    },
+    {
+      "key": "mystery_ariana",
+      "name": "Ariana",
+      "img": "/assets/bosses/mystery/ariana.png",
+      "icon": null,
+      "category": "Mystery Dungeons",
+      "level": 350,
+      "drops": [
+        "Mystery Shard",
+        "Shiny Stone",
+        "Dungeon Chest"
+      ]
+    },
+    {
+      "key": "charizardValentines",
+      "name": "Charizard Valentines",
+      "img": "/assets/bosses/charizardValentines.png",
+      "icon": null,
+      "category": "Especiais",
+      "level": 350,
+      "drops": [
+        "Boss Token",
+        "Rare Candy",
+        "Heart Scale"
+      ]
+    },
+    {
+      "key": "clone_charizard",
+      "name": "Clone Charizard",
+      "img": "/assets/bosses/clone_charizard.png",
+      "icon": null,
+      "category": "Especiais",
+      "level": 350,
+      "drops": [
+        "Boss Token",
+        "Rare Candy",
+        "Heart Scale"
+      ]
+    },
+    {
+      "key": "mystery_cyber_porygon",
+      "name": "Cyber Porygon",
+      "img": "/assets/bosses/mystery/cyber_porygon.png",
+      "icon": null,
+      "category": "Mystery Dungeons",
+      "level": 350,
+      "drops": [
+        "Mystery Shard",
+        "Shiny Stone",
+        "Dungeon Chest"
+      ]
+    },
+    {
+      "key": "mystery_dark_celebi",
+      "name": "Dark Celebi",
+      "img": "/assets/bosses/mystery/dark_celebi.png",
+      "icon": null,
+      "category": "Mystery Dungeons",
+      "level": 350,
+      "drops": [
+        "Mystery Shard",
+        "Shiny Stone",
+        "Dungeon Chest"
+      ]
+    },
+    {
+      "key": "dragonSky",
+      "name": "Dragon Sky",
+      "img": "/assets/bosses/dragonSky.png",
+      "icon": null,
+      "category": "Especiais",
+      "level": 350,
+      "drops": [
+        "Boss Token",
+        "Rare Candy",
+        "Heart Scale"
+      ]
+    },
+    {
+      "key": "mystery_dream_boss",
+      "name": "Dream Boss",
+      "img": "/assets/bosses/mystery/dream_boss.png",
+      "icon": null,
+      "category": "Mystery Dungeons",
+      "level": 350,
+      "drops": [
+        "Mystery Shard",
+        "Shiny Stone",
+        "Dungeon Chest"
+      ]
+    },
+    {
+      "key": "fight-the-bite_meowth",
+      "name": "Fight-the-bite Meowth",
+      "img": "/assets/bosses/fight-the-bite_meowth.png",
+      "icon": null,
+      "category": "Especiais",
+      "level": 350,
+      "drops": [
+        "Boss Token",
+        "Rare Candy",
+        "Heart Scale"
+      ]
+    },
+    {
+      "key": "gengar_johto",
+      "name": "Gengar Johto",
+      "img": "/assets/bosses/gengar_johto.png",
+      "icon": null,
+      "category": "Especiais",
+      "level": 350,
+      "drops": [
+        "Boss Token",
+        "Rare Candy",
+        "Heart Scale"
+      ]
+    },
+    {
+      "key": "hisuian_arcanine",
+      "name": "Hisuian Arcanine",
+      "img": "/assets/bosses/hisuian_arcanine.png",
+      "icon": null,
+      "category": "Especiais",
+      "level": 350,
+      "drops": [
+        "Boss Token",
+        "Rare Candy",
+        "Heart Scale"
+      ]
+    },
+    {
+      "key": "hisuian_typhlosion",
+      "name": "Hisuian Typhlosion",
+      "img": "/assets/bosses/hisuian_typhlosion.png",
+      "icon": null,
+      "category": "Especiais",
+      "level": 350,
+      "drops": [
+        "Boss Token",
+        "Rare Candy",
+        "Heart Scale"
+      ]
+    },
+    {
+      "key": "kleavor",
+      "name": "Kleavor",
+      "img": "/assets/bosses/kleavor.png",
+      "icon": null,
+      "category": "Especiais",
+      "level": 350,
+      "drops": [
+        "Boss Token",
+        "Rare Candy",
+        "Heart Scale"
+      ]
+    },
+    {
+      "key": "mecha_shiny_raichu",
+      "name": "Mecha Shiny Raichu",
+      "img": "/assets/bosses/mecha_shiny_raichu.png",
+      "icon": null,
+      "category": "Especiais",
+      "level": 350,
+      "drops": [
+        "Boss Token",
+        "Rare Candy",
+        "Heart Scale"
+      ]
+    },
+    {
+      "key": "mega_blastoise",
+      "name": "Mega Blastoise",
+      "img": "/assets/bosses/mega_blastoise.png",
+      "icon": null,
+      "category": "Especiais",
+      "level": 350,
+      "drops": [
+        "Boss Token",
+        "Rare Candy",
+        "Heart Scale"
+      ]
+    },
+    {
+      "key": "megaSteelixHP",
+      "name": "Mega Steelix",
+      "img": "/assets/bosses/megaSteelixHP.png",
+      "icon": null,
+      "category": "Especiais",
+      "level": 350,
+      "drops": [
+        "Boss Token",
+        "Rare Candy",
+        "Heart Scale"
+      ]
+    },
+    {
+      "key": "mew15th",
+      "name": "Mew15th",
+      "img": "/assets/bosses/mew15th.png",
+      "icon": null,
+      "category": "Especiais",
+      "level": 350,
+      "drops": [
+        "Boss Token",
+        "Rare Candy",
+        "Heart Scale"
+      ]
+    },
+    {
+      "key": "slowbro",
+      "name": "Slowbro",
+      "img": "/assets/bosses/slowbro.png",
+      "icon": null,
+      "category": "Especiais",
+      "level": 350,
+      "drops": [
+        "Boss Token",
+        "Rare Candy",
+        "Heart Scale"
+      ]
+    },
+    {
+      "key": "sneasler",
+      "name": "Sneasler",
+      "img": "/assets/bosses/sneasler.png",
+      "icon": null,
+      "category": "Especiais",
+      "level": 350,
+      "drops": [
+        "Boss Token",
+        "Rare Candy",
+        "Heart Scale"
+      ]
+    },
+    {
+      "key": "steelix",
+      "name": "Steelix",
+      "img": "/assets/bosses/steelix.png",
+      "icon": null,
+      "category": "Especiais",
+      "level": 350,
+      "drops": [
+        "Boss Token",
+        "Rare Candy",
+        "Heart Scale"
+      ]
+    },
+    {
+      "key": "mystery_tyranitar",
+      "name": "Tyranitar",
+      "img": "/assets/bosses/mystery/tyranitar.png",
+      "icon": null,
+      "category": "Mystery Dungeons",
+      "level": 350,
+      "drops": [
+        "Mystery Shard",
+        "Shiny Stone",
+        "Dungeon Chest"
+      ]
+    },
+    {
+      "key": "venusaurHalloween",
+      "name": "Venusaur Halloween",
+      "img": "/assets/bosses/venusaurHalloween.png",
+      "icon": null,
+      "category": "Especiais",
+      "level": 350,
+      "drops": [
+        "Boss Token",
+        "Rare Candy",
+        "Heart Scale"
+      ]
+    },
+    {
+      "key": "mystery_dragonair",
+      "name": "Dragonair",
+      "img": "/assets/bosses/mystery/dragonair.png",
+      "icon": null,
+      "category": "Mystery Dungeons",
+      "level": 375,
+      "drops": [
+        "Mystery Shard",
+        "Shiny Stone",
+        "Dungeon Chest"
+      ]
+    },
+    {
+      "key": "megaCharizardHP",
+      "name": "Mega Charizard",
+      "img": "/assets/bosses/megaCharizardHP.png",
+      "icon": null,
+      "category": "Especiais",
+      "level": 375,
+      "drops": [
+        "Boss Token",
+        "Rare Candy",
+        "Heart Scale"
+      ]
+    },
+    {
+      "key": "megaMachampHP",
+      "name": "Mega Machamp",
+      "img": "/assets/bosses/megaMachampHP.png",
+      "icon": null,
+      "category": "Especiais",
+      "level": 375,
+      "drops": [
+        "Boss Token",
+        "Rare Candy",
+        "Heart Scale"
+      ]
+    },
+    {
+      "key": "mewtwo15th",
+      "name": "Mewtwo15th",
+      "img": "/assets/bosses/mewtwo15th.png",
+      "icon": null,
+      "category": "Especiais",
+      "level": 375,
+      "drops": [
+        "Boss Token",
+        "Rare Candy",
+        "Heart Scale"
+      ]
+    },
+    {
+      "key": "ancientTemple",
+      "name": "Ancient Temple",
+      "img": "/assets/bosses/ancientTemple.png",
+      "icon": null,
+      "category": "Especiais",
+      "level": 400,
+      "drops": [
+        "Boss Token",
+        "Rare Candy",
+        "Heart Scale"
+      ]
+    },
+    {
+      "key": "bowstoiseEaster",
+      "name": "Bowstoise Easter",
+      "img": "/assets/bosses/bowstoiseEaster.png",
+      "icon": null,
+      "category": "Especiais",
+      "level": 400,
+      "drops": [
+        "Boss Token",
+        "Rare Candy",
+        "Heart Scale"
+      ]
+    },
+    {
+      "key": "mystery_celebi_dragon",
+      "name": "Celebi Dragon",
+      "img": "/assets/bosses/mystery/celebi_dragon.png",
+      "icon": null,
+      "category": "Mystery Dungeons",
+      "level": 400,
+      "drops": [
+        "Mystery Shard",
+        "Shiny Stone",
+        "Dungeon Chest"
+      ]
+    },
+    {
+      "key": "clone_venusaur",
+      "name": "Clone Venusaur",
+      "img": "/assets/bosses/clone_venusaur.png",
+      "icon": null,
+      "category": "Especiais",
+      "level": 400,
+      "drops": [
+        "Boss Token",
+        "Rare Candy",
+        "Heart Scale"
+      ]
+    },
+    {
+      "key": "megaCharizardyHP",
+      "name": "Mega Charizardy",
+      "img": "/assets/bosses/megaCharizardyHP.png",
+      "icon": null,
+      "category": "Especiais",
+      "level": 400,
+      "drops": [
+        "Boss Token",
+        "Rare Candy",
+        "Heart Scale"
+      ]
+    },
+    {
+      "key": "megaGengarHP",
+      "name": "Mega Gengar",
+      "img": "/assets/bosses/megaGengarHP.png",
+      "icon": null,
+      "category": "Especiais",
+      "level": 400,
+      "drops": [
+        "Boss Token",
+        "Rare Candy",
+        "Heart Scale"
+      ]
+    },
+    {
+      "key": "noctu",
+      "name": "Noctu",
+      "img": "/assets/bosses/noctu.png",
+      "icon": null,
+      "category": "Especiais",
+      "level": 400,
+      "drops": [
+        "Boss Token",
+        "Rare Candy",
+        "Heart Scale"
+      ]
+    },
+    {
+      "key": "mystery_noctu_boss",
+      "name": "Noctu Boss",
+      "img": "/assets/bosses/mystery/noctu_boss.png",
+      "icon": null,
+      "category": "Mystery Dungeons",
+      "level": 400,
+      "drops": [
+        "Mystery Shard",
+        "Shiny Stone",
+        "Dungeon Chest"
+      ]
+    },
+    {
+      "key": "slowking",
+      "name": "Slowking",
+      "img": "/assets/bosses/slowking.png",
+      "icon": null,
+      "category": "Especiais",
+      "level": 400,
+      "drops": [
+        "Boss Token",
+        "Rare Candy",
+        "Heart Scale"
+      ]
+    },
+    {
+      "key": "mystery_celebi_wood_dragon",
+      "name": "Celebi Wood Dragon",
+      "img": "/assets/bosses/mystery/celebi_wood_dragon.png",
+      "icon": null,
+      "category": "Mystery Dungeons",
+      "level": 425,
+      "drops": [
+        "Mystery Shard",
+        "Shiny Stone",
+        "Dungeon Chest"
+      ]
+    },
+    {
+      "key": "mystery_dorabelle",
+      "name": "Dorabelle",
+      "img": "/assets/bosses/mystery/dorabelle.png",
+      "icon": null,
+      "category": "Mystery Dungeons",
+      "level": 425,
+      "drops": [
+        "Mystery Shard",
+        "Shiny Stone",
+        "Dungeon Chest"
+      ]
+    },
+    {
+      "key": "mystery_iron_masked_marauder",
+      "name": "Iron Masked Marauder",
+      "img": "/assets/bosses/mystery/iron_masked_marauder.png",
+      "icon": null,
+      "category": "Mystery Dungeons",
+      "level": 425,
+      "drops": [
+        "Mystery Shard",
+        "Shiny Stone",
+        "Dungeon Chest"
+      ]
+    },
+    {
+      "key": "mystery_magcargo",
+      "name": "Magcargo",
+      "img": "/assets/bosses/mystery/magcargo.png",
+      "icon": null,
+      "category": "Mystery Dungeons",
+      "level": 425,
+      "drops": [
+        "Mystery Shard",
+        "Shiny Stone",
+        "Dungeon Chest"
+      ]
+    },
+    {
+      "key": "mystery_mystery_mamoswine",
+      "name": "Mystery Mamoswine",
+      "img": "/assets/bosses/mystery/mystery_mamoswine.png",
+      "icon": null,
+      "category": "Mystery Dungeons",
+      "level": 425,
+      "drops": [
+        "Mystery Shard",
+        "Shiny Stone",
+        "Dungeon Chest"
+      ]
+    },
+    {
+      "key": "mystery_mystery_muchmoney",
+      "name": "Mystery Muchmoney",
+      "img": "/assets/bosses/mystery/mystery_muchmoney.png",
+      "icon": null,
+      "category": "Mystery Dungeons",
+      "level": 425,
+      "drops": [
+        "Mystery Shard",
+        "Shiny Stone",
+        "Dungeon Chest"
+      ]
+    },
+    {
+      "key": "beasts_raikou",
+      "name": "Raikou",
+      "img": "/assets/bosses/beasts/raikou.png",
+      "icon": null,
+      "category": "Lendary Beasts",
+      "level": 425,
+      "drops": [
+        "Beast Orb",
+        "Rare Candy",
+        "Legendary Chest"
+      ]
+    },
+    {
+      "key": "mystery_rocket_ambush",
+      "name": "Rocket Ambush",
+      "img": "/assets/bosses/mystery/rocket_ambush.png",
+      "icon": null,
+      "category": "Mystery Dungeons",
+      "level": 425,
+      "drops": [
+        "Mystery Shard",
+        "Shiny Stone",
+        "Dungeon Chest"
+      ]
+    },
+    {
+      "key": "beasts_shiny_raikou",
+      "name": "Shiny Raikou",
+      "img": "/assets/bosses/beasts/shiny_raikou.png",
+      "icon": null,
+      "category": "Lendary Beasts",
+      "level": 425,
+      "drops": [
+        "Beast Orb",
+        "Rare Candy",
+        "Legendary Chest"
+      ]
+    },
+    {
+      "key": "mystery_archer",
+      "name": "Archer",
+      "img": "/assets/bosses/mystery/archer.png",
+      "icon": null,
+      "category": "Mystery Dungeons",
+      "level": 450,
+      "drops": [
+        "Mystery Shard",
+        "Shiny Stone",
+        "Dungeon Chest"
+      ]
+    },
+    {
+      "key": "mystery_celebi_dungeon",
+      "name": "Celebi Dungeon",
+      "img": "/assets/bosses/mystery/celebi_dungeon.png",
+      "icon": null,
+      "category": "Mystery Dungeons",
+      "level": 450,
+      "drops": [
+        "Mystery Shard",
+        "Shiny Stone",
+        "Dungeon Chest"
+      ]
+    },
+    {
+      "key": "mystery_marauder",
+      "name": "Marauder",
+      "img": "/assets/bosses/mystery/marauder.png",
+      "icon": null,
+      "category": "Mystery Dungeons",
+      "level": 450,
+      "drops": [
+        "Mystery Shard",
+        "Shiny Stone",
+        "Dungeon Chest"
+      ]
+    },
+    {
+      "key": "mystery_mecha_marauder",
+      "name": "Mecha Marauder",
+      "img": "/assets/bosses/mystery/mecha_marauder.png",
+      "icon": null,
+      "category": "Mystery Dungeons",
+      "level": 450,
+      "drops": [
+        "Mystery Shard",
+        "Shiny Stone",
+        "Dungeon Chest"
+      ]
+    },
+    {
+      "key": "raids_metagross",
+      "name": "Metagross",
+      "img": "/assets/bosses/raids/metagross.png",
+      "icon": null,
+      "category": "Raids",
+      "level": 450,
+      "drops": [
+        "Raid Coin",
+        "Mega Stone",
+        "Legendary Chest"
+      ]
+    },
+    {
+      "key": "mystery_proton",
+      "name": "Proton",
+      "img": "/assets/bosses/mystery/proton.png",
+      "icon": null,
+      "category": "Mystery Dungeons",
+      "level": 450,
+      "drops": [
+        "Mystery Shard",
+        "Shiny Stone",
+        "Dungeon Chest"
+      ]
+    },
+    {
+      "key": "beasts_entei",
+      "name": "Entei",
+      "img": "/assets/bosses/beasts/entei.png",
+      "icon": null,
+      "category": "Lendary Beasts",
+      "level": 475,
+      "drops": [
+        "Beast Orb",
+        "Rare Candy",
+        "Legendary Chest"
+      ]
+    },
+    {
+      "key": "beasts_shiny_entei",
+      "name": "Shiny Entei",
+      "img": "/assets/bosses/beasts/shiny_entei.png",
+      "icon": null,
+      "category": "Lendary Beasts",
+      "level": 475,
+      "drops": [
+        "Beast Orb",
+        "Rare Candy",
+        "Legendary Chest"
+      ]
+    },
+    {
+      "key": "beasts_shiny_suicune",
+      "name": "Shiny Suicune",
+      "img": "/assets/bosses/beasts/shiny_suicune.png",
+      "icon": null,
+      "category": "Lendary Beasts",
+      "level": 500,
+      "drops": [
+        "Beast Orb",
+        "Rare Candy",
+        "Legendary Chest"
+      ]
+    },
+    {
+      "key": "beasts_suicune",
+      "name": "Suicune",
+      "img": "/assets/bosses/beasts/suicune.png",
+      "icon": null,
+      "category": "Lendary Beasts",
+      "level": 500,
+      "drops": [
+        "Beast Orb",
+        "Rare Candy",
+        "Legendary Chest"
+      ]
+    },
+    {
+      "key": "terror_gyakkyo",
+      "name": "Gyakkyo",
+      "img": "/assets/bosses/terror/gyakkyo.png",
+      "icon": null,
+      "category": "Terror",
+      "level": 525,
+      "drops": [
+        "Terror Token",
+        "Shiny Stone",
+        "Legendary Chest"
+      ]
+    },
+    {
+      "key": "terror_raito",
+      "name": "Raito",
+      "img": "/assets/bosses/terror/raito.png",
+      "icon": null,
+      "category": "Terror",
+      "level": 550,
+      "drops": [
+        "Terror Token",
+        "Shiny Stone",
+        "Legendary Chest"
+      ]
+    },
+    {
+      "key": "terror_riza",
+      "name": "Riza",
+      "img": "/assets/bosses/terror/riza.png",
+      "icon": null,
+      "category": "Terror",
+      "level": 550,
+      "drops": [
+        "Terror Token",
+        "Shiny Stone",
+        "Legendary Chest"
+      ]
+    },
+    {
+      "key": "terror_seishin_yurei",
+      "name": "Seishin Yurei",
+      "img": "/assets/bosses/terror/seishin_yurei.png",
+      "icon": null,
+      "category": "Terror",
+      "level": 550,
+      "drops": [
+        "Terror Token",
+        "Shiny Stone",
+        "Legendary Chest"
+      ]
+    },
+    {
+      "key": "terror_yurei",
+      "name": "Yurei",
+      "img": "/assets/bosses/terror/yurei.png",
+      "icon": null,
+      "category": "Terror",
+      "level": 550,
+      "drops": [
+        "Terror Token",
+        "Shiny Stone",
+        "Legendary Chest"
+      ]
+    },
+    {
+      "key": "terror_kame",
+      "name": "Kame",
+      "img": "/assets/bosses/terror/kame.png",
+      "icon": null,
+      "category": "Terror",
+      "level": 575,
+      "drops": [
+        "Terror Token",
+        "Shiny Stone",
+        "Legendary Chest"
+      ]
+    },
+    {
+      "key": "terror_unknown",
+      "name": "Unknown",
+      "img": "/assets/bosses/terror/unknown.png",
+      "icon": null,
+      "category": "Terror",
+      "level": 575,
+      "drops": [
+        "Terror Token",
+        "Shiny Stone",
+        "Legendary Chest"
+      ]
+    },
+    {
+      "key": "terror_kairiki",
+      "name": "Kairiki",
+      "img": "/assets/bosses/terror/kairiki.png",
+      "icon": null,
+      "category": "Terror",
+      "level": 600,
+      "drops": [
+        "Terror Token",
+        "Shiny Stone",
+        "Legendary Chest"
+      ]
+    },
+    {
+      "key": "terror_ptera",
+      "name": "Ptera",
+      "img": "/assets/bosses/terror/ptera.png",
+      "icon": null,
+      "category": "Terror",
+      "level": 600,
+      "drops": [
+        "Terror Token",
+        "Shiny Stone",
+        "Legendary Chest"
+      ]
+    },
+    {
+      "key": "terror_seishin",
+      "name": "Seishin",
+      "img": "/assets/bosses/terror/seishin.png",
+      "icon": null,
+      "category": "Terror",
+      "level": 600,
+      "drops": [
+        "Terror Token",
+        "Shiny Stone",
+        "Legendary Chest"
+      ]
+    },
+    {
+      "key": "terror_gama",
+      "name": "Gama",
+      "img": "/assets/bosses/terror/gama.png",
+      "icon": null,
+      "category": "Terror",
+      "level": 625,
+      "drops": [
+        "Terror Token",
+        "Shiny Stone",
+        "Legendary Chest"
+      ]
+    },
+    {
+      "key": "terror_kitsune",
+      "name": "Kitsune",
+      "img": "/assets/bosses/terror/kitsune.png",
+      "icon": null,
+      "category": "Terror",
+      "level": 625,
+      "drops": [
+        "Terror Token",
+        "Shiny Stone",
+        "Legendary Chest"
+      ]
+    }
+  ]
+}

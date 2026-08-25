@@ -21,6 +21,7 @@ const SOURCES = {
   creatures: `${HOST}/game/creatures.json`,
   items: `${HOST}/game/items.json`,
   mapMarkers: `${HOST}/api/game/map-markers`,
+  bosses: `${HOST}/game/bossCatalog.json`,
 };
 
 const UA =
@@ -34,10 +35,17 @@ async function get(url) {
 
 async function main() {
   console.log("Baixando fonte-mestra do Poke Idle World...");
-  const [creaturesRaw, itemsRaw, mapRaw] = await Promise.all([
+  const [creaturesRaw, itemsRaw, mapRaw, bossesRaw] = await Promise.all([
     get(SOURCES.creatures),
     get(SOURCES.items),
     get(SOURCES.mapMarkers),
+    get(SOURCES.bosses).catch((e) => {
+      // O catálogo de boss e o ÚNICO opcional da ingestão, e isso e deliberado: as
+      // outras tres fontes são o site inteiro, esta é uma ferramenta só. Falhar aqui
+      // derruba a atualização do catálogo por causa da tela menor.
+      console.warn(`AVISO: bossCatalog indisponível (${e.message}); bosses.json mantido.`);
+      return null;
+    }),
   ]);
 
   const creaturesSrc = creaturesRaw.creatures ?? creaturesRaw;
@@ -117,6 +125,37 @@ async function main() {
     "utf8",
   );
 
+  // O catálogo de BOSS mora em arquivo próprio, e não dentro do snapshot.
+  //
+  // O snapshot passa pela maquinaria de frescor do `source.ts`: ETag no
+  // creatures.json a cada visita, porque ouro por abate e XP mudam com patch de
+  // balanceamento e um número de uma hora atrás já troca a decisão de quem lê.
+  //
+  // Boss não é esse tipo de dado. O que a fonte publica dele é nome, categoria,
+  // nível e drops — identidade, não balanceamento. Boss novo entra numa
+  // atualização de conteúdo, e a ingestão pega na próxima passada. Enfiá-lo no
+  // snapshot custaria uma quarta fonte na chave de versão do catálogo inteiro
+  // pra dar frescor de segundo a um dado que muda por temporada.
+  if (bossesRaw) {
+    const bosses = (Array.isArray(bossesRaw) ? bossesRaw : []).map((b) => ({
+      key: String(b.key),
+      name: String(b.name ?? b.key),
+      img: b.img ?? null,
+      icon: b.icon ?? null,
+      category: String(b.category ?? "Especiais"),
+      level: num(b.level),
+      drops: Array.isArray(b.drops) ? b.drops.map(String) : [],
+    }));
+    if (bosses.length) {
+      await writeFile(
+        join(ROOT, "src/data/bosses.json"),
+        JSON.stringify({ generatedAt, source: SOURCES.bosses, count: bosses.length, bosses }, null, 2) + "\n",
+        "utf8",
+      );
+      console.log(`OK: ${bosses.length} bosses -> src/data/bosses.json`);
+    }
+  }
+
   // Copia crua datada (gitignorada) pra auditar patch de balanceamento depois.
   const stamp = generatedAt.slice(0, 10);
   const rawDir = join(ROOT, "data/raw", stamp);
@@ -124,6 +163,7 @@ async function main() {
   await writeFile(join(rawDir, "creatures.json"), JSON.stringify(creaturesRaw), "utf8");
   await writeFile(join(rawDir, "items.json"), JSON.stringify(itemsRaw), "utf8");
   await writeFile(join(rawDir, "map-markers.json"), JSON.stringify(mapRaw), "utf8");
+  if (bossesRaw) await writeFile(join(rawDir, "bossCatalog.json"), JSON.stringify(bossesRaw), "utf8");
 
   console.log(
     `OK ${stamp}: ${creatures.length} criaturas, ${items.length} itens, ${hunts.length} hunts -> src/data/piwdex.json`,
