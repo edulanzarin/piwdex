@@ -1,0 +1,52 @@
+<svg viewBox="0 0 128 128" width="128" height="128" xmlns="http://www.w3.org/2000/svg" role="img">
+  <title>TM</title>
+  <!-- #8b7dfc color-t-tm · #4b3f9e sombra · #cfc6ff luz · #171310 oclusão
+       luz: alto-esquerda -->
+  <ellipse cx="64" cy="118" rx="36" ry="5" fill="#000" opacity=".3"/>
+
+  <defs>
+    <!-- O brilho do disco é um GRADIENTE e não uma faixa chapada. Disco se
+         reconhece pela luz que corre na superfície: sem ela a peça vira uma
+         rosca roxa, que é a mesma figura de qualquer outra rosca. -->
+    <linearGradient id="tm-face" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#cfc6ff"/>
+      <stop offset="0.34" stop-color="#8b7dfc"/>
+      <stop offset="0.62" stop-color="#4b3f9e"/>
+      <stop offset="1" stop-color="#8b7dfc"/>
+    </linearGradient>
+  </defs>
+
+  <!-- A CARCAÇA quadrada por trás, que é o que separa um TM de um CD.
+       No jogo o item é um disco dentro de uma caixinha; só o círculo lia como
+       mídia de música. -->
+  <rect x="16" y="18" width="96" height="92" rx="10" fill="#171310"/>
+  <rect x="20" y="22" width="88" height="84" rx="7" fill="#241f3d"/>
+  <path d="M24 40a4 4 0 0 1 4-4h30" fill="none" stroke="#4b3f9e" stroke-width="4" stroke-linecap="round"/>
+
+  <!-- o disco -->
+  <circle cx="64" cy="64" r="35" fill="#171310"/>
+  <circle cx="64" cy="64" r="31" fill="url(#tm-face)"/>
+  <path d="M42 46a31 31 0 0 1 18 -12" fill="none" stroke="#e9e4ff" stroke-width="5" stroke-linecap="round"/>
+
+  <!-- os sulcos: dois arcos finos, o bastante pra ler como mídia gravada -->
+  <g fill="none" stroke="#171310" stroke-width="1.6" opacity=".45">
+    <circle cx="64" cy="64" r="24"/>
+    <circle cx="64" cy="64" r="18"/>
+  </g>
+
+  <circle cx="64" cy="64" r="10" fill="#171310"/>
+  <circle cx="64" cy="64" r="6.5" fill="#241f3d"/>
+
+  <!-- A ETIQUETA na borda de baixo da carcaça: é o detalhe que diz que a peça
+       é uma MÁQUINA de ensinar, e não um disco qualquer. -->
+  <rect x="34" y="88" width="60" height="14" rx="4" fill="#171310"/>
+  <rect x="36.5" y="90" width="55" height="10" rx="2.5" fill="#8b7dfc"/>
+  <g fill="#241f3d">
+    <rect x="41" y="93" width="4" height="4" rx="1"/>
+    <rect x="48" y="93" width="4" height="4" rx="1"/>
+    <rect x="55" y="93" width="4" height="4" rx="1"/>
+    <rect x="62" y="93" width="4" height="4" rx="1"/>
+    <rect x="69" y="93" width="4" height="4" rx="1"/>
+    <rect x="76" y="93" width="4" height="4" rx="1"/>
+  </g>
+</svg>

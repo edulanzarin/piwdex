@@ -479,3 +479,59 @@ export const COMO_USAR_EEVEE: Omit<HowToProps, "tint"> = {
     </>,
   ],
 };
+
+export const COMO_USAR_TM: Omit<HowToProps, "tint"> = {
+  resumo:
+    "Todo golpe de TM faz 60 de poder por segundo, e o melhor golpe natural das 482 espécies faz 43,3 — não existe nada natural que chegue perto. A ferramenta diz qual disco trocar pelas suas peças e em qual dos seus pokémon ele rende mais.",
+  passos: [
+    {
+      titulo: "O preço é IGUAL em todos os discos",
+      texto:
+        "O TM Researcher troca o mesmo tanto de peças por um disco de qualquer tipo. Como o custo não separa nada, a escolha inteira é sobre quem aproveita — a mesma forma da troca do Eevee.",
+    },
+    {
+      titulo: "Comece pelo DISCO, não pelo pokémon",
+      texto:
+        "A grade de cima mostra os dezenove. Com cartas na bolsa, cada disco diz quantos DOS SEUS aprendem — que é a pergunta de quem tem peças na mão e precisa decidir agora.",
+    },
+    {
+      titulo: "Leia o SALTO antes do dano",
+      texto:
+        "A lista ordena por quanto o disco transforma, e não por quem termina batendo mais. Scizor termina com o maior número da lista e ganha só 1,77x, porque o moveset natural dele já era bom; Jolteon salta 7,6x. Com um disco na mão, transformar vale mais que somar.",
+    },
+    {
+      titulo: "A seta de tier é o que fecha a decisão",
+      texto:
+        "Ela só aparece quando o disco muda a faixa da espécie na tier list. Subir nível e quality mexem no número e não na posição, porque todo mundo pode fazer o mesmo; o disco não, porque nem todo mundo aprende.",
+    },
+  ],
+  bomSaber: [
+    <>
+      <code>Draconic Soul</code>, o TM de Dragão, tem <strong>300 de poder e não 600</strong>.
+      É o único dos quinze pela metade. Quem troca esperando o salto dos outros leva metade
+      dele.
+    </>,
+    <>
+      Normal, Aço e Fada têm disco no jogo e <strong>nenhum golpe</strong>: nenhuma das 482
+      espécies do catálogo aprende um TM desses tipos. Eles continuam na grade, apagados, em
+      vez de sumir — item que some da lista parece decisão nossa, e não fato do catálogo.
+    </>,
+    <>
+      O <code>AoE TM Disk</code> é outra coisa: ele não ensina golpe, faz os golpes Normais do
+      pokémon acertarem em área. Como o efeito não está no moveset publicado, nada aqui o
+      simula — ele é decisão de farm, não de dano num alvo só.
+    </>,
+    <>
+      O salto <strong>não muda com o seu nível nem com a quality</strong>: os dois lados da
+      razão usam o mesmo stat multiplicado pelo mesmo fator, e ele cancela. O que muda é o IV,
+      e só quando o melhor golpe natural e o do TM usam stats diferentes (um físico, outro
+      especial) — por isso o recorte “só os meus” lê os IV da carta.
+    </>,
+    <>
+      O dano por segundo é do MOVESET INTEIRO, e não do melhor golpe: neste jogo cada golpe
+      dispara sozinho quando a recarga acaba, então ninguém escolhe um. É por isso que o TM
+      não multiplica o dano por 60/43 — ele soma um golpe muito bom a um moveset que continua
+      disparando.
+    </>,
+  ],
+};

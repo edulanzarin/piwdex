@@ -119,6 +119,13 @@
      como "hunt desbotada". A cor aqui nao ilustra a especie, ela separa a
      ferramenta das outras sete na navegacao. */
   --color-t-eevee: #e879f9;
+  /* O TM fecha em violeta (247deg), no maior vao que sobrava entre as
+     ferramentas do site — do azul da calculadora (215) ao magenta do Eevee
+     (292). Ele passa PERTO do violeta do robo (258), e isso e seguro por um
+     motivo estrutural e nao por sorte: o robo nao esta em `FERRAMENTAS`, mora
+     atras de login e nunca divide navegacao nem a grade da home com estas oito.
+     Se um dia ele entrar na barra, esta e a cor que muda. */
+  --color-t-tm: #8b7dfc;
 
   /* O robo nao e uma oitava ferramenta da dex — ele mora noutro dominio, e
      atras de login. Ganha cor propria pelo mesmo motivo que as outras tem:

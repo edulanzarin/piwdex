@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BookOpen, Calculator, Egg, Package, Radar, Shield, Sparkles, Swords } from "lucide-react";
+import { BookOpen, Calculator, Disc3, Egg, Package, Radar, Shield, Sparkles, Swords } from "lucide-react";
 import { ButtonLink, IconChevronRight, Pokeball, Sprite } from "@/components/ui";
 import { CascaSite } from "@/components/casca-site";
 import { arteUrl, iconeUrl } from "@/lib/ferramentas";
@@ -100,6 +100,14 @@ const FERRAMENTAS = [
     icon: Sparkles,
     arte: "eevee",
     cor: "var(--color-t-eevee)",
+  },
+  {
+    href: "/tm",
+    nome: "TM",
+    desc: "qual disco, e em quem",
+    icon: Disc3,
+    arte: "tm",
+    cor: "var(--color-t-tm)",
   },
 ];
 

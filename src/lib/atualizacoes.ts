@@ -50,6 +50,22 @@ export interface Atualizacao {
 export const ATUALIZACOES: Atualizacao[] = [
   {
     data: "2026-08-25",
+    titulo: "TM, a nona ferramenta",
+    tipo: "novo",
+    onde: "/tm",
+    resumo:
+      "Todo golpe de TM faz 60 de poder por segundo, e o melhor golpe natural das 482 " +
+      "espécies faz 43,3 — é o maior salto de poder do jogo, e nenhuma tela dizia onde ele " +
+      "rende. A ferramenta mostra qual disco trocar pelas suas peças e em qual dos seus.",
+    itens: [
+      "O Researcher cobra o mesmo por qualquer disco, então o preço não separa nada: a lista ordena por quanto o disco TRANSFORMA, e não por quem termina batendo mais.",
+      "A seta de tier aparece só quando o disco muda a faixa da espécie — um Jolteon com disco de Elétrico sai de B e chega em S.",
+      "Draconic Soul, o TM de Dragão, tem 300 de poder e não 600. É o único dos quinze pela metade.",
+      "Normal, Aço e Fada têm disco no jogo e nenhum golpe: nenhuma espécie do catálogo aprende um TM desses tipos.",
+    ],
+  },
+  {
+    data: "2026-08-25",
     titulo: "Eevee, a oitava ferramenta",
     tipo: "novo",
     onde: "/eevee",

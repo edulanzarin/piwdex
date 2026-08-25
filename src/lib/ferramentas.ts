@@ -7,11 +7,12 @@ import {
   Shield,
   Sparkles,
   Swords,
+  Disc3,
   type LucideIcon,
 } from "lucide-react";
 
 /**
- * As oito ferramentas, num lugar so.
+ * As nove ferramentas, num lugar so.
  *
  * Antes o mesmo dado morava em tres arquivos: a home tinha nome, cor, arte e
  * paragrafo; a navegacao tinha nome e rota; cada pagina repetia arte, cor e
@@ -148,6 +149,18 @@ export const FERRAMENTAS: Ferramenta[] = [
     desc:
       "Flareon, Vaporeon, Jolteon, Umbreon ou Espeon: as cinco custam o mesmo, então " +
       "compara o que separa — onde farmar as dez pedras no seu nível e quem rende mais.",
+  },
+  {
+    href: "/tm",
+    chamada: "Escolha o disco de",
+    nome: "TM",
+    arte: "tm",
+    cor: "var(--color-t-tm)",
+    Icone: Disc3,
+    linha: "Qual disco trocar pelas suas peças, e em qual dos seus ele rende mais.",
+    desc:
+      "Todo TM faz 60 de poder por segundo e o melhor golpe natural do jogo faz 43,3. " +
+      "Mostra quem aprende cada disco, quanto cada um ganha e quem muda de tier.",
   },
 ];
 
