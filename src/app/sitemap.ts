@@ -3,6 +3,7 @@ import { getData } from "@/lib/data";
 import { SITE_URL } from "@/lib/site";
 import { TODOS_SLUGS } from "@/lib/tipo-url";
 import { TODOS_SLUGS_RARIDADE } from "@/lib/raridade-url";
+import { PATCHES } from "@/lib/patches-data";
 
 /**
  * O mapa do site.
@@ -26,7 +27,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const telas: MetadataRoute.Sitemap = [
     { url: SITE_URL, changeFrequency: "weekly", priority: 1 },
-    ...["/dex", "/itens", "/calc", "/hunt", "/breed", "/meta", "/stadium", "/eevee", "/tm", "/atualizacoes", "/privacidade"].map((p) => ({
+    ...["/dex", "/itens", "/calc", "/hunt", "/breed", "/meta", "/stadium", "/eevee", "/tm", "/patches", "/atualizacoes", "/privacidade"].map((p) => ({
       url: `${SITE_URL}${p}`,
       changeFrequency: "weekly" as const,
       priority: p === "/privacidade" ? 0.2 : 0.8,
@@ -49,10 +50,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.7,
   }));
 
+  // A ficha de um patch nunca muda depois de escrita, e `lastModified` diz
+  // exatamente isso: a data do proprio patch, e nao a do catalogo de hoje.
+  const patches: MetadataRoute.Sitemap = PATCHES.map((p) => ({
+    url: `${SITE_URL}/patches/${p.id}`,
+    lastModified: new Date(p.quando),
+    changeFrequency: "never" as const,
+    priority: 0.5,
+  }));
+
   const fichas: MetadataRoute.Sitemap = [
     ...db.creatures.map((c) => ({ url: `${SITE_URL}/dex/${c.pokeId}`, lastModified: quando, priority: 0.6 })),
     ...db.items.map((i) => ({ url: `${SITE_URL}/itens/${i.id}`, lastModified: quando, priority: 0.4 })),
   ];
 
-  return [...telas.map((t) => ({ ...t, lastModified: quando })), ...hubs, ...raridades, ...fichas];
+  return [...telas.map((t) => ({ ...t, lastModified: quando })), ...hubs, ...raridades, ...patches, ...fichas];
 }

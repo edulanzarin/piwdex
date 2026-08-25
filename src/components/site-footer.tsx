@@ -33,6 +33,12 @@ export function SiteFooter() {
             Atualizações
           </Link>
           <Link
+            href="/patches"
+            className="tap pix text-[11px] text-text-mute transition-colors hover:text-accent"
+          >
+            Patches do jogo
+          </Link>
+          <Link
             href="/privacidade"
             className="tap pix text-[11px] text-text-mute transition-colors hover:text-accent"
           >

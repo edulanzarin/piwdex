@@ -55,6 +55,15 @@ export default function AtualizacoesPage() {
       />
 
       <Note>
+        Esta página é o que mudou no SITE. O que mudou no JOGO — stat, drop, XP,
+        ouro por abate — tem página própria, em{" "}
+        <Link href="/patches" className="text-accent not-italic hover:opacity-80">
+          patches do jogo
+        </Link>
+        .
+      </Note>
+
+      <Note>
         Conserto de cálculo entra aqui mesmo quando é pequeno. Se um número
         mudou, quem tomou uma decisão com o número velho tem o direito de saber
         — e de refazer a conta.

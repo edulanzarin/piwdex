@@ -50,6 +50,21 @@ export interface Atualizacao {
 export const ATUALIZACOES: Atualizacao[] = [
   {
     data: "2026-08-25",
+    titulo: "O diário do catálogo",
+    tipo: "novo",
+    onde: null,
+    resumo:
+      "O jogo não publica changelog, e patch de balanceamento troca a resposta de todas as " +
+      "ferramentas de uma vez. Agora o site compara o catálogo com o que tinha antes e conta " +
+      "a diferença sozinho, em /patches — com data, número de antes e número de depois.",
+    itens: [
+      "A manchete de cada espécie é o OURO POR ABATE, e não a lista de chances que o causou: no patch de 20/08 o Ledian caiu de 493 pra 38 (13x), e essa é a frase que faz alguém trocar de caçada.",
+      "O diário nasce com o patch de 20/08/2026 reconstruído do histórico do repositório. Os anteriores ficaram de fora porque misturam mudança do jogo com mudança da minha ingestão — e um patch inventado é pior que um patch faltando.",
+      "Uma rotina roda de seis em seis horas e registra sozinha. Se ela parar, a página diz que o jogo publicou algo que ainda não entrou, em vez de ficar calada parecendo em dia.",
+    ],
+  },
+  {
+    data: "2026-08-25",
     titulo: "TM, a nona ferramenta",
     tipo: "novo",
     onde: "/tm",
