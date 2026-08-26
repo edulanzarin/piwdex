@@ -1,21 +1,13 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { dataLonga } from "@/lib/atualizacoes";
 import { PATCHES, patchPorId } from "@/lib/patches-data";
-import {
-  alvosTocados,
-  frase,
-  naturezaLabel,
-  porAlvo,
-  resumo,
-  type Alvo,
-  type Mudanca,
-  type Patch,
-} from "@/lib/patches";
-import { spriteUrl } from "@/lib/sprites";
+import { alvosTocados, frase, type Patch } from "@/lib/patches";
+import { PatchBrowser } from "@/components/patch-browser";
 import { JsonLd, trilha } from "@/lib/jsonld";
-import { Badge, Chip, IconChevronRight, Note, PageHeader, Panel, Sprite } from "@/components/ui";
+import { Badge, IconChevronRight, Note, PageHeader, SkeletonForm } from "@/components/ui";
 import { Newspaper as IconPatch } from "lucide-react";
 
 interface Props {
@@ -50,20 +42,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 /**
  * A ficha de um patch.
  *
- * Ela se lê POR ALVO, e não por campo. "Todas as mudanças de ouro, depois todas
- * as de XP" é a organização natural do diff e a errada pra quem lê: ninguém abre
- * esta página perguntando "o que mudou de ouro", e sim "mexeram no bicho que eu
- * caço". Agrupado por espécie, a resposta é uma busca de página.
+ * A página é a casca — data, ressalvas e o que a entrada não conta. O corpo é
+ * `PatchBrowser`, que é cliente porque a pergunta de quem chega aqui é quase
+ * sempre um recorte ("mexeram no meu bicho?", "quais drops sumiram?"), e recorte
+ * que não se faz na tela se faz no Ctrl+F.
  */
 export default async function PatchPage({ params }: Props) {
   const { id } = await params;
   const patch = patchPorId(id);
   if (!patch) notFound();
-
-  const grupos = porAlvo(patch);
-  const especies = alvosTocados(patch, "especie");
-  const itens = alvosTocados(patch, "item");
-  const spots = alvosTocados(patch, "spot");
 
   return (
     <div className="flex flex-col gap-4">
@@ -78,9 +65,7 @@ export default async function PatchPage({ params }: Props) {
         title={`Patch de ${dataLonga(patch.data)}`}
         icon={<IconPatch size={22} />}
         lead={<Intervalo patch={patch} />}
-        actions={
-          patch.avisos.length ? <Badge tone="warn">EM CONFERÊNCIA</Badge> : null
-        }
+        actions={patch.avisos.length ? <Badge tone="warn">EM CONFERÊNCIA</Badge> : null}
       />
 
       {/* Os avisos vêm ANTES do conteúdo, e não num rodapé. Um bloco que pode
@@ -92,17 +77,6 @@ export default async function PatchPage({ params }: Props) {
         </Note>
       ))}
 
-      <Panel title="O tamanho do patch" bodyClassName="flex flex-wrap items-center gap-1.5">
-        {especies ? <Chip tone="accent">{especies} espécies</Chip> : null}
-        {itens ? <Chip tone="accent">{itens} itens</Chip> : null}
-        {spots ? <Chip tone="accent">{spots} pontos de caça</Chip> : null}
-        {resumo(patch).map((n) => (
-          <Chip key={n.natureza}>
-            {naturezaLabel(n.natureza)} ({n.n})
-          </Chip>
-        ))}
-      </Panel>
-
       {patch.cortadas ? (
         <Note>
           Esta entrada guarda as {patch.mudancas.length.toLocaleString("pt-BR")}{" "}
@@ -112,13 +86,12 @@ export default async function PatchPage({ params }: Props) {
         </Note>
       ) : null}
 
-      <ol className="flex flex-col gap-2">
-        {grupos.map((g) => (
-          <li key={`${g.alvo.familia}-${g.alvo.id}`}>
-            <BlocoAlvo alvo={g.alvo} mudancas={g.mudancas} />
-          </li>
-        ))}
-      </ol>
+      {/* `useSearchParams` numa página estática precisa de fronteira: sem ela o
+          build inteiro cai pra dinâmico, e esta é justamente a tela que podia
+          ser servida pronta. */}
+      <Suspense fallback={<SkeletonForm />}>
+        <PatchBrowser patch={patch} />
+      </Suspense>
 
       <Link
         href="/patches"
@@ -131,60 +104,56 @@ export default async function PatchPage({ params }: Props) {
   );
 }
 
-/** O intervalo que a entrada cobre. É a ressalva mais importante da página: o
- *  diário compara duas fotos, então tudo que aconteceu ENTRE elas aparece com a
- *  data da segunda. Esconder isso faria a página afirmar um dia que ela não sabe. */
+/**
+ * O intervalo que a entrada cobre — a ressalva mais importante da página: o
+ * diário compara duas fotos, então tudo que aconteceu ENTRE elas aparece com a
+ * data da segunda.
+ *
+ * Quando as duas leituras caem no mesmo dia, a frase passa a falar em HORA. A
+ * primeira versão dizia "entre 20 de agosto de 2026 e 20 de agosto de 2026 (as
+ * duas leituras são do mesmo dia)", que gasta duas linhas pra admitir que não
+ * disse nada — e o intervalo real (03h47 até 04h16) estava ali o tempo todo.
+ */
 function Intervalo({ patch }: { patch: Patch }) {
   if (!patch.desde) return <>O que o jogo mudou nesta passada.</>;
-  const de = patch.desde.slice(0, 10);
-  const ate = patch.quando.slice(0, 10);
+
+  const de = local(patch.desde);
+  const ate = local(patch.quando);
+  if (!de || !ate) return <>O que o jogo mudou nesta passada.</>;
+
+  if (de.dia === ate.dia) {
+    return (
+      <>
+        Tudo que o jogo mudou entre {de.hora} e {ate.hora} de {dataLonga(ate.dia)}.
+      </>
+    );
+  }
   return (
     <>
-      Tudo que o jogo mudou entre {dataLonga(de)} e {dataLonga(ate)}
-      {de === ate ? " (as duas leituras são do mesmo dia)" : ""}.
+      Tudo que o jogo mudou entre {dataLonga(de.dia)} e {dataLonga(ate.dia)}.
     </>
   );
 }
 
-function rotaDo(alvo: Alvo): string | null {
-  if (alvo.familia === "especie") return `/dex/${alvo.id}`;
-  if (alvo.familia === "item") return `/itens/${alvo.id}`;
-  return null;
+/**
+ * Dia e hora de um instante, os dois no MESMO fuso.
+ *
+ * A primeira versão comparava os dias pelo recorte do ISO (que é UTC) e
+ * imprimia a hora em São Paulo. As duas leituras do patch de 20/08 caem em
+ * 00h47 e 04h16 UTC, ou seja, 21h47 do dia 19 e 01h16 do dia 20 aqui — e a
+ * frase saía "entre 21:47 e 01:16 de 20 de agosto", carimbando no dia 20 uma
+ * hora que é do dia 19. Misturar fuso numa frase que fala de tempo é o jeito
+ * mais barato de a página mentir sem errar nenhum número.
+ */
+function local(iso: string): { dia: string; hora: string } | null {
+  const t = Date.parse(iso);
+  if (!Number.isFinite(t)) return null;
+  const d = new Date(t);
+  const FUSO = "America/Sao_Paulo";
+  // `en-CA` devolve AAAA-MM-DD, que é o formato que o `dataLonga` espera.
+  return {
+    dia: d.toLocaleDateString("en-CA", { timeZone: FUSO }),
+    hora: d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: FUSO }),
+  };
 }
 
-function BlocoAlvo({ alvo, mudancas }: { alvo: Alvo; mudancas: Mudanca[] }) {
-  const rota = rotaDo(alvo);
-  const sprite = alvo.familia === "especie" ? spriteUrl(Number(alvo.id)) : null;
-
-  const cabeca = (
-    <span className="flex items-center gap-2">
-      {sprite ? <Sprite src={sprite} alt="" size={28} className="[--sprite:28px]" /> : null}
-      <span className="text-[14px] text-text">{alvo.nome}</span>
-    </span>
-  );
-
-  return (
-    <Panel
-      title={
-        rota ? (
-          <Link href={rota} className="transition-colors hover:text-accent">
-            {cabeca}
-          </Link>
-        ) : (
-          cabeca
-        )
-      }
-      bodyClassName="flex flex-col gap-1.5"
-    >
-      {mudancas.map((m, i) => (
-        <p
-          key={`${m.natureza}-${m.detalhe ?? i}`}
-          className="flex items-start gap-2 text-[13px] leading-relaxed text-text-dim"
-        >
-          <span aria-hidden="true" className="mt-[7px] size-1.5 shrink-0 rounded-full bg-accent" />
-          {frase(m)}
-        </p>
-      ))}
-    </Panel>
-  );
-}

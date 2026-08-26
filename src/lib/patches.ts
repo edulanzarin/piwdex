@@ -493,65 +493,98 @@ export function fator(de: number, para: number): string | null {
   return `${s}x ${para > de ? "mais" : "menos"}`;
 }
 
-/** A mudança em uma frase, do ponto de vista de quem joga. */
-export function frase(m: Mudanca): string {
-  const nome = m.alvo.nome;
+/**
+ * A mudança em uma frase, do ponto de vista de quem joga.
+ *
+ * O SUJEITO é opcional, e isso é correção de uma tela ruim. Na ficha do patch as
+ * mudanças vêm agrupadas por alvo, com o nome dele no cabeçalho do bloco — e
+ * cada linha repetia esse mesmo nome: "Ledian rende 37,5...", "Ledian: Bug Gosme
+ * de 15%...", seis vezes embaixo de um cabeçalho escrito LEDIAN. O nome virava a
+ * primeira palavra de toda linha, que é o lugar onde o olho procura o que MUDOU.
+ *
+ * Fora do grupo (o cartão da lista, uma busca por espécie) o sujeito é
+ * obrigatório, porque ali a linha viaja sozinha.
+ */
+export function frase(m: Mudanca, opts: { sujeito?: boolean } = {}): string {
+  const { liga, texto } = parte(m);
+  if (opts.sujeito === false) return texto.charAt(0).toUpperCase() + texto.slice(1);
+  return `${m.alvo.nome}${liga}${texto}`;
+}
+
+/** O corpo da frase sem o sujeito, e como ele se liga a ele. `liga` é ": " onde
+ *  o sujeito é rótulo do que vem depois, e " " onde ele é quem pratica. */
+function parte(m: Mudanca): { liga: string; texto: string } {
   const de = m.de;
   const para = m.para;
   const v = (x: unknown) => (ehNum(x) ? fmt(x) : String(x ?? "nada"));
   const salto = ehNum(de) && ehNum(para) ? fator(de, para) : null;
   const sufixo = salto ? ` — ${salto}` : "";
+  const rotulo = (texto: string) => ({ liga: ": ", texto });
+  const acao = (texto: string) => ({ liga: " ", texto });
 
   switch (m.natureza) {
     case "especie-nova":
-      return `${nome} entrou no catálogo${ehNum(para) && para > 0 ? `, caçável no nível ${v(para)}` : ""}.`;
+      return acao(`entrou no catálogo${ehNum(para) && para > 0 ? `, caçável no nível ${v(para)}` : ""}.`);
     case "especie-sumiu":
-      return `${nome} saiu do catálogo.`;
+      return acao("saiu do catálogo.");
     case "stat":
-      return `${nome}: ${m.detalhe} base de ${v(de)} pra ${v(para)}${sufixo}.`;
+      return rotulo(`${m.detalhe} base de ${v(de)} pra ${v(para)}${sufixo}.`);
     case "tipo":
-      return `${nome}: ${m.detalhe} de ${v(de)} pra ${v(para)}.`;
+      return rotulo(`${m.detalhe} de ${v(de)} pra ${v(para)}.`);
     case "raridade":
-      return `${nome} mudou de raridade: ${v(de)} virou ${v(para)}.`;
+      return acao(`mudou de raridade: ${v(de)} virou ${v(para)}.`);
     case "nivel":
-      return `${nome} passou a ser caçado no nível ${v(para)}, e não mais ${v(de)}.`;
+      return acao(`passou a ser caçado no nível ${v(para)}, e não mais ${v(de)}.`);
     case "xp":
-      return `${nome} dá ${v(para)} de XP por abate, contra ${v(de)} antes${sufixo}.`;
+      return acao(`dá ${v(para)} de XP por abate, contra ${v(de)} antes${sufixo}.`);
     case "ouro":
-      return `${nome}: ${m.detalhe} de ${v(de)} pra ${v(para)} de ouro${sufixo}.`;
+      return rotulo(`${m.detalhe} de ${v(de)} pra ${v(para)} de ouro${sufixo}.`);
     case "ouro-abate":
-      return `${nome} rende ${v(para)} de ouro por abate, contra ${v(de)} antes${sufixo}.`;
+      return acao(`rende ${v(para)} de ouro por abate, contra ${v(de)} antes${sufixo}.`);
     case "evolucao":
-      return `${nome}: ${m.detalhe} de ${v(de)} pra ${v(para)}.`;
+      return rotulo(`${m.detalhe} de ${v(de)} pra ${v(para)}.`);
     case "drop-novo":
-      return `${nome} passou a dropar ${m.detalhe}${ehNum(para) ? ` (${fmt(chancePct(para))}%)` : ""}.`;
+      return acao(`passou a dropar ${m.detalhe}${ehNum(para) ? ` (${fmt(chancePct(para))}%)` : ""}.`);
     case "drop-sumiu":
-      return `${nome} parou de dropar ${m.detalhe}${ehNum(de) ? ` (dropava a ${fmt(chancePct(de))}%)` : ""}.`;
+      return acao(`parou de dropar ${m.detalhe}${ehNum(de) ? ` (dropava a ${fmt(chancePct(de))}%)` : ""}.`);
     case "drop-chance":
-      return `${nome}: ${m.detalhe} de ${ehNum(de) ? fmt(chancePct(de)) : "?"}% pra ${ehNum(para) ? fmt(chancePct(para)) : "?"}%${sufixo}.`;
+      return rotulo(`${m.detalhe} de ${ehNum(de) ? fmt(chancePct(de)) : "?"}% pra ${ehNum(para) ? fmt(chancePct(para)) : "?"}%${sufixo}.`);
     case "golpe-novo":
-      return `${nome} aprendeu ${m.detalhe}${ehNum(para) && para > 0 ? `, de ${v(para)} de poder` : ""}.`;
+      return acao(`aprendeu ${m.detalhe}${ehNum(para) && para > 0 ? `, de ${v(para)} de poder` : ""}.`);
     case "golpe-sumiu":
-      return `${nome} perdeu ${m.detalhe}.`;
+      return acao(`perdeu ${m.detalhe}.`);
     case "golpe-poder":
-      return `${nome}: ${m.detalhe} de ${v(de)} pra ${v(para)} de poder${sufixo}.`;
+      return rotulo(`${m.detalhe} de ${v(de)} pra ${v(para)} de poder${sufixo}.`);
     case "golpe-recarga":
-      return `${nome}: ${m.detalhe} recarrega em ${ehNum(para) ? fmt(para / 1000) : "?"}s, e não mais ${ehNum(de) ? fmt(de / 1000) : "?"}s${sufixo}.`;
+      return rotulo(`${m.detalhe} recarrega em ${ehNum(para) ? fmt(para / 1000) : "?"}s, e não mais ${ehNum(de) ? fmt(de / 1000) : "?"}s${sufixo}.`);
     case "golpe-nivel":
-      return `${nome} aprende ${m.detalhe} no nível ${v(para)}, e não mais ${v(de)}.`;
+      return acao(`aprende ${m.detalhe} no nível ${v(para)}, e não mais ${v(de)}.`);
     case "item-novo":
-      return `${nome} entrou no catálogo de itens.`;
+      return acao("entrou no catálogo de itens.");
     case "item-sumiu":
-      return `${nome} saiu do catálogo de itens.`;
+      return acao("saiu do catálogo de itens.");
     case "item-preco":
-      return `${nome} vale ${v(para)} de ouro no NPC, contra ${v(de)} antes${sufixo}.`;
+      return acao(`vale ${v(para)} de ouro no NPC, contra ${v(de)} antes${sufixo}.`);
     case "spot-novo":
-      return `${nome} abriu como ponto de caça${ehNum(para) && para > 0 ? `, no nível ${v(para)}` : ""}.`;
+      return acao(`abriu como ponto de caça${ehNum(para) && para > 0 ? `, no nível ${v(para)}` : ""}.`);
     case "spot-sumiu":
-      return `${nome} deixou de ser ponto de caça.`;
+      return acao("deixou de ser ponto de caça.");
     case "spot-nivel":
-      return `${nome} virou ponto de nível ${v(para)}, e não mais ${v(de)}.`;
+      return acao(`virou ponto de nível ${v(para)}, e não mais ${v(de)}.`);
   }
+}
+
+/** Sem acento e em minúscula — mesma normalização da busca da dex e dos itens. */
+export const semAcento = (s: string): string =>
+  s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
+/** A mudança bate com o que foi digitado? Procura no NOME do alvo e no detalhe
+ *  (o drop, o golpe, o campo), que é o que a pessoa tem na cabeça: ela busca
+ *  "Ledian" ou "Straw", e não "drop-chance". */
+export function combina(m: Mudanca, termo: string): boolean {
+  const t = semAcento(termo.trim());
+  if (!t) return true;
+  return semAcento(m.alvo.nome).includes(t) || semAcento(m.detalhe ?? "").includes(t);
 }
 
 /** Quantas mudanças de cada natureza, da mais frequente pra menos. */
