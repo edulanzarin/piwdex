@@ -1,0 +1,33 @@
+<svg viewBox="0 0 128 128" width="128" height="128" xmlns="http://www.w3.org/2000/svg" role="img">
+  <title>Loja</title>
+  <!-- #a78bfa color-t-robo · #6f52c9 sombra · #d8c9ff luz · #3a2a6b oclusão
+       #ffb454 o ouro · #c07f2e a sombra dele · luz: alto-esquerda -->
+  <ellipse cx="64" cy="118" rx="30" ry="6" fill="#000" opacity=".3"/>
+
+  <!-- SACOLA com a moeda saindo dela. A moeda é obrigatória: sacola sozinha é
+       "compras", e esta aba também VENDE. O que as duas pontas têm em comum é
+       o ouro, então o ouro é o assunto.
+       DUAS alças e uma dobra no topo, e não uma alça central: com uma alça só
+       o corpo lia como BALDE, que é outro objeto e outra ideia. -->
+  <g fill="none" stroke="#171310" stroke-width="13" stroke-linecap="round">
+    <path d="M39 54V34a13 13 0 0 1 26 0v20"/>
+    <path d="M65 54V34a13 13 0 0 1 26 0v20"/>
+  </g>
+  <g fill="none" stroke="#8f9aa8" stroke-width="6" stroke-linecap="round">
+    <path d="M39 54V34a13 13 0 0 1 26 0v20"/>
+    <path d="M65 54V34a13 13 0 0 1 26 0v20"/>
+  </g>
+
+  <path d="M16 46h96l-6 60a14 14 0 0 1-14 12H36a14 14 0 0 1-14-12z" fill="#171310"/>
+  <path d="M22.5 52h83l-5.4 53.5a9 9 0 0 1-9 8H36.9a9 9 0 0 1-9-8z" fill="#a78bfa"/>
+  <path d="M64 52h41.5l-5.4 53.5a9 9 0 0 1-9 8H64z" fill="#6f52c9"/>
+  <path d="M22.5 52h83l-1.6 16H24.1z" fill="#3a2a6b" opacity=".5"/>
+  <path d="M22.5 52h83l-.4 4H22.9z" fill="#d8c9ff" opacity=".5"/>
+
+  <circle cx="86" cy="84" r="25" fill="#171310"/>
+  <circle cx="86" cy="84" r="20" fill="#ffb454"/>
+  <path d="M86 64a20 20 0 0 1 0 40z" fill="#c07f2e"/>
+  <circle cx="86" cy="84" r="13" fill="#ffd49a" opacity=".55"/>
+  <path d="M86 72v24M80 78h9a5 5 0 0 1 0 10h-8a5 5 0 0 0 0 10h9" fill="none" stroke="#8a5518" stroke-width="4.5" stroke-linecap="round"/>
+  <path d="M72 72a20 20 0 0 1 9-6 20 20 0 0 0-12 9z" fill="#fff" opacity=".6"/>
+</svg>

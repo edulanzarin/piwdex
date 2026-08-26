@@ -1,0 +1,26 @@
+<svg viewBox="0 0 128 128" width="128" height="128" xmlns="http://www.w3.org/2000/svg" role="img">
+  <title>Entrar</title>
+  <!-- #a78bfa color-t-robo · #6f52c9 sombra · #d8c9ff luz · #3a2a6b oclusão
+       #ffd49a o metal quente · luz: alto-esquerda -->
+  <ellipse cx="64" cy="118" rx="30" ry="6" fill="#000" opacity=".3"/>
+
+  <!-- A CHAVE em pé, e não na diagonal: no quadro de 128 a diagonal joga o
+       segredo (os dentes) pro canto, onde ele é a primeira coisa que some
+       quando a peça é lida a 32px. -->
+  <circle cx="64" cy="38" r="31" fill="#171310"/>
+  <rect x="52" y="62" width="24" height="54" rx="8" fill="#171310"/>
+  <rect x="72" y="78" width="24" height="15" rx="6" fill="#171310"/>
+  <rect x="72" y="98" width="19" height="15" rx="6" fill="#171310"/>
+
+  <circle cx="64" cy="38" r="26" fill="#a78bfa"/>
+  <path d="M64 12a26 26 0 0 1 0 52z" fill="#6f52c9"/>
+  <rect x="55.5" y="64" width="17" height="49" rx="5.5" fill="#a78bfa"/>
+  <path d="M64 64h8.5v49H64z" fill="#6f52c9"/>
+  <rect x="74" y="81" width="20" height="9.5" rx="4.5" fill="#a78bfa"/>
+  <rect x="74" y="101" width="15" height="9.5" rx="4.5" fill="#a78bfa"/>
+
+  <circle cx="64" cy="38" r="11" fill="#3a2a6b"/>
+  <circle cx="64" cy="38" r="7.5" fill="#0f0d16"/>
+  <path d="M46 24a26 26 0 0 1 14-9 26 26 0 0 0-17 13z" fill="#fff" opacity=".55"/>
+  <rect x="57" y="66" width="5" height="42" rx="2.5" fill="#d8c9ff" opacity=".5"/>
+</svg>

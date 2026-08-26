@@ -1,0 +1,19 @@
+<svg viewBox="0 0 128 128" width="128" height="128" xmlns="http://www.w3.org/2000/svg" role="img">
+  <title>Chat</title>
+  <!-- #a78bfa color-t-robo · #6f52c9 sombra · #d8c9ff luz · #3a2a6b oclusão
+       #7ff2e8 a fala que chega · luz: alto-esquerda -->
+
+  <!-- DOIS balões, e não um: a aba não é "avisos", é conversa. Um balão só
+       leria como notificação, que é justamente o que este chat não é (nada
+       sai daqui sozinho). O de trás é o do jogo, frio; o da frente é o seu. -->
+  <path d="M40 18h68a14 14 0 0 1 14 14v30a14 14 0 0 1-14 14H74l-14 13V76H40a14 14 0 0 1-14-14V32a14 14 0 0 1 14-14z" fill="#171310"/>
+  <path d="M42 24h64a9 9 0 0 1 9 9v28a9 9 0 0 1-9 9H72l-8 8v-8H42a9 9 0 0 1-9-9V33a9 9 0 0 1 9-9z" fill="#8f9aa8"/>
+  <path d="M64 24h42a9 9 0 0 1 9 9v28a9 9 0 0 1-9 9H72l-8 8z" fill="#5f6875"/>
+  <g fill="#dbe2ea"><circle cx="56" cy="47" r="5"/><circle cx="74" cy="47" r="5"/><circle cx="92" cy="47" r="5"/></g>
+
+  <path d="M18 52h62a14 14 0 0 1 14 14v28a14 14 0 0 1-14 14H56l-16 14V108H18A14 14 0 0 1 4 94V66a14 14 0 0 1 14-14z" fill="#171310"/>
+  <path d="M20 58h58a9 9 0 0 1 9 9v26a9 9 0 0 1-9 9H54l-9 8v-8H20a9 9 0 0 1-9-9V67a9 9 0 0 1 9-9z" fill="#a78bfa"/>
+  <path d="M49 58h29a9 9 0 0 1 9 9v26a9 9 0 0 1-9 9H54l-5 4z" fill="#6f52c9"/>
+  <path d="M20 58h58a9 9 0 0 1 8 6H12a9 9 0 0 1 8-6z" fill="#d8c9ff" opacity=".5"/>
+  <g fill="#7ff2e8"><circle cx="34" cy="80" r="5.5"/><circle cx="52" cy="80" r="5.5"/><circle cx="70" cy="80" r="5.5"/></g>
+</svg>

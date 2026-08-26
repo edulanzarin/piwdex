@@ -1,0 +1,26 @@
+<svg viewBox="0 0 128 128" width="128" height="128" xmlns="http://www.w3.org/2000/svg" role="img">
+  <title>Conta</title>
+  <!-- #a78bfa color-t-robo · #6f52c9 sombra · #d8c9ff luz · #3a2a6b oclusão
+       #ff5c72 a bola do crachá · #f0ecea o papel · luz: alto-esquerda -->
+  <ellipse cx="64" cy="118" rx="30" ry="6" fill="#000" opacity=".3"/>
+
+  <!-- O CRACHÁ é retrato, e o passe da assinatura é paisagem: as duas telas
+       vizinhas não podiam ter a mesma silhueta em pé de igualdade. -->
+  <rect x="24" y="16" width="80" height="98" rx="13" fill="#171310"/>
+  <rect x="28" y="20" width="72" height="90" rx="10" fill="#f0ecea"/>
+  <path d="M64 20h26a10 10 0 0 1 10 10v70a10 10 0 0 1-10 10H64z" fill="#c4bcb4"/>
+  <path d="M28 30a10 10 0 0 1 10-10h52a10 10 0 0 1 10 10v14H28z" fill="#a78bfa"/>
+  <path d="M64 20h26a10 10 0 0 1 10 10v14H64z" fill="#6f52c9"/>
+  <rect x="52" y="10" width="24" height="16" rx="5" fill="#171310"/>
+  <rect x="55" y="13" width="18" height="10" rx="3" fill="#8f9aa8"/>
+
+  <circle cx="64" cy="66" r="21" fill="#171310"/>
+  <circle cx="64" cy="66" r="17.5" fill="#f0ecea"/>
+  <path d="M46.5 66a17.5 17.5 0 0 1 35 0z" fill="#ff5c72"/>
+  <path d="M64 48.5A17.5 17.5 0 0 1 81.5 66h-8.5A9 9 0 0 0 64 57z" fill="#c03a50"/>
+  <rect x="46.5" y="62.7" width="35" height="6.6" fill="#171310"/>
+  <circle cx="64" cy="66" r="7" fill="#171310"/>
+  <circle cx="64" cy="66" r="4.1" fill="#f0ecea"/>
+  <g fill="#c4bcb4"><rect x="42" y="94" width="44" height="7" rx="3.5"/></g>
+  <path d="M32 30a10 10 0 0 1 8-6 11 11 0 0 0-9 8z" fill="#fff" opacity=".5"/>
+</svg>

@@ -1,0 +1,28 @@
+<svg viewBox="0 0 128 128" width="128" height="128" xmlns="http://www.w3.org/2000/svg" role="img">
+  <title>Caçada</title>
+  <!-- #a78bfa color-t-robo · #6f52c9 sombra · #d8c9ff luz · #3a2a6b oclusão
+       #ff5c72 a bola · #d8c9ff o rastro · luz: alto-esquerda -->
+  <ellipse cx="64" cy="118" rx="30" ry="6" fill="#000" opacity=".3"/>
+
+  <!-- A bola ARREMESSADA, e não a mira: a mira já é a arte da ferramenta
+       pública de hunt, e as duas telas falam de coisas diferentes. Lá se
+       escolhe onde caçar; aqui a caçada está acontecendo.
+       O rastro é o que carrega esse "acontecendo", e ele precisa ser LINHA
+       PARALELA. Na primeira versão eram três arcos de raios diferentes, e sem
+       um eixo comum eles liam como três riscos soltos no canto. -->
+  <g stroke="#d8c9ff" stroke-linecap="round" fill="none">
+    <path d="M10 20 34 44" stroke-width="10" opacity=".38"/>
+    <path d="M8 44 26 62" stroke-width="8" opacity=".28"/>
+    <path d="M30 6 46 22" stroke-width="8" opacity=".28"/>
+  </g>
+
+  <circle cx="70" cy="70" r="40" fill="#171310"/>
+  <circle cx="70" cy="70" r="34.5" fill="#f0ecea"/>
+  <path d="M35.5 70a34.5 34.5 0 0 1 69 0z" fill="#ff5c72"/>
+  <path d="M70 35.5A34.5 34.5 0 0 1 104.5 70H88a18 18 0 0 0-18-18z" fill="#c03a50"/>
+  <rect x="35.5" y="63.8" width="69" height="12.4" fill="#171310"/>
+  <circle cx="70" cy="70" r="14" fill="#171310"/>
+  <circle cx="70" cy="70" r="8.5" fill="#f0ecea"/>
+  <circle cx="66.5" cy="66.5" r="2.9" fill="#fff"/>
+  <path d="M48 50a34.5 34.5 0 0 1 15-10 34.5 34.5 0 0 0-18 14z" fill="#fff" opacity=".6"/>
+</svg>

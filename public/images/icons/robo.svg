@@ -1,0 +1,32 @@
+<svg viewBox="0 0 128 128" width="128" height="128" xmlns="http://www.w3.org/2000/svg" role="img">
+  <title>Robô</title>
+  <!-- #a78bfa color-t-robo · #6f52c9 sombra · #d8c9ff luz · #3a2a6b oclusão
+       #7ff2e8 o visor aceso · luz: alto-esquerda -->
+  <ellipse cx="64" cy="118" rx="30" ry="6" fill="#000" opacity=".3"/>
+
+  <!-- A ANTENA acesa é o que diz "ligado" antes de qualquer rótulo. Ela é o
+       único elemento acima da cabeça, então é ela que dá a silhueta de robô
+       num tamanho em que o visor já virou um borrão. -->
+  <rect x="59" y="14" width="10" height="26" rx="5" fill="#171310"/>
+  <rect x="61" y="17" width="6" height="21" rx="3" fill="#6f52c9"/>
+  <circle cx="64" cy="14" r="11" fill="#171310"/>
+  <circle cx="64" cy="14" r="7.5" fill="#7ff2e8"/>
+  <circle cx="61.5" cy="11.5" r="2.6" fill="#fff"/>
+
+  <!-- as ORELHAS saem antes da cabeça pra ficarem atrás dela -->
+  <g fill="#171310"><rect x="8" y="56" width="14" height="28" rx="7"/><rect x="106" y="56" width="14" height="28" rx="7"/></g>
+  <g fill="#6f52c9"><rect x="10.5" y="59" width="9" height="22" rx="4.5"/><rect x="108.5" y="59" width="9" height="22" rx="4.5"/></g>
+
+  <rect x="18" y="34" width="92" height="72" rx="22" fill="#171310"/>
+  <rect x="22" y="38" width="84" height="64" rx="18" fill="#a78bfa"/>
+  <path d="M64 38h24a18 18 0 0 1 18 18v28a18 18 0 0 1-18 18H64z" fill="#6f52c9"/>
+  <path d="M40 38h48a18 18 0 0 1 15 8H25a18 18 0 0 1 15-8z" fill="#d8c9ff" opacity=".55"/>
+
+  <!-- o VISOR é uma faixa só, e não dois olhos soltos: dois olhos no quadrado
+       leem como bicho, uma faixa lê como máquina. -->
+  <rect x="31" y="54" width="66" height="34" rx="13" fill="#3a2a6b"/>
+  <circle cx="49" cy="71" r="8" fill="#7ff2e8"/>
+  <circle cx="79" cy="71" r="8" fill="#7ff2e8"/>
+  <circle cx="46.5" cy="68.5" r="2.8" fill="#fff"/>
+  <path d="M34 60a13 13 0 0 1 9-5 14 14 0 0 0-11 9z" fill="#fff" opacity=".45"/>
+</svg>

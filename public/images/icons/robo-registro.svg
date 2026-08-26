@@ -1,0 +1,24 @@
+<svg viewBox="0 0 128 128" width="128" height="128" xmlns="http://www.w3.org/2000/svg" role="img">
+  <title>Registro</title>
+  <!-- #a78bfa color-t-robo · #6f52c9 sombra · #d8c9ff luz · #3a2a6b oclusão
+       #7ff2e8 a linha viva · #f0ecea o papel · luz: alto-esquerda -->
+  <ellipse cx="64" cy="118" rx="30" ry="6" fill="#000" opacity=".3"/>
+
+  <!-- A FITA que sai da máquina, e não um bloco de papel: o registro do robô é
+       corrido, chega linha a linha e não tem última página. A ondulação no pé
+       é o que diz isso sem precisar de seta. -->
+  <path d="M22 12h84v92c0 8-6 14-14 14H36c-8 0-14-6-14-14z" fill="#171310"/>
+  <path d="M28 18h72v86c0 5-4 8-9 8H37c-5 0-9-3-9-8z" fill="#f0ecea"/>
+  <path d="M64 18h36v86c0 5-4 8-9 8H64z" fill="#c4bcb4"/>
+  <path d="M28 104c8 6 16 6 24 0s16-6 24 0 16 6 24 0v8c-8 6-16 6-24 0s-16-6-24 0-16 6-24 0z" fill="#171310"/>
+
+  <g fill="#3a2a6b" opacity=".8">
+    <rect x="38" y="34" width="52" height="7" rx="3.5"/>
+    <rect x="38" y="50" width="40" height="7" rx="3.5"/>
+    <rect x="38" y="66" width="46" height="7" rx="3.5"/>
+    <rect x="38" y="82" width="34" height="7" rx="3.5"/>
+  </g>
+  <circle cx="94" cy="37.5" r="7" fill="#171310"/>
+  <circle cx="94" cy="37.5" r="4.6" fill="#7ff2e8"/>
+  <path d="M32 24a9 9 0 0 1 7-5 10 10 0 0 0-8 7z" fill="#fff" opacity=".55"/>
+</svg>

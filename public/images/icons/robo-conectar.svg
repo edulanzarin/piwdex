@@ -1,0 +1,20 @@
+<svg viewBox="0 0 128 128" width="128" height="128" xmlns="http://www.w3.org/2000/svg" role="img">
+  <title>Conectar</title>
+  <!-- #a78bfa color-t-robo · #6f52c9 sombra · #d8c9ff luz · #3a2a6b oclusão
+       #8f9aa8 o elo do jogo · #dbe2ea o brilho dele · luz: alto-esquerda -->
+
+  <!-- DOIS ELOS: o violeta é o site, o de aço é a conta do jogo. Eles se
+       cruzam de verdade (o de aço passa por dentro do violeta e por fora do
+       outro lado) porque elo que só encosta lê como dois anéis, e o assunto
+       da tela é justamente que os dois ficam presos um no outro. -->
+  <g fill="none" stroke-linejoin="round">
+    <rect x="12" y="42" width="62" height="44" rx="22" stroke="#171310" stroke-width="19"/>
+    <rect x="54" y="42" width="62" height="44" rx="22" stroke="#171310" stroke-width="19"/>
+    <rect x="12" y="42" width="62" height="44" rx="22" stroke="#a78bfa" stroke-width="11"/>
+    <rect x="54" y="42" width="62" height="44" rx="22" stroke="#8f9aa8" stroke-width="11"/>
+    <path d="M74 64a22 22 0 0 1-11 19" stroke="#171310" stroke-width="19" stroke-linecap="round"/>
+    <path d="M74 64a22 22 0 0 1-11 19" stroke="#a78bfa" stroke-width="11" stroke-linecap="round"/>
+    <path d="M20 54a22 22 0 0 1 14-8" stroke="#d8c9ff" stroke-width="4" stroke-linecap="round" opacity=".7"/>
+    <path d="M96 50a22 22 0 0 1 12 10" stroke="#dbe2ea" stroke-width="4" stroke-linecap="round" opacity=".7"/>
+  </g>
+</svg>
