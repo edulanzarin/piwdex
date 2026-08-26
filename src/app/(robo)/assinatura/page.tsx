@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { AssinaturaTool } from "@/components/robo/assinatura-tool";
+import { HeroRobo } from "@/components/robo/hero-robo";
 import { exigirUsuario } from "@/lib/robo/sessao";
 import { queryOne } from "@/lib/robo/db";
 import { PRECO, pagamentoLigado } from "@/lib/robo/pagamento";
@@ -17,11 +18,14 @@ export default async function Assinatura() {
   );
 
   return (
-    <AssinaturaTool
-      ativa={u.vip}
-      ate={linha?.vip_ate ?? null}
-      preco={PRECO}
-      ligado={pagamentoLigado()}
-    />
+    <div className="flex flex-col gap-4">
+      <HeroRobo tela="/assinatura" />
+      <AssinaturaTool
+        ativa={u.vip}
+        ate={linha?.vip_ate ?? null}
+        preco={PRECO}
+        ligado={pagamentoLigado()}
+      />
+    </div>
   );
 }

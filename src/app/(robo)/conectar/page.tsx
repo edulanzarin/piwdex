@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { ConectarTool } from "@/components/robo/conectar-tool";
+import { HeroRobo } from "@/components/robo/hero-robo";
 import { GerenciarContas } from "@/components/robo/gerenciar-contas";
 import { exigirVip } from "@/lib/robo/sessao";
 import { contaDoUsuario, limiteDeContas, listarContas } from "@/lib/robo/vinculo";
@@ -29,6 +30,7 @@ export default async function Conectar({
 
   return (
     <div className="flex flex-col gap-4">
+      <HeroRobo tela="/conectar" />
       <ConectarTool
       status={alvo?.status ?? null}
       nomeJogador={alvo?.apelido ?? alvo?.nomeJogador ?? null}

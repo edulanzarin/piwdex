@@ -17,6 +17,8 @@ import { AbaRegistro } from "@/components/robo/painel-registro";
 import { PokeModal, fichaDaConta, type FichaPoke } from "@/components/robo/poke-modal";
 import { ProvedorConta, comConta } from "@/components/robo/conta-atual";
 import { SeletorDeConta, type ContaNaTela, type ContaViva } from "@/components/robo/seletor-conta";
+import { CabecalhoAba } from "@/components/robo/hero-robo";
+import { telaRobo } from "@/lib/telas-robo";
 
 /**
  * O cockpit.
@@ -42,6 +44,12 @@ export interface HuntOpcao {
 }
 
 type Aba = "conta" | "cacada" | "automacao" | "loja" | "chat" | "registro";
+
+/** O glifo de 14px de uma aba, lido do registro das telas. */
+function GlifoAba({ aba }: { aba: string }) {
+  const Icone = telaRobo(aba).Icone;
+  return <Icone size={14} strokeWidth={2} />;
+}
 
 function Numero({
   rotulo,
@@ -341,17 +349,22 @@ export function PainelTool({
       <Tabs
         value={aba}
         onChange={setAba}
+        /* O glifo vem do registro das telas, e nao de uma lista escrita aqui:
+           "Conta", "Caçada" e "Chat" tem quase o mesmo comprimento em caixa
+           alta, e sem silhueta na frente a aba se acha lendo, nao olhando. */
         items={[
-          { value: "conta", label: "Conta" },
-          { value: "cacada", label: "Caçada" },
-          { value: "automacao", label: "Automação" },
-          { value: "loja", label: "Loja" },
-          { value: "chat", label: "Chat", count: naoLidas || undefined },
-          { value: "registro", label: "Registro", count: eventosNovos || undefined },
+          { value: "conta", label: "Conta", icon: <GlifoAba aba="conta" /> },
+          { value: "cacada", label: "Caçada", icon: <GlifoAba aba="cacada" /> },
+          { value: "automacao", label: "Automação", icon: <GlifoAba aba="automacao" /> },
+          { value: "loja", label: "Loja", icon: <GlifoAba aba="loja" /> },
+          { value: "chat", label: "Chat", icon: <GlifoAba aba="chat" />, count: naoLidas || undefined },
+          { value: "registro", label: "Registro", icon: <GlifoAba aba="registro" />, count: eventosNovos || undefined },
         ]}
       />
 
       {aba === "cacada" ? (
+        <>
+        <CabecalhoAba aba="cacada" />
         <AbaCacada
           estado={estado}
           ocupado={ocupado}
@@ -363,18 +376,40 @@ export function PainelTool({
           config={config}
           onConfig={mudarConfig}
         />
+        </>
       ) : null}
-      {aba === "automacao" ? <AbaAutomacao estado={estado} /> : null}
+      {aba === "automacao" ? (
+        <>
+          <CabecalhoAba aba="automacao" />
+          <AbaAutomacao estado={estado} />
+        </>
+      ) : null}
       {aba === "loja" ? (
-        <AbaLoja estado={estado} config={config} onConfig={mudarConfig} />
+        <>
+          <CabecalhoAba aba="loja" />
+          <AbaLoja estado={estado} config={config} onConfig={mudarConfig} />
+        </>
       ) : null}
       <PokeModal ficha={ficha} onFechar={() => setFicha(null)} />
 
-      {aba === "conta" ? <AbaConta onFicha={setFicha} /> : null}
-      {aba === "chat" ? (
-        <AbaChat estado={estado} chat={chat} lidoAte={lidoAte} onFicha={setFicha} />
+      {aba === "conta" ? (
+        <>
+          <CabecalhoAba aba="conta" />
+          <AbaConta onFicha={setFicha} />
+        </>
       ) : null}
-      {aba === "registro" ? <AbaRegistro onLido={() => setEventosNovos(0)} /> : null}
+      {aba === "chat" ? (
+        <>
+          <CabecalhoAba aba="chat" />
+          <AbaChat estado={estado} chat={chat} lidoAte={lidoAte} onFicha={setFicha} />
+        </>
+      ) : null}
+      {aba === "registro" ? (
+        <>
+          <CabecalhoAba aba="registro" />
+          <AbaRegistro onLido={() => setEventosNovos(0)} />
+        </>
+      ) : null}
     </div>
     </ProvedorConta>
   );

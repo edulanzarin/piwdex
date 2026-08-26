@@ -34,17 +34,11 @@ export function FormAuth({ modo }: { modo: "entrar" | "criar" }) {
   );
 
   return (
-    <Panel className="mx-auto mt-10 w-full max-w-sm p-6">
-      <h1 className="pix text-[17px] text-[var(--color-t-robo)]">
-        {criando ? "Criar conta" : "Entrar"}
-      </h1>
-      <p className="mt-2 text-[13px] leading-relaxed text-text-dim">
-        {criando
-          ? "A conta é do PIWdex, não do jogo. A do jogo entra depois, na tela de conectar."
-          : "Sua conta do PIWdex."}
-      </p>
-
-      <form action={acao} className="mt-5 flex flex-col gap-3">
+    /* O titulo e a frase saiam daqui: eles viraram a chegada (`HeroRobo`) que a
+       pagina poe em cima. Mantidos nos dois lugares, a tela dizia "Entrar" duas
+       vezes em dois corpos diferentes, a dez centimetros de distancia. */
+    <Panel className="w-full p-6">
+      <form action={acao} className="flex flex-col gap-3">
         {criando ? (
           <Field label="Nome" hint="opcional, só pra tela te chamar de alguma coisa">
             <Input name="nome" autoComplete="nickname" maxLength={40} />

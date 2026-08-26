@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/cn";
-import { Pokeball } from "@/components/ui";
+import { Pokeball, Sprite } from "@/components/ui";
+import { arteRobo } from "@/lib/telas-robo";
 import { SITE_URL } from "@/lib/site";
 import { sair } from "@/lib/robo/acoes-auth";
 
@@ -37,9 +38,22 @@ export function RoboNav({ nome }: { nome?: string | null }) {
     <header className="sticky top-0 z-40 border-b border-white/10 bg-bg/92 backdrop-blur-xl backdrop-saturate-150 shadow-[inset_0_-1px_0_0_rgb(255_255_255/0.04)]">
       <div className="mx-auto flex h-14 w-full max-w-[1400px] items-center gap-1 px-3 sm:px-5">
         <Link href={logado ? "/painel" : "/entrar"} className="group mr-3 flex shrink-0 items-center gap-2">
-          <Pokeball
-            size={26}
-            className="text-[var(--color-t-robo)] transition-transform duration-150 group-hover:rotate-12"
+          {/* A marca do robo e o ROBO, e nao a pokebola da dex.
+              Ela estava aqui por herança: a barra nasceu copiada da barra da
+              dex, e a bola veio junto. Só que a bola é a marca do site inteiro
+              — ela abre a dex, o painel e as ~910 fichas —, então usá-la aqui
+              fazia a única tela que precisa se anunciar como OUTRO endereço
+              (bot.piwdex.com.br) se anunciar com o símbolo do endereço de onde
+              a pessoa acabou de sair. */}
+          <Sprite
+            src={arteRobo("robo")}
+            alt=""
+            size={28}
+            priority
+            className="shrink-0 [--sprite:26px] transition-transform duration-150 group-hover:rotate-6"
+            fallback={
+              <Pokeball size={26} className="text-[var(--color-t-robo)]" />
+            }
           />
           {/* A marca ganha o sufixo do subdominio em vez de virar outro nome: e o
               mesmo produto, noutro endereco. */}
